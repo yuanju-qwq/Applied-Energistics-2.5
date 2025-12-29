@@ -51,6 +51,7 @@ import net.minecraftforge.items.IItemHandler;
 import de.ellpeck.actuallyadditions.api.tile.IPhantomTile;
 import gregtech.api.block.machines.BlockMachine;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
 import appeng.api.AEApi;
 import appeng.api.config.*;
@@ -1480,6 +1481,11 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                     MetaTileEntity metaTileEntity = Platform.getMetaTileEntity(directedTile.getWorld(),
                             directedTile.getPos());
                     if (metaTileEntity != null) {
+                        if (metaTileEntity instanceof MetaTileEntityMultiblockPart part) {
+                            if (part.getController() != null) {
+                                return part.getController().getMetaFullName();
+                            }
+                        }
                         return metaTileEntity.getMetaFullName();
                     }
                 }

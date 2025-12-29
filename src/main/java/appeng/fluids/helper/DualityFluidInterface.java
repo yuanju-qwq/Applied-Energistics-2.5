@@ -47,6 +47,7 @@ import net.minecraftforge.items.IItemHandler;
 
 import gregtech.api.block.machines.BlockMachine;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
@@ -292,6 +293,11 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
                     MetaTileEntity metaTileEntity = Platform.getMetaTileEntity(directedTile.getWorld(),
                             directedTile.getPos());
                     if (metaTileEntity != null) {
+                        if (metaTileEntity instanceof MetaTileEntityMultiblockPart part) {
+                            if (part.getController() != null) {
+                                return part.getController().getMetaFullName();
+                            }
+                        }
                         return metaTileEntity.getMetaFullName();
                     }
                 }
