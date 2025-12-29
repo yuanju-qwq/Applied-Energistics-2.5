@@ -20,8 +20,16 @@ package appeng.tile.crafting;
 
 import net.minecraft.item.ItemStack;
 
+import appeng.block.crafting.BlockCraftingUnit;
+
 public class TileCraftingStorageTile extends TileCraftingTile {
     private static final int KILO_SCALAR = 1024;
+
+    public static int getStorageBytesFromItemStack(ItemStack stack) {
+        return CraftingStorageType.fromItemStack(stack)
+                .map(CraftingStorageType::getStorageBytes)
+                .orElse(0);
+    }
 
     @Override
     protected ItemStack getItemFromTile(final Object obj) {
@@ -48,8 +56,9 @@ public class TileCraftingStorageTile extends TileCraftingTile {
             return 0;
         }
 
-        final int kiloBytes = this.getStorageBytes() / KILO_SCALAR;
-        return CraftingStorageType.fromKiloBytes(kiloBytes)
+        final BlockCraftingUnit unit = (BlockCraftingUnit) this.world.getBlockState(this.pos).getBlock();
+        // 使用CraftingStorageType枚举来获取字节数
+        return CraftingStorageType.fromBlockType(unit.type)
                 .map(CraftingStorageType::getStorageBytes)
                 .orElse(0);
     }
