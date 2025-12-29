@@ -18,14 +18,7 @@
 
 package appeng.tile.crafting;
 
-
-import appeng.api.AEApi;
-import appeng.api.definitions.IBlocks;
-import appeng.block.crafting.BlockCraftingUnit;
 import net.minecraft.item.ItemStack;
-
-import java.util.Optional;
-
 
 public class TileCraftingStorageTile extends TileCraftingTile {
     private static final int KILO_SCALAR = 1024;

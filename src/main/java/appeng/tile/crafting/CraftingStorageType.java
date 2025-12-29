@@ -1,10 +1,12 @@
 package appeng.tile.crafting;
 
-import appeng.api.AEApi;
-import net.minecraft.item.ItemStack;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Supplier;
+
+import net.minecraft.item.ItemStack;
+
+import appeng.api.AEApi;
 
 public enum CraftingStorageType {
     STORAGE_1K(1, 1024, () -> AEApi.instance().definitions().blocks().craftingStorage1k().maybeStack(1)),

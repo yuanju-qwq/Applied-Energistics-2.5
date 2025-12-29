@@ -1,11 +1,13 @@
 package appeng.core.transformer;
 
-import appeng.core.AE2ELCore;
-import net.minecraft.launchwrapper.IClassTransformer;
-import net.minecraft.launchwrapper.Launch;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+
+import net.minecraft.launchwrapper.IClassTransformer;
+import net.minecraft.launchwrapper.Launch;
+
+import appeng.core.AE2ELCore;
 
 public class AE2ELTransformer implements IClassTransformer {
 

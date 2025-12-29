@@ -31,14 +31,12 @@ import net.minecraft.util.math.Vec3d;
 
 import appeng.api.AEApi;
 import appeng.api.config.*;
-import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.crafting.ICraftingLink;
 import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
-import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEInventory;
@@ -248,6 +246,7 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
     public void jobStateChange(final ICraftingLink link) {
         this.craftingTracker.jobStateChange(link);
     }
+
     private boolean craftOnly() {
         return this.getConfigManager().getSetting(Settings.CRAFT_ONLY) == YesNo.YES;
     }

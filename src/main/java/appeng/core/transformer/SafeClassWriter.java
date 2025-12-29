@@ -1,12 +1,5 @@
 package appeng.core.transformer;
 
-import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-
-import javax.annotation.Nullable;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.HashMap;
@@ -14,12 +7,22 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+
+import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
+
 /**
- * Safe class writer.
- * The way COMPUTE_FRAMES works may require loading additional classes. This can cause ClassCircularityErrors.
- * The override for getCommonSuperClass will ensure that COMPUTE_FRAMES works properly by using the right ClassLoader.
+ * Safe class writer. The way COMPUTE_FRAMES works may require loading additional classes. This can cause
+ * ClassCircularityErrors. The override for getCommonSuperClass will ensure that COMPUTE_FRAMES works properly by using
+ * the right ClassLoader.
  * <p>
- * Code from: https://github.com/phantamanta44/tinkers-evolution/blob/7ce95f70e5b342968d96e4a7aee694c48bddb359/src/main/java/xyz/phanta/tconevo/coremod/util/SafeClassWriter.java
+ * Code from:
+ * https://github.com/phantamanta44/tinkers-evolution/blob/7ce95f70e5b342968d96e4a7aee694c48bddb359/src/main/java/xyz/phanta/tconevo/coremod/util/SafeClassWriter.java
  */
 public class SafeClassWriter extends ClassWriter {
 
@@ -169,7 +172,8 @@ public class SafeClassWriter extends ClassWriter {
         }
 
         @Override
-        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+        public void visit(int version, int access, String name, String signature, String superName,
+                String[] interfaces) {
             String deobfSuperName = FMLDeobfuscatingRemapper.INSTANCE.map(superName);
             result = new ClassTreeNode(className, () -> resolve(deobfSuperName, loader));
         }

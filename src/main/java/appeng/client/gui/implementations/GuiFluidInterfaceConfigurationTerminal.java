@@ -33,7 +33,6 @@ import java.util.WeakHashMap;
 
 import com.google.common.collect.HashMultimap;
 
-import net.minecraftforge.fluids.FluidStack;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
@@ -41,12 +40,12 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Slot;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTUtil;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.common.DimensionManager;
+import net.minecraftforge.fluids.FluidStack;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import mezz.jei.api.gui.IGhostIngredientHandler;
@@ -502,7 +501,9 @@ public class GuiFluidInterfaceConfigurationTerminal extends AEBaseGui implements
                     public void accept(Object ingredient) {
                         final PacketInventoryAction p;
                         try {
-                            p = new PacketInventoryAction(InventoryAction.PLACE_JEI_GHOST_ITEM, (SlotDisconnected) slot, AEItemStack.fromItemStack(AEFluidStack.fromFluidStack(fluidStack).asItemStackRepresentation()));
+                            p = new PacketInventoryAction(InventoryAction.PLACE_JEI_GHOST_ITEM, (SlotDisconnected) slot,
+                                    AEItemStack.fromItemStack(
+                                            AEFluidStack.fromFluidStack(fluidStack).asItemStackRepresentation()));
                             NetworkHandler.instance().sendToServer(p);
 
                         } catch (IOException e) {

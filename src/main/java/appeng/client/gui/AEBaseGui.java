@@ -29,12 +29,10 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import appeng.client.ClientHelper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
-import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
@@ -62,12 +60,14 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fml.common.Optional;
+import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 
 import mezz.jei.api.gui.IGhostIngredientHandler;
 import yalter.mousetweaks.api.IMTModGuiContainer2;
 
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.client.ClientHelper;
 import appeng.client.gui.widgets.GuiCustomSlot;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.gui.widgets.ITooltip;
@@ -676,7 +676,8 @@ public abstract class AEBaseGui extends GuiContainer implements IMTModGuiContain
                     for (final Slot s : slots) {
                         if (s.getSlotIndex() == j) {
                             if (s.inventory == ((AEBaseContainer) this.inventorySlots).getPlayerInv() ||
-                                    ((s instanceof AppEngSlot app) && (app.getItemHandler() instanceof PlayerInvWrapper))) {
+                                    ((s instanceof AppEngSlot app)
+                                            && (app.getItemHandler() instanceof PlayerInvWrapper))) {
                                 if (!s.canTakeStack(((AEBaseContainer) this.inventorySlots).getPlayerInv().player)) {
                                     return false;
                                 }

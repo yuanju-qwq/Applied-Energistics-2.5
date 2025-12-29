@@ -19,15 +19,17 @@
 
 package appeng.core;
 
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import javax.annotation.Nullable;
-import java.util.Map;
 
 @IFMLLoadingPlugin.Name("AE2ELCore")
 @IFMLLoadingPlugin.MCVersion("1.12.2")
@@ -40,7 +42,7 @@ public class AE2ELCore implements IFMLLoadingPlugin {
 
     @Override
     public String[] getASMTransformerClass() {
-        return new String[]{
+        return new String[] {
                 "appeng.core.transformer.AE2ELTransformer"
         };
     }

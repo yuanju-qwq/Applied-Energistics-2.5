@@ -1,11 +1,13 @@
 package appeng.core.transformer;
 
-import appeng.core.AE2ELCore;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+
+import appeng.core.AE2ELCore;
 
 /**
  * Patches {@link ItemStack#ItemStack(NBTTagCompound)} and {@link ItemStack#writeToNBT} to use int counts instead of
@@ -79,7 +81,6 @@ public final class ItemStackPatch extends ClassVisitor {
             }
             super.visitLdcInsn(cst);
         }
-
 
         @Override
         public void visitInsn(int opcode) {

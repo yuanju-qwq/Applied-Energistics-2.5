@@ -9,12 +9,8 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import appeng.client.ClientHelper;
-import appeng.core.AELog;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.input.Mouse;
 
-import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Slot;
 
@@ -22,16 +18,14 @@ import mezz.jei.api.gui.IAdvancedGuiHandler;
 import mezz.jei.api.gui.IGhostIngredientHandler;
 
 import appeng.api.storage.data.IAEItemStack;
+import appeng.client.ClientHelper;
 import appeng.client.gui.implementations.GuiCraftAmount;
 import appeng.client.gui.implementations.GuiCraftConfirm;
 import appeng.client.gui.implementations.GuiCraftingCPU;
-import appeng.client.gui.implementations.GuiExpandedProcessingPatternTerm;
-import appeng.client.gui.implementations.GuiPatternTerm;
-import appeng.client.gui.implementations.GuiUpgradeable;
 import appeng.client.gui.widgets.GuiCustomSlot;
 import appeng.container.interfaces.IJEIGhostIngredients;
 import appeng.container.interfaces.ISpecialSlotIngredient;
-import appeng.container.slot.IJEITargetSlot;
+import appeng.core.AELog;
 
 public class AEGuiHandler implements IAdvancedGuiHandler<AEBaseGui>, IGhostIngredientHandler<AEBaseGui> {
     @Override
@@ -128,7 +122,8 @@ public class AEGuiHandler implements IAdvancedGuiHandler<AEBaseGui>, IGhostIngre
     @Override
     @Nonnull
     public <I> List<Target<I>> getTargets(@Nonnull AEBaseGui gui, @Nonnull I ingredient, boolean doStart) {
-        if (!(gui instanceof IJEIGhostIngredients g)) return Collections.emptyList();
+        if (!(gui instanceof IJEIGhostIngredients g))
+            return Collections.emptyList();
 
         // HEI Specific Behaviour
         if (ClientHelper.isHei) {

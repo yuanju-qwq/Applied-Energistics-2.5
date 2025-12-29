@@ -1,11 +1,13 @@
 package appeng.core.transformer;
 
-import appeng.core.AE2ELCore;
-import net.minecraftforge.common.util.PacketUtil;
-import net.minecraft.network.PacketBuffer;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.common.util.PacketUtil;
+
+import appeng.core.AE2ELCore;
 
 /**
  * Patches {@link PacketBuffer#writeItemStack}, {@link PacketBuffer#readItemStack}, and

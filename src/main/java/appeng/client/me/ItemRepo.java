@@ -18,6 +18,14 @@
 
 package appeng.client.me;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nonnull;
+
+import net.minecraft.item.ItemStack;
 
 import appeng.api.AEApi;
 import appeng.api.config.*;
@@ -33,18 +41,11 @@ import appeng.items.storage.ItemViewCell;
 import appeng.util.ItemSorters;
 import appeng.util.Platform;
 import appeng.util.prioritylist.IPartitionList;
-import net.minecraft.item.ItemStack;
-
-import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.regex.Pattern;
-
 
 public class ItemRepo {
 
-    private final IItemList<IAEItemStack> list = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList();
+    private final IItemList<IAEItemStack> list = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
+            .createList();
     private List<IAEItemStack> view = new ArrayList<>();
     private final IScrollSource src;
     private final ISortSource sortSrc;
@@ -63,7 +64,6 @@ public class ItemRepo {
 
     private boolean resort = true;
     private boolean changed = false;
-
 
     public ItemRepo(final IScrollSource src, final ISortSource sortSrc) {
         this.src = src;
@@ -121,7 +121,9 @@ public class ItemRepo {
             lastSearchMode = searchMode;
         }
 
-        if (searchMode == SearchBoxMode.JEI_AUTOSEARCH || searchMode == SearchBoxMode.JEI_MANUAL_SEARCH || searchMode == SearchBoxMode.JEI_AUTOSEARCH_KEEP || searchMode == SearchBoxMode.JEI_MANUAL_SEARCH_KEEP) {
+        if (searchMode == SearchBoxMode.JEI_AUTOSEARCH || searchMode == SearchBoxMode.JEI_MANUAL_SEARCH
+                || searchMode == SearchBoxMode.JEI_AUTOSEARCH_KEEP
+                || searchMode == SearchBoxMode.JEI_MANUAL_SEARCH_KEEP) {
             this.updateJEI(this.searchString);
         }
 
@@ -164,7 +166,8 @@ public class ItemRepo {
                 searchMod = false;
             }
 
-            final boolean terminalSearchToolTips = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_TOOLTIPS) != YesNo.NO;
+            final boolean terminalSearchToolTips = AEConfig.instance().getConfigManager()
+                    .getSetting(Settings.SEARCH_TOOLTIPS) != YesNo.NO;
 
             Pattern m;
             try {
@@ -205,7 +208,8 @@ public class ItemRepo {
         return c;
     }
 
-    private void addIAE(IAEItemStack is, Enum viewMode, String[] terms, boolean searchMod, boolean searchTooltips, Pattern pattern) {
+    private void addIAE(IAEItemStack is, Enum viewMode, String[] terms, boolean searchMod, boolean searchTooltips,
+            Pattern pattern) {
 
         final boolean needsZeroCopy = viewMode == ViewItems.CRAFTABLE;
 

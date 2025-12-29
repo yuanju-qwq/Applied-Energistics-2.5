@@ -311,7 +311,8 @@ public class ClientHelper extends ServerHelper {
     @SubscribeEvent
     public void MouseClickEvent(final GuiScreenEvent.MouseInputEvent.Pre me) {
         // Only cancel JEI's bookmark handling if we are NOT on hei
-        if (isHei) return;
+        if (isHei)
+            return;
 
         final Minecraft mc = Minecraft.getMinecraft();
         if (mc.currentScreen instanceof IJEIGhostIngredients) {

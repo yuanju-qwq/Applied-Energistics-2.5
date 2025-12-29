@@ -164,7 +164,6 @@ public class GuiInterfaceTerminal extends AEBaseGui {
         this.getScrollBar().setRange(0, this.lines.size() - 1, 1);
     }
 
-
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);

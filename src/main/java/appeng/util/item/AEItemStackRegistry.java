@@ -23,11 +23,12 @@
 
 package appeng.util.item;
 
-import net.minecraft.item.ItemStack;
-
-import javax.annotation.Nonnull;
 import java.lang.ref.WeakReference;
 import java.util.WeakHashMap;
+
+import javax.annotation.Nonnull;
+
+import net.minecraft.item.ItemStack;
 
 public final class AEItemStackRegistry {
     private static final WeakHashMap<AESharedItemStack, WeakReference<AESharedItemStack>> REGISTRY = new WeakHashMap<>();

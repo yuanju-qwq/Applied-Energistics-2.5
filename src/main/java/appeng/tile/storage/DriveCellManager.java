@@ -1,5 +1,12 @@
 package appeng.tile.storage;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+import net.minecraft.item.ItemStack;
+
 import appeng.api.AEApi;
 import appeng.api.storage.ICellHandler;
 import appeng.api.storage.ICellInventoryHandler;
@@ -9,12 +16,6 @@ import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.me.storage.DriveWatcher;
 import appeng.tile.inventory.AppEngCellInventory;
-import net.minecraft.item.ItemStack;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 public class DriveCellManager {
     private final TileDrive drive;
@@ -24,8 +25,8 @@ public class DriveCellManager {
     private final Map<IStorageChannel<? extends IAEStack<?>>, List<IMEInventoryHandler>> inventoryHandlers;
 
     public DriveCellManager(TileDrive drive, AppEngCellInventory inv,
-                            ICellHandler[] handlersBySlot, DriveWatcher<IAEItemStack>[] invBySlot,
-                            Map<IStorageChannel<? extends IAEStack<?>>, List<IMEInventoryHandler>> inventoryHandlers) {
+            ICellHandler[] handlersBySlot, DriveWatcher<IAEItemStack>[] invBySlot,
+            Map<IStorageChannel<? extends IAEStack<?>>, List<IMEInventoryHandler>> inventoryHandlers) {
         this.drive = drive;
         this.inv = inv;
         this.handlersBySlot = handlersBySlot;
@@ -35,8 +36,8 @@ public class DriveCellManager {
 
     public void updateState(boolean isCached) {
         if (!isCached) {
-            final Collection<IStorageChannel<? extends IAEStack<?>>> storageChannels =
-                    AEApi.instance().storage().storageChannels();
+            final Collection<IStorageChannel<? extends IAEStack<?>>> storageChannels = AEApi.instance().storage()
+                    .storageChannels();
             storageChannels.forEach(channel -> this.inventoryHandlers.put(channel, new ArrayList<>(10)));
 
             double power = 2.0;
