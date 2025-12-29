@@ -27,6 +27,7 @@ public class GuiRenamer extends AEBaseGui {
 
     @Override
     public void initGui() {
+        Keyboard.enableRepeatEvents(true);
         super.initGui();
 
         this.textField = new MEGuiTextField(this.fontRenderer, this.guiLeft + 9, this.guiTop + 33, 229, 12);
@@ -39,6 +40,12 @@ public class GuiRenamer extends AEBaseGui {
         this.buttonList.add(this.confirmButton = new GuiButton(0, this.guiLeft + 238, this.guiTop + 33, 12, 12, "↵"));
 
         ((ContainerRenamer) this.inventorySlots).setTextField(this.textField);
+    }
+
+    @Override
+    public void onGuiClosed() {
+        super.onGuiClosed();
+        Keyboard.enableRepeatEvents(false);
     }
 
     @Override
@@ -66,7 +73,7 @@ public class GuiRenamer extends AEBaseGui {
 
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
-        if (key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) { // Enter
+        if (key == Keyboard.KEY_ESCAPE || key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) { // Enter
             try {
                 NetworkHandler.instance().sendToServer(
                         new PacketValueConfig("QuartzKnife.ReName", this.textField.getText()));

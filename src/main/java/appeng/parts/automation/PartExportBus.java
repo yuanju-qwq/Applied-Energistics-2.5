@@ -83,7 +83,7 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
 
     @Reflected
     public PartExportBus(final ItemStack is) {
-        super(is);
+        super(TickRates.ExportBus, is);
 
         this.getConfigManager().registerSetting(Settings.REDSTONE_CONTROLLED, RedstoneMode.IGNORE);
         this.getConfigManager().registerSetting(Settings.FUZZY_MODE, FuzzyMode.IGNORE_ALL);
@@ -202,21 +202,6 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
     }
 
     @Override
-    public TickingRequest getTickingRequest(final IGridNode node) {
-        return new TickingRequest(TickRates.ExportBus.getMin(), TickRates.ExportBus.getMax(), this.isSleeping(), false);
-    }
-
-    @Override
-    public RedstoneMode getRSMode() {
-        return (RedstoneMode) this.getConfigManager().getSetting(Settings.REDSTONE_CONTROLLED);
-    }
-
-    @Override
-    public TickRateModulation tickingRequest(final IGridNode node, final int ticksSinceLastCall) {
-        return this.doBusWork();
-    }
-
-    @Override
     public ImmutableSet<ICraftingLink> getRequestedJobs() {
         return this.craftingTracker.getRequestedJobs();
     }
@@ -263,12 +248,6 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
     public void jobStateChange(final ICraftingLink link) {
         this.craftingTracker.jobStateChange(link);
     }
-
-    @Override
-    protected boolean isSleeping() {
-        return this.getHandler() == null || super.isSleeping();
-    }
-
     private boolean craftOnly() {
         return this.getConfigManager().getSetting(Settings.CRAFT_ONLY) == YesNo.YES;
     }

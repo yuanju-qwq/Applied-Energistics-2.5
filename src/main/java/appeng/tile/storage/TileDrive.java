@@ -18,14 +18,6 @@
 
 package appeng.tile.storage;
 
-import java.io.IOException;
-import java.util.*;
-
-import io.netty.buffer.ByteBuf;
-
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.AEApi;
 import appeng.api.implementations.tiles.IChestOrDrive;
@@ -52,6 +44,14 @@ import appeng.tile.inventory.AppEngCellInventory;
 import appeng.util.Platform;
 import appeng.util.inv.InvOperation;
 import appeng.util.inv.filter.IAEItemFilter;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.items.IItemHandler;
+
+import java.io.IOException;
+import java.util.*;
+
 
 public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPriorityHost {
 
@@ -63,13 +63,15 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
     private final Map<IStorageChannel<? extends IAEStack<?>>, List<IMEInventoryHandler>> inventoryHandlers;
     private int priority = 0;
     private boolean wasActive = false;
+    private final DriveCellManager cellManager;
 
     /**
      * The state of all cells inside a drive as bitset, using the following format.
      * <p>
      * Bit 29-0: 3 bits as state of each cell with the cell in slot 0 located in the 3 least significant bits.
      * <p>
-     * Cell states: Bit 2-0: cell status, representing {@link appeng.block.storage.DriveSlotState}.
+     * Cell states:
+     * Bit 2-0: cell status, representing {@link appeng.block.storage.DriveSlotState}.
      */
     private int cellState = 0;
     private boolean powered;
@@ -81,6 +83,7 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
         this.getProxy().setFlags(GridFlags.REQUIRE_CHANNEL);
         this.inv.setFilter(new CellValidInventoryFilter());
         this.inventoryHandlers = new IdentityHashMap<>();
+        this.cellManager = new DriveCellManager(this, inv, handlersBySlot, invBySlot, inventoryHandlers);
     }
 
     @Override
@@ -207,8 +210,7 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
     }
 
     @Override
-    public void onChangeInventory(final IItemHandler inv, final int slot, final InvOperation mc,
-            final ItemStack removed, final ItemStack added) {
+    public void onChangeInventory(final IItemHandler inv, final int slot, final InvOperation mc, final ItemStack removed, final ItemStack added) {
         if (this.isCached) {
             this.isCached = false; // recalculate the storage cell.
             this.updateState();
@@ -228,44 +230,7 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
 
     private void updateState() {
         if (!this.isCached) {
-            final Collection<IStorageChannel<? extends IAEStack<?>>> storageChannels = AEApi.instance().storage()
-                    .storageChannels();
-            storageChannels.forEach(channel -> this.inventoryHandlers.put(channel, new ArrayList<>(10)));
-
-            double power = 2.0;
-
-            for (int x = 0; x < this.inv.getSlots(); x++) {
-                final ItemStack is = this.inv.getStackInSlot(x);
-                this.invBySlot[x] = null;
-                this.handlersBySlot[x] = null;
-
-                if (!is.isEmpty()) {
-                    this.handlersBySlot[x] = AEApi.instance().registries().cell().getHandler(is);
-
-                    if (this.handlersBySlot[x] != null) {
-                        for (IStorageChannel<? extends IAEStack<?>> channel : storageChannels) {
-
-                            ICellInventoryHandler cell = this.handlersBySlot[x].getCellInventory(is, this, channel);
-
-                            if (cell != null) {
-                                this.inv.setHandler(x, cell);
-                                power += this.handlersBySlot[x].cellIdleDrain(is, cell);
-
-                                final DriveWatcher<IAEItemStack> ih = new DriveWatcher(cell, is, this.handlersBySlot[x],
-                                        this);
-                                ih.setPriority(this.priority);
-                                this.invBySlot[x] = ih;
-                                this.inventoryHandlers.get(channel).add(ih);
-
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
-            this.getProxy().setIdlePowerUsage(power);
-
+            this.cellManager.updateState(this.isCached);
             this.isCached = true;
         }
     }

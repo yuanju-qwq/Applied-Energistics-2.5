@@ -29,10 +29,12 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import appeng.client.ClientHelper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
+import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
@@ -193,7 +195,7 @@ public abstract class AEBaseGui extends GuiContainer implements IMTModGuiContain
             }
         }
         GlStateManager.enableDepth();
-        if (Platform.isModLoaded("jei")) {
+        if (Platform.isModLoaded("jei") && !ClientHelper.isHei) {
             bookmarkedJEIghostItem(mouseX, mouseY);
         }
         GlStateManager.disableDepth();
@@ -672,10 +674,12 @@ public abstract class AEBaseGui extends GuiContainer implements IMTModGuiContain
                 if (keyCode == this.mc.gameSettings.keyBindsHotbar[j].getKeyCode()) {
                     final List<Slot> slots = this.getInventorySlots();
                     for (final Slot s : slots) {
-                        if (s.getSlotIndex() == j
-                                && s.inventory == ((AEBaseContainer) this.inventorySlots).getPlayerInv()) {
-                            if (!s.canTakeStack(((AEBaseContainer) this.inventorySlots).getPlayerInv().player)) {
-                                return false;
+                        if (s.getSlotIndex() == j) {
+                            if (s.inventory == ((AEBaseContainer) this.inventorySlots).getPlayerInv() ||
+                                    ((s instanceof AppEngSlot app) && (app.getItemHandler() instanceof PlayerInvWrapper))) {
+                                if (!s.canTakeStack(((AEBaseContainer) this.inventorySlots).getPlayerInv().player)) {
+                                    return false;
+                                }
                             }
                         }
                     }

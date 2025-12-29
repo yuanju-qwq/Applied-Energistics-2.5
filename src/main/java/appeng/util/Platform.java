@@ -18,66 +18,6 @@
 
 package appeng.util;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.security.InvalidParameterException;
-import java.text.DecimalFormat;
-import java.util.*;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Blocks;
-import net.minecraft.init.Items;
-import net.minecraft.inventory.InventoryCrafting;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.CraftingManager;
-import net.minecraft.item.crafting.IRecipe;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.play.server.SPacketChunkData;
-import net.minecraft.server.management.PlayerChunkMap;
-import net.minecraft.server.management.PlayerChunkMapEntry;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.*;
-import net.minecraft.util.registry.RegistryNamespaced;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.translation.I18n;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraftforge.common.util.FakePlayerFactory;
-import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModContainer;
-import net.minecraftforge.fml.common.Optional;
-import net.minecraftforge.fml.relauncher.ReflectionHelper;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import net.minecraftforge.oredict.OreDictionary;
-
-import gregtech.api.block.machines.BlockMachine;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.util.GTUtility;
-import ic2.api.item.ICustomDamageItem;
-import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
-import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
 
 import appeng.api.AEApi;
 import appeng.api.config.*;
@@ -126,6 +66,65 @@ import appeng.util.helpers.ItemComparisonHelper;
 import appeng.util.helpers.P2PHelper;
 import appeng.util.item.AEItemStack;
 import appeng.util.prioritylist.IPartitionList;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import gregtech.api.block.machines.BlockMachine;
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.util.GTUtility;
+import ic2.api.item.ICustomDamageItem;
+import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
+import mezz.jei.config.Config;
+import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
+import net.minecraft.inventory.InventoryCrafting;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.crafting.CraftingManager;
+import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.play.server.SPacketChunkData;
+import net.minecraft.server.management.PlayerChunkMap;
+import net.minecraft.server.management.PlayerChunkMapEntry;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.*;
+import net.minecraft.util.registry.RegistryNamespaced;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.translation.I18n;
+import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.common.util.FakePlayerFactory;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.common.ModContainer;
+import net.minecraftforge.fml.common.Optional;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.oredict.OreDictionary;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.security.InvalidParameterException;
+import java.text.DecimalFormat;
+import java.util.*;
+
 
 /**
  * @author AlgorithmX2
@@ -321,13 +320,11 @@ public class Platform {
             return true;
         }
 
-        final boolean isJEI = e == SearchBoxMode.JEI_AUTOSEARCH || e == SearchBoxMode.JEI_AUTOSEARCH_KEEP
-                || e == SearchBoxMode.JEI_MANUAL_SEARCH || e == SearchBoxMode.JEI_MANUAL_SEARCH_KEEP;
+        final boolean isJEI = e == SearchBoxMode.JEI_AUTOSEARCH || e == SearchBoxMode.JEI_AUTOSEARCH_KEEP || e == SearchBoxMode.JEI_MANUAL_SEARCH || e == SearchBoxMode.JEI_MANUAL_SEARCH_KEEP;
         return isJEI && !Integrations.jei().isEnabled();
     }
 
-    public static void openGUI(@Nonnull final EntityPlayer p, @Nullable final TileEntity tile,
-            @Nullable final AEPartLocation side, @Nonnull final GuiBridge type) {
+    public static void openGUI(@Nonnull final EntityPlayer p, @Nullable final TileEntity tile, @Nullable final AEPartLocation side, @Nonnull final GuiBridge type) {
         if (isClient()) {
             return;
         }
@@ -378,8 +375,7 @@ public class Platform {
         }
     }
 
-    public static void openGUI(@Nonnull final EntityPlayer p, int slot, @Nonnull final GuiBridge type,
-            boolean isBauble) {
+    public static void openGUI(@Nonnull final EntityPlayer p, int slot, @Nonnull final GuiBridge type, boolean isBauble) {
         if (isClient()) {
             return;
         }
@@ -399,10 +395,10 @@ public class Platform {
         }
 
         if (type.getType().isItem()) {
-            p.openGui(AppEng.instance(), type.ordinal() << 4, p.getEntityWorld(), slot, isBauble ? 1 : 0,
-                    Integer.MIN_VALUE);
+            p.openGui(AppEng.instance(), type.ordinal() << 4, p.getEntityWorld(), slot, isBauble ? 1 : 0, Integer.MIN_VALUE);
         }
     }
+
 
     /*
      * returns true if the code is on the client.
@@ -437,8 +433,10 @@ public class Platform {
         }
     }
 
+
+
     public static ItemStack[] getBlockDrops(final World w, final BlockPos pos) {
-        return getBlockDrops(w, pos, 0);
+        return getBlockDrops(w, pos,0);
     }
 
     public static ItemStack[] getBlockDrops(final World w, final BlockPos pos, int fortune) {
@@ -519,8 +517,7 @@ public class Platform {
                         final double offset_x = (getRandomInt() % 32 - 16) / 82;
                         final double offset_y = (getRandomInt() % 32 - 16) / 82;
                         final double offset_z = (getRandomInt() % 32 - 16) / 82;
-                        final EntityItem ei = new EntityItem(w, 0.5 + offset_x + pos.getX(),
-                                0.5 + offset_y + pos.getY(), 0.2 + offset_z + pos.getZ(), i.copy());
+                        final EntityItem ei = new EntityItem(w, 0.5 + offset_x + pos.getX(), 0.5 + offset_y + pos.getY(), 0.2 + offset_z + pos.getZ(), i.copy());
                         w.spawnEntity(ei);
                     }
                 }
@@ -544,12 +541,28 @@ public class Platform {
             try {
                 // if this fails for some reason, try the other method.
                 return Loader.isModLoaded(k);
-            } catch (final Throwable ignored) {
-            }
+            } catch (final Throwable ignored) {}
 
             return Loader.instance().getActiveModList()
                     .stream().anyMatch(mod -> mod.getModId().equals(k));
         });
+    }
+
+
+    public static boolean isJEIEnabled() {
+        if (isModLoaded("jei")) {
+            return Config.isOverlayEnabled();
+        } else {
+            return false;
+        }
+    }
+
+    public static boolean isJEICenterSearchBarEnabled() {
+        if (isModLoaded("jei")) {
+            return Config.isCenterSearchBarEnabled() && Config.isOverlayEnabled();
+        } else {
+            return false;
+        }
     }
 
     public static ItemStack findMatchingRecipeOutput(final InventoryCrafting ic, final World world) {
@@ -572,9 +585,7 @@ public class Platform {
         }
 
         try {
-            ITooltipFlag.TooltipFlags tooltipFlag = Minecraft.getMinecraft().gameSettings.advancedItemTooltips
-                    ? ITooltipFlag.TooltipFlags.ADVANCED
-                    : ITooltipFlag.TooltipFlags.NORMAL;
+            ITooltipFlag.TooltipFlags tooltipFlag = Minecraft.getMinecraft().gameSettings.advancedItemTooltips ? ITooltipFlag.TooltipFlags.ADVANCED : ITooltipFlag.TooltipFlags.NORMAL;
             return itemStack.getTooltip(Minecraft.getMinecraft().player, tooltipFlag);
         } catch (final Exception errB) {
             return new ArrayList<>();
@@ -654,8 +665,11 @@ public class Platform {
             try {
                 // TODO: Build Craft Wrench?
                 /*
-                 * if( eq.getItem() instanceof IToolWrench ) { IToolWrench wrench = (IToolWrench) eq.getItem(); return
-                 * wrench.canWrench( player, x, y, z ); }
+                 * if( eq.getItem() instanceof IToolWrench )
+                 * {
+                 * IToolWrench wrench = (IToolWrench) eq.getItem();
+                 * return wrench.canWrench( player, x, y, z );
+                 * }
                  */
 
                 if (eq.getItem() instanceof cofh.api.item.IToolHammer) {
@@ -1006,9 +1020,7 @@ public class Platform {
 
         final Vec3d vec31 = vec3.add(f7 * d3, f6 * d3, f8 * d3);
 
-        final AxisAlignedBB bb = new AxisAlignedBB(Math.min(vec3.x, vec31.x), Math.min(vec3.y, vec31.y),
-                Math.min(vec3.z, vec31.z), Math.max(vec3.x, vec31.x), Math.max(vec3.y, vec31.y),
-                Math.max(vec3.z, vec31.z)).grow(16, 16, 16);
+        final AxisAlignedBB bb = new AxisAlignedBB(Math.min(vec3.x, vec31.x), Math.min(vec3.y, vec31.y), Math.min(vec3.z, vec31.z), Math.max(vec3.x, vec31.x), Math.max(vec3.y, vec31.y), Math.max(vec3.z, vec31.z)).grow(16, 16, 16);
 
         Entity entity = null;
         double closest = 9999999.0D;
@@ -1059,13 +1071,11 @@ public class Platform {
         return pos;
     }
 
-    public static <T extends IAEStack<T>> T poweredExtraction(final IEnergySource energy, final IMEInventory<T> cell,
-            final T request, final IActionSource src) {
+    public static <T extends IAEStack<T>> T poweredExtraction(final IEnergySource energy, final IMEInventory<T> cell, final T request, final IActionSource src) {
         return poweredExtraction(energy, cell, request, src, Actionable.MODULATE);
     }
 
-    public static <T extends IAEStack<T>> T poweredExtraction(final IEnergySource energy, final IMEInventory<T> cell,
-            final T request, final IActionSource src, final Actionable mode) {
+    public static <T extends IAEStack<T>> T poweredExtraction(final IEnergySource energy, final IMEInventory<T> cell, final T request, final IActionSource src, final Actionable mode) {
         Preconditions.checkNotNull(energy);
         Preconditions.checkNotNull(cell);
         Preconditions.checkNotNull(request);
@@ -1080,8 +1090,7 @@ public class Platform {
         }
 
         final double energyFactor = Math.max(1.0, cell.getChannel().transferFactor());
-        final double availablePower = energy.extractAEPower(retrieved / energyFactor, Actionable.SIMULATE,
-                PowerMultiplier.CONFIG);
+        final double availablePower = energy.extractAEPower(retrieved / energyFactor, Actionable.SIMULATE, PowerMultiplier.CONFIG);
         final long itemToExtract = Math.min((long) ((availablePower * energyFactor) + 0.9), retrieved);
 
         if (itemToExtract > 0) {
@@ -1091,8 +1100,7 @@ public class Platform {
                 final T ret = cell.extractItems(possible, Actionable.MODULATE, src);
 
                 if (ret != null) {
-                    src.player()
-                            .ifPresent(player -> Stats.ItemsExtracted.addToPlayer(player, (int) ret.getStackSize()));
+                    src.player().ifPresent(player -> Stats.ItemsExtracted.addToPlayer(player, (int) ret.getStackSize()));
                 }
                 return ret;
             } else {
@@ -1103,13 +1111,11 @@ public class Platform {
         return null;
     }
 
-    public static <T extends IAEStack<T>> T poweredInsert(final IEnergySource energy, final IMEInventory<T> cell,
-            final T input, final IActionSource src) {
+    public static <T extends IAEStack<T>> T poweredInsert(final IEnergySource energy, final IMEInventory<T> cell, final T input, final IActionSource src) {
         return poweredInsert(energy, cell, input, src, Actionable.MODULATE);
     }
 
-    public static <T extends IAEStack<T>> T poweredInsert(final IEnergySource energy, final IMEInventory<T> cell,
-            final T input, final IActionSource src, final Actionable mode) {
+    public static <T extends IAEStack<T>> T poweredInsert(final IEnergySource energy, final IMEInventory<T> cell, final T input, final IActionSource src, final Actionable mode) {
         Preconditions.checkNotNull(energy);
         Preconditions.checkNotNull(cell);
         Preconditions.checkNotNull(input);
@@ -1124,8 +1130,7 @@ public class Platform {
         }
 
         final double energyFactor = Math.max(1.0, cell.getChannel().transferFactor());
-        final double availablePower = energy.extractAEPower(stored / energyFactor, Actionable.SIMULATE,
-                PowerMultiplier.CONFIG);
+        final double availablePower = energy.extractAEPower(stored / energyFactor, Actionable.SIMULATE, PowerMultiplier.CONFIG);
         final long itemToAdd = Math.min((long) ((availablePower * energyFactor) + 0.9), stored);
 
         if (itemToAdd > 0) {
@@ -1140,7 +1145,8 @@ public class Platform {
                     split.setStackSize(itemToAdd);
                     leftover.add(cell.injectItems(split, Actionable.MODULATE, src));
 
-                    src.player().ifPresent(player -> {
+                    src.player().ifPresent(player ->
+                    {
                         final long diff = original - leftover.getStackSize();
                         Stats.ItemsInserted.addToPlayer(player, (int) diff);
                     });
@@ -1150,7 +1156,8 @@ public class Platform {
 
                 final T ret = cell.injectItems(input, Actionable.MODULATE, src);
 
-                src.player().ifPresent(player -> {
+                src.player().ifPresent(player ->
+                {
                     final long diff = ret == null ? input.getStackSize() : input.getStackSize() - ret.getStackSize();
                     Stats.ItemsInserted.addToPlayer(player, (int) diff);
                 });
@@ -1165,9 +1172,8 @@ public class Platform {
         return input;
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public static void postChanges(final IStorageGrid gs, final ItemStack removed, final ItemStack added,
-            final IActionSource src) {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static void postChanges(final IStorageGrid gs, final ItemStack removed, final ItemStack added, final IActionSource src) {
         for (final IStorageChannel<?> chan : AEApi.instance().storage().storageChannels()) {
             final IItemList<?> myChanges = chan.createList();
 
@@ -1191,8 +1197,7 @@ public class Platform {
         }
     }
 
-    public static <T extends IAEStack<T>> void postListChanges(final IItemList<T> before, final IItemList<T> after,
-            final IMEMonitorHandlerReceiver<T> meMonitorPassthrough, final IActionSource source) {
+    public static <T extends IAEStack<T>> void postListChanges(final IItemList<T> before, final IItemList<T> after, final IMEMonitorHandlerReceiver<T> meMonitorPassthrough, final IActionSource source) {
         final List<T> changes = new ArrayList<>();
 
         for (final T is : before) {
@@ -1214,10 +1219,16 @@ public class Platform {
         }
     }
 
+    private static boolean bothUsingDefaultSecurity(GridNode a, GridNode b) {
+        return a.getLastSecurityKey() == -1 && b.getLastSecurityKey() == -1;
+    }
+
+    private static boolean securityKeysMatch(GridNode a, GridNode b) {
+        return a.getLastSecurityKey() == b.getLastSecurityKey();
+    }
+
     public static boolean securityCheck(final GridNode a, final GridNode b) {
-        if (a.getLastSecurityKey() == -1 && b.getLastSecurityKey() == -1) {
-            return true;
-        } else if (a.getLastSecurityKey() == b.getLastSecurityKey()) {
+        if (bothUsingDefaultSecurity(a, b) || securityKeysMatch(a, b)) {
             return true;
         }
 
@@ -1225,15 +1236,10 @@ public class Platform {
         final boolean b_isSecure = isPowered(b.getGrid()) && b.getLastSecurityKey() != -1;
 
         if (AEConfig.instance().isFeatureEnabled(AEFeature.LOG_SECURITY_AUDITS)) {
-            final String locationA = a.getGridBlock().isWorldAccessible() ? a.getGridBlock().getLocation().toString()
-                    : "notInWorld";
-            final String locationB = b.getGridBlock().isWorldAccessible() ? b.getGridBlock().getLocation().toString()
-                    : "notInWorld";
+            final String locationA = a.getGridBlock().isWorldAccessible() ? a.getGridBlock().getLocation().toString() : "notInWorld";
+            final String locationB = b.getGridBlock().isWorldAccessible() ? b.getGridBlock().getLocation().toString() : "notInWorld";
 
-            AELog.info(
-                    "Audit: Node A [isSecure=%b, key=%d, playerID=%d, location={%s}] vs Node B[isSecure=%b, key=%d, playerID=%d, location={%s}]",
-                    a_isSecure, a.getLastSecurityKey(), a.getPlayerID(), locationA, b_isSecure, b.getLastSecurityKey(),
-                    b.getPlayerID(), locationB);
+            AELog.info("Audit: Node A [isSecure=%b, key=%d, playerID=%d, location={%s}] vs Node B[isSecure=%b, key=%d, playerID=%d, location={%s}]", a_isSecure, a.getLastSecurityKey(), a.getPlayerID(), locationA, b_isSecure, b.getLastSecurityKey(), b.getPlayerID(), locationB);
         }
 
         // can't do that son...
@@ -1337,11 +1343,7 @@ public class Platform {
         }
     }
 
-    public static ItemStack extractItemsByRecipe(final IEnergySource energySrc, final IActionSource mySrc,
-            final IMEMonitor<IAEItemStack> src, final World w, final IRecipe r, final ItemStack output,
-            final InventoryCrafting ci, final ItemStack providedTemplate, final int slot,
-            final IItemList<IAEItemStack> items, final Actionable realForFake,
-            final IPartitionList<IAEItemStack> filter) {
+    public static ItemStack extractItemsByRecipe(final IEnergySource energySrc, final IActionSource mySrc, final IMEMonitor<IAEItemStack> src, final World w, final IRecipe r, final ItemStack output, final InventoryCrafting ci, final ItemStack providedTemplate, final int slot, final IItemList<IAEItemStack> items, final Actionable realForFake, final IPartitionList<IAEItemStack> filter) {
         if (energySrc.extractAEPower(1, Actionable.SIMULATE, PowerMultiplier.CONFIG) > 0.9) {
             if (providedTemplate == null) {
                 return ItemStack.EMPTY;
@@ -1361,16 +1363,12 @@ public class Platform {
                 }
             }
 
-            final boolean checkFuzzy = ae_req.getOre().isPresent()
-                    || providedTemplate.getItemDamage() == OreDictionary.WILDCARD_VALUE
-                    || providedTemplate.hasTagCompound() || providedTemplate.isItemStackDamageable();
+            final boolean checkFuzzy = ae_req.getOre().isPresent() || providedTemplate.getItemDamage() == OreDictionary.WILDCARD_VALUE || providedTemplate.hasTagCompound() || providedTemplate.isItemStackDamageable();
 
             if (items != null && checkFuzzy) {
                 for (final IAEItemStack x : items) {
                     final ItemStack sh = x.getDefinition();
-                    if ((Platform.itemComparisons().isEqualItemType(providedTemplate, sh) || ae_req.sameOre(x))
-                            && !ItemStack.areItemsEqual(sh, output)) { // Platform.isSameItemType( sh, providedTemplate
-                        // )
+                    if ((Platform.itemComparisons().isEqualItemType(providedTemplate, sh) || ae_req.sameOre(x)) && !ItemStack.areItemsEqual(sh, output)) { // Platform.isSameItemType( sh, providedTemplate )
                         final ItemStack cp = sh.copy();
                         cp.setCount(1);
                         ci.setInventorySlotContents(slot, cp);
@@ -1428,8 +1426,7 @@ public class Platform {
         }
 
         if (type == AEFeature.CERTUS_QUARTZ_TOOLS) {
-            final IItemDefinition certusQuartzCrystal = AEApi.instance().definitions().materials()
-                    .certusQuartzCrystal();
+            final IItemDefinition certusQuartzCrystal = AEApi.instance().definitions().materials().certusQuartzCrystal();
 
             return certusQuartzCrystal.isSameAs(b);
         }
@@ -1493,17 +1490,29 @@ public class Platform {
     // }
     // }
 
+
     public static boolean isRecipePrioritized(final ItemStack what) {
-        final IMaterials materials = AEApi.instance().definitions().materials();
-
-        boolean isPurified = materials.purifiedCertusQuartzCrystal().isSameAs(what);
-        isPurified |= materials.purifiedFluixCrystal().isSameAs(what);
-        isPurified |= materials.purifiedNetherQuartzCrystal().isSameAs(what);
-
-        return isPurified;
+        return isPurifiedCertus(what) ||
+                isPurifiedFluix(what) ||
+                isPurifiedNetherQuartz(what);
     }
 
-    // consider methods below moving to a compability class
+    private static boolean isPurifiedCertus(ItemStack stack) {
+        return AEApi.instance().definitions().materials()
+                .purifiedCertusQuartzCrystal().isSameAs(stack);
+    }
+
+    private static boolean isPurifiedFluix(ItemStack stack) {
+        return AEApi.instance().definitions().materials()
+                .purifiedFluixCrystal().isSameAs(stack);
+    }
+
+    private static boolean isPurifiedNetherQuartz(ItemStack stack) {
+        return AEApi.instance().definitions().materials()
+                .purifiedNetherQuartzCrystal().isSameAs(stack);
+    }
+
+    //consider methods below moving to a compability class
     public static boolean isGTDamageableItem(Item item) {
         return ((GTLoaded) && ToolClass.getGTToolClass().isAssignableFrom(item.getClass()));
     }
@@ -1511,11 +1520,9 @@ public class Platform {
     public static MetaTileEntity getMetaTileEntity(IBlockAccess world, BlockPos pos) {
         if (reflectGTgetMTE == null) {
             try {
-                reflectGTgetMTE = ReflectionHelper.findMethod(BlockMachine.class, "getMetaTileEntity", null,
-                        IBlockAccess.class, BlockPos.class);
+                reflectGTgetMTE = ReflectionHelper.findMethod(BlockMachine.class, "getMetaTileEntity", null, IBlockAccess.class, BlockPos.class);
             } catch (ReflectionHelper.UnableToFindMethodException e) {
-                reflectGTgetMTE = ReflectionHelper.findMethod(GTUtility.class, "getMetaTileEntity", null,
-                        IBlockAccess.class, BlockPos.class);
+                reflectGTgetMTE = ReflectionHelper.findMethod(GTUtility.class, "getMetaTileEntity", null, IBlockAccess.class, BlockPos.class);
             }
         } else {
             try {
