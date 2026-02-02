@@ -628,10 +628,11 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         }
     }
 
+    final int MAX_BATCH = AEConfig.instance().getCraftingMaxBatchSize();
+
     private void executeCrafting(final IEnergyGrid eg, final CraftingGridCache cc) {
         final Iterator<Entry<ICraftingPatternDetails, TaskProgress>> i = this.tasks.entrySet().iterator();
-
-        while (i.hasNext()) {
+        while (i.hasNext() && this.remainingOperations > 0) {
             final Entry<ICraftingPatternDetails, TaskProgress> e = i.next();
 
             if (e.getValue().value <= 0) {
@@ -642,175 +643,197 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             final ICraftingPatternDetails details = e.getKey();
 
             if (this.canCraft(details, details.getCondensedInputs())) {
-                InventoryCrafting ic = null;
+                this.remainingOperations--;
+                this.somethingChanged = true;
+                final long originalCount = e.getValue().value;
 
-                if (!visitedMediums.containsKey(details) || visitedMediums.get(details).isEmpty()) {
-                    visitedMediums.put(details, new ArrayDeque<>(
-                            cc.getMediums(details).stream().filter(Objects::nonNull).collect(Collectors.toList())));
-                }
+                for (int repeat = 0; repeat < originalCount && repeat < MAX_BATCH; repeat++) {
+                    InventoryCrafting ic = null;
 
-                while (!visitedMediums.get(details).isEmpty()) {
-
-                    ICraftingMedium m = visitedMediums.get(details).poll();
-
-                    if (e.getValue().value <= 0) {
-                        continue;
+                    if (!visitedMediums.containsKey(details) || visitedMediums.get(details).isEmpty()) {
+                        visitedMediums.put(details, new ArrayDeque<>(
+                                cc.getMediums(details).stream().filter(Objects::nonNull).collect(Collectors.toList())));
                     }
 
-                    if (m != null && !m.isBusy()) {
-                        if (ic == null) {
-                            final IAEItemStack[] input = details.getInputs();
-                            double sum = 0;
+                    boolean executed = false;
+                    Queue<ICraftingMedium> mediumQueue = visitedMediums.get(details);
 
-                            for (final IAEItemStack anInput : input) {
-                                if (anInput != null) {
-                                    sum += anInput.getStackSize();
+                    while (!mediumQueue.isEmpty() && !executed) {
+                        ICraftingMedium m = mediumQueue.poll();
+
+                        if (e.getValue().value <= 0) {
+                            if (m != null)
+                                mediumQueue.offer(m);
+                            break;
+                        }
+
+                        if (m != null && !m.isBusy()) {
+                            if (ic == null) {
+                                final IAEItemStack[] input = details.getInputs();
+                                double sum = 0;
+
+                                for (final IAEItemStack anInput : input) {
+                                    if (anInput != null) {
+                                        sum += anInput.getStackSize();
+                                    }
                                 }
-                            }
 
-                            // power...
-                            if (eg.extractAEPower(sum, Actionable.MODULATE, PowerMultiplier.CONFIG) < sum - 0.01) {
-                                continue;
-                            }
-                            if (details.isCraftable()) {
-                                ic = new InventoryCrafting(new ContainerNull(), 3, 3);
-                            } else {
-                                ic = new InventoryCrafting(new ContainerNull(), PatternHelper.PROCESSING_INPUT_WIDTH,
-                                        PatternHelper.PROCESSING_INPUT_HEIGHT);
-                            }
+                                if (eg.extractAEPower(sum, Actionable.SIMULATE, PowerMultiplier.CONFIG) < sum - 0.01) {
+                                    if (m != null)
+                                        mediumQueue.offer(m);
+                                    break;
+                                }
 
-                            boolean found = false;
+                                eg.extractAEPower(sum, Actionable.MODULATE, PowerMultiplier.CONFIG);
 
-                            for (int x = 0; x < input.length; x++) {
-                                if (input[x] != null) {
-                                    found = false;
+                                if (details.isCraftable()) {
+                                    ic = new InventoryCrafting(new ContainerNull(), 3, 3);
+                                } else {
+                                    ic = new InventoryCrafting(new ContainerNull(),
+                                            PatternHelper.PROCESSING_INPUT_WIDTH,
+                                            PatternHelper.PROCESSING_INPUT_HEIGHT);
+                                }
 
-                                    if (details.isCraftable()) {
-                                        final Collection<IAEItemStack> itemList;
+                                boolean found = false;
 
-                                        if (details.canSubstitute()) {
-                                            final List<IAEItemStack> substitutes = details.getSubstituteInputs(x);
-                                            itemList = new ArrayList<>(substitutes.size());
+                                for (int x = 0; x < input.length; x++) {
+                                    if (input[x] != null) {
+                                        found = false;
 
-                                            for (IAEItemStack stack : substitutes) {
-                                                itemList.addAll(this.inventory.getItemList().findFuzzy(stack,
-                                                        FuzzyMode.IGNORE_ALL));
+                                        if (details.isCraftable()) {
+                                            final Collection<IAEItemStack> itemList;
+
+                                            if (details.canSubstitute()) {
+                                                final List<IAEItemStack> substitutes = details.getSubstituteInputs(x);
+                                                itemList = new ArrayList<>(substitutes.size());
+
+                                                for (IAEItemStack stack : substitutes) {
+                                                    itemList.addAll(this.inventory.getItemList().findFuzzy(stack,
+                                                            FuzzyMode.IGNORE_ALL));
+                                                }
+                                            } else {
+                                                itemList = new ArrayList<>(1);
+
+                                                final IAEItemStack item = this.inventory.getItemList()
+                                                        .findPrecise(input[x]);
+                                                if (item != null) {
+                                                    itemList.add(item);
+                                                } else if (input[x].getDefinition().getItem().isDamageable() || Platform
+                                                        .isGTDamageableItem(input[x].getDefinition().getItem())) {
+                                                    itemList.addAll(this.inventory.getItemList().findFuzzy(input[x],
+                                                            FuzzyMode.IGNORE_ALL));
+                                                }
+                                            }
+
+                                            for (IAEItemStack fuzz : itemList) {
+                                                fuzz = fuzz.copy();
+                                                fuzz.setStackSize(input[x].getStackSize());
+
+                                                if (details.isValidItemForSlot(x, fuzz.createItemStack(),
+                                                        this.getWorld())) {
+                                                    final IAEItemStack ais = this.inventory.extractItems(fuzz,
+                                                            Actionable.MODULATE, this.machineSrc);
+                                                    final ItemStack is = ais == null ? ItemStack.EMPTY
+                                                            : ais.createItemStack();
+
+                                                    if (!is.isEmpty()) {
+                                                        this.postChange(AEItemStack.fromItemStack(is), this.machineSrc);
+                                                        ic.setInventorySlotContents(x, is);
+                                                        found = true;
+                                                        break;
+                                                    }
+                                                }
                                             }
                                         } else {
-                                            itemList = new ArrayList<>(1);
+                                            final IAEItemStack ais = this.inventory.extractItems(input[x].copy(),
+                                                    Actionable.MODULATE, this.machineSrc);
+                                            final ItemStack is = ais == null ? ItemStack.EMPTY : ais.createItemStack();
 
-                                            final IAEItemStack item = this.inventory.getItemList()
-                                                    .findPrecise(input[x]);
-                                            if (item != null) {
-                                                itemList.add(item);
-                                            } else if (input[x].getDefinition().getItem().isDamageable() || Platform
-                                                    .isGTDamageableItem(input[x].getDefinition().getItem())) {
-                                                itemList.addAll(this.inventory.getItemList().findFuzzy(input[x],
-                                                        FuzzyMode.IGNORE_ALL));
-                                            }
-                                        }
-
-                                        for (IAEItemStack fuzz : itemList) {
-                                            fuzz = fuzz.copy();
-                                            fuzz.setStackSize(input[x].getStackSize());
-
-                                            if (details.isValidItemForSlot(x, fuzz.createItemStack(),
-                                                    this.getWorld())) {
-                                                final IAEItemStack ais = this.inventory.extractItems(fuzz,
-                                                        Actionable.MODULATE, this.machineSrc);
-                                                final ItemStack is = ais == null ? ItemStack.EMPTY
-                                                        : ais.createItemStack();
-
-                                                if (!is.isEmpty()) {
-                                                    this.postChange(AEItemStack.fromItemStack(is), this.machineSrc);
-                                                    ic.setInventorySlotContents(x, is);
+                                            if (!is.isEmpty()) {
+                                                this.postChange(input[x], this.machineSrc);
+                                                ic.setInventorySlotContents(x, is);
+                                                if (is.getCount() == input[x].getStackSize()) {
                                                     found = true;
-                                                    break;
+                                                    continue;
                                                 }
                                             }
                                         }
-                                    } else {
-                                        final IAEItemStack ais = this.inventory.extractItems(input[x].copy(),
-                                                Actionable.MODULATE, this.machineSrc);
-                                        final ItemStack is = ais == null ? ItemStack.EMPTY : ais.createItemStack();
 
-                                        if (!is.isEmpty()) {
-                                            this.postChange(input[x], this.machineSrc);
-                                            ic.setInventorySlotContents(x, is);
-                                            if (is.getCount() == input[x].getStackSize()) {
-                                                found = true;
-                                                continue;
+                                        if (!found) {
+                                            for (int y = 0; y < ic.getSizeInventory(); y++) {
+                                                final ItemStack is = ic.getStackInSlot(y);
+                                                if (!is.isEmpty()) {
+                                                    this.inventory.injectItems(AEItemStack.fromItemStack(is),
+                                                            Actionable.MODULATE,
+                                                            this.machineSrc);
+                                                }
                                             }
+                                            if (m != null)
+                                                mediumQueue.offer(m);
+                                            ic = null;
+                                            break;
                                         }
                                     }
+                                }
 
-                                    if (!found) {
-                                        break;
-                                    }
+                                if (!found) {
+                                    if (m != null)
+                                        mediumQueue.offer(m);
+                                    break;
                                 }
                             }
 
-                            if (!found) {
-                                // put stuff back..
-                                for (int x = 0; x < ic.getSizeInventory(); x++) {
-                                    final ItemStack is = ic.getStackInSlot(x);
-                                    if (!is.isEmpty()) {
-                                        this.inventory.injectItems(AEItemStack.fromItemStack(is), Actionable.MODULATE,
-                                                this.machineSrc);
+                            if (m.pushPattern(details, ic)) {
+                                for (final IAEItemStack out : details.getCondensedOutputs()) {
+                                    this.postChange(out, this.machineSrc);
+                                    this.waitingFor.add(out.copy());
+                                    this.postCraftingStatusChange(out.copy());
+                                }
+
+                                if (details.isCraftable()) {
+                                    for (int x = 0; x < ic.getSizeInventory(); x++) {
+                                        final ItemStack output = Platform.getContainerItem(ic.getStackInSlot(x));
+                                        if (!output.isEmpty()) {
+                                            final IAEItemStack cItem = AEItemStack.fromItemStack(output);
+                                            this.postChange(cItem, this.machineSrc);
+                                            this.waitingFor.add(cItem);
+                                            this.postCraftingStatusChange(cItem);
+                                        }
                                     }
                                 }
-                                ic = null;
-                                break;
+
+                                ic = null; // hand off complete!
+                                this.markDirty();
+                                executed = true;
+
+                                e.getValue().value--;
+                                if (e.getValue().value <= 0) {
+                                    i.remove();
+                                }
+                            } else {
+                                if (m != null)
+                                    mediumQueue.offer(m);
                             }
+                        } else if (m != null) {
+                            mediumQueue.offer(m);
                         }
+                    }
 
-                        if (m.pushPattern(details, ic)) {
-                            this.somethingChanged = true;
-                            this.remainingOperations--;
-
-                            for (final IAEItemStack out : details.getCondensedOutputs()) {
-                                this.postChange(out, this.machineSrc);
-                                this.waitingFor.add(out.copy());
-                                this.postCraftingStatusChange(out.copy());
-                            }
-
-                            if (details.isCraftable()) {
-                                for (int x = 0; x < ic.getSizeInventory(); x++) {
-                                    final ItemStack output = Platform.getContainerItem(ic.getStackInSlot(x));
-                                    if (!output.isEmpty()) {
-                                        final IAEItemStack cItem = AEItemStack.fromItemStack(output);
-                                        this.postChange(cItem, this.machineSrc);
-                                        this.waitingFor.add(cItem);
-                                        this.postCraftingStatusChange(cItem);
-                                    }
-                                }
-                            }
-
-                            ic = null; // hand off complete!
-                            this.markDirty();
-
-                            e.getValue().value--;
-                            if (e.getValue().value <= 0) {
-                                continue;
-                            }
-
-                            if (this.remainingOperations == 0) {
-                                return;
+                    if (ic != null) {
+                        for (int x = 0; x < ic.getSizeInventory(); x++) {
+                            final ItemStack is = ic.getStackInSlot(x);
+                            if (!is.isEmpty()) {
+                                this.inventory.injectItems(AEItemStack.fromItemStack(is), Actionable.MODULATE,
+                                        this.machineSrc);
                             }
                         }
                     }
-                }
 
-                if (ic != null) {
-                    // put stuff back..
-                    for (int x = 0; x < ic.getSizeInventory(); x++) {
-                        final ItemStack is = ic.getStackInSlot(x);
-                        if (!is.isEmpty()) {
-                            this.inventory.injectItems(AEItemStack.fromItemStack(is), Actionable.MODULATE,
-                                    this.machineSrc);
-                        }
+                    if (!executed) {
+                        break;
                     }
                 }
+                break;
             }
         }
     }

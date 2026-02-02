@@ -109,6 +109,7 @@ public final class AEConfig extends Configuration implements IConfigurableObject
     private boolean useColoredCraftingStatus;
     private boolean disableColoredCableRecipesInJEI = true;
     private int craftingCalculationTimePerTick = 5;
+    private int craftingMaxBatchSize = 2048;
     private PowerUnits selectedPowerUnit = PowerUnits.AE;
     private boolean showCraftableTooltip = true;
     private boolean showPlacementPreview = true;
@@ -336,6 +337,9 @@ public final class AEConfig extends Configuration implements IConfigurableObject
             this.craftingCalculationTimePerTick = this
                     .get("craftingCPU", "craftingCalculationTimePerTick", this.craftingCalculationTimePerTick)
                     .getInt(this.craftingCalculationTimePerTick);
+            this.craftingMaxBatchSize = this
+                    .get("craftingCPU", "craftingMaxBatchSize", this.craftingMaxBatchSize)
+                    .getInt(this.craftingMaxBatchSize);
         }
 
         this.updatable = true;
@@ -643,6 +647,10 @@ public final class AEConfig extends Configuration implements IConfigurableObject
 
     public int getCraftingCalculationTimePerTick() {
         return this.craftingCalculationTimePerTick;
+    }
+
+    public int getCraftingMaxBatchSize() {
+        return this.craftingMaxBatchSize;
     }
 
     public PowerUnits getSelectedPowerUnit() {
