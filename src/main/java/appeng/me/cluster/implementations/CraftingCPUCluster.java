@@ -23,6 +23,10 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import betterquesting.handlers.BQFluidInventoryUpdateEvent;
+import betterquesting.handlers.BQInventoryUpdateEvent;
+import com.glodblock.github.common.item.fake.FakeFluids;
+import com.glodblock.github.common.item.fake.FakeItemRegister;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -69,6 +73,10 @@ import appeng.tile.crafting.TileCraftingMonitorTile;
 import appeng.tile.crafting.TileCraftingTile;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fluids.FluidStack;
+
+import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
@@ -92,6 +100,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
      */
     private MECraftingInventory inventory = new MECraftingInventory();
     private IAEItemStack finalOutput;
+    private long amount;
     private boolean waiting = false;
     private IItemList<IAEItemStack> waitingFor = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
             .createList();
@@ -424,7 +433,19 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         var player = AppEng.proxy.getPlayerByUUID(this.requestingPlayerUUID);
         if (player instanceof EntityPlayerMP playerMP) {
             try {
-                NetworkHandler.instance().sendTo(new PacketCraftingToast(this.finalOutput, cancelled), playerMP);
+                ItemStack itemStack = this.finalOutput.asItemStackRepresentation();
+                NetworkHandler.instance().sendTo(new PacketCraftingToast(this.finalOutput,amount, cancelled), playerMP);
+                //唤醒玩家bq,添加到活跃表
+                if(isModLoaded("betterquesting")){
+                    if(isModLoaded("ae2fc")){
+                        if (FakeFluids.isFluidFakeItem(itemStack)) {
+                            FluidStack fluid = FakeItemRegister.getStack(itemStack);
+                            MinecraftForge.EVENT_BUS.post(new BQFluidInventoryUpdateEvent(player, Arrays.asList(fluid)));
+                            return;
+                        }
+                    }
+                    MinecraftForge.EVENT_BUS.post(new BQInventoryUpdateEvent(player, Arrays.asList(itemStack)));
+                }
             } catch (IOException ignored) {
             }
         }
@@ -578,6 +599,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         notifyRequester(true);
         this.requestingPlayerUUID = null;
         this.finalOutput = null;
+        this.amount = 0;
         this.updateCPU();
 
         this.storeItems(); // marks dirty
@@ -627,12 +649,10 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             this.waiting = true;
         }
     }
-
-    final int MAX_BATCH = AEConfig.instance().getCraftingMaxBatchSize();
-
     private void executeCrafting(final IEnergyGrid eg, final CraftingGridCache cc) {
         final Iterator<Entry<ICraftingPatternDetails, TaskProgress>> i = this.tasks.entrySet().iterator();
-        while (i.hasNext() && this.remainingOperations > 0) {
+
+        while (i.hasNext()) {
             final Entry<ICraftingPatternDetails, TaskProgress> e = i.next();
 
             if (e.getValue().value <= 0) {
@@ -641,13 +661,21 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             }
 
             final ICraftingPatternDetails details = e.getKey();
+            boolean isCraftable = details.isCraftable();
 
-            if (this.canCraft(details, details.getCondensedInputs())) {
-                this.remainingOperations--;
-                this.somethingChanged = true;
-                final long originalCount = e.getValue().value;
+            int BATCH_SIZE = AEConfig.instance().getCraftingMaxBatchSize();
+            if (isCraftable) {
+                BATCH_SIZE = 1;
+            } else {
+                remainingOperations = Math.max(this.remainingOperations, BATCH_SIZE);
+            }
 
-                for (int repeat = 0; repeat < originalCount && repeat < MAX_BATCH; repeat++) {
+            for (int times = 0; times < BATCH_SIZE && e.getValue().value > 0; times++) {
+                if (this.remainingOperations <= 0) {
+                    break;
+                }
+
+                if (this.canCraft(details, details.getCondensedInputs())) {
                     InventoryCrafting ic = null;
 
                     if (!visitedMediums.containsKey(details) || visitedMediums.get(details).isEmpty()) {
@@ -655,16 +683,12 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                 cc.getMediums(details).stream().filter(Objects::nonNull).collect(Collectors.toList())));
                     }
 
-                    boolean executed = false;
-                    Queue<ICraftingMedium> mediumQueue = visitedMediums.get(details);
+                    while (!visitedMediums.get(details).isEmpty()) {
 
-                    while (!mediumQueue.isEmpty() && !executed) {
-                        ICraftingMedium m = mediumQueue.poll();
+                        ICraftingMedium m = visitedMediums.get(details).poll();
 
                         if (e.getValue().value <= 0) {
-                            if (m != null)
-                                mediumQueue.offer(m);
-                            break;
+                            continue;
                         }
 
                         if (m != null && !m.isBusy()) {
@@ -678,19 +702,14 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                     }
                                 }
 
-                                if (eg.extractAEPower(sum, Actionable.SIMULATE, PowerMultiplier.CONFIG) < sum - 0.01) {
-                                    if (m != null)
-                                        mediumQueue.offer(m);
-                                    break;
+                                // power...
+                                if (eg.extractAEPower(sum, Actionable.MODULATE, PowerMultiplier.CONFIG) < sum - 0.01) {
+                                    continue;
                                 }
-
-                                eg.extractAEPower(sum, Actionable.MODULATE, PowerMultiplier.CONFIG);
-
                                 if (details.isCraftable()) {
                                     ic = new InventoryCrafting(new ContainerNull(), 3, 3);
                                 } else {
-                                    ic = new InventoryCrafting(new ContainerNull(),
-                                            PatternHelper.PROCESSING_INPUT_WIDTH,
+                                    ic = new InventoryCrafting(new ContainerNull(), PatternHelper.PROCESSING_INPUT_WIDTH,
                                             PatternHelper.PROCESSING_INPUT_HEIGHT);
                                 }
 
@@ -760,30 +779,29 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                         }
 
                                         if (!found) {
-                                            for (int y = 0; y < ic.getSizeInventory(); y++) {
-                                                final ItemStack is = ic.getStackInSlot(y);
-                                                if (!is.isEmpty()) {
-                                                    this.inventory.injectItems(AEItemStack.fromItemStack(is),
-                                                            Actionable.MODULATE,
-                                                            this.machineSrc);
-                                                }
-                                            }
-                                            if (m != null)
-                                                mediumQueue.offer(m);
-                                            ic = null;
                                             break;
                                         }
                                     }
                                 }
 
                                 if (!found) {
-                                    if (m != null)
-                                        mediumQueue.offer(m);
+                                    // put stuff back..
+                                    for (int x = 0; x < ic.getSizeInventory(); x++) {
+                                        final ItemStack is = ic.getStackInSlot(x);
+                                        if (!is.isEmpty()) {
+                                            this.inventory.injectItems(AEItemStack.fromItemStack(is), Actionable.MODULATE,
+                                                    this.machineSrc);
+                                        }
+                                    }
+                                    ic = null;
                                     break;
                                 }
                             }
 
                             if (m.pushPattern(details, ic)) {
+                                this.somethingChanged = true;
+                                this.remainingOperations--; // 消耗1次额度
+
                                 for (final IAEItemStack out : details.getCondensedOutputs()) {
                                     this.postChange(out, this.machineSrc);
                                     this.waitingFor.add(out.copy());
@@ -804,22 +822,21 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
                                 ic = null; // hand off complete!
                                 this.markDirty();
-                                executed = true;
 
                                 e.getValue().value--;
                                 if (e.getValue().value <= 0) {
-                                    i.remove();
+                                    continue;
                                 }
-                            } else {
-                                if (m != null)
-                                    mediumQueue.offer(m);
+
+                                if (this.remainingOperations == 0) {
+                                    return;
+                                }
                             }
-                        } else if (m != null) {
-                            mediumQueue.offer(m);
                         }
                     }
 
                     if (ic != null) {
+                        // put stuff back..
                         for (int x = 0; x < ic.getSizeInventory(); x++) {
                             final ItemStack is = ic.getStackInSlot(x);
                             if (!is.isEmpty()) {
@@ -828,12 +845,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                             }
                         }
                     }
-
-                    if (!executed) {
-                        break;
-                    }
                 }
-                break;
             }
         }
     }
@@ -894,6 +906,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             ((CraftingJob) job).getTree().setJob(ci, this, src);
             if (ci.commit(src)) {
                 this.finalOutput = job.getOutput();
+                this.amount = job.getOutput().getStackSize();
                 this.waiting = false;
                 this.isComplete = false;
 
@@ -1140,6 +1153,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         data.setLong("elapsedTime", this.getElapsedTime());
         data.setLong("startItemCount", this.getStartItemCount());
         data.setLong("remainingItemCount", this.getRemainingItemCount());
+        data.setLong("amount", amount);
 
         if (Platform.isServer() && this.requestingPlayerUUID != null) {
             data.setUniqueId("requestingPlayerUUID", this.requestingPlayerUUID);
@@ -1220,6 +1234,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         this.elapsedTime = data.getLong("elapsedTime");
         this.startItemCount = data.getLong("startItemCount");
         this.remainingItemCount = data.getLong("remainingItemCount");
+        this.amount = data.getLong("amount");
 
         if (Platform.isServer() && data.hasUniqueId("requestingPlayerUUID")) {
             this.requestingPlayerUUID = data.getUniqueId("requestingPlayerUUID");

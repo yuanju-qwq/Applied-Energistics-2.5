@@ -21,21 +21,25 @@ import appeng.util.item.AEItemStack;
 public class PacketCraftingToast extends AppEngPacket {
     private final IAEItemStack stack;
     private final boolean cancelled;
+    private final long amount;
 
     public PacketCraftingToast(final ByteBuf stream) {
         this.stack = AEItemStack.fromPacket(stream);
         this.cancelled = stream.readBoolean();
+        this.amount = stream.readLong();
     }
 
-    public PacketCraftingToast(IAEItemStack stack, boolean cancelled) throws IOException {
+    public PacketCraftingToast(IAEItemStack stack,long amount, boolean cancelled) throws IOException {
         this.stack = stack;
         this.cancelled = cancelled;
+        this.amount = amount;
 
         final ByteBuf data = Unpooled.buffer();
 
         data.writeInt(this.getPacketID());
         stack.writeToPacket(data);
         data.writeBoolean(cancelled);
+        data.writeLong(amount);
 
         this.configureWrite(data);
     }
@@ -50,7 +54,7 @@ public class PacketCraftingToast extends AppEngPacket {
     @SideOnly(Side.CLIENT)
     private void doCraftingToast() {
         Minecraft.getMinecraft().getToastGui()
-                .add(new CraftingStatusToast(stack.asItemStackRepresentation(), cancelled));
+                .add(new CraftingStatusToast(stack.copy().asItemStackRepresentation(), cancelled , amount));
     }
 
     @Override
