@@ -29,7 +29,7 @@ public class PacketCraftingToast extends AppEngPacket {
         this.amount = stream.readLong();
     }
 
-    public PacketCraftingToast(IAEItemStack stack,long amount, boolean cancelled) throws IOException {
+    public PacketCraftingToast(IAEItemStack stack, long amount, boolean cancelled) throws IOException {
         this.stack = stack;
         this.cancelled = cancelled;
         this.amount = amount;
@@ -54,7 +54,7 @@ public class PacketCraftingToast extends AppEngPacket {
     @SideOnly(Side.CLIENT)
     private void doCraftingToast() {
         Minecraft.getMinecraft().getToastGui()
-                .add(new CraftingStatusToast(stack.copy().asItemStackRepresentation(), cancelled , amount));
+                .add(new CraftingStatusToast(stack.copy().asItemStackRepresentation(), cancelled, amount));
     }
 
     @Override

@@ -20,7 +20,7 @@ public class CraftingStatusToast implements IToast {
     private boolean newDisplay;
     private long amount;
 
-    public CraftingStatusToast(@NotNull ItemStack itemStack, boolean cancelled ,long amount) {
+    public CraftingStatusToast(@NotNull ItemStack itemStack, boolean cancelled, long amount) {
         this.itemStack = itemStack;
         this.cancelled = cancelled;
         this.amount = amount;
@@ -43,7 +43,7 @@ public class CraftingStatusToast implements IToast {
         // Text
         var statusText = cancelled ? GuiText.CraftingToastCancelled : GuiText.CraftingToastDone;
         fontRenderer.drawString(statusText.getLocal(), 30, 7, -11534256);
-        fontRenderer.drawString(itemStack.getDisplayName() + "x" +getAmount(amount) , 30, 18, -16777216);
+        fontRenderer.drawString(itemStack.getDisplayName() + "x" + getAmount(amount), 30, 18, -16777216);
 
         // Item
         RenderHelper.enableGUIStandardItemLighting();
@@ -58,7 +58,7 @@ public class CraftingStatusToast implements IToast {
         }
 
         // 单位数组
-        char[] units = {'k', 'm', 'b', 't', 'p'};
+        char[] units = { 'k', 'm', 'b', 't', 'p' };
         int unitIndex = -1;
 
         // 计算应该使用的单位

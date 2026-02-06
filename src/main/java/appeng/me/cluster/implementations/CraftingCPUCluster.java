@@ -23,10 +23,6 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import betterquesting.handlers.BQFluidInventoryUpdateEvent;
-import betterquesting.handlers.BQInventoryUpdateEvent;
-import com.glodblock.github.common.item.fake.FakeFluids;
-import com.glodblock.github.common.item.fake.FakeItemRegister;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -64,6 +60,7 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketCraftingToast;
 import appeng.crafting.*;
 import appeng.helpers.PatternHelper;
+import appeng.integration.modules.betterquesting.BQEventHelper;
 import appeng.me.cache.CraftingGridCache;
 import appeng.me.cluster.IAECluster;
 import appeng.me.cluster.MBCalculator;
@@ -73,10 +70,6 @@ import appeng.tile.crafting.TileCraftingMonitorTile;
 import appeng.tile.crafting.TileCraftingTile;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fluids.FluidStack;
-
-import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
@@ -434,18 +427,10 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         if (player instanceof EntityPlayerMP playerMP) {
             try {
                 ItemStack itemStack = this.finalOutput.asItemStackRepresentation();
-                NetworkHandler.instance().sendTo(new PacketCraftingToast(this.finalOutput,amount, cancelled), playerMP);
-                //唤醒玩家bq,添加到活跃表
-                if(isModLoaded("betterquesting")){
-                    if(isModLoaded("ae2fc")){
-                        if (FakeFluids.isFluidFakeItem(itemStack)) {
-                            FluidStack fluid = FakeItemRegister.getStack(itemStack);
-                            MinecraftForge.EVENT_BUS.post(new BQFluidInventoryUpdateEvent(player, Arrays.asList(fluid)));
-                            return;
-                        }
-                    }
-                    MinecraftForge.EVENT_BUS.post(new BQInventoryUpdateEvent(player, Arrays.asList(itemStack)));
-                }
+                NetworkHandler.instance().sendTo(new PacketCraftingToast(this.finalOutput, amount, cancelled),
+                        playerMP);
+                // 唤醒玩家bq,添加到活跃表
+                BQEventHelper.sendMessage(itemStack, playerMP);
             } catch (IOException ignored) {
             }
         }
@@ -649,6 +634,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             this.waiting = true;
         }
     }
+
     private void executeCrafting(final IEnergyGrid eg, final CraftingGridCache cc) {
         final Iterator<Entry<ICraftingPatternDetails, TaskProgress>> i = this.tasks.entrySet().iterator();
 
@@ -709,7 +695,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                 if (details.isCraftable()) {
                                     ic = new InventoryCrafting(new ContainerNull(), 3, 3);
                                 } else {
-                                    ic = new InventoryCrafting(new ContainerNull(), PatternHelper.PROCESSING_INPUT_WIDTH,
+                                    ic = new InventoryCrafting(new ContainerNull(),
+                                            PatternHelper.PROCESSING_INPUT_WIDTH,
                                             PatternHelper.PROCESSING_INPUT_HEIGHT);
                                 }
 
@@ -789,7 +776,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                     for (int x = 0; x < ic.getSizeInventory(); x++) {
                                         final ItemStack is = ic.getStackInSlot(x);
                                         if (!is.isEmpty()) {
-                                            this.inventory.injectItems(AEItemStack.fromItemStack(is), Actionable.MODULATE,
+                                            this.inventory.injectItems(AEItemStack.fromItemStack(is),
+                                                    Actionable.MODULATE,
                                                     this.machineSrc);
                                         }
                                     }
