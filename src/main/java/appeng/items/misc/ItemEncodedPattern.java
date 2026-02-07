@@ -25,6 +25,7 @@ import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
@@ -178,7 +179,13 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
 
             lines.add(substitutionLabel + canSubstitute);
         }
+
+        final NBTTagCompound tag = stack.getTagCompound();
+        if (tag != null && tag.hasKey("encoderName")) {
+            lines.add("Encoder Name: "+tag.getString("encoderName"));
+        }
     }
+
 
     @Override
     public ICraftingPatternDetails getPatternForItem(final ItemStack is, final World w) {
