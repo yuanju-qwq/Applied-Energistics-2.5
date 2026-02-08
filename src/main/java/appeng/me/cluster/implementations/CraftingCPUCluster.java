@@ -35,7 +35,7 @@ import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
-import appeng.client.render.BlockPosHighlighter;
+import appeng.api.util.AETrack;
 import appeng.container.ContainerNull;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
@@ -44,7 +44,6 @@ import appeng.core.features.AEFeature;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketCraftingToast;
 import appeng.crafting.*;
-import appeng.helpers.DualityInterface;
 import appeng.helpers.PatternHelper;
 import appeng.integration.modules.betterquesting.BQEventHelper;
 import appeng.me.cache.CraftingGridCache;
@@ -54,7 +53,6 @@ import appeng.me.helpers.MachineSource;
 import appeng.me.helpers.PlayerSource;
 import appeng.tile.crafting.TileCraftingMonitorTile;
 import appeng.tile.crafting.TileCraftingTile;
-import appeng.util.BlockPosUtils;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 import com.google.common.base.Preconditions;
@@ -66,7 +64,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 
 import java.io.IOException;
@@ -606,23 +603,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
     public void trackCrafting() {
         EntityPlayer player = AppEng.proxy.getPlayerByUUID(this.requestingPlayerUUID);
-        if (LatestMedium instanceof ICraftingProvider provider && provider instanceof DualityInterface patternInterface) {
-            BlockPos blockPos = patternInterface.getLocation().getPos();
-            player.sendMessage(new TextComponentTranslation("[合成追踪]正在追踪位于 X:"+blockPos.getX()+" Y:"+blockPos.getY()+" Z:"+blockPos.getZ()+" 的接口"));
-            showPos(blockPos,player);
-        }
-    }
-
-    private void showPos(BlockPos pos,EntityPlayer  player){
-
-        BlockPos blockPos2 = player.getPosition();
-        int playerDim = player.world.provider.getDimension();
-
-        long currentTime = System.currentTimeMillis();
-        double distance = BlockPosUtils.getDistance(pos, blockPos2);
-        long highlightTime = (long) (currentTime + 500 * distance);
-
-        BlockPosHighlighter.hilightBlock(pos, highlightTime, playerDim);
+        AETrack.trackCrafting(player, LatestMedium);
     }
 
     public void updateCraftingLogic(final IGrid grid, final IEnergyGrid eg, final CraftingGridCache cc) {
