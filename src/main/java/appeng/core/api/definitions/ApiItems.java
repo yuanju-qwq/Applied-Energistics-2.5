@@ -18,6 +18,7 @@
 
 package appeng.core.api.definitions;
 
+import appeng.client.render.crafting.ItemSpecialEncodedPatternRendering;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.EntityEntryBuilder;
@@ -110,6 +111,7 @@ public final class ApiItems implements IItems {
 
     // rv1
     private final IItemDefinition encodedPattern;
+    private final IItemDefinition specialEncodedPattern;
     private final IItemDefinition colorApplicator;
 
     private final IItemDefinition paintBall;
@@ -291,6 +293,11 @@ public final class ApiItems implements IItems {
         this.encodedPattern = registry.item("encoded_pattern", ItemEncodedPattern::new)
                 .features(AEFeature.PATTERNS)
                 .rendering(new ItemEncodedPatternRendering())
+                .build();
+
+        this.specialEncodedPattern = registry.item("special_encoded_pattern", ItemSpecialEncodedPattern::new)
+                .features(AEFeature.PATTERNS)
+                .rendering(new ItemSpecialEncodedPatternRendering())
                 .build();
 
         this.paintBall = registry.item("paint_ball", ItemPaintBall::new)
@@ -518,6 +525,11 @@ public final class ApiItems implements IItems {
     @Override
     public IItemDefinition encodedPattern() {
         return this.encodedPattern;
+    }
+
+    @Override
+    public IItemDefinition specialEncodedPattern() {
+        return this.specialEncodedPattern;
     }
 
     @Override

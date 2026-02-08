@@ -159,6 +159,7 @@ public enum GuiText {
     Cancel,
     Pause,
     Resume,
+    Track,
     ETA,
     ETAFormat,
 

@@ -18,22 +18,6 @@
 
 package appeng.me.cluster.implementations;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.inventory.InventoryCrafting;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
@@ -51,6 +35,7 @@ import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
+import appeng.client.render.BlockPosHighlighter;
 import appeng.container.ContainerNull;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
@@ -59,6 +44,7 @@ import appeng.core.features.AEFeature;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketCraftingToast;
 import appeng.crafting.*;
+import appeng.helpers.DualityInterface;
 import appeng.helpers.PatternHelper;
 import appeng.integration.modules.betterquesting.BQEventHelper;
 import appeng.me.cache.CraftingGridCache;
@@ -68,8 +54,25 @@ import appeng.me.helpers.MachineSource;
 import appeng.me.helpers.PlayerSource;
 import appeng.tile.crafting.TileCraftingMonitorTile;
 import appeng.tile.crafting.TileCraftingTile;
+import appeng.util.BlockPosUtils;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.inventory.InventoryCrafting;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.World;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
@@ -85,6 +88,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
     private final List<TileCraftingMonitorTile> status = new ArrayList<>();
     private final HashMap<IMEMonitorHandlerReceiver<IAEItemStack>, Object> listeners = new HashMap<>();
     private final Map<ICraftingPatternDetails, Queue<ICraftingMedium>> visitedMediums = new HashMap<>();
+    private ICraftingMedium LatestMedium;
     private ICraftingLink myLastLink;
     private String myName = "";
     private boolean isDestroyed = false;
@@ -510,7 +514,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
                         fuzz = fuzz.copy();
                         fuzz.setStackSize(1); // We're iterating over non condensed inputs which means there's 1 of each
-                                              // needed
+                        // needed
                         final IAEItemStack ais = this.inventory.extractItems(fuzz, Actionable.SIMULATE,
                                 this.machineSrc);
 
@@ -598,6 +602,27 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
     public void switchCrafting() {
         this.pause = !pause;
+    }
+
+    public void trackCrafting() {
+        EntityPlayer player = AppEng.proxy.getPlayerByUUID(this.requestingPlayerUUID);
+        if (LatestMedium instanceof ICraftingProvider provider && provider instanceof DualityInterface patternInterface) {
+            BlockPos blockPos = patternInterface.getLocation().getPos();
+            player.sendMessage(new TextComponentTranslation("[合成追踪]正在追踪位于 X:"+blockPos.getX()+" Y:"+blockPos.getY()+" Z:"+blockPos.getZ()+" 的接口"));
+            showPos(blockPos,player);
+        }
+    }
+
+    private void showPos(BlockPos pos,EntityPlayer  player){
+
+        BlockPos blockPos2 = player.getPosition();
+        int playerDim = player.world.provider.getDimension();
+
+        long currentTime = System.currentTimeMillis();
+        double distance = BlockPosUtils.getDistance(pos, blockPos2);
+        long highlightTime = (long) (currentTime + 500 * distance);
+
+        BlockPosHighlighter.hilightBlock(pos, highlightTime, playerDim);
     }
 
     public void updateCraftingLogic(final IGrid grid, final IEnergyGrid eg, final CraftingGridCache cc) {
@@ -797,6 +822,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                             }
 
                             if (m.pushPattern(details, ic)) {
+                                if (m != LatestMedium) LatestMedium = m;
                                 this.somethingChanged = true;
                                 this.remainingOperations--; // 消耗1次额度
 
@@ -881,7 +907,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
     }
 
     public ICraftingLink submitJob(final IGrid g, final ICraftingJob job, final IActionSource src,
-            final ICraftingRequester requestingMachine) {
+                                   final ICraftingRequester requestingMachine) {
         if (!this.tasks.isEmpty() || !this.waitingFor.isEmpty()) {
             return null;
         }
@@ -1213,8 +1239,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         for (int x = 0; x < list.tagCount(); x++) {
             final NBTTagCompound item = list.getCompoundTagAt(x);
             final IAEItemStack pattern = AEItemStack.fromNBT(item);
-            if (pattern != null && pattern.getItem() instanceof ICraftingPatternItem) {
-                final ICraftingPatternItem cpi = (ICraftingPatternItem) pattern.getItem();
+            if (pattern != null && pattern.getItem() instanceof ICraftingPatternItem cpi) {
                 final ICraftingPatternDetails details = cpi.getPatternForItem(pattern.createItemStack(),
                         this.getWorld());
                 if (details != null) {

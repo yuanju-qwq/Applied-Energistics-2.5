@@ -106,7 +106,7 @@ public class GuiCraftingStatus extends GuiCraftingCPU {
     public void initGui() {
         super.initGui();
 
-        this.selectCPU = new GuiButton(0, this.guiLeft + 8, this.guiTop + this.ySize - 25, 95, 20, GuiText.CraftingCPU
+        this.selectCPU = new GuiButton(0, this.guiLeft + 8, this.guiTop + this.ySize - 25, 166, 20, GuiText.CraftingCPU
                 .getLocal() + ": " + GuiText.NoCraftingCPUs);
         selectCPU.enabled = false;
         this.buttonList.add(this.selectCPU);
@@ -360,8 +360,7 @@ public class GuiCraftingStatus extends GuiCraftingCPU {
         if (this.status.selectedCpuSerial >= 0)// && status.selectedCpu < status.cpus.size() )
         {
             if (this.selectedCPUName != null && this.selectedCPUName.length() > 0) {
-                // 由于按钮宽度缩短到95，我们需要进一步缩短显示的文本
-                final String name = this.selectedCPUName.substring(0, Math.min(15, this.selectedCPUName.length()));
+                final String name = this.selectedCPUName.substring(0, Math.min(20, this.selectedCPUName.length()));
                 btnTextText = GuiText.CPUs.getLocal() + ": " + name;
             } else {
                 btnTextText = GuiText.CPUs.getLocal() + ": #" + this.status.selectedCpuSerial;

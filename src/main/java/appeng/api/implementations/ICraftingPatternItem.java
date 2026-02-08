@@ -23,11 +23,10 @@
 
 package appeng.api.implementations;
 
+import appeng.api.networking.crafting.ICraftingPatternDetails;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
-
-import appeng.api.networking.crafting.ICraftingPatternDetails;
 
 /**
  * Implemented on {@link Item}
@@ -39,8 +38,11 @@ public interface ICraftingPatternItem {
      *
      * @param is pattern
      * @param w  crafting world
-     *
      * @return details of pattern
      */
     ICraftingPatternDetails getPatternForItem(ItemStack is, World w);
+
+    default ICraftingPatternDetails getPatternForItemWithNest(ItemStack is, World w, boolean nest) {
+        return getPatternForItem(is, w);
+    }
 }

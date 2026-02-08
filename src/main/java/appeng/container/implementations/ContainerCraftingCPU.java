@@ -126,6 +126,12 @@ public class ContainerCraftingCPU extends AEBaseContainer
         }
     }
 
+    public void trackCrafting() {
+        if (this.getMonitor() != null) {
+            this.getMonitor().trackCrafting();
+        }
+    }
+
     @Override
     public void removeListener(final IContainerListener c) {
         super.removeListener(c);

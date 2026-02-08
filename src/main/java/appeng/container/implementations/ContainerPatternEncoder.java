@@ -1,11 +1,14 @@
 package appeng.container.implementations;
 
+import static appeng.helpers.ItemStackHelper.stackFromNBT;
 import static appeng.helpers.ItemStackHelper.stackWriteToNBT;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import appeng.core.AELog;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -17,6 +20,7 @@ import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 
@@ -214,41 +218,61 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
     public void encode() {
         ItemStack output = this.patternSlotOUT.getStack();
-
         final ItemStack[] in = this.getInputs();
         final ItemStack[] out = this.getOutputs();
 
-        // if there is no input, this would be silly.
-        if (in == null || out == null) {
+        // 输入必须存在，输出可以为 null（特殊样板场景）
+        if (in == null) {
             return;
         }
 
-        // first check the output slots, should either be null, or a pattern
-        if (!output.isEmpty() && !this.isPattern(output)) {
+        // 检查输出槽：若已有物品且既不是普通样板也不是特殊样板，则中止（保护用户物品）
+        if (!output.isEmpty() && !this.isPattern(output) && !this.isSpecialPattern(output)) {
             return;
-        } // if nothing is there we should snag a new pattern.
-        else if (output.isEmpty()) {
-            output = this.patternSlotIN.getStack();
-            if (output.isEmpty() || !this.isPattern(output)) {
-                return; // no blanks.
+        }
+
+        boolean requiresSpecialPattern = (out == null);
+        if (!requiresSpecialPattern) {
+            requiresSpecialPattern = true; // 假设需要特殊样板
+            for (ItemStack stack : out) {
+                if (!stack.isEmpty()) {
+                    requiresSpecialPattern = false; // 找到有效输出，不需要特殊样板
+                    break;
+                }
+            }
+        }
+
+        // 检查当前输出槽样板类型是否匹配需求
+        boolean isCurrentSpecial = this.isSpecialPattern(output);
+        boolean typeMatches = (requiresSpecialPattern == isCurrentSpecial);
+
+        // 仅当类型不匹配或输出槽为空时，才消耗新空白样板
+        if (output.isEmpty() || !typeMatches) {
+            // 从输入槽获取普通空白样板（输入槽只接受普通空白样板）
+            ItemStack blankPattern = this.patternSlotIN.getStack();
+            if (blankPattern.isEmpty() || !this.isPattern(blankPattern)) {
+                return; // 无可用空白样板
             }
 
-            // remove one, and clear the input slot.
-            output.setCount(output.getCount() - 1);
-            if (output.getCount() == 0) {
+            // 消耗一个空白样板
+            blankPattern.shrink(1);
+            if (blankPattern.isEmpty()) {
                 this.patternSlotIN.putStack(ItemStack.EMPTY);
             }
 
-            // add a new encoded pattern.
-            Optional<ItemStack> maybePattern = AEApi.instance().definitions().items().encodedPattern().maybeStack(1);
-            if (maybePattern.isPresent()) {
-                output = maybePattern.get();
+            // 根据输出状态创建对应类型的新样板
+            Optional<ItemStack> newPatternOpt = requiresSpecialPattern
+                    ? AEApi.instance().definitions().items().specialEncodedPattern().maybeStack(1)
+                    : AEApi.instance().definitions().items().encodedPattern().maybeStack(1);
+
+            if (!newPatternOpt.isPresent()) {
+                return; // 无法创建目标样板
             }
+            output = newPatternOpt.get();
         }
 
-        // encode the slot.
+        // 编码NBT数据
         final NBTTagCompound encodedValue = new NBTTagCompound();
-
         final NBTTagList tagIn = new NBTTagList();
         final NBTTagList tagOut = new NBTTagList();
 
@@ -256,8 +280,11 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             tagIn.appendTag(this.createItemTag(i));
         }
 
-        for (final ItemStack i : out) {
-            tagOut.appendTag(this.createItemTag(i));
+        // 即使 out 为 null，也写入空列表（保持NBT结构完整）
+        if (out != null) {
+            for (final ItemStack i : out) {
+                tagOut.appendTag(this.createItemTag(i));
+            }
         }
 
         encodedValue.setTag("in", tagIn);
@@ -265,12 +292,22 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         encodedValue.setBoolean("crafting", this.isCraftingMode());
         encodedValue.setBoolean("substitute", this.isSubstitute());
 
-        if (this.getPlayerInv().player != null)
+        if (this.getPlayerInv().player != null) {
             encodedValue.setString("encoderName", this.getPlayerInv().player.getName());
+        }
 
         output.setTagCompound(encodedValue);
-
         patternSlotOUT.putStack(output);
+    }
+
+    /**
+     * 判断物品是否为特殊样板（specialEncodedPattern）
+     */
+    private boolean isSpecialPattern(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+
+        Optional<ItemStack> specialPattern = AEApi.instance().definitions().items().specialEncodedPattern().maybeStack(1);
+        return specialPattern.isPresent() && stack.isItemEqual(specialPattern.get());
     }
 
     public void multiply(int multiple) {

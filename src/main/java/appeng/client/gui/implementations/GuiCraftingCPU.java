@@ -54,7 +54,7 @@ import appeng.util.Platform;
 import appeng.util.ReadableNumberConverter;
 
 public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
-    private static final int GUI_HEIGHT = 184;
+    private static final int GUI_HEIGHT = 210;
     private static final int GUI_WIDTH = 238;
 
     private static final int DISPLAYED_ROWS = 6;
@@ -68,13 +68,16 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
     private static final int SCROLLBAR_LEFT = 218;
     private static final int SCROLLBAR_HEIGHT = 137;
 
-    private static final int CANCEL_LEFT_OFFSET = 163;
-    private static final int CANCEL_TOP_OFFSET = 25;
+    private static final int CANCEL_LEFT_OFFSET = 8 + 50 + 8 +50 + 8;
+    private static final int CANCEL_TOP_OFFSET = 50;
     private static final int CANCEL_HEIGHT = 20;
     private static final int CANCEL_WIDTH = 50;
 
-    private static final int SWITCH_LEFT_OFFSET = 108;
+    private static final int SWITCH_LEFT_OFFSET = 8 + 50 + 8;
     private static final int SWITCH_WIDTH = 50;
+
+    private static final int TRACK_LEFT_OFFSET = 8;
+    private static final int TRACK_WIDTH = 50;
 
     private static final int TITLE_TOP_OFFSET = 7;
     private static final int TITLE_LEFT_OFFSET = 8;
@@ -95,6 +98,7 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
 
     private GuiButton cancel;
     private GuiButton switchButton;
+    private GuiButton trackButton; // 新增：追踪按钮
     private int tooltip = -1;
 
     public GuiCraftingCPU(final InventoryPlayer inventoryPlayer, final Object te) {
@@ -135,6 +139,12 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
             } catch (final IOException e) {
                 AELog.debug(e);
             }
+        }else if (this.trackButton == btn) {
+            try {
+                NetworkHandler.instance().sendToServer(new PacketValueConfig("TileCrafting.Track", "Track"));
+            } catch (final IOException e) {
+                AELog.debug(e);
+            }
         }
     }
 
@@ -142,6 +152,14 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
     public void initGui() {
         super.initGui();
         this.setScrollBar();
+
+        this.trackButton = new GuiButton(2,
+                this.guiLeft + TRACK_LEFT_OFFSET,
+                this.guiTop + this.ySize - CANCEL_TOP_OFFSET,
+                TRACK_WIDTH,
+                CANCEL_HEIGHT,
+                GuiText.Track.getLocal());
+        this.buttonList.add(this.trackButton);
 
         this.switchButton = new GuiButton(1,
                 this.guiLeft + SWITCH_LEFT_OFFSET,
@@ -170,6 +188,7 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
     @Override
     public void drawScreen(final int mouseX, final int mouseY, final float btn) {
         this.cancel.enabled = !this.visual.isEmpty();
+        this.trackButton.enabled = !this.visual.isEmpty();
         this.switchButton.enabled = true;
 
         final int gx = (this.width - this.xSize) / 2;
@@ -349,7 +368,7 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
 
     @Override
     public void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        this.bindTexture("guis/craftingcpu.png");
+        this.bindTexture("guis/craftingcpu1.png");
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
     }
 

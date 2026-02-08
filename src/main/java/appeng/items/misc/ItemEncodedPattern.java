@@ -21,6 +21,7 @@ package appeng.items.misc;
 import java.util.List;
 import java.util.Map;
 
+import appeng.helpers.PatternNestHelper;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -190,6 +191,16 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
     @Override
     public ICraftingPatternDetails getPatternForItem(final ItemStack is, final World w) {
         try {
+            return new PatternNestHelper(is, w);
+        } catch (final Throwable t) {
+            return null;
+        }
+    }
+
+    @Override
+    public ICraftingPatternDetails getPatternForItemWithNest(final ItemStack is, final World w,boolean nest) {
+        try {
+            if(nest) return new PatternNestHelper(is, w);
             return new PatternHelper(is, w);
         } catch (final Throwable t) {
             return null;

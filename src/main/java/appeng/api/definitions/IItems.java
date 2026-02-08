@@ -114,6 +114,8 @@ public interface IItems {
     // rv1
     IItemDefinition encodedPattern();
 
+    IItemDefinition specialEncodedPattern();
+
     IItemDefinition colorApplicator();
 
     AEColoredItemDefinition coloredPaintBall();
