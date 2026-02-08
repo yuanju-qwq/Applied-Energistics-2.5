@@ -73,6 +73,9 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
     private static final int CANCEL_HEIGHT = 20;
     private static final int CANCEL_WIDTH = 50;
 
+    private static final int SWITCH_LEFT_OFFSET = 108;
+    private static final int SWITCH_WIDTH = 50;
+
     private static final int TITLE_TOP_OFFSET = 7;
     private static final int TITLE_LEFT_OFFSET = 8;
 
@@ -89,7 +92,9 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
             .createList();
 
     private List<IAEItemStack> visual = new ArrayList<>();
+
     private GuiButton cancel;
+    private GuiButton switchButton;
     private int tooltip = -1;
 
     public GuiCraftingCPU(final InventoryPlayer inventoryPlayer, final Object te) {
@@ -124,6 +129,12 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
             } catch (final IOException e) {
                 AELog.debug(e);
             }
+        } else if (this.switchButton == btn) {
+            try {
+                NetworkHandler.instance().sendToServer(new PacketValueConfig("TileCrafting.Switch", "Switch"));
+            } catch (final IOException e) {
+                AELog.debug(e);
+            }
         }
     }
 
@@ -131,9 +142,21 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
     public void initGui() {
         super.initGui();
         this.setScrollBar();
-        this.cancel = new GuiButton(0, this.guiLeft + CANCEL_LEFT_OFFSET, this.guiTop + this.ySize - CANCEL_TOP_OFFSET,
-                CANCEL_WIDTH, CANCEL_HEIGHT, GuiText.Cancel
-                        .getLocal());
+
+        this.switchButton = new GuiButton(1,
+                this.guiLeft + SWITCH_LEFT_OFFSET,
+                this.guiTop + this.ySize - CANCEL_TOP_OFFSET,
+                SWITCH_WIDTH,
+                CANCEL_HEIGHT,
+                GuiText.Resume.getLocal()+"/"+GuiText.Pause.getLocal());
+        this.buttonList.add(this.switchButton);
+
+        this.cancel = new GuiButton(0,
+                this.guiLeft + CANCEL_LEFT_OFFSET,
+                this.guiTop + this.ySize - CANCEL_TOP_OFFSET,
+                CANCEL_WIDTH,
+                CANCEL_HEIGHT,
+                GuiText.Cancel.getLocal());
         this.buttonList.add(this.cancel);
     }
 
@@ -147,6 +170,7 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
     @Override
     public void drawScreen(final int mouseX, final int mouseY, final float btn) {
         this.cancel.enabled = !this.visual.isEmpty();
+        this.switchButton.enabled = true;
 
         final int gx = (this.width - this.xSize) / 2;
         final int gy = (this.height - this.ySize) / 2;

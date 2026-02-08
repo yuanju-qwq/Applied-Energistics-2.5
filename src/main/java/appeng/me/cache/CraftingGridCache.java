@@ -133,7 +133,7 @@ public class CraftingGridCache
         }
 
         for (final CraftingCPUCluster cpu : this.craftingCPUClusters) {
-            cpu.updateCraftingLogic(this.grid, this.energyGrid, this);
+            if(!cpu.isPause())cpu.updateCraftingLogic(this.grid, this.energyGrid, this);
         }
     }
 

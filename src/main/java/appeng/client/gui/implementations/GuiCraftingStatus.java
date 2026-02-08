@@ -1,25 +1,3 @@
-/*
- * This file is part of Applied Energistics 2.
- * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
- *
- * Applied Energistics 2 is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Applied Energistics 2 is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
- */
-
-/**
- *
- */
-
 package appeng.client.gui.implementations;
 
 import java.awt.*;
@@ -128,7 +106,7 @@ public class GuiCraftingStatus extends GuiCraftingCPU {
     public void initGui() {
         super.initGui();
 
-        this.selectCPU = new GuiButton(0, this.guiLeft + 8, this.guiTop + this.ySize - 25, 150, 20, GuiText.CraftingCPU
+        this.selectCPU = new GuiButton(0, this.guiLeft + 8, this.guiTop + this.ySize - 25, 95, 20, GuiText.CraftingCPU
                 .getLocal() + ": " + GuiText.NoCraftingCPUs);
         selectCPU.enabled = false;
         this.buttonList.add(this.selectCPU);
@@ -160,132 +138,147 @@ public class GuiCraftingStatus extends GuiCraftingCPU {
         this.updateCPUButtonText();
         super.drawScreen(mouseX, mouseY, btn);
     }
-
     @Override
     public void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
         List<CraftingCPUStatus> cpus = this.status.getCPUs();
         final int firstCpu = this.cpuScrollbar.getCurrentScroll();
         CraftingCPUStatus hoveredCpu = hitCpu(mouseX, mouseY);
-        {
-            FontRenderer font = Minecraft.getMinecraft().fontRenderer;
-            final int TEXT_COLOR = 0x202020;
-            for (int i = firstCpu; i < firstCpu + 6; i++) {
-                if (i < 0 || i >= cpus.size()) {
-                    continue;
-                }
-                CraftingCPUStatus cpu = cpus.get(i);
-                if (cpu == null) {
-                    continue;
-                }
-                int x = -CPU_TABLE_WIDTH + 9;
-                int y = 19 + (i - firstCpu) * CPU_TABLE_SLOT_HEIGHT;
-                if (cpu.getSerial() == this.status.selectedCpuSerial) {
-                    GL11.glColor4f(0.0F, 0.8352F, 1.0F, 1.0F);
-                } else if (hoveredCpu != null && hoveredCpu.getSerial() == cpu.getSerial()) {
-                    GL11.glColor4f(0.65F, 0.9F, 1.0F, 1.0F);
-                } else {
-                    GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-                }
-                this.bindTexture("guis/cpu_selector.png");
-                this.drawTexturedModalRect(x, y, CPU_TABLE_SLOT_XOFF, CPU_TABLE_SLOT_YOFF, CPU_TABLE_SLOT_WIDTH,
-                        CPU_TABLE_SLOT_HEIGHT);
+        FontRenderer font = Minecraft.getMinecraft().fontRenderer;
+        final int TEXT_COLOR = 0x202020;
+        final int PAUSED_COLOR = 0xFFA500;
+
+        // 绘制CPU槽位
+        for (int i = firstCpu; i < firstCpu + 6 && i < cpus.size(); i++) {
+            if (i < 0) continue;
+            CraftingCPUStatus cpu = cpus.get(i);
+            if (cpu == null) continue;
+
+            int x = -CPU_TABLE_WIDTH + 9;
+            int y = 19 + (i - firstCpu) * CPU_TABLE_SLOT_HEIGHT;
+
+            // 绘制槽位背景
+            if (cpu.getSerial() == this.status.selectedCpuSerial) {
+                GL11.glColor4f(0.0F, 0.8352F, 1.0F, 1.0F);
+            } else if (hoveredCpu != null && hoveredCpu.getSerial() == cpu.getSerial()) {
+                GL11.glColor4f(0.65F, 0.9F, 1.0F, 1.0F);
+            } else {
                 GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+            }
+            this.bindTexture("guis/cpu_selector.png");
+            this.drawTexturedModalRect(x, y, CPU_TABLE_SLOT_XOFF, CPU_TABLE_SLOT_YOFF, CPU_TABLE_SLOT_WIDTH, CPU_TABLE_SLOT_HEIGHT);
+            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 
-                String name = cpu.getName();
-                if (name == null || name.isEmpty()) {
-                    name = GuiText.CPUs.getLocal() + " #" + cpu.getSerial();
+            // 绘制CPU名称
+            String name = cpu.getName();
+            if (name == null || name.isEmpty()) {
+                name = GuiText.CPUs.getLocal() + " #" + cpu.getSerial();
+            }
+            if (cpu.isPause()) {
+                name += " [P]";
+            }
+            if (name.length() > 12) {
+                name = name.substring(0, 11) + "..";
+            }
+            GL11.glPushMatrix();
+            GL11.glTranslatef(x + 3, y + 3, 0);
+            GL11.glScalef(0.8f, 0.8f, 1.0f);
+            font.drawString(name, 0, 0, cpu.isPause() ? PAUSED_COLOR : TEXT_COLOR);
+            GL11.glPopMatrix();
+
+            // 绘制状态区域
+            GL11.glPushMatrix();
+            GL11.glTranslatef(x + 3, y + 11, 0);
+
+            IAEItemStack craftingStack = cpu.getCrafting();
+            if (cpu.isPause()) {
+                // 暂停状态
+                int pauseIconIndex = 16 * 12 + 0;
+                this.bindTexture("guis/states.png");
+                int pause_uv_y = pauseIconIndex / 16;
+                int pause_uv_x = pauseIconIndex - pause_uv_y * 16;
+                GL11.glScalef(0.5f, 0.5f, 1.0f);
+                GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+                this.drawTexturedModalRect(0, 0, pause_uv_x * 16, pause_uv_y * 16, 16, 16);
+                GL11.glTranslatef(18.0f, 2.0f, 0.0f);
+                GL11.glScalef(1.5f, 1.5f, 1.0f);
+                font.drawString(GuiText.Pause.getLocal(), 0, 0, PAUSED_COLOR);
+            } else if (craftingStack != null) {
+                // 合成中状态
+                int iconIndex = 16 * 11 + 2;
+                this.bindTexture("guis/states.png");
+                int uv_y = iconIndex / 16;
+                int uv_x = iconIndex - uv_y * 16;
+                GL11.glScalef(0.5f, 0.5f, 1.0f);
+                GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+                this.drawTexturedModalRect(0, 0, uv_x * 16, uv_y * 16, 16, 16);
+                GL11.glTranslatef(18.0f, 2.0f, 0.0f);
+                GL11.glScalef(1.5f, 1.5f, 1.0f);
+                String amount = Long.toString(craftingStack.getStackSize());
+                if (amount.length() > 5) {
+                    amount = amount.substring(0, 5) + "..";
                 }
-                if (name.length() > 12) {
-                    name = name.substring(0, 11) + "..";
-                }
+                font.drawString(amount, 0, 0, 0x009000);
+            } else {
+                // 空闲状态
+                int iconIndex = 16 * 4 + 3;
+                this.bindTexture("guis/states.png");
+                int uv_y = iconIndex / 16;
+                int uv_x = iconIndex - uv_y * 16;
+                GL11.glScalef(0.5f, 0.5f, 1.0f);
+                GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+                this.drawTexturedModalRect(0, 0, uv_x * 16, uv_y * 16, 16, 16);
+                GL11.glTranslatef(18.0f, 2.0f, 0.0f);
+                GL11.glScalef(1.5f, 1.5f, 1.0f);
+                font.drawString(cpu.formatStorage(), 0, 0, TEXT_COLOR);
+            }
+            GL11.glPopMatrix();
+
+            // 绘制合成物品图标（暂停/合成中均显示）
+            if (craftingStack != null) {
                 GL11.glPushMatrix();
-                GL11.glTranslatef(x + 3, y + 3, 0);
-                GL11.glScalef(0.8f, 0.8f, 1.0f);
-                font.drawString(name, 0, 0, TEXT_COLOR);
-                GL11.glPopMatrix();
-
-                GL11.glPushMatrix();
-                GL11.glTranslatef(x + 3, y + 11, 0);
-                final IAEItemStack craftingStack = cpu.getCrafting();
-                if (craftingStack != null) {
-                    final int iconIndex = 16 * 11 + 2;
-                    this.bindTexture("guis/states.png");
-                    final int uv_y = iconIndex / 16;
-                    final int uv_x = iconIndex - uv_y * 16;
-
-                    GL11.glScalef(0.5f, 0.5f, 1.0f);
-                    GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-                    this.drawTexturedModalRect(0, 0, uv_x * 16, uv_y * 16, 16, 16);
-                    GL11.glTranslatef(18.0f, 2.0f, 0.0f);
-                    String amount = Long.toString(craftingStack.getStackSize());
-                    if (amount.length() > 5) {
-                        amount = amount.substring(0, 5) + "..";
-                    }
-                    GL11.glScalef(1.5f, 1.5f, 1.0f);
-                    font.drawString(amount, 0, 0, 0x009000);
-                    GL11.glPopMatrix();
-                    GL11.glPushMatrix();
-                    GL11.glTranslatef(x + CPU_TABLE_SLOT_WIDTH - 19, y + 3, 0);
-                    this.drawItem(0, 0, craftingStack.createItemStack());
-                } else {
-                    final int iconIndex = 16 * 4 + 3;
-                    this.bindTexture("guis/states.png");
-                    final int uv_y = iconIndex / 16;
-                    final int uv_x = iconIndex - uv_y * 16;
-
-                    GL11.glScalef(0.5f, 0.5f, 1.0f);
-                    GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-                    this.drawTexturedModalRect(0, 0, uv_x * 16, uv_y * 16, 16, 16);
-                    GL11.glTranslatef(18.0f, 2.0f, 0.0f);
-                    GL11.glScalef(1.5f, 1.5f, 1.0f);
-                    font.drawString(cpu.formatStorage(), 0, 0, TEXT_COLOR);
-                }
+                GL11.glTranslatef(x + CPU_TABLE_SLOT_WIDTH - 19, y + 3, 0);
+                this.drawItem(0, 0, craftingStack.createItemStack());
                 GL11.glPopMatrix();
             }
-            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
         }
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+
         StringBuilder tooltip = new StringBuilder();
         if (hoveredCpu != null) {
             String name = hoveredCpu.getName();
             if (name != null && !name.isEmpty()) {
                 tooltip.append(name);
-                tooltip.append('\n');
             } else {
-                tooltip.append(GuiText.CPUs.getLocal());
-                tooltip.append(" #");
-                tooltip.append(hoveredCpu.getSerial());
-                tooltip.append('\n');
+                tooltip.append(GuiText.CPUs.getLocal()).append(" #").append(hoveredCpu.getSerial());
             }
+            if (hoveredCpu.isPause()) {
+                tooltip.append(" [").append(GuiText.Pause.getLocal()).append("]");
+            }
+            tooltip.append('\n');
+
             IAEItemStack crafting = hoveredCpu.getCrafting();
             if (crafting != null && crafting.getStackSize() > 0) {
-                tooltip.append(GuiText.Crafting.getLocal());
-                tooltip.append(": ");
-                tooltip.append(crafting.getStackSize());
-                tooltip.append(' ');
-                tooltip.append(crafting.createItemStack().getDisplayName());
-                tooltip.append('\n');
-                tooltip.append(hoveredCpu.getRemainingItems());
-                tooltip.append(" / ");
-                tooltip.append(hoveredCpu.getTotalItems());
-                tooltip.append('\n');
+                tooltip.append(GuiText.Crafting.getLocal()).append(": ")
+                        .append(crafting.getStackSize()).append(' ')
+                        .append(crafting.createItemStack().getDisplayName()).append('\n')
+                        .append(hoveredCpu.getRemainingItems()).append(" / ")
+                        .append(hoveredCpu.getTotalItems()).append('\n');
             }
             if (hoveredCpu.getStorage() > 0) {
-                tooltip.append(GuiText.Bytes.getLocal());
-                tooltip.append(": ");
-                tooltip.append(hoveredCpu.formatStorage());
-                tooltip.append('\n');
+                tooltip.append(GuiText.Bytes.getLocal()).append(": ")
+                        .append(hoveredCpu.formatStorage()).append('\n');
             }
             if (hoveredCpu.getCoprocessors() > 0) {
-                tooltip.append(GuiText.CoProcessors.getLocal());
-                tooltip.append(": ");
-                tooltip.append(hoveredCpu.getCoprocessors());
-                tooltip.append('\n');
+                tooltip.append(GuiText.CoProcessors.getLocal()).append(": ")
+                        .append(hoveredCpu.getCoprocessors()).append('\n');
             }
         }
+
         if (this.cpuScrollbar != null) {
             this.cpuScrollbar.draw(this);
         }
         super.drawFG(offsetX, offsetY, mouseX, mouseY);
+
         if (tooltip.length() > 0) {
             this.drawTooltip(mouseX - offsetX, mouseY - offsetY, tooltip.toString());
         }
@@ -367,7 +360,8 @@ public class GuiCraftingStatus extends GuiCraftingCPU {
         if (this.status.selectedCpuSerial >= 0)// && status.selectedCpu < status.cpus.size() )
         {
             if (this.selectedCPUName != null && this.selectedCPUName.length() > 0) {
-                final String name = this.selectedCPUName.substring(0, Math.min(20, this.selectedCPUName.length()));
+                // 由于按钮宽度缩短到95，我们需要进一步缩短显示的文本
+                final String name = this.selectedCPUName.substring(0, Math.min(15, this.selectedCPUName.length()));
                 btnTextText = GuiText.CPUs.getLocal() + ": " + name;
             } else {
                 btnTextText = GuiText.CPUs.getLocal() + ": #" + this.status.selectedCpuSerial;

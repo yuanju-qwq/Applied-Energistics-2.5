@@ -120,6 +120,12 @@ public class ContainerCraftingCPU extends AEBaseContainer
         this.setEstimatedTime(-1);
     }
 
+    public void switchCrafting() {
+        if (this.getMonitor() != null) {
+            this.getMonitor().switchCrafting();
+        }
+    }
+
     @Override
     public void removeListener(final IContainerListener c) {
         super.removeListener(c);

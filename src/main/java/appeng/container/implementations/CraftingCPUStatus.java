@@ -19,6 +19,7 @@ public class CraftingCPUStatus implements Comparable<CraftingCPUStatus> {
     @Nullable
     private final ICraftingCPU serverCluster;
     private final String name;
+    private final boolean pause;
     private final int serial;
     private final long storage;
     private final long coprocessors;
@@ -28,6 +29,7 @@ public class CraftingCPUStatus implements Comparable<CraftingCPUStatus> {
 
     public CraftingCPUStatus() {
         this.serverCluster = null;
+        this.pause = false;
         this.name = "ERROR";
         this.serial = 0;
         this.storage = 0;
@@ -39,6 +41,7 @@ public class CraftingCPUStatus implements Comparable<CraftingCPUStatus> {
 
     public CraftingCPUStatus(ICraftingCPU cluster, int serial) {
         this.serverCluster = cluster;
+        this.pause = cluster.isPause();
         this.name = cluster.getName();
         this.serial = serial;
         if (cluster.isBusy()) {
@@ -63,6 +66,7 @@ public class CraftingCPUStatus implements Comparable<CraftingCPUStatus> {
         this.totalItems = i.getLong("totalItems");
         this.remainingItems = i.getLong("remainingItems");
         this.crafting = i.hasKey("crafting") ? AEItemStack.fromNBT(i.getCompoundTag("crafting")) : null;
+        this.pause = i.getBoolean("pause");
     }
 
     public CraftingCPUStatus(ByteBuf packet) throws IOException {
@@ -91,6 +95,7 @@ public class CraftingCPUStatus implements Comparable<CraftingCPUStatus> {
             crafting.writeToNBT(stack);
             i.setTag("crafting", stack);
         }
+        i.setBoolean("pause", pause);
     }
 
     public void writeToPacket(ByteBuf i) throws IOException {
@@ -139,6 +144,10 @@ public class CraftingCPUStatus implements Comparable<CraftingCPUStatus> {
 
     public IAEItemStack getCrafting() {
         return crafting;
+    }
+
+    public boolean isPause() {
+        return pause;
     }
 
     @Override

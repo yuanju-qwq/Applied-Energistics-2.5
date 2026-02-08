@@ -157,6 +157,8 @@ public enum GuiText {
     Scheduled,
     CraftingStatus,
     Cancel,
+    Pause,
+    Resume,
     ETA,
     ETAFormat,
 
