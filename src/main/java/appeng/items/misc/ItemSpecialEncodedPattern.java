@@ -3,9 +3,6 @@ package appeng.items.misc;
 import java.util.List;
 import java.util.Map;
 
-import appeng.api.AEApi;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.helpers.PatternHelper;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -20,9 +17,12 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 
+import appeng.api.AEApi;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
+import appeng.api.storage.data.IAEItemStack;
 import appeng.core.localization.GuiText;
+import appeng.helpers.PatternHelper;
 import appeng.helpers.SpecialPatternHelper;
 import appeng.items.AEBaseItem;
 import appeng.util.Platform;
@@ -31,8 +31,7 @@ import appeng.util.item.ItemStackHashStrategy;
 public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPatternItem {
 
     private static final ItemStackHashStrategy HASH_STRATEGY = ItemStackHashStrategy.comparingAllButCount();
-    private static final Map<ItemStack, ItemStack> OUTPUT_CACHE =
-            new Object2ObjectOpenCustomHashMap<>(HASH_STRATEGY);
+    private static final Map<ItemStack, ItemStack> OUTPUT_CACHE = new Object2ObjectOpenCustomHashMap<>(HASH_STRATEGY);
 
     public ItemSpecialEncodedPattern() {
         this.setMaxStackSize(16); // 降低堆叠限制以区分普通模板
@@ -47,7 +46,8 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
     private boolean clearPattern(ItemStack stack, EntityPlayer player) {
         if (player.isSneaking()) {
             OUTPUT_CACHE.remove(stack);
-            if (Platform.isClient()) return false;
+            if (Platform.isClient())
+                return false;
 
             // 替换为空白模板（数量保持不变）
             ItemStack blank = AEApi.instance().definitions()
@@ -68,7 +68,7 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
     @Override
     @SideOnly(Side.CLIENT)
     public void addCheckedInformation(final ItemStack stack, final World world, final List<String> lines,
-                                      final ITooltipFlag advancedTooltips) {
+            final ITooltipFlag advancedTooltips) {
         final ICraftingPatternDetails details;
         try {
             details = new SpecialPatternHelper(stack, world);
@@ -99,7 +99,7 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
         // 显示编码器信息
         final NBTTagCompound tag = stack.getTagCompound();
         if (tag != null && tag.hasKey("encoderName")) {
-            lines.add("Encoder Name: "+tag.getString("encoderName"));
+            lines.add("Encoder Name: " + tag.getString("encoderName"));
         }
     }
 
@@ -124,10 +124,12 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
      */
     public ItemStack getOutput(ItemStack item) {
         ItemStack cached = OUTPUT_CACHE.get(item);
-        if (cached != null) return cached;
+        if (cached != null)
+            return cached;
 
         World w = appeng.core.AppEng.proxy.getWorld();
-        if (w == null) return ItemStack.EMPTY;
+        if (w == null)
+            return ItemStack.EMPTY;
 
         ICraftingPatternDetails details = getPatternForItem(item, w);
         ItemStack output = (details != null && details.getOutputs().length > 0)

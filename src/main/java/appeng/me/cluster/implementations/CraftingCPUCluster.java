@@ -18,6 +18,23 @@
 
 package appeng.me.cluster.implementations;
 
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.inventory.InventoryCrafting;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
@@ -55,21 +72,6 @@ import appeng.tile.crafting.TileCraftingMonitorTile;
 import appeng.tile.crafting.TileCraftingTile;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.inventory.InventoryCrafting;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
@@ -803,7 +805,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                             }
 
                             if (m.pushPattern(details, ic)) {
-                                if (m != LatestMedium) LatestMedium = m;
+                                if (m != LatestMedium)
+                                    LatestMedium = m;
                                 this.somethingChanged = true;
                                 this.remainingOperations--; // 消耗1次额度
 
@@ -888,7 +891,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
     }
 
     public ICraftingLink submitJob(final IGrid g, final ICraftingJob job, final IActionSource src,
-                                   final ICraftingRequester requestingMachine) {
+            final ICraftingRequester requestingMachine) {
         if (!this.tasks.isEmpty() || !this.waitingFor.isEmpty()) {
             return null;
         }

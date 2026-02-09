@@ -23,10 +23,11 @@
 
 package appeng.api.implementations;
 
-import appeng.api.networking.crafting.ICraftingPatternDetails;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
+
+import appeng.api.networking.crafting.ICraftingPatternDetails;
 
 /**
  * Implemented on {@link Item}

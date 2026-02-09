@@ -1,14 +1,11 @@
 package appeng.container.implementations;
 
-import static appeng.helpers.ItemStackHelper.stackFromNBT;
 import static appeng.helpers.ItemStackHelper.stackWriteToNBT;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import appeng.core.AELog;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -20,7 +17,6 @@ import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 
@@ -304,9 +300,11 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
      * 判断物品是否为特殊样板（specialEncodedPattern）
      */
     private boolean isSpecialPattern(ItemStack stack) {
-        if (stack.isEmpty()) return false;
+        if (stack.isEmpty())
+            return false;
 
-        Optional<ItemStack> specialPattern = AEApi.instance().definitions().items().specialEncodedPattern().maybeStack(1);
+        Optional<ItemStack> specialPattern = AEApi.instance().definitions().items().specialEncodedPattern()
+                .maybeStack(1);
         return specialPattern.isPresent() && stack.isItemEqual(specialPattern.get());
     }
 

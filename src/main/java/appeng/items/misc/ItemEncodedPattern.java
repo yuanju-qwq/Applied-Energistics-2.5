@@ -21,7 +21,6 @@ package appeng.items.misc;
 import java.util.List;
 import java.util.Map;
 
-import appeng.helpers.PatternNestHelper;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -47,6 +46,7 @@ import appeng.core.AppEng;
 import appeng.core.localization.GuiText;
 import appeng.helpers.InvalidPatternHelper;
 import appeng.helpers.PatternHelper;
+import appeng.helpers.PatternNestHelper;
 import appeng.items.AEBaseItem;
 import appeng.util.Platform;
 import appeng.util.item.ItemStackHashStrategy;
@@ -183,10 +183,9 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
 
         final NBTTagCompound tag = stack.getTagCompound();
         if (tag != null && tag.hasKey("encoderName")) {
-            lines.add("Encoder Name: "+tag.getString("encoderName"));
+            lines.add("Encoder Name: " + tag.getString("encoderName"));
         }
     }
-
 
     @Override
     public ICraftingPatternDetails getPatternForItem(final ItemStack is, final World w) {
@@ -198,9 +197,10 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
     }
 
     @Override
-    public ICraftingPatternDetails getPatternForItemWithNest(final ItemStack is, final World w,boolean nest) {
+    public ICraftingPatternDetails getPatternForItemWithNest(final ItemStack is, final World w, boolean nest) {
         try {
-            if(nest) return new PatternNestHelper(is, w);
+            if (nest)
+                return new PatternNestHelper(is, w);
             return new PatternHelper(is, w);
         } catch (final Throwable t) {
             return null;

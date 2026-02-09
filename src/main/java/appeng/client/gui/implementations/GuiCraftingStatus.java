@@ -138,6 +138,7 @@ public class GuiCraftingStatus extends GuiCraftingCPU {
         this.updateCPUButtonText();
         super.drawScreen(mouseX, mouseY, btn);
     }
+
     @Override
     public void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
         List<CraftingCPUStatus> cpus = this.status.getCPUs();
@@ -149,9 +150,11 @@ public class GuiCraftingStatus extends GuiCraftingCPU {
 
         // 绘制CPU槽位
         for (int i = firstCpu; i < firstCpu + 6 && i < cpus.size(); i++) {
-            if (i < 0) continue;
+            if (i < 0)
+                continue;
             CraftingCPUStatus cpu = cpus.get(i);
-            if (cpu == null) continue;
+            if (cpu == null)
+                continue;
 
             int x = -CPU_TABLE_WIDTH + 9;
             int y = 19 + (i - firstCpu) * CPU_TABLE_SLOT_HEIGHT;
@@ -165,7 +168,8 @@ public class GuiCraftingStatus extends GuiCraftingCPU {
                 GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
             }
             this.bindTexture("guis/cpu_selector.png");
-            this.drawTexturedModalRect(x, y, CPU_TABLE_SLOT_XOFF, CPU_TABLE_SLOT_YOFF, CPU_TABLE_SLOT_WIDTH, CPU_TABLE_SLOT_HEIGHT);
+            this.drawTexturedModalRect(x, y, CPU_TABLE_SLOT_XOFF, CPU_TABLE_SLOT_YOFF, CPU_TABLE_SLOT_WIDTH,
+                    CPU_TABLE_SLOT_HEIGHT);
             GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 
             // 绘制CPU名称

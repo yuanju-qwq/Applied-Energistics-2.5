@@ -18,7 +18,6 @@
 
 package appeng.core.api.definitions;
 
-import appeng.client.render.crafting.ItemSpecialEncodedPatternRendering;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.EntityEntryBuilder;
@@ -31,6 +30,7 @@ import appeng.bootstrap.FeatureFactory;
 import appeng.bootstrap.components.IEntityRegistrationComponent;
 import appeng.bootstrap.components.IOreDictComponent;
 import appeng.client.render.crafting.ItemEncodedPatternRendering;
+import appeng.client.render.crafting.ItemSpecialEncodedPatternRendering;
 import appeng.core.CreativeTabFacade;
 import appeng.core.features.AEFeature;
 import appeng.debug.ToolDebugCard;

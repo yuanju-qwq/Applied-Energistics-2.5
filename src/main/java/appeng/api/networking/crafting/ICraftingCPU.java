@@ -64,7 +64,9 @@ public interface ICraftingCPU extends IBaseMonitor<IAEItemStack> {
         return null;
     }
 
-    default boolean isPause() {return false;}
+    default boolean isPause() {
+        return false;
+    }
 
     /**
      * @return remaining count of items (or other units of processing) for the current crafting job

@@ -1,7 +1,15 @@
 package appeng.client.render.crafting;
 
-import appeng.items.misc.ItemSpecialEncodedPattern;
+import java.util.List;
+
+import javax.annotation.Nullable;
+import javax.vecmath.Matrix4f;
+
 import com.google.common.collect.ImmutableMap;
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.lwjgl.input.Keyboard;
+
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -16,12 +24,8 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
 import net.minecraftforge.client.model.PerspectiveMapWrapper;
 import net.minecraftforge.common.model.TRSRTransformation;
-import org.apache.commons.lang3.tuple.Pair;
-import org.lwjgl.input.Keyboard;
 
-import javax.annotation.Nullable;
-import javax.vecmath.Matrix4f;
-import java.util.List;
+import appeng.items.misc.ItemSpecialEncodedPattern;
 
 /**
  * This special model handles switching between rendering the crafting output of an encoded pattern (when shift is being
@@ -45,7 +49,7 @@ public class ItemSpecialEncodedPatternBakedModel implements IBakedModel {
     };
 
     ItemSpecialEncodedPatternBakedModel(IBakedModel baseModel,
-                                        ImmutableMap<ItemCameraTransforms.TransformType, TRSRTransformation> transforms) {
+            ImmutableMap<ItemCameraTransforms.TransformType, TRSRTransformation> transforms) {
         this.baseModel = baseModel;
         this.transforms = transforms;
         this.overrides = new CustomOverrideList();
@@ -123,7 +127,8 @@ public class ItemSpecialEncodedPatternBakedModel implements IBakedModel {
                 }
             }
 
-            return ItemSpecialEncodedPatternBakedModel.this.baseModel.getOverrides().handleItemState(originalModel, stack,
+            return ItemSpecialEncodedPatternBakedModel.this.baseModel.getOverrides().handleItemState(originalModel,
+                    stack,
                     world, entity);
         }
     }

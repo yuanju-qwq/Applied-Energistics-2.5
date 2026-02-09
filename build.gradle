@@ -147,12 +147,12 @@ dependencies {
 
     compileOnlyApi 'org.jetbrains:annotations:24.1.0'
     annotationProcessor 'org.jetbrains:annotations:24.1.0'
-    implementation rfg.deobf("curse.maven:had-enough-items-557549:7515497")
+    implementation(rfg.deobf("curse.maven:had-enough-items-557549:7515497"))
     implementation rfg.deobf('curse.maven:top-245211:2667280') // TOP 1.4.28
 
     // Mods always in-game
     implementation rfg.deobf("curse.maven:mixin-booter-419286:4835295")
-    implementation rfg.deobf(files("libs/gregtech-MeowmelMuku-1.12.2-2.9.0-190.jar"))
+    implementation rfg.deobf(files("libs/gregtech-gtqt-1.12.2-2.9.0-190.jar"))
     compileOnly rfg.deobf(files("libs/BestQuesting-0.0.5.jar"))
     implementation rfg.deobf(files("libs/ae2fc-2.7.10-unofficial.jar"))
 

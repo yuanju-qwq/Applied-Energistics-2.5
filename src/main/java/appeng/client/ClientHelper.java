@@ -23,7 +23,6 @@ import static appeng.client.KeyBindings.*;
 import java.io.IOException;
 import java.util.*;
 
-import appeng.client.render.crafting.ItemSpecialEncodedPatternBakedModel;
 import org.lwjgl.input.Mouse;
 
 import net.minecraft.client.Minecraft;
@@ -53,6 +52,7 @@ import appeng.api.util.AEColor;
 import appeng.block.AEBaseBlock;
 import appeng.client.gui.AEBaseGui;
 import appeng.client.render.crafting.ItemEncodedPatternBakedModel;
+import appeng.client.render.crafting.ItemSpecialEncodedPatternBakedModel;
 import appeng.client.render.effects.*;
 import appeng.client.render.model.UVLModelLoader;
 import appeng.client.render.tesr.InscriberTESR;
@@ -129,7 +129,8 @@ public class ClientHelper extends ServerHelper {
 
         Api.INSTANCE.definitions().items().specialEncodedPattern().maybeItem()
                 .ifPresent(pattern -> Minecraft.getMinecraft().getItemColors()
-                        .registerItemColorHandler(ItemSpecialEncodedPatternBakedModel.PATTERN_ITEM_COLOR_HANDLER, pattern));
+                        .registerItemColorHandler(ItemSpecialEncodedPatternBakedModel.PATTERN_ITEM_COLOR_HANDLER,
+                                pattern));
     }
 
     @SubscribeEvent

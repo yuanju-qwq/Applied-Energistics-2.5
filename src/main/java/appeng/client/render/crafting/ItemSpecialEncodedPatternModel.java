@@ -1,7 +1,11 @@
 package appeng.client.render.crafting;
 
-import appeng.core.AppEng;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.function.Function;
+
 import com.google.common.collect.ImmutableMap;
+
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -13,16 +17,15 @@ import net.minecraftforge.client.model.PerspectiveMapWrapper;
 import net.minecraftforge.common.model.IModelState;
 import net.minecraftforge.common.model.TRSRTransformation;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.function.Function;
+import appeng.core.AppEng;
 
 /**
  * Simple model for the encoded pattern built-in baked model.
  */
 class ItemSpecialEncodedPatternModel implements IModel {
 
-    private static final ResourceLocation BASE_MODEL = new ResourceLocation(AppEng.MOD_ID, "item/special_encoded_pattern");
+    private static final ResourceLocation BASE_MODEL = new ResourceLocation(AppEng.MOD_ID,
+            "item/special_encoded_pattern");
 
     @Override
     public Collection<ResourceLocation> getDependencies() {

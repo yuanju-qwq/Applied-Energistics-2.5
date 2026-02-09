@@ -68,7 +68,7 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
     private static final int SCROLLBAR_LEFT = 218;
     private static final int SCROLLBAR_HEIGHT = 137;
 
-    private static final int CANCEL_LEFT_OFFSET = 8 + 50 + 8 +50 + 8;
+    private static final int CANCEL_LEFT_OFFSET = 8 + 50 + 8 + 50 + 8;
     private static final int CANCEL_TOP_OFFSET = 50;
     private static final int CANCEL_HEIGHT = 20;
     private static final int CANCEL_WIDTH = 50;
@@ -139,7 +139,7 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
             } catch (final IOException e) {
                 AELog.debug(e);
             }
-        }else if (this.trackButton == btn) {
+        } else if (this.trackButton == btn) {
             try {
                 NetworkHandler.instance().sendToServer(new PacketValueConfig("TileCrafting.Track", "Track"));
             } catch (final IOException e) {
@@ -166,7 +166,7 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
                 this.guiTop + this.ySize - CANCEL_TOP_OFFSET,
                 SWITCH_WIDTH,
                 CANCEL_HEIGHT,
-                GuiText.Resume.getLocal()+"/"+GuiText.Pause.getLocal());
+                GuiText.Resume.getLocal() + "/" + GuiText.Pause.getLocal());
         this.buttonList.add(this.switchButton);
 
         this.cancel = new GuiButton(0,

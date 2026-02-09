@@ -1,24 +1,25 @@
 package appeng.helpers;
 
-import appeng.api.AEApi;
-import appeng.api.networking.crafting.ICraftingPatternDetails;
-import appeng.api.storage.channels.IItemStorageChannel;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.util.item.AEItemStack;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import static appeng.helpers.ItemStackHelper.stackFromNBT;
+
+import java.util.*;
+
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
 
-import java.util.*;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
-import static appeng.helpers.ItemStackHelper.stackFromNBT;
+import appeng.api.AEApi;
+import appeng.api.networking.crafting.ICraftingPatternDetails;
+import appeng.api.storage.channels.IItemStorageChannel;
+import appeng.api.storage.data.IAEItemStack;
+import appeng.util.item.AEItemStack;
 
 /**
- * 支持空输出的特殊加工模板解析器
- * 仅适用于加工模式（isCrafting=false），合成模式必须有输出
+ * 支持空输出的特殊加工模板解析器 仅适用于加工模式（isCrafting=false），合成模式必须有输出
  */
 public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable<SpecialPatternHelper> {
 
@@ -69,8 +70,9 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
             if (!ingredient.isEmpty() && gs.isEmpty()) {
                 throw new IllegalArgumentException("Invalid input at slot " + x);
             }
-            in.add(gs.isEmpty() ? null : AEApi.instance().storage()
-                    .getStorageChannel(IItemStorageChannel.class).createStack(gs));
+            in.add(gs.isEmpty() ? null
+                    : AEApi.instance().storage()
+                            .getStorageChannel(IItemStorageChannel.class).createStack(gs));
         }
 
         // 解析输出 - 关键修改：允许空输出列表
@@ -110,7 +112,8 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         // 压缩输入（合并相同物品）
         final Map<IAEItemStack, IAEItemStack> tmpInputs = new Object2ObjectOpenHashMap<>();
         for (final IAEItemStack io : this.inputs) {
-            if (io == null) continue;
+            if (io == null)
+                continue;
             tmpInputs.merge(io, io.copy(), (a, b) -> {
                 a.add(b);
                 return a;
@@ -121,7 +124,8 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         // 压缩输出（允许空）
         final Map<IAEItemStack, IAEItemStack> tmpOutputs = new Object2ObjectOpenHashMap<>();
         for (final IAEItemStack io : this.outputs) {
-            if (io == null) continue;
+            if (io == null)
+                continue;
             tmpOutputs.merge(io, io.copy(), (a, b) -> {
                 a.add(b);
                 return a;
@@ -217,8 +221,10 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof SpecialPatternHelper other)) return false;
+        if (this == obj)
+            return true;
+        if (!(obj instanceof SpecialPatternHelper other))
+            return false;
         return Objects.equals(pattern, other.pattern);
     }
 }
