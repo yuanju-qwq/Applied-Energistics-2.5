@@ -190,18 +190,16 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
     @Override
     public ICraftingPatternDetails getPatternForItem(final ItemStack is, final World w) {
         try {
-            return new PatternNestHelper(is, w);
+            return new PatternHelper(is, w);
         } catch (final Throwable t) {
             return null;
         }
     }
 
     @Override
-    public ICraftingPatternDetails getPatternForItemWithNest(final ItemStack is, final World w, boolean nest) {
+    public ICraftingPatternDetails getPatternForItemWithNest(final ItemStack is, final World w) {
         try {
-            if (nest)
-                return new PatternNestHelper(is, w);
-            return new PatternHelper(is, w);
+            return new PatternNestHelper(is, w);
         } catch (final Throwable t) {
             return null;
         }

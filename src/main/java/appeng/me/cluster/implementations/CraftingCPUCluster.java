@@ -1224,7 +1224,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             final NBTTagCompound item = list.getCompoundTagAt(x);
             final IAEItemStack pattern = AEItemStack.fromNBT(item);
             if (pattern != null && pattern.getItem() instanceof ICraftingPatternItem cpi) {
-                final ICraftingPatternDetails details = cpi.getPatternForItem(pattern.createItemStack(),
+                final ICraftingPatternDetails details = cpi.getPatternForItemWithNest(pattern.createItemStack(),
                         this.getWorld());
                 if (details != null) {
                     final TaskProgress tp = new TaskProgress();

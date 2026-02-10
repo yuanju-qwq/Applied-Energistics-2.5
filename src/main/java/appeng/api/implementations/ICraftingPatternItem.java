@@ -43,7 +43,7 @@ public interface ICraftingPatternItem {
      */
     ICraftingPatternDetails getPatternForItem(ItemStack is, World w);
 
-    default ICraftingPatternDetails getPatternForItemWithNest(ItemStack is, World w, boolean nest) {
+    default ICraftingPatternDetails getPatternForItemWithNest(ItemStack is, World w) {
         return getPatternForItem(is, w);
     }
 }

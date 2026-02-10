@@ -48,11 +48,9 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
 
     public static final int CRAFTING_GRID_DIMENSION = 3;
     private static final int CRAFTING_INPUT_LIMIT = CRAFTING_GRID_DIMENSION * CRAFTING_GRID_DIMENSION;
-    public static final int PROCESSING_INPUT_HEIGHT = 4;
-    public static final int PROCESSING_INPUT_WIDTH = 4;
+    public static final int PROCESSING_INPUT_HEIGHT = 12;
+    public static final int PROCESSING_INPUT_WIDTH = 12;
     public static final int PROCESSING_INPUT_LIMIT = PROCESSING_INPUT_HEIGHT * PROCESSING_INPUT_WIDTH;
-    public static final int CRAFTING_OUTPUT_LIMIT = 1;
-    public static final int PROCESSING_OUTPUT_LIMIT = 6;
 
     private final ItemStack patternItem;
     private final InventoryCrafting crafting;
@@ -82,8 +80,8 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
         final NBTTagList outTag = encodedValue.getTagList("out", 10);
         this.isCrafting = encodedValue.getBoolean("crafting");
 
-        crafting = new InventoryCrafting(new ContainerNull(), isCrafting ? 3 : 4, isCrafting ? 3 : 4);
-        testFrame = new InventoryCrafting(new ContainerNull(), isCrafting ? 3 : 4, isCrafting ? 3 : 4);
+        crafting = new InventoryCrafting(new ContainerNull(), isCrafting ? 3 : 12, isCrafting ? 3 : 12);
+        testFrame = new InventoryCrafting(new ContainerNull(), isCrafting ? 3 : 12, isCrafting ? 3 : 12);
 
         this.canSubstitute = this.isCrafting && encodedValue.getBoolean("substitute");
         this.patternItem = is;

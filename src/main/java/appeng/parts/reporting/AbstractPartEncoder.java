@@ -62,8 +62,8 @@ public abstract class AbstractPartEncoder extends AbstractPartTerminal {
             final ItemStack is = this.pattern.getStackInSlot(1);
             if (!is.isEmpty() && is.getItem() instanceof ICraftingPatternItem) {
                 final ICraftingPatternItem pattern = (ICraftingPatternItem) is.getItem();
-                final ICraftingPatternDetails details = pattern.getPatternForItemWithNest(is,
-                        this.getHost().getTile().getWorld(), false);
+                final ICraftingPatternDetails details = pattern.getPatternForItem(is,
+                        this.getHost().getTile().getWorld());
                 if (details != null) {
                     this.setCraftingRecipe(details.isCraftable());
                     this.setSubstitution(details.canSubstitute());
