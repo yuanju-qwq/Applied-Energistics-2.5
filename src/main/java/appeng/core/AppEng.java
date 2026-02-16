@@ -62,8 +62,9 @@ import appeng.services.export.ForgeExportConfig;
 import appeng.services.version.VersionCheckerConfig;
 import appeng.util.Platform;
 
-@Mod(modid = AppEng.MOD_ID, acceptedMinecraftVersions = "[1.12.2]", name = AppEng.MOD_NAME, version = AEConfig.VERSION, dependencies = AppEng.MOD_DEPENDENCIES, guiFactory = "appeng.client.gui.config.AEConfigGuiFactory", certificateFingerprint = "dfa4d3ac143316c6f32aa1a1beda1e34d42132e5")
+@Mod(modid = AppEng.MOD_ID, acceptedMinecraftVersions = "[1.12.2]", name = AppEng.MOD_NAME, version = AEConfig.VERSION, dependencies = AppEng.MOD_DEPENDENCIES, guiFactory = "appeng.client.gui.config.AEConfigGuiFactory")
 public final class AppEng {
+
     @SidedProxy(clientSide = "appeng.client.ClientHelper", serverSide = "appeng.server.ServerHelper", modId = AppEng.MOD_ID)
     public static CommonHelper proxy;
 
@@ -94,7 +95,7 @@ public final class AppEng {
      */
     private ExportConfig exportConfig;
 
-    private AppEng() {
+    public AppEng() {
         FMLCommonHandler.instance().registerCrashCallable(new ModCrashEnhancement(CrashInfo.MOD_VERSION));
 
         this.registration = new Registration();

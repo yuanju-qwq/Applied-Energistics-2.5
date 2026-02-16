@@ -1,26 +1,26 @@
 package appeng.api.util;
 
-import appeng.api.AEApi;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 
+import appeng.api.AEApi;
 import appeng.api.features.ILocatable;
 import appeng.api.features.IWirelessTermHandler;
 import appeng.api.features.IWirelessTermRegistry;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.storage.IStorageGrid;
-
 import appeng.core.localization.PlayerMessages;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.tile.misc.TileSecurityStation;
 import appeng.util.Platform;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 
 /**
  * 辅助类，用于处理玩家无线终端与AE2网格的连接。
  */
 public final class PlayerWirelessGridHelper {
-    private PlayerWirelessGridHelper() {}
+    private PlayerWirelessGridHelper() {
+    }
 
     /**
      * 创建无线终端GUI对象（内部辅助方法）。
@@ -31,7 +31,8 @@ public final class PlayerWirelessGridHelper {
      * @return 无线终端GUI对象，若条件不满足则返回null
      */
     private static WirelessTerminalGuiObject getTerminalGuiObject(ItemStack item, EntityPlayer player, int slotIndex) {
-        if (Platform.isClient()) return null;
+        if (Platform.isClient())
+            return null;
 
         IWirelessTermRegistry registry = AEApi.instance().registries().wireless();
         if (!registry.isWirelessTerminal(item)) {
@@ -78,8 +79,7 @@ public final class PlayerWirelessGridHelper {
     }
 
     /**
-     * 获取玩家无线终端连接的网格节点（自动查找终端槽位）。
-     * 若终端超出范围或无效，会向玩家发送“超出范围”消息。
+     * 获取玩家无线终端连接的网格节点（自动查找终端槽位）。 若终端超出范围或无效，会向玩家发送“超出范围”消息。
      *
      * @param player 玩家
      * @return 网格节点，若无法获取则返回null
@@ -89,8 +89,7 @@ public final class PlayerWirelessGridHelper {
     }
 
     /**
-     * 获取玩家指定槽位无线终端连接的网格节点。
-     * 若终端超出范围或无效，会向玩家发送“超出范围”消息。
+     * 获取玩家指定槽位无线终端连接的网格节点。 若终端超出范围或无效，会向玩家发送“超出范围”消息。
      *
      * @param player    玩家
      * @param slotIndex 终端所在槽位
