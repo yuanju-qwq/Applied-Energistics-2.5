@@ -21,6 +21,7 @@ package appeng.parts.reporting;
 import java.io.IOException;
 import java.text.DecimalFormat;
 
+import appeng.api.util.AEUtils;
 import io.netty.buffer.ByteBuf;
 
 import net.minecraft.client.renderer.GlStateManager;
@@ -64,7 +65,6 @@ import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 
 public class PartRateMonitor extends AbstractPartDisplay implements IStackWatcherHost {
-    private static final DecimalFormat RATE_FORMAT = new DecimalFormat("+#;-#");
     private static final int TICKS_PER_SECOND = 20;
     private static final int TICKS_PER_MINUTE = TICKS_PER_SECOND * 60;
     private static final int TICKS_PER_HOUR = TICKS_PER_MINUTE * 60;
@@ -415,7 +415,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
 
         final long change = this.calculateChange();
         final String suffix = this.timeUnit.getSuffix();
-        final String rateText = RATE_FORMAT.format(change) + suffix;
+        final String rateText = AEUtils.formatNumber(change) + suffix;
         final int color = change > 0 ? 0xFF00FF00 : (change < 0 ? 0xFFFF5555 : 0xFFFFFFFF);
 
         GlStateManager.disableLighting();
