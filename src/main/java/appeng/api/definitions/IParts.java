@@ -117,6 +117,8 @@ public interface IParts {
 
     IItemDefinition conversionMonitor();
 
+    IItemDefinition rateMonitor();
+
     IItemDefinition fluidTerminal();
 
     IItemDefinition fluidImportBus();

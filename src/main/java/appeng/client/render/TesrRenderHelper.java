@@ -199,4 +199,115 @@ public class TesrRenderHelper {
 
     }
 
+    public static void renderItem2d(IAEItemStack itemStack, float itemScale) {
+        final ItemStack renderStack = itemStack.asItemStackRepresentation();
+        TesrRenderHelper.renderItem2d(renderStack, itemScale);
+    }
+
+    public static void renderFluid2d(IAEFluidStack fluidStack, float scale) {
+        final FluidStack renderStack = fluidStack.getFluidStack();
+        TesrRenderHelper.renderFluid2d(renderStack, scale);
+    }
+
+    /**
+     * Render centered text at the current position with the given color.
+     * <p>
+     * Assumes the caller has already:
+     * <ul>
+     *   <li>Set appropriate scale (e.g., 1/62.0 for standard UI text size)</li>
+     *   <li>Disabled lighting ({@code GlStateManager.disableLighting()})</li>
+     *   <li>Disabled depth writing ({@code GlStateManager.depthMask(false)}) if needed</li>
+     * </ul>
+     * This method will horizontally center the text and render it at (0, 0) in the current coordinate system.
+     *
+     * @param text  Text to render (must not be null)
+     * @param color ARGB color value (e.g., 0xFF00FF00 for green). Alpha channel is respected by FontRenderer.
+     */
+    public static void renderText(String text, int color) {
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+
+        final FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
+        final int width = fr.getStringWidth(text);
+
+        // Horizontally center the text: move left by half the text width
+        GlStateManager.translate(-0.5f * width, 0.0f, 0.5f);
+
+        // Render text at origin (0, 0) with specified color
+        // Note: FontRenderer respects alpha channel in color parameter
+        fr.drawString(text, 0, 0, color);
+    }
+
+    /**
+     * Render centered text with drop shadow at the current position.
+     * <p>
+     * Same assumptions as {@link #renderText(String, int)}, but renders with a dark shadow offset by (1, 1).
+     *
+     * @param text  Text to render (must not be null)
+     * @param color ARGB color value for the main text (shadow is always dark gray)
+     */
+    public static void renderTextWithShadow(String text, int color) {
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+
+        final FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
+        final int width = fr.getStringWidth(text);
+
+        GlStateManager.translate(-0.5f * width, 0.0f, 0.5f);
+        fr.drawStringWithShadow(text, 0, 0, color);
+    }
+
+    /**
+     * Render an item in 2D with a rate indicator text below it (e.g., "+114/s").
+     * <p>
+     * The rate text is rendered centered below the item icon with the specified color.
+     * Caller must ensure lighting is disabled and appropriate scaling is applied before calling.
+     *
+     * @param itemStack  The item stack to render
+     * @param itemScale  Scale factor for the item icon (e.g., 0.6f)
+     * @param spacing    Vertical spacing between item icon and rate text (e.g., 0.17f)
+     * @param rateText   Formatted rate text to display (e.g., "+114/s")
+     * @param color      ARGB color for the rate text (e.g., 0xFF00FF00 for green)
+     */
+    public static void renderItem2dWithRate(IAEItemStack itemStack, float itemScale, float spacing, String rateText, int color) {
+        final ItemStack renderStack = itemStack.asItemStackRepresentation();
+        TesrRenderHelper.renderItem2d(renderStack, itemScale);
+
+        // Render the rate text below the item
+        final FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
+        final int width = fr.getStringWidth(rateText);
+
+        GlStateManager.translate(0.0f, spacing, 0);
+        GlStateManager.scale(1.0f / 62.0f, 1.0f / 62.0f, 1.0f / 62.0f);
+        GlStateManager.translate(-0.5f * width, 0.0f, 0.5f);
+        fr.drawString(rateText, 0, 0, color);
+    }
+
+    /**
+     * Render a fluid in 2D with a rate indicator text below it (e.g., "-514/min").
+     * <p>
+     * The rate text is rendered centered below the fluid icon with the specified color.
+     * Caller must ensure lighting is disabled and appropriate scaling is applied before calling.
+     *
+     * @param fluidStack The fluid stack to render
+     * @param scale      Scale factor for the fluid icon (e.g., 0.6f)
+     * @param spacing    Vertical spacing between fluid icon and rate text (e.g., 0.17f)
+     * @param rateText   Formatted rate text to display (e.g., "-514/min")
+     * @param color      ARGB color for the rate text (e.g., 0xFFFF5555 for red)
+     */
+    public static void renderFluid2dWithRate(IAEFluidStack fluidStack, float scale, float spacing, String rateText, int color) {
+        final FluidStack renderStack = fluidStack.getFluidStack();
+        TesrRenderHelper.renderFluid2d(renderStack, scale);
+
+        // Render the rate text below the fluid
+        final FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
+        final int width = fr.getStringWidth(rateText);
+
+        GlStateManager.translate(0.0f, spacing, 0);
+        GlStateManager.scale(1.0f / 62.0f, 1.0f / 62.0f, 1.0f / 62.0f);
+        GlStateManager.translate(-0.5f * width, 0.0f, 0.5f);
+        fr.drawString(rateText, 0, 0, color);
+    }
 }

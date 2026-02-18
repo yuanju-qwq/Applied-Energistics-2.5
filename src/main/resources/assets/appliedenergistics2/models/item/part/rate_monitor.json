@@ -1,0 +1,9 @@
+{
+    "parent": "appliedenergistics2:item/part/display",
+    "textures": {
+        "front": "appliedenergistics2:items/part/rate_monitor",
+        "front_bright": "appliedenergistics2:parts/rate_monitor_bright",
+        "front_medium": "appliedenergistics2:parts/rate_monitor_medium",
+        "front_dark": "appliedenergistics2:parts/rate_monitor_dark"
+    }
+}

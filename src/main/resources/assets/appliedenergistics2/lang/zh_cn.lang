@@ -573,6 +573,7 @@ item.appliedenergistics2.multi_part.cable_smart.name=ME智能线缆
 item.appliedenergistics2.multi_part.cable_dense_covered.name=ME致密包层线缆
 item.appliedenergistics2.multi_part.cable_dense_smart.name=ME致密线缆
 item.appliedenergistics2.multi_part.storage_monitor.name=ME存储监控器
+item.appliedenergistics2.multi_part.rate_monitor.name=ME速率监控器
 item.appliedenergistics2.multi_part.conversion_monitor.name=ME交换监控器
 item.appliedenergistics2.multi_part.crafting_terminal.name=ME合成终端
 item.appliedenergistics2.multi_part.semi_dark_monitor.name=照明面板
