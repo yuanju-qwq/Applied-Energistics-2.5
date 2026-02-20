@@ -18,23 +18,6 @@
 
 package appeng.container.implementations;
 
-import static appeng.helpers.ItemStackHelper.stackWriteToNBT;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTUtil;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemHandlerHelper;
-
 import appeng.api.config.Settings;
 import appeng.api.config.Upgrades;
 import appeng.api.config.YesNo;
@@ -64,6 +47,30 @@ import appeng.util.inv.WrapperCursorItemHandler;
 import appeng.util.inv.WrapperFilteredItemHandler;
 import appeng.util.inv.WrapperRangeItemHandler;
 import appeng.util.inv.filter.IAEItemFilter;
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugeMEPatternProvider;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProvider;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTUtil;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.ItemHandlerHelper;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import static appeng.helpers.ItemStackHelper.stackWriteToNBT;
 
 public class ContainerInterfaceTerminal extends AEBaseContainer {
 
@@ -73,7 +80,9 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
 
     private static long autoBase = Long.MIN_VALUE;
     private final Map<IInterfaceHost, InvTracker> diList = new HashMap<>();
+    private final List<ProviderTracker> provider = new ArrayList<>();
     private final Map<Long, InvTracker> byId = new HashMap<>();
+    private final Map<Long, ProviderTracker> providerId = new HashMap<>();
     private IGrid grid;
     private NBTTagCompound data = new NBTTagCompound();
 
@@ -88,7 +97,7 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
     }
 
     public ContainerInterfaceTerminal(final InventoryPlayer ip, final WirelessTerminalGuiObject guiObject,
-            boolean bindInventory) {
+                                      boolean bindInventory) {
         super(ip, guiObject);
 
         if (Platform.isServer()) {
@@ -131,7 +140,6 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                         }
 
                         final InvTracker t = this.diList.get(ih);
-
                         if (t == null) {
                             missing = true;
                         } else {
@@ -140,7 +148,6 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                                 missing = true;
                             }
                         }
-
                         total++;
                     }
                 }
@@ -154,7 +161,6 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                         }
 
                         final InvTracker t = this.diList.get(ih);
-
                         if (t == null) {
                             missing = true;
                         } else {
@@ -163,21 +169,91 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                                 missing = true;
                             }
                         }
-
                         total++;
+                    }
+                }
+
+                for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityMEPatternProvider.class)) {
+                    if (gn.isActive()) {
+                        BlockPos pos = gn.getGridBlock().getLocation().getPos();
+                        World world = gn.getGridBlock().getLocation().getWorld();
+                        TileEntity te = world.getTileEntity(pos);
+
+                        if (te instanceof IGregTechTileEntity igtte) {
+                            MetaTileEntity mte = igtte.getMetaTileEntity();
+                            if (mte instanceof MetaTileEntityMEPatternProvider provider) {
+                                ProviderTracker t = null;
+                                for (ProviderTracker pt : this.provider) {
+                                    if (pt.pos.equals(pos) && pt.dim == provider.getWorld().provider.getDimension()) {
+                                        t = pt;
+                                        break;
+                                    }
+                                }
+
+                                if (t == null) {
+                                    missing = true;
+                                } else {
+                                    String currentName = provider.getMetaFullName();
+                                    if (!t.unlocalizedName.equals(currentName)) {
+                                        missing = true;
+                                    }
+                                }
+                                total++;
+                            }
+                        }
+                    }
+                }
+
+                for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityHugeMEPatternProvider.class)) {
+                    if (gn.isActive()) {
+                        BlockPos pos = gn.getGridBlock().getLocation().getPos();
+                        World world = gn.getGridBlock().getLocation().getWorld();
+                        TileEntity te = world.getTileEntity(pos);
+
+                        if (te instanceof IGregTechTileEntity igtte) {
+                            MetaTileEntity mte = igtte.getMetaTileEntity();
+                            if (mte instanceof MetaTileEntityHugeMEPatternProvider provider) {
+                                ProviderTracker t = null;
+                                for (ProviderTracker pt : this.provider) {
+                                    if (pt.pos.equals(pos) && pt.dim == provider.getWorld().provider.getDimension()) {
+                                        t = pt;
+                                        break;
+                                    }
+                                }
+
+                                if (t == null) {
+                                    missing = true;
+                                } else {
+                                    String currentName = provider.getMetaFullName();
+                                    if (!t.unlocalizedName.equals(currentName)) {
+                                        missing = true;
+                                    }
+                                }
+                                total++;
+                            }
+                        }
                     }
                 }
             }
         }
 
-        if (total != this.diList.size() || missing) {
+        if (total != this.diList.size() + this.provider.size() || missing) {
             this.regenList(this.data);
         } else {
+
             for (final Entry<IInterfaceHost, InvTracker> en : this.diList.entrySet()) {
                 final InvTracker inv = en.getValue();
                 for (int x = 0; x < inv.server.getSlots(); x++) {
                     if (this.isDifferent(inv.server.getStackInSlot(x), inv.client.getStackInSlot(x))) {
                         this.addItems(this.data, inv, x, 1);
+                    }
+                }
+            }
+
+            for (final ProviderTracker en : this.provider) {
+                for (int x = 0; x < en.server.getSlots(); x++) {
+                    if (this.isDifferent(en.server.getStackInSlot(x), en.client.getStackInSlot(x))) {
+                        this.addProvider(this.data, en, x, 1);
                     }
                 }
             }
@@ -188,9 +264,7 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                 NetworkHandler.instance().sendTo(new PacketCompressedNBT(this.data),
                         (EntityPlayerMP) this.getPlayerInv().player);
             } catch (final IOException e) {
-                // :P
             }
-
             this.data = new NBTTagCompound();
         }
     }
@@ -327,11 +401,151 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
 
             this.updateHeld(player);
         }
+        final ProviderTracker providerTracker = this.providerId.get(id);
+        if (providerTracker != null) {
+            if (action == InventoryAction.PLACE_SINGLE) {
+                final AppEngSlot playerSlot;
+                try {
+                    playerSlot = (AppEngSlot) this.inventorySlots.get(slot);
+                } catch (IndexOutOfBoundsException ignored) {
+                    return;
+                }
+
+                if (!playerSlot.isPlayerSide() || !playerSlot.getHasStack())
+                    return;
+
+                var itemStack = playerSlot.getStack();
+                if (!itemStack.isEmpty()) {
+                    int slotCount = (int) Math.pow(2, 1 + Math.min(9, providerTracker.tier));
+                    int patternSlotLimit = Math.min(
+                            slotCount,
+                            providerTracker.server.getSlots()
+                    );
+
+                    var handler = new WrapperFilteredItemHandler(
+                            new WrapperRangeItemHandler(providerTracker.server, 0, patternSlotLimit),
+                            new PatternSlotFilter());
+                    playerSlot.putStack(ItemHandlerHelper.insertItem(handler, itemStack, false));
+                    detectAndSendChanges();
+                }
+                return;
+            }
+
+            final ItemStack is = providerTracker.server.getStackInSlot(slot);
+            final boolean hasItemInHand = !player.inventory.getItemStack().isEmpty();
+
+            final InventoryAdaptor playerHand = new AdaptorItemHandler(
+                    new WrapperCursorItemHandler(player.inventory));
+
+            final IItemHandler theSlot = new WrapperFilteredItemHandler(
+                    new WrapperRangeItemHandler(providerTracker.server, slot, slot + 1),
+                    new PatternSlotFilter());
+            final InventoryAdaptor interfaceSlot = new AdaptorItemHandler(theSlot);
+
+            IItemHandler interfaceHandler = providerTracker.server;
+            boolean canInsert = true;
+
+            switch (action) {
+                case PICKUP_OR_SET_DOWN:
+                    if (hasItemInHand) {
+                        for (int s = 0; s < interfaceHandler.getSlots(); s++) {
+                            if (Platform.itemComparisons().isSameItem(
+                                    interfaceHandler.getStackInSlot(s),
+                                    player.inventory.getItemStack())) {
+                                canInsert = false;
+                                break;
+                            }
+                        }
+                        if (canInsert) {
+                            ItemStack inSlot = theSlot.getStackInSlot(0);
+                            if (inSlot.isEmpty()) {
+                                player.inventory.setItemStack(
+                                        interfaceSlot.addItems(player.inventory.getItemStack()));
+                            } else {
+                                inSlot = inSlot.copy();
+                                final ItemStack inHand = player.inventory.getItemStack().copy();
+
+                                ItemHandlerUtil.setStackInSlot(theSlot, 0, ItemStack.EMPTY);
+                                player.inventory.setItemStack(ItemStack.EMPTY);
+
+                                player.inventory.setItemStack(interfaceSlot.addItems(inHand.copy()));
+
+                                if (player.inventory.getItemStack().isEmpty()) {
+                                    player.inventory.setItemStack(inSlot);
+                                } else {
+                                    player.inventory.setItemStack(inHand);
+                                    ItemHandlerUtil.setStackInSlot(theSlot, 0, inSlot);
+                                }
+                            }
+                        }
+                    } else {
+                        ItemHandlerUtil.setStackInSlot(theSlot, 0,
+                                playerHand.addItems(theSlot.getStackInSlot(0)));
+                    }
+                    break;
+
+                case SPLIT_OR_PLACE_SINGLE:
+                    if (hasItemInHand) {
+                        for (int s = 0; s < interfaceHandler.getSlots(); s++) {
+                            if (Platform.itemComparisons().isSameItem(
+                                    interfaceHandler.getStackInSlot(s),
+                                    player.inventory.getItemStack())) {
+                                canInsert = false;
+                                break;
+                            }
+                        }
+                        if (canInsert) {
+                            ItemStack extra = playerHand.removeItems(1, ItemStack.EMPTY, null);
+                            if (!extra.isEmpty() && !interfaceSlot.containsItems()) {
+                                extra = interfaceSlot.addItems(extra);
+                            }
+                            if (!extra.isEmpty()) {
+                                playerHand.addItems(extra);
+                            }
+                        }
+                    } else if (!is.isEmpty()) {
+                        ItemStack extra = interfaceSlot.removeItems(
+                                (is.getCount() + 1) / 2, ItemStack.EMPTY, null);
+                        if (!extra.isEmpty()) {
+                            extra = playerHand.addItems(extra);
+                        }
+                        if (!extra.isEmpty()) {
+                            interfaceSlot.addItems(extra);
+                        }
+                    }
+                    break;
+
+                case SHIFT_CLICK:
+                    final InventoryAdaptor playerInv = InventoryAdaptor.getAdaptor(player);
+                    ItemHandlerUtil.setStackInSlot(theSlot, 0,
+                            playerInv.addItems(theSlot.getStackInSlot(0)));
+                    break;
+
+                case MOVE_REGION:
+                    final InventoryAdaptor playerInvAd = InventoryAdaptor.getAdaptor(player);
+                    for (int x = 0; x < providerTracker.server.getSlots(); x++) {
+                        ItemHandlerUtil.setStackInSlot(providerTracker.server, x,
+                                playerInvAd.addItems(providerTracker.server.getStackInSlot(x)));
+                    }
+                    break;
+
+                case CREATIVE_DUPLICATE:
+                    if (player.capabilities.isCreativeMode && !hasItemInHand) {
+                        player.inventory.setItemStack(
+                                is.isEmpty() ? ItemStack.EMPTY : is.copy());
+                    }
+                    break;
+            }
+
+            this.updateHeld(player);
+        }
     }
 
     private void regenList(final NBTTagCompound data) {
         this.byId.clear();
+        this.providerId.clear();
         this.diList.clear();
+        this.provider.clear();
 
         final IActionHost host = this.getActionHost();
         if (host != null) {
@@ -352,6 +566,26 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                         this.diList.put(ih, new InvTracker(dual, dual.getPatterns(), dual.getTermName()));
                     }
                 }
+
+                for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityMEPatternProvider.class)) {
+                    BlockPos pos = gn.getGridBlock().getLocation().getPos();
+                    TileEntity te = gn.getGridBlock().getLocation().getWorld().getTileEntity(pos);
+                    if (te instanceof IGregTechTileEntity igtte) {
+                        MetaTileEntity mte = igtte.getMetaTileEntity();
+                        if (mte instanceof MetaTileEntityMEPatternProvider patternProvider)
+                            provider.add(new ProviderTracker(patternProvider));
+                    }
+                }
+
+                for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityHugeMEPatternProvider.class)) {
+                    BlockPos pos = gn.getGridBlock().getLocation().getPos();
+                    TileEntity te = gn.getGridBlock().getLocation().getWorld().getTileEntity(pos);
+                    if (te instanceof IGregTechTileEntity igtte) {
+                        MetaTileEntity mte = igtte.getMetaTileEntity();
+                        if (mte instanceof MetaTileEntityHugeMEPatternProvider patternProvider)
+                            provider.add(new ProviderTracker(patternProvider));
+                    }
+                }
             }
         }
 
@@ -361,6 +595,11 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
             final InvTracker inv = en.getValue();
             this.byId.put(inv.which, inv);
             this.addItems(data, inv, 0, inv.server.getSlots());
+        }
+
+        for (final ProviderTracker en : provider) {
+            this.providerId.put(en.which, en);
+            this.addProvider(data, en, 0, en.server.getSlots());
         }
     }
 
@@ -376,11 +615,44 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         return !ItemStack.areItemStacksEqual(a, b);
     }
 
+    private void addProvider(final NBTTagCompound data, final ProviderTracker inv, final int offset, final int length) {
+        final String name = '=' + Long.toString(inv.which, Character.MAX_RADIX);
+        final NBTTagCompound tag = data.getCompoundTag(name);
+
+        if (tag.isEmpty()) {
+            tag.setBoolean("provider", true);
+            tag.setString("un", inv.unlocalizedName);
+            tag.setTag("pos", NBTUtil.createPosTag(inv.pos));
+            tag.setInteger("dim", inv.dim);
+            tag.setLong("sortBy", inv.sortBy);
+            tag.setInteger("tier", inv.tier);
+            tag.setInteger("slots", inv.server.getSlots());
+        }
+
+        for (int x = 0; x < length; x++) {
+            final NBTTagCompound itemNBT = new NBTTagCompound();
+            final ItemStack is = inv.server.getStackInSlot(x + offset);
+
+            // 同步更新客户端缓存
+            ItemHandlerUtil.setStackInSlot(inv.client, x + offset,
+                    is.isEmpty() ? ItemStack.EMPTY : is.copy());
+
+            if (!is.isEmpty()) {
+                stackWriteToNBT(is, itemNBT);
+            }
+            tag.setTag(Integer.toString(x + offset), itemNBT);
+        }
+
+        data.setTag(name, tag);
+    }
+
+
     private void addItems(final NBTTagCompound data, final InvTracker inv, final int offset, final int length) {
         final String name = '=' + Long.toString(inv.which, Character.MAX_RADIX);
         final NBTTagCompound tag = data.getCompoundTag(name);
 
         if (tag.isEmpty()) {
+            tag.setBoolean("provider", false);
             tag.setLong("sortBy", inv.sortBy);
             tag.setString("un", inv.unlocalizedName);
             tag.setTag("pos", NBTUtil.createPosTag(inv.pos));
@@ -426,6 +698,58 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         }
         return super.transferStackInSlot(p, idx);
     }
+
+    private static class ProviderTracker {
+        private final BlockPos pos;
+        private final int dim;
+        private final int tier;
+        private final long which = autoBase++;
+        private final IItemHandler client;
+        private final IItemHandler server;
+        private final String unlocalizedName;
+        private final long sortBy;
+
+        public ProviderTracker(MetaTileEntityMEPatternProvider controlBase) {
+            this.pos = controlBase.getPos();
+            this.dim = controlBase.getWorld().provider.getDimension();
+            this.tier = controlBase.getTier();
+
+            this.server = controlBase.getPatternSlot();
+            this.client = new AppEngInternalInventory(null, this.server.getSlots());
+
+
+            if (controlBase.getController() != null) {
+                if (controlBase.getShowName().equals(controlBase.getMetaFullName()))
+                    this.unlocalizedName = controlBase.getController().getMetaFullName();
+                else this.unlocalizedName = controlBase.getShowName();
+            } else this.unlocalizedName = controlBase.getShowName();
+
+            sortBy = getSortValue(pos);
+        }
+
+        public ProviderTracker(MetaTileEntityHugeMEPatternProvider controlBase) {
+            this.pos = controlBase.getPos();
+            this.dim = controlBase.getWorld().provider.getDimension();
+            this.tier = controlBase.getTier();
+
+            this.server = controlBase.getPatternSlot();
+            this.client = new AppEngInternalInventory(null, this.server.getSlots());
+
+
+            if (controlBase.getController() != null) {
+                if (controlBase.getShowName().equals(controlBase.getMetaFullName()))
+                    this.unlocalizedName = controlBase.getController().getMetaFullName();
+                else this.unlocalizedName = controlBase.getShowName();
+            } else this.unlocalizedName = controlBase.getShowName();
+
+            sortBy = getSortValue(pos);
+        }
+
+        private long getSortValue(BlockPos pos) {
+            return ((long) pos.getZ() << 24) ^ ((long) pos.getX() << 8) ^ pos.getY();
+        }
+    }
+
 
     private static class InvTracker {
 

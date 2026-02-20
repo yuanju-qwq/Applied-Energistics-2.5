@@ -226,7 +226,8 @@ public class Grid implements IGrid {
 
     @Override
     public Iterable<IGridNode> getMachineNodes(Class<?> machineClass) {
-        return this.machines.get(machineClass);
+        Iterable<IGridNode> nodes = this.machines.get(machineClass);
+        return nodes != null ? nodes : Collections.emptyList();
     }
 
     @Override

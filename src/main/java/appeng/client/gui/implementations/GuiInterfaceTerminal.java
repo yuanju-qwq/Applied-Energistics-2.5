@@ -80,6 +80,8 @@ public class GuiInterfaceTerminal extends AEBaseGui {
     private final int jeiOffset = Platform.isJEIEnabled() ? 24 : 0;
 
     private final HashMap<Long, ClientDCInternalInv> byId = new HashMap<>();
+    private final Map<Long, ClientDCInternalInv> providerById = new HashMap<>();
+
     private final HashMultimap<String, ClientDCInternalInv> byName = HashMultimap.create();
     private final HashMap<ClientDCInternalInv, BlockPos> blockPosHashMap = new HashMap<>();
     private final HashMap<GuiButton, ClientDCInternalInv> guiButtonHashMap = new HashMap<>();
@@ -252,10 +254,19 @@ public class GuiInterfaceTerminal extends AEBaseGui {
             if (lineObj instanceof ClientDCInternalInv inv) {
 
                 final int extraLines = numUpgradesMap.get(inv);
+                final int totalSlots = inv.getInventory().getSlots();
+
                 for (int row = 0; row < 1 + extraLines && linesDraw < rows; ++row) {
+                    final int baseSlot = row * 9;
+
                     for (int z = 0; z < 9; z++) {
-                        if (this.matchedStacks.contains(inv.getInventory().getStackInSlot(z + (row * 9)))) {
-                            drawRect(z * 18 + 22, 1 + offset, z * 18 + 22 + 16, 1 + offset + 16, 0x2A00FF00);
+                        final int slotIndex = baseSlot + z;
+
+                        if (slotIndex < totalSlots) {
+                            final ItemStack stack = inv.getInventory().getStackInSlot(slotIndex);
+                            if (this.matchedStacks.contains(stack)) {
+                                drawRect(z * 18 + 22, 1 + offset, z * 18 + 22 + 16, 1 + offset + 16, 0x2A00FF00);
+                            }
                         }
                     }
                     linesDraw++;
@@ -310,10 +321,18 @@ public class GuiInterfaceTerminal extends AEBaseGui {
                 this.buttonList.add(guiButton);
 
                 final int extraLines = numUpgradesMap.get(inv);
+                final int slotLimit = inv.getInventory().getSlots();
+
                 for (int row = 0; row < 1 + extraLines && linesDraw < rows; ++row) {
+                    final int baseSlot = row * 9;
+
                     for (int z = 0; z < 9; z++) {
-                        this.inventorySlots.inventorySlots
-                                .add(new SlotDisconnected(inv, z + (row * 9), z * 18 + 22, 1 + offset));
+                        final int slotIndex = baseSlot + z;
+                        if (slotIndex < slotLimit) {
+                            this.inventorySlots.inventorySlots.add(
+                                    new SlotDisconnected(inv, slotIndex, z * 18 + 22, 1 + offset)
+                            );
+                        }
                     }
                     linesDraw++;
                     offset += 18;
@@ -411,15 +430,21 @@ public class GuiInterfaceTerminal extends AEBaseGui {
         int linesDraw = 0;
         for (int x = 0; x < this.rows && linesDraw < rows && ex + x < this.lines.size(); x++) {
             final Object lineObj = this.lines.get(ex + x);
-            if (lineObj instanceof ClientDCInternalInv) {
+            if (lineObj instanceof ClientDCInternalInv inv) {
                 GlStateManager.color(1, 1, 1, 1);
 
-                final int width = 9 * 18;
                 final int extraLines = numUpgradesMap.get(lineObj);
+                final int slotLimit = inv.getInventory().getSlots();
 
                 // draw the slot backgrounds
                 for (int row = 0; row < 1 + extraLines && linesDraw < rows; ++row) {
-                    this.drawTexturedModalRect(offsetX + 20, offsetY + offset, 20, 173, width, 18);
+                    final int baseSlot = row * 9;
+                    final int actualSlots = Math.min(9, slotLimit - baseSlot);
+
+                    if (actualSlots > 0) {
+                        final int actualWidth = actualSlots * 18;
+                        this.drawTexturedModalRect(offsetX + 20, offsetY + offset, 20, 173, actualWidth, 18);
+                    }
 
                     offset += 18;
                     linesDraw++;
@@ -438,7 +463,6 @@ public class GuiInterfaceTerminal extends AEBaseGui {
         this.searchFieldOutputs.drawTextBox();
         this.searchFieldNames.drawTextBox();
     }
-
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
         if (!this.checkHotbarKeys(key)) {
@@ -494,6 +518,7 @@ public class GuiInterfaceTerminal extends AEBaseGui {
     public void postUpdate(final NBTTagCompound in) {
         if (in.getBoolean("clear")) {
             this.byId.clear();
+            this.providerById.clear();
             this.refreshList = true;
         }
 
@@ -503,11 +528,27 @@ public class GuiInterfaceTerminal extends AEBaseGui {
                 try {
                     final long id = Long.parseLong(key.substring(1), Character.MAX_RADIX);
                     final NBTTagCompound invData = in.getCompoundTag(key);
-                    final ClientDCInternalInv current = this.getById(id, invData.getLong("sortBy"),
-                            invData.getString("un"));
+                    final boolean isProvider = invData.getBoolean("provider");
+
+                    final ClientDCInternalInv current;
+                    if (isProvider) {
+                        int slotCount = invData.getInteger("slots");
+                        current = this.getProviderById(id, invData.getLong("sortBy"), invData.getString("un"),slotCount);
+                    } else {
+                        current = this.getById(id, invData.getLong("sortBy"), invData.getString("un"));
+                    }
+
                     blockPosHashMap.put(current, NBTUtil.getPosFromTag(invData.getCompoundTag("pos")));
                     dimHashMap.put(current, invData.getInteger("dim"));
-                    numUpgradesMap.put(current, invData.getInteger("numUpgrades"));
+
+                    if (!isProvider) {
+                        numUpgradesMap.put(current, invData.getInteger("numUpgrades"));
+                    } else {
+                        int tier = invData.getInteger("tier");
+                        int slotCount = (int) Math.pow(2 ,1 + Math.min(9, tier));
+                        int lines = slotCount/9;
+                        numUpgradesMap.put(current, lines);
+                    }
 
                     for (int x = 0; x < current.getInventory().getSlots(); x++) {
                         final String which = Integer.toString(x);
@@ -522,7 +563,6 @@ public class GuiInterfaceTerminal extends AEBaseGui {
 
         if (this.refreshList) {
             this.refreshList = false;
-            // invalid caches on refresh
             this.cachedSearches.clear();
             this.refreshList();
         }
@@ -620,12 +660,86 @@ public class GuiInterfaceTerminal extends AEBaseGui {
             cachedSearch.add(entry);
         }
 
+        for (final ClientDCInternalInv entry : this.providerById.values()) {
+            // ignore inventory if not doing a full rebuild and cache already marks it as miss.
+            if (!rebuild && !cachedSearch.contains(entry)) {
+                continue;
+            }
+
+            // Shortcut to skip any filter if search term is ""/empty
+
+            boolean found = searchFieldInputs.isEmpty() && searchFieldOutputs.isEmpty();
+            boolean interfaceHasFreeSlots = false;
+            boolean interfaceHasBrokenRecipes = false;
+
+            // Search if the current inventory holds a pattern containing the search term.
+            if (!found || onlyShowWithSpace || onlyBrokenRecipes) {
+                int slot = 0;
+                for (final ItemStack itemStack : entry.getInventory()) {
+                    if (slot > 8 + numUpgradesMap.get(entry) * 9) {
+                        break;
+                    }
+
+                    if (itemStack.isEmpty()) {
+                        interfaceHasFreeSlots = true;
+                    }
+
+                    if (onlyBrokenRecipes && recipeIsBroken(itemStack)) {
+                        interfaceHasBrokenRecipes = true;
+                    }
+
+                    if ((!searchFieldInputs.isEmpty() && itemStackMatchesSearchTerm(itemStack, searchFieldInputs, 0))
+                            || (!searchFieldOutputs.isEmpty()
+                            && itemStackMatchesSearchTerm(itemStack, searchFieldOutputs, 1))) {
+                        found = true;
+                        matchedStacks.add(itemStack);
+                    }
+
+                    slot++;
+                }
+            }
+
+            // Exit if not found
+            if (!found) {
+                cachedSearch.remove(entry);
+                continue;
+            }
+            // Exit if the interface does not match the name search
+            if (!entry.getName().toLowerCase().contains(searchFieldNames)) {
+                cachedSearch.remove(entry);
+                continue;
+            }
+            // Exit if molecular assembler filter is on and this is not a molecular assembler
+            // Forge documantation said unlocalized name shouldn't be use for logic, so we might need a better way......
+            if (onlyMolecularAssemblers && !entry.getUnlocalizedName().equals(MOLECULAR_ASSEMBLER)) {
+
+                cachedSearch.remove(entry);
+                continue;
+            }
+            // Exit if we are only showing interfaces with free slots and there are none free in this interface
+            if (onlyShowWithSpace && !interfaceHasFreeSlots) {
+                cachedSearch.remove(entry);
+                continue;
+            }
+            // Exit if we are only showing interfaces with broken patterns and there are no broken patterns in this
+            // interface
+            if (onlyBrokenRecipes && !interfaceHasBrokenRecipes) {
+                cachedSearch.remove(entry);
+                continue;
+            }
+
+            // Successful search
+            this.byName.put(entry.getName(), entry);
+            cachedSearch.add(entry);
+        }
+
         this.names.clear();
         this.names.addAll(this.byName.keySet());
         Collections.sort(this.names);
 
         this.lines.clear();
-        this.lines.ensureCapacity(this.names.size() + this.byId.size());
+        this.lines.ensureCapacity(this.names.size() + this.byId.size()+ this.providerById.size());
+
 
         for (final String n : this.names) {
             this.lines.add(n);
@@ -741,6 +855,18 @@ public class GuiInterfaceTerminal extends AEBaseGui {
         if (o == null) {
             this.byId.put(id,
                     o = new ClientDCInternalInv(DualityInterface.NUMBER_OF_PATTERN_SLOTS, id, sortBy, string));
+            this.refreshList = true;
+        }
+
+        return o;
+    }
+
+    private ClientDCInternalInv getProviderById(final long id, final long sortBy, final String string,final int stackSize) {
+        ClientDCInternalInv o = this.providerById.get(id);
+
+        if (o == null) {
+            this.providerById.put(id,
+                    o = new ClientDCInternalInv(stackSize, id, sortBy, string));
             this.refreshList = true;
         }
 

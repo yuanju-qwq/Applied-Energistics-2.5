@@ -157,7 +157,7 @@ dependencies {
     implementation rfg.deobf(files("libs/ae2fc-2.7.10-unofficial.jar"))
 
     api("com.cleanroommc:groovyscript:1.2.0-hotfix1") { transitive = false }
-    api("com.cleanroommc:modularui:3.0.5") { transitive = false }
+    api("com.cleanroommc:modularui:3.0.7") { transitive = false }
 
     implementation rfg.deobf("curse.maven:codechicken-lib-1-8-242818:2779848") // CCL 3.2.3.358
     implementation rfg.deobf("curse.maven:baubles-227083:2518667") // Baubles
