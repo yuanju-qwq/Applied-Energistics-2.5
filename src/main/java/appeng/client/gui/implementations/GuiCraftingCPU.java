@@ -368,7 +368,7 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
 
     @Override
     public void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        this.bindTexture("guis/craftingcpu1.png");
+        this.bindTexture("guis/craftingcpu.png");
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
     }
 

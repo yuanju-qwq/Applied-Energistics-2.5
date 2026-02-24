@@ -290,7 +290,8 @@ public class GuiCraftingStatus extends GuiCraftingCPU {
 
     @Override
     public void drawBG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        super.drawBG(offsetX, offsetY, mouseX, mouseY);
+        this.bindTexture("guis/craftingcpu1.png");
+        this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
         this.bindTexture("guis/cpu_selector.png");
         this.drawTexturedModalRect(offsetX - CPU_TABLE_WIDTH, offsetY, 0, 0, CPU_TABLE_WIDTH, CPU_TABLE_HEIGHT);
     }
