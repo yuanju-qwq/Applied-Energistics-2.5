@@ -172,64 +172,65 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                         total++;
                     }
                 }
+                if (Platform.GTLoaded) {
+                    for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityMEPatternProvider.class)) {
+                        if (gn.isActive()) {
+                            BlockPos pos = gn.getGridBlock().getLocation().getPos();
+                            World world = gn.getGridBlock().getLocation().getWorld();
+                            TileEntity te = world.getTileEntity(pos);
 
-                for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityMEPatternProvider.class)) {
-                    if (gn.isActive()) {
-                        BlockPos pos = gn.getGridBlock().getLocation().getPos();
-                        World world = gn.getGridBlock().getLocation().getWorld();
-                        TileEntity te = world.getTileEntity(pos);
-
-                        if (te instanceof IGregTechTileEntity igtte) {
-                            MetaTileEntity mte = igtte.getMetaTileEntity();
-                            if (mte instanceof MetaTileEntityMEPatternProvider provider) {
-                                ProviderTracker t = null;
-                                for (ProviderTracker pt : this.provider) {
-                                    if (pt.pos.equals(pos) && pt.dim == provider.getWorld().provider.getDimension()) {
-                                        t = pt;
-                                        break;
+                            if (te instanceof IGregTechTileEntity igtte) {
+                                MetaTileEntity mte = igtte.getMetaTileEntity();
+                                if (mte instanceof MetaTileEntityMEPatternProvider provider) {
+                                    ProviderTracker t = null;
+                                    for (ProviderTracker pt : this.provider) {
+                                        if (pt.pos.equals(pos) && pt.dim == provider.getWorld().provider.getDimension()) {
+                                            t = pt;
+                                            break;
+                                        }
                                     }
-                                }
 
-                                if (t == null) {
-                                    missing = true;
-                                } else {
-                                    String currentName = provider.getMetaFullName();
-                                    if (!t.unlocalizedName.equals(currentName)) {
+                                    if (t == null) {
                                         missing = true;
+                                    } else {
+                                        String currentName = provider.getMetaFullName();
+                                        if (!t.unlocalizedName.equals(currentName)) {
+                                            missing = true;
+                                        }
                                     }
+                                    total++;
                                 }
-                                total++;
                             }
                         }
                     }
-                }
 
-                for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityHugeMEPatternProvider.class)) {
-                    if (gn.isActive()) {
-                        BlockPos pos = gn.getGridBlock().getLocation().getPos();
-                        World world = gn.getGridBlock().getLocation().getWorld();
-                        TileEntity te = world.getTileEntity(pos);
+                    for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityHugeMEPatternProvider.class)) {
+                        if (gn.isActive()) {
+                            BlockPos pos = gn.getGridBlock().getLocation().getPos();
+                            World world = gn.getGridBlock().getLocation().getWorld();
+                            TileEntity te = world.getTileEntity(pos);
 
-                        if (te instanceof IGregTechTileEntity igtte) {
-                            MetaTileEntity mte = igtte.getMetaTileEntity();
-                            if (mte instanceof MetaTileEntityHugeMEPatternProvider provider) {
-                                ProviderTracker t = null;
-                                for (ProviderTracker pt : this.provider) {
-                                    if (pt.pos.equals(pos) && pt.dim == provider.getWorld().provider.getDimension()) {
-                                        t = pt;
-                                        break;
+                            if (te instanceof IGregTechTileEntity igtte) {
+                                MetaTileEntity mte = igtte.getMetaTileEntity();
+                                if (mte instanceof MetaTileEntityHugeMEPatternProvider provider) {
+                                    ProviderTracker t = null;
+                                    for (ProviderTracker pt : this.provider) {
+                                        if (pt.pos.equals(pos) && pt.dim == provider.getWorld().provider.getDimension()) {
+                                            t = pt;
+                                            break;
+                                        }
                                     }
-                                }
 
-                                if (t == null) {
-                                    missing = true;
-                                } else {
-                                    String currentName = provider.getMetaFullName();
-                                    if (!t.unlocalizedName.equals(currentName)) {
+                                    if (t == null) {
                                         missing = true;
+                                    } else {
+                                        String currentName = provider.getMetaFullName();
+                                        if (!t.unlocalizedName.equals(currentName)) {
+                                            missing = true;
+                                        }
                                     }
+                                    total++;
                                 }
-                                total++;
                             }
                         }
                     }
@@ -237,7 +238,7 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
             }
         }
 
-        if (total != this.diList.size() + this.provider.size() || missing) {
+        if (total != this.diList.size() + (Platform.GTLoaded ? this.provider.size() : 0) || missing) {
             this.regenList(this.data);
         } else {
 
@@ -249,11 +250,12 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                     }
                 }
             }
-
-            for (final ProviderTracker en : this.provider) {
-                for (int x = 0; x < en.server.getSlots(); x++) {
-                    if (this.isDifferent(en.server.getStackInSlot(x), en.client.getStackInSlot(x))) {
-                        this.addProvider(this.data, en, x, 1);
+            if (Platform.GTLoaded) {
+                for (final ProviderTracker en : this.provider) {
+                    for (int x = 0; x < en.server.getSlots(); x++) {
+                        if (this.isDifferent(en.server.getStackInSlot(x), en.client.getStackInSlot(x))) {
+                            this.addProvider(this.data, en, x, 1);
+                        }
                     }
                 }
             }
@@ -401,143 +403,145 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
 
             this.updateHeld(player);
         }
-        final ProviderTracker providerTracker = this.providerId.get(id);
-        if (providerTracker != null) {
-            if (action == InventoryAction.PLACE_SINGLE) {
-                final AppEngSlot playerSlot;
-                try {
-                    playerSlot = (AppEngSlot) this.inventorySlots.get(slot);
-                } catch (IndexOutOfBoundsException ignored) {
+        if (Platform.GTLoaded) {
+            final ProviderTracker providerTracker = this.providerId.get(id);
+            if (providerTracker != null) {
+                if (action == InventoryAction.PLACE_SINGLE) {
+                    final AppEngSlot playerSlot;
+                    try {
+                        playerSlot = (AppEngSlot) this.inventorySlots.get(slot);
+                    } catch (IndexOutOfBoundsException ignored) {
+                        return;
+                    }
+
+                    if (!playerSlot.isPlayerSide() || !playerSlot.getHasStack())
+                        return;
+
+                    var itemStack = playerSlot.getStack();
+                    if (!itemStack.isEmpty()) {
+                        int slotCount = (int) Math.pow(2, 1 + Math.min(9, providerTracker.tier));
+                        int patternSlotLimit = Math.min(
+                                slotCount,
+                                providerTracker.server.getSlots()
+                        );
+
+                        var handler = new WrapperFilteredItemHandler(
+                                new WrapperRangeItemHandler(providerTracker.server, 0, patternSlotLimit),
+                                new PatternSlotFilter());
+                        playerSlot.putStack(ItemHandlerHelper.insertItem(handler, itemStack, false));
+                        detectAndSendChanges();
+                    }
                     return;
                 }
 
-                if (!playerSlot.isPlayerSide() || !playerSlot.getHasStack())
-                    return;
+                final ItemStack is = providerTracker.server.getStackInSlot(slot);
+                final boolean hasItemInHand = !player.inventory.getItemStack().isEmpty();
 
-                var itemStack = playerSlot.getStack();
-                if (!itemStack.isEmpty()) {
-                    int slotCount = (int) Math.pow(2, 1 + Math.min(9, providerTracker.tier));
-                    int patternSlotLimit = Math.min(
-                            slotCount,
-                            providerTracker.server.getSlots()
-                    );
+                final InventoryAdaptor playerHand = new AdaptorItemHandler(
+                        new WrapperCursorItemHandler(player.inventory));
 
-                    var handler = new WrapperFilteredItemHandler(
-                            new WrapperRangeItemHandler(providerTracker.server, 0, patternSlotLimit),
-                            new PatternSlotFilter());
-                    playerSlot.putStack(ItemHandlerHelper.insertItem(handler, itemStack, false));
-                    detectAndSendChanges();
-                }
-                return;
-            }
+                final IItemHandler theSlot = new WrapperFilteredItemHandler(
+                        new WrapperRangeItemHandler(providerTracker.server, slot, slot + 1),
+                        new PatternSlotFilter());
+                final InventoryAdaptor interfaceSlot = new AdaptorItemHandler(theSlot);
 
-            final ItemStack is = providerTracker.server.getStackInSlot(slot);
-            final boolean hasItemInHand = !player.inventory.getItemStack().isEmpty();
+                IItemHandler interfaceHandler = providerTracker.server;
+                boolean canInsert = true;
 
-            final InventoryAdaptor playerHand = new AdaptorItemHandler(
-                    new WrapperCursorItemHandler(player.inventory));
-
-            final IItemHandler theSlot = new WrapperFilteredItemHandler(
-                    new WrapperRangeItemHandler(providerTracker.server, slot, slot + 1),
-                    new PatternSlotFilter());
-            final InventoryAdaptor interfaceSlot = new AdaptorItemHandler(theSlot);
-
-            IItemHandler interfaceHandler = providerTracker.server;
-            boolean canInsert = true;
-
-            switch (action) {
-                case PICKUP_OR_SET_DOWN:
-                    if (hasItemInHand) {
-                        for (int s = 0; s < interfaceHandler.getSlots(); s++) {
-                            if (Platform.itemComparisons().isSameItem(
-                                    interfaceHandler.getStackInSlot(s),
-                                    player.inventory.getItemStack())) {
-                                canInsert = false;
-                                break;
-                            }
-                        }
-                        if (canInsert) {
-                            ItemStack inSlot = theSlot.getStackInSlot(0);
-                            if (inSlot.isEmpty()) {
-                                player.inventory.setItemStack(
-                                        interfaceSlot.addItems(player.inventory.getItemStack()));
-                            } else {
-                                inSlot = inSlot.copy();
-                                final ItemStack inHand = player.inventory.getItemStack().copy();
-
-                                ItemHandlerUtil.setStackInSlot(theSlot, 0, ItemStack.EMPTY);
-                                player.inventory.setItemStack(ItemStack.EMPTY);
-
-                                player.inventory.setItemStack(interfaceSlot.addItems(inHand.copy()));
-
-                                if (player.inventory.getItemStack().isEmpty()) {
-                                    player.inventory.setItemStack(inSlot);
-                                } else {
-                                    player.inventory.setItemStack(inHand);
-                                    ItemHandlerUtil.setStackInSlot(theSlot, 0, inSlot);
+                switch (action) {
+                    case PICKUP_OR_SET_DOWN:
+                        if (hasItemInHand) {
+                            for (int s = 0; s < interfaceHandler.getSlots(); s++) {
+                                if (Platform.itemComparisons().isSameItem(
+                                        interfaceHandler.getStackInSlot(s),
+                                        player.inventory.getItemStack())) {
+                                    canInsert = false;
+                                    break;
                                 }
                             }
-                        }
-                    } else {
-                        ItemHandlerUtil.setStackInSlot(theSlot, 0,
-                                playerHand.addItems(theSlot.getStackInSlot(0)));
-                    }
-                    break;
+                            if (canInsert) {
+                                ItemStack inSlot = theSlot.getStackInSlot(0);
+                                if (inSlot.isEmpty()) {
+                                    player.inventory.setItemStack(
+                                            interfaceSlot.addItems(player.inventory.getItemStack()));
+                                } else {
+                                    inSlot = inSlot.copy();
+                                    final ItemStack inHand = player.inventory.getItemStack().copy();
 
-                case SPLIT_OR_PLACE_SINGLE:
-                    if (hasItemInHand) {
-                        for (int s = 0; s < interfaceHandler.getSlots(); s++) {
-                            if (Platform.itemComparisons().isSameItem(
-                                    interfaceHandler.getStackInSlot(s),
-                                    player.inventory.getItemStack())) {
-                                canInsert = false;
-                                break;
+                                    ItemHandlerUtil.setStackInSlot(theSlot, 0, ItemStack.EMPTY);
+                                    player.inventory.setItemStack(ItemStack.EMPTY);
+
+                                    player.inventory.setItemStack(interfaceSlot.addItems(inHand.copy()));
+
+                                    if (player.inventory.getItemStack().isEmpty()) {
+                                        player.inventory.setItemStack(inSlot);
+                                    } else {
+                                        player.inventory.setItemStack(inHand);
+                                        ItemHandlerUtil.setStackInSlot(theSlot, 0, inSlot);
+                                    }
+                                }
                             }
+                        } else {
+                            ItemHandlerUtil.setStackInSlot(theSlot, 0,
+                                    playerHand.addItems(theSlot.getStackInSlot(0)));
                         }
-                        if (canInsert) {
-                            ItemStack extra = playerHand.removeItems(1, ItemStack.EMPTY, null);
-                            if (!extra.isEmpty() && !interfaceSlot.containsItems()) {
-                                extra = interfaceSlot.addItems(extra);
+                        break;
+
+                    case SPLIT_OR_PLACE_SINGLE:
+                        if (hasItemInHand) {
+                            for (int s = 0; s < interfaceHandler.getSlots(); s++) {
+                                if (Platform.itemComparisons().isSameItem(
+                                        interfaceHandler.getStackInSlot(s),
+                                        player.inventory.getItemStack())) {
+                                    canInsert = false;
+                                    break;
+                                }
+                            }
+                            if (canInsert) {
+                                ItemStack extra = playerHand.removeItems(1, ItemStack.EMPTY, null);
+                                if (!extra.isEmpty() && !interfaceSlot.containsItems()) {
+                                    extra = interfaceSlot.addItems(extra);
+                                }
+                                if (!extra.isEmpty()) {
+                                    playerHand.addItems(extra);
+                                }
+                            }
+                        } else if (!is.isEmpty()) {
+                            ItemStack extra = interfaceSlot.removeItems(
+                                    (is.getCount() + 1) / 2, ItemStack.EMPTY, null);
+                            if (!extra.isEmpty()) {
+                                extra = playerHand.addItems(extra);
                             }
                             if (!extra.isEmpty()) {
-                                playerHand.addItems(extra);
+                                interfaceSlot.addItems(extra);
                             }
                         }
-                    } else if (!is.isEmpty()) {
-                        ItemStack extra = interfaceSlot.removeItems(
-                                (is.getCount() + 1) / 2, ItemStack.EMPTY, null);
-                        if (!extra.isEmpty()) {
-                            extra = playerHand.addItems(extra);
+                        break;
+
+                    case SHIFT_CLICK:
+                        final InventoryAdaptor playerInv = InventoryAdaptor.getAdaptor(player);
+                        ItemHandlerUtil.setStackInSlot(theSlot, 0,
+                                playerInv.addItems(theSlot.getStackInSlot(0)));
+                        break;
+
+                    case MOVE_REGION:
+                        final InventoryAdaptor playerInvAd = InventoryAdaptor.getAdaptor(player);
+                        for (int x = 0; x < providerTracker.server.getSlots(); x++) {
+                            ItemHandlerUtil.setStackInSlot(providerTracker.server, x,
+                                    playerInvAd.addItems(providerTracker.server.getStackInSlot(x)));
                         }
-                        if (!extra.isEmpty()) {
-                            interfaceSlot.addItems(extra);
+                        break;
+
+                    case CREATIVE_DUPLICATE:
+                        if (player.capabilities.isCreativeMode && !hasItemInHand) {
+                            player.inventory.setItemStack(
+                                    is.isEmpty() ? ItemStack.EMPTY : is.copy());
                         }
-                    }
-                    break;
+                        break;
+                }
 
-                case SHIFT_CLICK:
-                    final InventoryAdaptor playerInv = InventoryAdaptor.getAdaptor(player);
-                    ItemHandlerUtil.setStackInSlot(theSlot, 0,
-                            playerInv.addItems(theSlot.getStackInSlot(0)));
-                    break;
-
-                case MOVE_REGION:
-                    final InventoryAdaptor playerInvAd = InventoryAdaptor.getAdaptor(player);
-                    for (int x = 0; x < providerTracker.server.getSlots(); x++) {
-                        ItemHandlerUtil.setStackInSlot(providerTracker.server, x,
-                                playerInvAd.addItems(providerTracker.server.getStackInSlot(x)));
-                    }
-                    break;
-
-                case CREATIVE_DUPLICATE:
-                    if (player.capabilities.isCreativeMode && !hasItemInHand) {
-                        player.inventory.setItemStack(
-                                is.isEmpty() ? ItemStack.EMPTY : is.copy());
-                    }
-                    break;
+                this.updateHeld(player);
             }
-
-            this.updateHeld(player);
         }
     }
 
@@ -545,7 +549,8 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         this.byId.clear();
         this.providerId.clear();
         this.diList.clear();
-        this.provider.clear();
+        if (Platform.GTLoaded)
+            this.provider.clear();
 
         final IActionHost host = this.getActionHost();
         if (host != null) {
@@ -566,24 +571,25 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                         this.diList.put(ih, new InvTracker(dual, dual.getPatterns(), dual.getTermName()));
                     }
                 }
-
-                for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityMEPatternProvider.class)) {
-                    BlockPos pos = gn.getGridBlock().getLocation().getPos();
-                    TileEntity te = gn.getGridBlock().getLocation().getWorld().getTileEntity(pos);
-                    if (te instanceof IGregTechTileEntity igtte) {
-                        MetaTileEntity mte = igtte.getMetaTileEntity();
-                        if (mte instanceof MetaTileEntityMEPatternProvider patternProvider)
-                            provider.add(new ProviderTracker(patternProvider));
+                if (Platform.GTLoaded) {
+                    for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityMEPatternProvider.class)) {
+                        BlockPos pos = gn.getGridBlock().getLocation().getPos();
+                        TileEntity te = gn.getGridBlock().getLocation().getWorld().getTileEntity(pos);
+                        if (te instanceof IGregTechTileEntity igtte) {
+                            MetaTileEntity mte = igtte.getMetaTileEntity();
+                            if (mte instanceof MetaTileEntityMEPatternProvider patternProvider)
+                                provider.add(new ProviderTracker(patternProvider));
+                        }
                     }
-                }
 
-                for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityHugeMEPatternProvider.class)) {
-                    BlockPos pos = gn.getGridBlock().getLocation().getPos();
-                    TileEntity te = gn.getGridBlock().getLocation().getWorld().getTileEntity(pos);
-                    if (te instanceof IGregTechTileEntity igtte) {
-                        MetaTileEntity mte = igtte.getMetaTileEntity();
-                        if (mte instanceof MetaTileEntityHugeMEPatternProvider patternProvider)
-                            provider.add(new ProviderTracker(patternProvider));
+                    for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityHugeMEPatternProvider.class)) {
+                        BlockPos pos = gn.getGridBlock().getLocation().getPos();
+                        TileEntity te = gn.getGridBlock().getLocation().getWorld().getTileEntity(pos);
+                        if (te instanceof IGregTechTileEntity igtte) {
+                            MetaTileEntity mte = igtte.getMetaTileEntity();
+                            if (mte instanceof MetaTileEntityHugeMEPatternProvider patternProvider)
+                                provider.add(new ProviderTracker(patternProvider));
+                        }
                     }
                 }
             }
@@ -596,10 +602,11 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
             this.byId.put(inv.which, inv);
             this.addItems(data, inv, 0, inv.server.getSlots());
         }
-
-        for (final ProviderTracker en : provider) {
-            this.providerId.put(en.which, en);
-            this.addProvider(data, en, 0, en.server.getSlots());
+        if (Platform.GTLoaded) {
+            for (final ProviderTracker en : provider) {
+                this.providerId.put(en.which, en);
+                this.addProvider(data, en, 0, en.server.getSlots());
+            }
         }
     }
 
