@@ -1,3 +1,4 @@
+
 /*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
@@ -18,14 +19,6 @@
 
 package appeng.client.me;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nonnull;
-
-import net.minecraft.item.ItemStack;
 
 import appeng.api.AEApi;
 import appeng.api.config.*;
@@ -41,11 +34,21 @@ import appeng.items.storage.ItemViewCell;
 import appeng.util.ItemSorters;
 import appeng.util.Platform;
 import appeng.util.prioritylist.IPartitionList;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.common.ModContainer;
+import net.minecraftforge.oredict.OreDictionary;
+
+import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
 
 public class ItemRepo {
 
-    private final IItemList<IAEItemStack> list = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-            .createList();
+    private final IItemList<IAEItemStack> list = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList();
     private List<IAEItemStack> view = new ArrayList<>();
     private final IScrollSource src;
     private final ISortSource sortSrc;
@@ -64,6 +67,7 @@ public class ItemRepo {
 
     private boolean resort = true;
     private boolean changed = false;
+
 
     public ItemRepo(final IScrollSource src, final ISortSource sortSrc) {
         this.src = src;
@@ -121,9 +125,7 @@ public class ItemRepo {
             lastSearchMode = searchMode;
         }
 
-        if (searchMode == SearchBoxMode.JEI_AUTOSEARCH || searchMode == SearchBoxMode.JEI_MANUAL_SEARCH
-                || searchMode == SearchBoxMode.JEI_AUTOSEARCH_KEEP
-                || searchMode == SearchBoxMode.JEI_MANUAL_SEARCH_KEEP) {
+        if (searchMode == SearchBoxMode.JEI_AUTOSEARCH || searchMode == SearchBoxMode.JEI_MANUAL_SEARCH || searchMode == SearchBoxMode.JEI_AUTOSEARCH_KEEP || searchMode == SearchBoxMode.JEI_MANUAL_SEARCH_KEEP) {
             this.updateJEI(this.searchString);
         }
 
@@ -156,33 +158,8 @@ public class ItemRepo {
 
             Comparator<IAEItemStack> c = getComparator(sortBy);
 
-            String innerSearch = searchString.toLowerCase();
-
-            final boolean searchMod;
-            if (innerSearch.startsWith("@")) {
-                searchMod = true;
-                innerSearch = innerSearch.substring(1);
-            } else {
-                searchMod = false;
-            }
-
-            final boolean terminalSearchToolTips = AEConfig.instance().getConfigManager()
-                    .getSetting(Settings.SEARCH_TOOLTIPS) != YesNo.NO;
-
-            Pattern m;
-            try {
-                m = Pattern.compile(innerSearch, Pattern.CASE_INSENSITIVE);
-            } catch (final Throwable ignore) {
-                try {
-                    m = Pattern.compile(Pattern.quote(innerSearch), Pattern.CASE_INSENSITIVE);
-                } catch (final Throwable __) {
-                    return;
-                }
-            }
-
-            String[] innerSearchTerms = innerSearch.split(" ");
             for (IAEItemStack is : this.list) {
-                addIAE(is, viewMode, innerSearchTerms, searchMod, terminalSearchToolTips, m);
+                addIAE(is, viewMode);
             }
 
             view.sort(c);
@@ -208,52 +185,210 @@ public class ItemRepo {
         return c;
     }
 
-    private void addIAE(IAEItemStack is, Enum viewMode, String[] terms, boolean searchMod, boolean searchTooltips,
-            Pattern pattern) {
+    private void addIAE(IAEItemStack is, Enum viewMode) {
 
         final boolean needsZeroCopy = viewMode == ViewItems.CRAFTABLE;
 
-        if (this.myPartitionList != null) {
-            if (!this.myPartitionList.isListed(is)) {
-                return;
-            }
+        if (this.myPartitionList != null && !this.myPartitionList.isListed(is)) {
+            return;
         }
 
         if (viewMode == ViewItems.CRAFTABLE && !is.isCraftable()) {
             return;
         }
-
         if (viewMode == ViewItems.STORED && is.getStackSize() == 0) {
             return;
         }
 
-        final String dspName = (searchMod ? Platform.getModId(is) : Platform.getItemDisplayName(is)).toLowerCase();
-        boolean foundMatchingItemStack = true;
+        final String query = lower(this.searchString).trim();
+        if (query.isEmpty()) {
+            if (needsZeroCopy) {
+                IAEItemStack copy = is.copy();
+                copy.setStackSize(0);
+                this.view.add(copy);
+            } else {
+                this.view.add(is);
+            }
+            return;
+        }
 
-        for (String term : terms) {
-            if (term.length() > 1 && (term.startsWith("-") || term.startsWith("!"))) {
-                term = term.substring(1);
-                if (dspName.contains(term)) {
-                    foundMatchingItemStack = false;
+        // Original setting behavior:
+        // enabled = normal terms also search tooltip
+        // disabled = only # searches tooltip
+        final boolean tooltipSearchEnabled =
+                AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_TOOLTIPS) != YesNo.NO;
+
+        // Base strings (null-safe)
+        final String itemName = lower(Platform.getItemDisplayName(is));
+        String modId = null;
+        String modName = null;
+
+        // Lazy stuff only computed if a term needs it
+        ItemStack stack = null;
+        String registryId = null;
+
+        // Two tooltip caches:
+        // tooltipLower: normal lowercase tooltip (keeps spaces), used for "old setting" behavior
+        // tooltipText: normalized tooltip (spaces removed), used for explicit # searching like modern
+        String tooltipLower = null;
+        String tooltipText = null;
+
+        int[] oreIds = null;
+
+        boolean found = false;
+
+        // OR groups split by |
+        for (String orPart : query.split("\\|")) {
+            String part = orPart.trim();
+
+            // Empty OR part matches everything
+            if (part.isEmpty()) {
+                found = true;
+                break;
+            }
+
+            boolean groupMatches = true;
+
+            // AND terms split by spaces
+            for (String raw : splitSearchTerms(part)) {
+                if (raw.isEmpty()) {
+                    continue;
+                }
+
+                boolean neg = false;
+                char c0 = raw.charAt(0);
+                if (c0 == '-' || c0 == '!') {
+                    neg = true;
+                    raw = raw.substring(1);
+                    if (raw.isEmpty()) {
+                        continue;
+                    }
+                }
+
+                char prefix = raw.charAt(0);
+                String term = raw;
+
+                enum Target { NAME, MOD, TOOLTIP, OREDICT, REGISTRY }
+                Target target = Target.NAME;
+
+                if (prefix == '@' || prefix == '#' || prefix == '$' || prefix == '&' || prefix == '*') {
+                    term = raw.substring(1);
+                    if (term.isEmpty()) {
+                        continue;
+                    }
+
+                    if (prefix == '@') target = Target.MOD;
+                    else if (prefix == '#') target = Target.TOOLTIP;
+                    else if (prefix == '$') target = Target.OREDICT;
+                    else target = Target.REGISTRY; // & or *
+                }
+
+                boolean termMatches = false;
+
+                switch (target) {
+                    case NAME:
+                        termMatches = itemName.contains(term);
+
+                        if (!termMatches && tooltipSearchEnabled) {
+                            if (tooltipLower == null) {
+                                List<String> lines = Platform.getTooltip(is);
+                                StringBuilder sb = new StringBuilder();
+                                for (int i = 0; i < lines.size(); i++) {
+                                    String line = lines.get(i);
+                                    if (line == null) continue;
+                                    if (sb.length() > 0) sb.append('\n');
+                                    sb.append(line);
+                                }
+
+                                String joined = sb.toString();
+                                tooltipLower = lower(joined);
+                                tooltipText = normalizeTooltip(joined);
+                            }
+
+                            termMatches = tooltipLower.contains(term);
+                        }
+                        break;
+
+                    case MOD:
+                        if (modId == null) {
+                            modId = lower(Platform.getModId(is));
+                        }
+
+                        if (modId.contains(term)) {
+                            termMatches = true;
+                            break;
+                        }
+
+                        if (modName == null) {
+                            modName = getModNameSafe(modId);
+                        }
+                        termMatches = modName.contains(term);
+                        break;
+
+                    case TOOLTIP:
+                        if (tooltipText == null) {
+                            List<String> lines = Platform.getTooltip(is);
+                            StringBuilder sb = new StringBuilder();
+                            for (int i = 0; i < lines.size(); i++) {
+                                String line = lines.get(i);
+                                if (line == null) continue;
+                                if (sb.length() > 0) sb.append('\n');
+                                sb.append(line);
+                            }
+                            String joined = sb.toString();
+                            tooltipLower = lower(joined);
+                            tooltipText = normalizeTooltip(joined);
+                        }
+                        termMatches = tooltipText.contains(normalizeTooltip(term));
+                        break;
+
+                    case OREDICT:
+                        if (stack == null) {
+                            stack = safeItemStack(is);
+                        }
+                        if (!stack.isEmpty()) {
+                            if (oreIds == null) {
+                                oreIds = OreDictionary.getOreIDs(stack);
+                                if (oreIds == null) oreIds = new int[0];
+                            }
+                            for (int id : oreIds) {
+                                String oreName = OreDictionary.getOreName(id);
+                                if (oreName != null && lower(oreName).contains(term)) {
+                                    termMatches = true;
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+
+                    case REGISTRY:
+                        if (stack == null) {
+                            stack = safeItemStack(is);
+                        }
+                        if (!stack.isEmpty()) {
+                            if (registryId == null) {
+                                ResourceLocation rl = stack.getItem() == null ? null : stack.getItem().getRegistryName();
+                                registryId = lower(rl == null ? "" : rl.toString());
+                            }
+                            termMatches = registryId.contains(term);
+                        }
+                        break;
+                }
+
+                boolean passes = neg ? !termMatches : termMatches;
+                if (!passes) {
+                    groupMatches = false;
                     break;
                 }
-            } else if (!dspName.contains(term)) {
-                foundMatchingItemStack = false;
+            }
+
+            if (groupMatches) {
+                found = true;
                 break;
             }
         }
 
-        if (searchTooltips && !foundMatchingItemStack) {
-            final List<String> tooltip = Platform.getTooltip(is);
-            for (final String line : tooltip) {
-                if (pattern.matcher(line).find()) {
-                    foundMatchingItemStack = true;
-                    break;
-                }
-            }
-        }
-
-        if (foundMatchingItemStack) {
+        if (found) {
             if (needsZeroCopy) {
                 is = is.copy();
                 is.setStackSize(0);
@@ -261,6 +396,8 @@ public class ItemRepo {
             this.view.add(is);
         }
     }
+
+
 
     private void updateJEI(String filter) {
         Integrations.jei().setSearchText(filter);
@@ -300,5 +437,75 @@ public class ItemRepo {
 
     public IItemList<IAEItemStack> getList() {
         return list;
+    }
+
+
+    private static String lower(String s) {
+        return s == null ? "" : s.toLowerCase(Locale.ROOT);
+    }
+
+    private static String normalizeTooltip(String s) {
+        return lower(s).replace(" ", "");
+    }
+
+    private static ItemStack safeItemStack(IAEItemStack ae) {
+        try {
+            ItemStack s = ae.createItemStack();
+            return s == null ? ItemStack.EMPTY : s;
+        } catch (Throwable t) {
+            try {
+                ItemStack s = ae.getDefinition();
+                return s == null ? ItemStack.EMPTY : s;
+            } catch (Throwable t2) {
+                return ItemStack.EMPTY;
+            }
+        }
+    }
+
+    private static String getModNameSafe(String modId) {
+        if (modId == null || modId.isEmpty()) {
+            return "";
+        }
+
+        try {
+            ModContainer c = Loader.instance().getIndexedModList().get(modId);
+            if (c != null && c.getName() != null) {
+                return lower(c.getName());
+            }
+        } catch (Throwable ignored) {
+        }
+
+        return "";
+    }
+
+    private static List<String> splitSearchTerms(String input) {
+        List<String> out = new ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
+
+        for (int i = 0; i < input.length(); i++) {
+            char ch = input.charAt(i);
+
+            if (ch == '"') {
+                inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (!inQuotes && Character.isWhitespace(ch)) {
+                if (cur.length() > 0) {
+                    out.add(cur.toString());
+                    cur.setLength(0);
+                }
+                continue;
+            }
+
+            cur.append(ch);
+        }
+
+        if (cur.length() > 0) {
+            out.add(cur.toString());
+        }
+
+        return out;
     }
 }
