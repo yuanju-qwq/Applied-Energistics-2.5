@@ -29,6 +29,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.text.translation.I18n;
 
 import appeng.api.config.ActionItems;
 import appeng.api.config.ItemSubstitution;
@@ -122,7 +123,7 @@ public class GuiWirelessDualInterfaceTerminal extends GuiInterfaceTerminal
     private GuiTabButton tabProcessButton;
     private GuiImgButton substitutionsEnabledBtn;
     private GuiImgButton substitutionsDisabledBtn;
-    private GuiImgButton encodeBtn;
+    private GuiButton encodeBtn;
     private GuiImgButton clearBtn;
 
     // ========== 数量调整按钮（处理模式下显示，与 GuiPatternTerm 一致） ==========
@@ -331,9 +332,9 @@ public class GuiWirelessDualInterfaceTerminal extends GuiInterfaceTerminal
         final int panelScreenX = this.guiLeft + getPatternPanelX();
         final int panelScreenY = this.guiTop + getPatternPanelY();
 
-        // 编码按钮
-        this.encodeBtn = new GuiImgButton(panelScreenX + PATTERN_PANEL_WIDTH - 20, panelScreenY + 95,
-                Settings.ACTIONS, ActionItems.ENCODE);
+        // 编码按钮：这里改为文字按钮，避免在自定义纯色面板上图标过于不显眼
+        this.encodeBtn = new GuiButton(0, panelScreenX + 70, panelScreenY + 92, 28, 16,
+                I18n.translateToLocal("gui.tooltips.appliedenergistics2.Encode"));
         this.buttonList.add(this.encodeBtn);
 
         // 清除按钮（半尺寸，与 GuiPatternTerm 一致）

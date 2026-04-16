@@ -459,6 +459,8 @@ final class Registration {
                 .ifPresent(terminal -> registries.wireless().registerWirelessHandler((IWirelessTermHandler) terminal));
         items.wirelessInterfaceTerminal().maybeItem().ifPresent(terminal -> registries.wireless()
                 .registerWirelessHandler((IWirelessTermHandler) terminal));
+        items.wirelessDualInterfaceTerminal().maybeItem().ifPresent(terminal -> registries.wireless()
+                .registerWirelessHandler((IWirelessTermHandler) terminal));
 
         // Charge Rates
         items.chargedStaff().maybeItem()
