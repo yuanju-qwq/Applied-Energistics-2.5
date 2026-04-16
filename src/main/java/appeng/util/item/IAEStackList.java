@@ -105,8 +105,8 @@ public final class IAEStackList implements IItemList {
 
     @Override
     public IAEStack getFirstItem() {
-        for (final IAEStack stackType : this) {
-            return stackType;
+        for (final Object stackType : this) {
+            return (IAEStack) stackType;
         }
         return null;
     }

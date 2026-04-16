@@ -45,6 +45,7 @@ import appeng.api.storage.data.IItemList;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInformPlayer;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStackType;
 import appeng.util.item.IAEStackList;
 
 /**
@@ -130,7 +131,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             IItemList parentList = parent.inventoryMap.get(type);
             if (parentList != null) {
                 for (Object stack : parentList) {
-                    list.add(stack);
+                    list.add((IAEStack) stack);
                 }
             }
         }
@@ -218,7 +219,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             this.inventoryMap.put(type, type.createList());
         }
         IItemList itemList = this.inventoryMap.get(
-                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).getStackType());
+                AEItemStackType.INSTANCE);
         for (final IAEItemStack is : target.getStorageList()) {
             itemList.add(target.extractItems(is, Actionable.SIMULATE, src));
         }
@@ -260,7 +261,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             this.inventoryMap.put(type, type.createList());
         }
         target.getAvailableItems(this.inventoryMap.get(
-                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).getStackType()));
+                AEItemStackType.INSTANCE));
 
         this.par = null;
     }
@@ -282,7 +283,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             this.inventoryMap.put(type, type.createList());
         }
         IItemList targetList = this.inventoryMap.get(
-                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).getStackType());
+                AEItemStackType.INSTANCE);
         for (IAEItemStack iaeItemStack : itemList) {
             targetList.add(iaeItemStack);
         }
@@ -340,7 +341,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     /**
      * 获取可用的栈列表（按类型分发或全部）。
      */
-    public IItemList getAvailableItems(final IItemList out) {
+    public IItemList getAvailableStacks(final IItemList out) {
         IAEStackType<?> listType = out.getStackType();
 
         if (listType != null) {
@@ -498,7 +499,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     @Override
     public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
         IItemList itemList = this.inventoryMap.get(
-                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).getStackType());
+                AEItemStackType.INSTANCE);
         if (itemList != null) {
             for (Object is : itemList) {
                 out.add((IAEItemStack) is);
@@ -519,7 +520,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
      */
     public IItemList<IAEItemStack> getItemList() {
         return this.inventoryMap.get(
-                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).getStackType());
+                AEItemStackType.INSTANCE);
     }
 
     /**

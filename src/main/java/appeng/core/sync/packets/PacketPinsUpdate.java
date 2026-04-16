@@ -107,7 +107,7 @@ public class PacketPinsUpdate extends AppEngPacket {
                 try {
                     IAEStack.writeToPacketGeneric(data, stack);
                 } catch (IOException e) {
-                    AELog.warn(e, "Failed to write pin stack to packet at slot %d", i);
+                    AELog.warn(e, String.format("Failed to write pin stack to packet at slot %d", i));
                     data.writeBoolean(false);
                 }
             }

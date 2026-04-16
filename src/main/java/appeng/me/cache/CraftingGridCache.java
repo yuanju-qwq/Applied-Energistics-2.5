@@ -433,15 +433,6 @@ public class CraftingGridCache
     /**
      * 泛型版本：检查任意类型的栈是否可被某个 CPU 接受。
      */
-    public boolean canAccept(final IAEStack<?> input) {
-        for (final CraftingCPUCluster cpu : this.craftingCPUClusters) {
-            if (cpu.canAccept(input)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Override
     public int getSlot() {
         return 0;
@@ -464,13 +455,6 @@ public class CraftingGridCache
     /**
      * 泛型版本：向合成 CPU 注入任意类型的栈。
      */
-    public IAEStack<?> injectItems(IAEStack<?> input, final Actionable type, final IActionSource src) {
-        for (final CraftingCPUCluster cpu : this.craftingCPUClusters) {
-            input = cpu.injectItems(input, type, src);
-        }
-        return input;
-    }
-
     @Override
     public IAEItemStack extractItems(final IAEItemStack request, final Actionable mode, final IActionSource src) {
         return null;

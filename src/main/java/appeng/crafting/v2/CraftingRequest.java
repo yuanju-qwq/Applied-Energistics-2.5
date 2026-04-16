@@ -176,6 +176,14 @@ public class CraftingRequest implements ITreeSerializable {
         this.craftingMode = craftingMode;
     }
 
+    public CraftingRequest(CraftingRequest parentRequest, @Nonnull IAEStack<?> stack, SubstitutionMode substitutionMode,
+            boolean allowSimulation, CraftingMode craftingMode) {
+        this(parentRequest, stack, substitutionMode, allowSimulation, craftingMode, x -> true);
+        if (substitutionMode == SubstitutionMode.ACCEPT_FUZZY) {
+            throw new IllegalArgumentException("Fuzzy requests must have a substitution-valid predicate");
+        }
+    }
+
     public CraftingRequest(IAEStack<?> request, SubstitutionMode substitutionMode, boolean allowSimulation,
             CraftingMode craftingMode) {
         this(null, request, substitutionMode, allowSimulation, craftingMode, x -> true);

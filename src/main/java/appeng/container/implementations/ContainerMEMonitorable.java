@@ -46,8 +46,9 @@ import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.IActionSource;
-import appeng.api.networking.security.SecurityPermissions;
 import appeng.api.networking.storage.IBaseMonitor;
+import appeng.api.config.SecurityPermissions;
+import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.parts.IPart;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
@@ -87,6 +88,8 @@ public class ContainerMEMonitorable extends AEBaseContainer
         implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver {
 
     protected final SlotRestrictedInput[] cellView = new SlotRestrictedInput[5];
+    public final IItemList<IAEItemStack> items = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
+            .createList();
 
     /**
      * 多类型 Monitor 映射：每种已注册的 IAEStackType 对应一个 IMEMonitor。
@@ -161,7 +164,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
                 IMEMonitor<?> itemMon = this.monitors.get(
                         AEStackTypeRegistry.getType("item"));
                 if (itemMon != null) {
-                    this.setCellInventory(itemMon);
+                    this.setCellInventory((IMEInventoryHandler<IAEItemStack>) itemMon);
                 }
 
                 if (monitorable instanceof IPortableCell) {
@@ -535,7 +538,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     public IItemList<IAEItemStack> getItems() {
-        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList();
+        return this.items;
     }
 
     /**
@@ -544,6 +547,18 @@ public class ContainerMEMonitorable extends AEBaseContainer
      */
     @SuppressWarnings("unchecked")
     public void postUpdate(final List<IAEStack<?>> list) {
+        for (IAEStack<?> stack : list) {
+            if (stack instanceof IAEItemStack) {
+                final IAEItemStack itemStack = (IAEItemStack) stack;
+                final IAEItemStack existing = this.items.findPrecise(itemStack);
+                if (existing != null) {
+                    existing.reset();
+                    existing.add(itemStack);
+                } else {
+                    this.items.add(itemStack.copy());
+                }
+            }
+        }
         if (this.gui instanceof GuiMEMonitorable guiMonitorable) {
             guiMonitorable.postUpdate(list);
         }

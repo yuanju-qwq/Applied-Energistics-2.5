@@ -48,6 +48,7 @@ import appeng.api.networking.events.MENetworkCraftingCpuChange;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.IMEInventory;
+import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
@@ -73,6 +74,7 @@ import appeng.me.helpers.PlayerSource;
 import appeng.tile.crafting.TileCraftingMonitorTile;
 import appeng.tile.crafting.TileCraftingTile;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStackType;
 import appeng.util.item.AEItemStack;
 
 public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
@@ -273,8 +275,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             if (is != null && is.getStackSize() > 0) {
                 if (is.getStackSize() >= what.getStackSize()) {
                     if (this.finalOutput != null && this.finalOutput.isSameType(what)) {
-                        if (this.myLastLink != null) {
-                            return ((CraftingLink) this.myLastLink).injectItems(what.copy(), type);
+                        if (this.myLastLink != null && what instanceof IAEItemStack itemWhat) {
+                            return ((CraftingLink) this.myLastLink).injectItems(itemWhat.copy(), type);
                         }
 
                         return what; // ignore it.
@@ -290,8 +292,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                 used.setStackSize(is.getStackSize());
 
                 if (this.finalOutput != null && this.finalOutput.isSameType(what)) {
-                    if (this.myLastLink != null) {
-                        leftOver.add(((CraftingLink) this.myLastLink).injectItems(used.copy(), type));
+                    if (this.myLastLink != null && used instanceof IAEItemStack usedItem) {
+                        leftOver.add(((CraftingLink) this.myLastLink).injectItems(usedItem.copy(), type));
                         return leftOver;
                     }
 
@@ -318,8 +320,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
                         this.finalOutput.decStackSize(what.getStackSize());
 
-                        if (this.myLastLink != null) {
-                            leftover = ((CraftingLink) this.myLastLink).injectItems(what, type);
+                        if (this.myLastLink != null && what instanceof IAEItemStack itemWhat) {
+                            leftover = ((CraftingLink) this.myLastLink).injectItems(itemWhat, type);
                         }
 
                         if (this.finalOutput.getStackSize() <= 0) {
@@ -348,8 +350,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
                     this.finalOutput.decStackSize(insert.getStackSize());
 
-                    if (this.myLastLink != null) {
-                        what.add(((CraftingLink) this.myLastLink).injectItems(insert.copy(), type));
+                    if (this.myLastLink != null && insert instanceof IAEItemStack insertItem) {
+                        what.add(((CraftingLink) this.myLastLink).injectItems(insertItem.copy(), type));
                         leftover = what;
                     }
 
@@ -1032,7 +1034,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         for (var entry : this.inventory.getInventoryMap().entrySet()) {
             var type = entry.getKey();
             // 物品类型已经在上面处理过了
-            if (type == AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).getStackType()) {
+            if (type == AEItemStackType.INSTANCE) {
                 continue;
             }
             var monitor = sg.getMEMonitor(type);
@@ -1041,7 +1043,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             for (Object obj : list) {
                 if (obj instanceof IAEStack<?> aeStack) {
                     this.postChange(aeStack, this.machineSrc);
-                    IAEStack<?> remainder = (IAEStack<?>) monitor.injectItems(aeStack.copy(), Actionable.MODULATE,
+                    IAEStack<?> remainder = (IAEStack<?>) ((IMEMonitor) monitor).injectItems((IAEStack) aeStack.copy(), Actionable.MODULATE,
                             this.machineSrc);
                     if (remainder != null) {
                         aeStack.setStackSize(remainder.getStackSize());
@@ -1345,7 +1347,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         // finalOutput 使用泛型序列化（支持物品和流体）
         final NBTTagCompound outputTag = new NBTTagCompound();
         if (this.finalOutput != null) {
-            this.finalOutput.toNBTGeneric(outputTag);
+            this.finalOutput.writeToNBTGeneric(outputTag);
         }
         data.setTag("finalOutput", outputTag);
         data.setTag("inventory", this.inventory.writeInventory());

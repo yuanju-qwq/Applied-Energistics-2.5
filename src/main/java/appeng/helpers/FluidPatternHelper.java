@@ -124,7 +124,7 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
                 if (tag.isEmpty()) {
                     continue;
                 }
-                AEFluidStack fluid = AEFluidStack.fromNBT(tag);
+                IAEFluidStack fluid = AEFluidStack.fromNBT(tag);
                 if (fluid != null) {
                     inGeneric.add(fluid);
                     IAEItemStack drop = ItemFluidDrop.newAEStack(fluid);
@@ -175,7 +175,7 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
                 if (tag.isEmpty()) {
                     continue;
                 }
-                AEFluidStack fluid = AEFluidStack.fromNBT(tag);
+                IAEFluidStack fluid = AEFluidStack.fromNBT(tag);
                 if (fluid != null) {
                     outGeneric.add(fluid);
                     IAEItemStack drop = ItemFluidDrop.newAEStack(fluid);

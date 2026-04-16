@@ -1618,7 +1618,7 @@ public class Platform {
      */
     public static NBTTagCompound writeStackNBT(IAEStack<?> stack, NBTTagCompound tag) {
         if (stack != null) {
-            stack.toNBTGeneric(tag);
+            stack.writeToNBTGeneric(tag);
         }
         return tag;
     }

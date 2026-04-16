@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
 
 import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
+import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
 import appeng.crafting.CraftBranchFailure;
@@ -20,6 +21,7 @@ import appeng.crafting.v2.CraftingRequest;
 import appeng.crafting.v2.CraftingTreeSerializer;
 import appeng.crafting.v2.ITreeSerializable;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
+import appeng.util.item.AEItemStack;
 
 public class ExtractItemResolver implements CraftingRequestResolver {
 
@@ -168,7 +170,10 @@ public class ExtractItemResolver implements CraftingRequestResolver {
                 if (stack.getStackSize() > 0) {
                     IAEStack<?> extracted = craftingInv.extractItems(stack, Actionable.MODULATE);
                     if (extracted == null || extracted.getStackSize() != stack.getStackSize()) {
-                        throw new CraftBranchFailure(stack, stack.getStackSize());
+                        final IAEItemStack missing = stack instanceof IAEItemStack itemStack
+                                ? itemStack
+                                : AEItemStack.fromItemStack(stack.asItemStackRepresentation());
+                        throw new IllegalStateException(new CraftBranchFailure(missing, stack.getStackSize()));
                     }
                     cpuCluster.addStorage(extracted);
                 }

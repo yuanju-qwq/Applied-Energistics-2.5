@@ -254,7 +254,8 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 if (!this.request.acceptableSubstituteFn.test(otherStack)) {
                     return false;
                 }
-                return this.request.stack.fuzzyComparison(otherStack, FuzzyMode.IGNORE_ALL);
+                return this.request.stack.getStackType() == otherStack.getStackType()
+                        && ((IAEStack) this.request.stack).fuzzyComparison((IAEStack) otherStack, FuzzyMode.IGNORE_ALL);
             } else {
                 return this.request.stack.isSameType(otherStack);
             }
@@ -426,7 +427,7 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 final long amount = Math.multiplyExact(recInput.getStackSize(), toCraft);
                 CraftingRequest req = new CraftingRequest(
                         request, recInput.copy().setStackSize(amount),
-                        SubstitutionMode.PRECISE, allowSimulation, request.craftingMode);
+                        SubstitutionMode.PRECISE, allowSimulation, request.craftingMode, x -> true);
                 req.patternParents.addAll(request.patternParents);
                 childRecursionRequests.put(recInput, req);
                 newChildren.add(req);
@@ -455,7 +456,7 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 } else {
                     req = new CraftingRequest(
                             request, input.copy().setStackSize(amount),
-                            childMode, allowSimulation, request.craftingMode);
+                            childMode, allowSimulation, request.craftingMode, x -> true);
                 }
                 req.patternParents.addAll(request.patternParents);
                 newChildren.add(req);
@@ -506,7 +507,7 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 final long perCraft = bp.getValue();
                 final IAEStack<?> toExtract = bp.getKey().copy()
                         .setStackSize(Math.multiplyExact(refundedCrafts, perCraft));
-                context.byproductsInventory.extractItems(toExtract, Actionable.MODULATE);
+                context.byproductsInventory.extractItems((IAEStack) toExtract, Actionable.MODULATE);
             }
 
             // 退还子请求的输入
@@ -532,12 +533,12 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             }
             for (Map.Entry<IAEStack<?>, Long> bp : byproducts.entrySet()) {
                 context.byproductsInventory.extractItems(
-                        bp.getKey().copy().setStackSize(Math.multiplyExact(totalCraftsDone, bp.getValue())),
+                        (IAEStack) bp.getKey().copy().setStackSize(Math.multiplyExact(totalCraftsDone, bp.getValue())),
                         Actionable.MODULATE);
             }
             if (matchingOutputRemainderItems > 0) {
                 context.byproductsInventory.extractItems(
-                        matchingOutput.copy().setStackSize(matchingOutputRemainderItems), Actionable.MODULATE);
+                        (IAEStack) matchingOutput.copy().setStackSize(matchingOutputRemainderItems), Actionable.MODULATE);
             }
             totalCraftsDone = 0;
             fulfilledAmount = 0;
