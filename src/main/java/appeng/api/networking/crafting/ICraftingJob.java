@@ -23,10 +23,20 @@
 
 package appeng.api.networking.crafting;
 
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IItemList;
+import java.util.concurrent.Future;
 
-public interface ICraftingJob {
+import appeng.api.config.CraftingMode;
+import appeng.api.networking.security.IActionSource;
+import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IItemList;
+import appeng.crafting.MECraftingInventory;
+
+/**
+ * 合成任务接口。v2 版本支持泛型栈类型（物品/流体等）。
+ *
+ * @param <StackType> 该合成任务的输出栈类型
+ */
+public interface ICraftingJob<StackType extends IAEStack<StackType>> {
 
     /**
      * @return if this job is a simulation, simulations cannot be submitted and only represent 1 possible future
@@ -45,24 +55,62 @@ public interface ICraftingJob {
      *
      * @param plan plan
      */
-    void populatePlan(IItemList<IAEItemStack> plan);
+    @SuppressWarnings("rawtypes")
+    void populatePlan(IItemList plan);
 
     /**
      * @return the final output of the job.
      */
-    IAEItemStack getOutput();
+    StackType getOutput();
 
     /**
-     * Retrieves the total number of crafting rounds required for the given item as the primary output. The primary
-     * output is defined as the first output item in a crafting pattern.
+     * returns true if this needs more simulation.
      *
-     * @param keyItem The item to check, which must match the primary output of relevant patterns. Use
-     *                {@link IAEItemStack#reset()} to ignore stack size when matching.
-     * @return Total crafting count for the item as primary output. Returns 0 if the item is not a primary output in any
-     *         relevant pattern or simulation isn't complete.
-     * @throws IllegalArgumentException If keyItem is null or invalid.
-     * @throws IllegalStateException    If called before simulation completes (when {@link #isSimulation()} returns
-     *                                  false).
+     * @param milli milliseconds of simulation
+     * @return true if this needs more simulation
      */
-    long getTotalCraftsForPrimaryOutput(IAEItemStack keyItem);
+    boolean simulateFor(final int milli);
+
+    /**
+     * 将此任务提交到 TickHandler 进行异步计算。
+     */
+    Future<ICraftingJob<StackType>> schedule();
+
+    /**
+     * @return whether this job can run on the given cluster
+     */
+    default boolean supportsCPUCluster(final ICraftingCPU cluster) {
+        return false;
+    }
+
+    /**
+     * @return 此任务使用的合成模式
+     */
+    default CraftingMode getCraftingMode() {
+        return CraftingMode.STANDARD;
+    }
+
+    /**
+     * 在 CPU 集群上开始执行合成。
+     */
+    default void startCrafting(final MECraftingInventory storage, final ICraftingCPU craftingCPUCluster,
+            final IActionSource src) {}
+
+    /**
+     * Return the snapshot of the storage when crafting calculation begins, should be read-only, do not modify.
+     */
+    default MECraftingInventory getStorageAtBeginning() {
+        return new MECraftingInventory();
+    }
+
+    /**
+     * 获取指定产出物料的总合成次数（用于合成确认 GUI 显示）。
+     * 默认实现返回 0；由具体合成任务实现（如 CraftingJob）覆盖。
+     *
+     * @param material 产出物料
+     * @return 合成次数
+     */
+    default long getTotalCraftsForPrimaryOutput(IAEStack<?> material) {
+        return 0;
+    }
 }

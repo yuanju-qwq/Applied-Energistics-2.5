@@ -18,7 +18,9 @@ public enum KeyBindings {
     WFT(new KeyBinding("key.open_wireless_fluid_terminal.desc", KeyConflictContext.UNIVERSAL, KeyModifier.SHIFT,
             Keyboard.KEY_F, KEY_CATEGORY)),
     WIT(new KeyBinding("key.open_wireless_interface_terminal.desc", KeyConflictContext.UNIVERSAL, KeyModifier.SHIFT,
-            Keyboard.KEY_I, KEY_CATEGORY));
+            Keyboard.KEY_I, KEY_CATEGORY)),
+    WDIT(new KeyBinding("key.open_wireless_dual_interface_terminal.desc", KeyConflictContext.UNIVERSAL, KeyModifier.SHIFT,
+            Keyboard.KEY_O, KEY_CATEGORY));
 
     private KeyBinding keyBinding;
 

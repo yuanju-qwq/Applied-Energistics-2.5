@@ -45,6 +45,6 @@ public class BasicFluidCellGuiHandler implements ICellGuiHandler {
     public void openChestGui(final EntityPlayer player, final IChestOrDrive chest, final ICellHandler cellHandler,
             final IMEInventoryHandler inv, final ItemStack is, final IStorageChannel chan) {
         Platform.openGUI(player, (TileEntity) chest, AEPartLocation.fromFacing(chest.getUp()),
-                GuiBridge.GUI_FLUID_TERMINAL);
+                GuiBridge.GUI_ME);
     }
 }

@@ -84,6 +84,12 @@ public enum Settings {
 
     STICKY_MODE(EnumSet.of(YesNo.YES, YesNo.NO)),
 
+    // 终端中按住 Shift 时是否暂停视图更新（避免鼠标悬停时物品跳动）
+    PAUSE_WHEN_HOLDING_SHIFT(EnumSet.of(YesNo.YES, YesNo.NO)),
+
+    // 搜索框焦点优先级（控制按键是否优先发送给搜索框还是快捷键）
+    SEARCH_BOX_FOCUS_PRIORITY(EnumSet.allOf(SearchBoxFocusPriority.class)),
+
     ;
 
     private final EnumSet<? extends Enum<?>> values;

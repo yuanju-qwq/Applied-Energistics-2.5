@@ -25,6 +25,8 @@ package appeng.api.storage.data;
 
 import java.util.Iterator;
 
+import javax.annotation.Nullable;
+
 import appeng.api.storage.IStorageChannel;
 
 /**
@@ -81,4 +83,24 @@ public interface IItemList<T extends IAEStack<T>> extends IItemContainer<T>, Ite
      * resets stack sizes to 0.
      */
     void resetStatus();
+
+    /**
+     * 返回此列表中存储的栈类型。
+     * <p>
+     * 当列表只存储单一类型时返回对应的 {@link IAEStackType}，
+     * 当列表是多类型联合列表时返回 null。
+     *
+     * @return 栈类型，可能为 null
+     */
+    @Nullable
+    default IAEStackType<?> getStackType() {
+        return null;
+    }
+
+    /**
+     * @return 列表是否为空（无任何栈）
+     */
+    default boolean isEmpty() {
+        return size() == 0;
+    }
 }

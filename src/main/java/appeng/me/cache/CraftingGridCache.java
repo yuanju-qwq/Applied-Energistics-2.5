@@ -38,6 +38,7 @@ import it.unimi.dsi.fastutil.objects.ObjectSet;
 import appeng.api.AEApi;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
+import appeng.api.config.CraftingMode;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridHost;
 import appeng.api.networking.IGridNode;
@@ -61,6 +62,7 @@ import appeng.crafting.CraftingJob;
 import appeng.crafting.CraftingLink;
 import appeng.crafting.CraftingLinkNexus;
 import appeng.crafting.CraftingWatcher;
+import appeng.crafting.v2.CraftingJobV2;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.helpers.BaseActionSource;
 import appeng.me.helpers.GenericInterestManager;
@@ -90,7 +92,9 @@ public class CraftingGridCache
     private final IGrid grid;
     private final Object2ObjectMap<ICraftingPatternDetails, List<ICraftingMedium>> craftingMethods = new Object2ObjectOpenHashMap<>();
     private final Object2ObjectMap<IAEItemStack, ImmutableList<ICraftingPatternDetails>> craftableItems = new Object2ObjectOpenHashMap<>();
+    private final Map<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> craftableMultiItems = new HashMap<>();
     private final Set<IAEItemStack> emitableItems = new HashSet<>();
+    private final Set<IAEStack<?>> emitableMultiItems = new HashSet<>();
     private final Map<String, CraftingLinkNexus> craftingLinks = new HashMap<>();
     private final Multimap<IAEStack, CraftingWatcher> interests = HashMultimap.create();
     private final GenericInterestManager<CraftingWatcher> interestManager = new GenericInterestManager<>(
@@ -220,6 +224,7 @@ public class CraftingGridCache
         this.craftingMethods.clear();
         this.craftableItems.clear();
         this.emitableItems.clear();
+        this.emitableMultiItems.clear();
 
         // re-create list..
         for (final ICraftingProvider provider : this.craftingProviders) {
@@ -251,6 +256,27 @@ public class CraftingGridCache
         // make them immutable
         for (final Entry<IAEItemStack, ObjectSet<ICraftingPatternDetails>> e : tmpCraft.entrySet()) {
             this.craftableItems.put(e.getKey(), ImmutableList.copyOf(e.getValue()));
+        }
+
+        // 构建泛型多类型 pattern 映射
+        this.craftableMultiItems.clear();
+        for (final Entry<IAEItemStack, ImmutableList<ICraftingPatternDetails>> e : this.craftableItems.entrySet()) {
+            this.craftableMultiItems.put(e.getKey(), e.getValue());
+        }
+        // 同时收集所有 pattern 的泛型输出
+        for (final ICraftingPatternDetails details : this.craftingMethods.keySet()) {
+            for (final IAEStack<?> output : details.getGenericCondensedOutputs()) {
+                if (!(output instanceof IAEItemStack)) {
+                    final IAEStack<?> key = output.copy().setStackSize(0);
+                    this.craftableMultiItems.computeIfAbsent(
+                            key,
+                            k -> {
+                                ObjectSet<ICraftingPatternDetails> methods = new ObjectRBTreeSet<>(COMPARATOR);
+                                methods.add(details);
+                                return ImmutableList.copyOf(methods);
+                            });
+                }
+            }
         }
 
         List<IAEItemStack> craftablesChanged = new ArrayList<>();
@@ -355,6 +381,16 @@ public class CraftingGridCache
     @Override
     public void setEmitable(final IAEItemStack someItem) {
         this.emitableItems.add(someItem.copy());
+        this.emitableMultiItems.add(someItem.copy());
+    }
+
+    @Override
+    public void setEmitable(final IAEStack<?> someItem) {
+        if (someItem instanceof IAEItemStack) {
+            setEmitable((IAEItemStack) someItem);
+        } else {
+            this.emitableMultiItems.add(someItem.copy());
+        }
     }
 
     @Override
@@ -394,6 +430,18 @@ public class CraftingGridCache
         return false;
     }
 
+    /**
+     * 泛型版本：检查任意类型的栈是否可被某个 CPU 接受。
+     */
+    public boolean canAccept(final IAEStack<?> input) {
+        for (final CraftingCPUCluster cpu : this.craftingCPUClusters) {
+            if (cpu.canAccept(input)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public int getSlot() {
         return 0;
@@ -410,6 +458,16 @@ public class CraftingGridCache
             input = cpu.injectItems(input, type, src);
         }
 
+        return input;
+    }
+
+    /**
+     * 泛型版本：向合成 CPU 注入任意类型的栈。
+     */
+    public IAEStack<?> injectItems(IAEStack<?> input, final Actionable type, final IActionSource src) {
+        for (final CraftingCPUCluster cpu : this.craftingCPUClusters) {
+            input = cpu.injectItems(input, type, src);
+        }
         return input;
     }
 
@@ -456,12 +514,41 @@ public class CraftingGridCache
             throw new IllegalArgumentException("Invalid Crafting Job Request");
         }
 
-        final CraftingJob job = new CraftingJob(world, grid, actionSrc, slotItem, cb);
-
-        return CRAFTING_POOL.submit(job, job);
+        final CraftingJobV2<IAEItemStack> job = new CraftingJobV2<>(
+                slotItem, grid, actionSrc, cb, world, CraftingMode.STANDARD);
+        return (Future) job.schedule();
     }
 
     @Override
+    @SuppressWarnings("unchecked")
+    public Future<ICraftingJob> beginCraftingJob(final World world, final IGrid grid, final IActionSource actionSrc,
+            final IAEStack<?> craftWhat, final ICraftingCallback cb) {
+        if (world == null || grid == null || actionSrc == null || craftWhat == null) {
+            throw new IllegalArgumentException("Invalid Crafting Job Request");
+        }
+
+        final CraftingJobV2 job = new CraftingJobV2(
+                craftWhat, grid, actionSrc, cb, world, CraftingMode.STANDARD);
+        return (Future) job.schedule();
+    }
+
+    @Override
+    public ImmutableMap<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> getCraftingMultiPatterns() {
+        return ImmutableMap.copyOf(this.craftableMultiItems);
+    }
+
+    @Override
+    public ImmutableCollection<ICraftingPatternDetails> getCraftingFor(final IAEStack<?> whatToCraft,
+            final ICraftingPatternDetails details, final int slotIndex, final World world) {
+        if (whatToCraft instanceof IAEItemStack) {
+            return getCraftingFor((IAEItemStack) whatToCraft, details, slotIndex, world);
+        }
+        final ImmutableList<ICraftingPatternDetails> res = this.craftableMultiItems.get(whatToCraft);
+        return res == null ? ImmutableSet.of() : res;
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
     public ICraftingLink submitJob(final ICraftingJob job, final ICraftingRequester requestingMachine,
             final ICraftingCPU target, final boolean prioritizePower, final IActionSource src) {
         if (job.isSimulation()) {
@@ -521,7 +608,20 @@ public class CraftingGridCache
     }
 
     @Override
+    public boolean canEmitFor(final IAEStack<?> someItem) {
+        if (someItem instanceof IAEItemStack) {
+            return canEmitFor((IAEItemStack) someItem);
+        }
+        return this.emitableMultiItems.contains(someItem);
+    }
+
+    @Override
     public boolean isRequesting(final IAEItemStack what) {
+        return this.requesting(what) > 0;
+    }
+
+    @Override
+    public boolean isRequesting(final IAEStack<?> what) {
         return this.requesting(what) > 0;
     }
 
@@ -534,6 +634,23 @@ public class CraftingGridCache
             requested += stack != null ? stack.getStackSize() : 0;
         }
 
+        return requested;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public long requesting(IAEStack<?> what) {
+        if (what instanceof IAEItemStack) {
+            return requesting((IAEItemStack) what);
+        }
+        // 非物品类型：遍历所有 CPU 的 waitingFor 列表
+        long requested = 0;
+        for (final CraftingCPUCluster cluster : this.craftingCPUClusters) {
+            IAEStack<?> finalOut = cluster.getFinalMultiOutput();
+            if (finalOut != null && finalOut.isSameType(what)) {
+                requested += finalOut.getStackSize();
+            }
+        }
         return requested;
     }
 

@@ -30,8 +30,12 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.IStorageChannel;
+import appeng.core.AELog;
 
 public interface IAEStack<T extends IAEStack<T>> {
 
@@ -95,6 +99,42 @@ public interface IAEStack<T extends IAEStack<T>> {
      * @return isThisRecordMeaningful
      */
     boolean isMeaningful();
+
+    /**
+     * 判断两个同类型的栈是否代表同种物品/流体（忽略数量）。
+     *
+     * @param other 另一个栈
+     * @return 如果两个栈类型和标识相同则为 true
+     */
+    boolean isSameType(T other);
+
+    /**
+     * 判断给定对象是否与此栈代表同一种物品/流体（忽略数量）。
+     * 支持 ItemStack、FluidStack 及 IAEStack 等。
+     *
+     * @param obj 比较对象
+     * @return 如果同种则为 true
+     */
+    boolean isSameType(Object obj);
+
+    /**
+     * @return 此栈的本地化显示名称
+     */
+    String getDisplayName();
+
+    /**
+     * @return 每单位的数量（物品=1，流体=1000 mB）
+     */
+    default int getAmountPerUnit() {
+        return getStackType().getAmountPerUnit();
+    }
+
+    /**
+     * 设置可请求的合成次数。默认实现不做任何事情。
+     */
+    default T setCountRequestableCrafts(long countRequestableCrafts) {
+        return (T) this;
+    }
 
     /**
      * Adds more to the stack size...
@@ -199,4 +239,92 @@ public interface IAEStack<T extends IAEStack<T>> {
      * @return itemstack
      */
     ItemStack asItemStackRepresentation();
+
+    /**
+     * @return 此栈对应的 {@link IAEStackType} 实例
+     */
+    IAEStackType<T> getStackType();
+
+    /**
+     * 将栈（含类型标识）写入 NBT。
+     *
+     * @param tag 写入目标
+     */
+    default void writeToNBTGeneric(@Nonnull NBTTagCompound tag) {
+        tag.setString("StackType", this.getStackType().getId());
+        this.writeToNBT(tag);
+    }
+
+    /**
+     * @return 一个包含类型标识的 NBT
+     */
+    @Nonnull
+    default NBTTagCompound toNBTGeneric() {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setString("StackType", this.getStackType().getId());
+        this.writeToNBT(tag);
+        return tag;
+    }
+
+    /**
+     * 从包含 StackType 键的 NBT 中反序列化栈。
+     *
+     * @param tag 包含 "StackType" 键的 NBT
+     * @return 反序列化的栈，如果 tag 为空或类型未注册则返回 null
+     */
+    @Nullable
+    static IAEStack<?> fromNBTGeneric(@Nonnull NBTTagCompound tag) {
+        if (tag.isEmpty()) {
+            return null;
+        }
+
+        String id = tag.getString("StackType");
+        if (id.isEmpty()) {
+            AELog.warn("Cannot deserialize generic stack from nbt %s because key 'StackType' is missing.", tag);
+            return null;
+        }
+
+        IAEStackType<?> type = AEStackTypeRegistry.getType(id);
+        if (type == null) {
+            AELog.warn("Cannot deserialize generic stack from nbt %s because stack type '%s' is not registered.", tag, id);
+            return null;
+        }
+        return type.loadStackFromNBT(tag);
+    }
+
+    /**
+     * 将栈（含类型网络 ID）写入网络包。
+     *
+     * @param buffer 写入目标
+     * @param stack  要写入的栈，可以为 null
+     */
+    static void writeToPacketGeneric(@Nonnull ByteBuf buffer, @Nullable IAEStack<?> stack) throws IOException {
+        if (stack == null) {
+            buffer.writeByte(AEStackTypeRegistry.NULL_NETWORK_ID);
+        } else {
+            buffer.writeByte(AEStackTypeRegistry.getNetworkId(stack.getStackType()));
+            stack.writeToPacket(buffer);
+        }
+    }
+
+    /**
+     * 从网络包中读取一个带类型标识的栈。
+     *
+     * @param buffer 读取源
+     * @return 反序列化的栈，或 null
+     */
+    @Nullable
+    static IAEStack<?> fromPacketGeneric(@Nonnull ByteBuf buffer) throws IOException {
+        final byte id = buffer.readByte();
+        if (id == AEStackTypeRegistry.NULL_NETWORK_ID) {
+            return null;
+        }
+
+        IAEStackType<?> type = AEStackTypeRegistry.getTypeFromNetworkId(id);
+        if (type == null) {
+            AELog.warn("Cannot deserialize generic stack from ByteBuf because stack type network id %d is not registered.", id);
+            return null;
+        }
+        return type.loadStackFromPacket(buffer);
+    }
 }

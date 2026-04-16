@@ -42,6 +42,8 @@ public enum GuiText {
     Interface,
     FluidInterface,
     Config,
+    Items,
+    Fluids,
     StoredItems,
     StoredFluids,
     Patterns,
@@ -225,7 +227,10 @@ public enum GuiText {
     // Used in Annihilation Planes
     CanBeEnchanted,
     IncreasedEnergyUseFromEnchants,
-    Deprecated;
+    Deprecated,
+
+    // Used in Pattern Encoding GUI
+    PatternEncoding;
 
     private final String root;
 

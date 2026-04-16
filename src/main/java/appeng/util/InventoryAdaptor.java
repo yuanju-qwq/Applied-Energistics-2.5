@@ -18,6 +18,8 @@
 
 package appeng.util;
 
+import javax.annotation.Nullable;
+
 import com.jaquadro.minecraft.storagedrawers.api.capabilities.IItemRepository;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -26,11 +28,16 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
+import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.FuzzyMode;
+import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.util.inv.*;
+import appeng.util.item.AEItemStack;
 
 /**
  * Universal Facade for other inventories. Used to conveniently interact with various types of inventories. This is not
@@ -43,18 +50,38 @@ public abstract class InventoryAdaptor implements Iterable<ItemSlot> {
 
     public static InventoryAdaptor getAdaptor(final TileEntity te, final EnumFacing d) {
         if (te != null) {
+            // 首先检查是否同时具有 IItemHandler 和 IFluidHandler
+            IItemHandler itemHandler = null;
+            IFluidHandler fluidHandler = null;
+
             if (ITEM_REPOSITORY_CAPABILITY != null && te.hasCapability(ITEM_REPOSITORY_CAPABILITY, d)) {
                 IItemRepository itemRepository = te.getCapability(ITEM_REPOSITORY_CAPABILITY, d);
                 if (itemRepository != null) {
                     return new AdaptorItemRepository(itemRepository);
                 }
-            } else if (te.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, d)) {
+            }
 
-                // Attempt getting an IItemHandler for the given side via caps
-                IItemHandler itemHandler = te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, d);
-                if (itemHandler != null) {
-                    return new AdaptorItemHandler(itemHandler);
-                }
+            if (te.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, d)) {
+                itemHandler = te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, d);
+            }
+
+            if (te.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, d)) {
+                fluidHandler = te.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, d);
+            }
+
+            // 如果同时有 item 和 fluid 能力，创建复合适配器
+            if (itemHandler != null && fluidHandler != null) {
+                return new AdaptorFluidAndItemHandler(itemHandler, fluidHandler, d);
+            }
+
+            // 只有 fluid 能力
+            if (fluidHandler != null) {
+                return new AdaptorFluidHandler(fluidHandler, d);
+            }
+
+            // 只有 item 能力
+            if (itemHandler != null) {
+                return new AdaptorItemHandler(itemHandler);
             }
         }
         return null;
@@ -87,5 +114,35 @@ public abstract class InventoryAdaptor implements Iterable<ItemSlot> {
     public abstract boolean containsItems();
 
     public abstract boolean hasSlots();
+
+    /**
+     * 添加一个泛型 AE 栈（物品或流体）到目标库存。
+     * 默认实现只支持物品，子类可覆写以支持流体。
+     *
+     * @return 未能放入的剩余部分，null 表示全部放入
+     */
+    @Nullable
+    public IAEStack<?> addStack(IAEStack<?> toBeAdded) {
+        if (toBeAdded instanceof IAEItemStack itemStack) {
+            ItemStack result = this.addItems(itemStack.createItemStack());
+            return AEItemStack.fromItemStack(result);
+        }
+        return toBeAdded;
+    }
+
+    /**
+     * 模拟添加一个泛型 AE 栈到目标库存。
+     * 默认实现只支持物品，子类可覆写以支持流体。
+     *
+     * @return 模拟后未能放入的剩余部分，null 表示全部可放入
+     */
+    @Nullable
+    public IAEStack<?> simulateAddStack(IAEStack<?> toBeSimulated) {
+        if (toBeSimulated instanceof IAEItemStack itemStack) {
+            ItemStack result = this.simulateAdd(itemStack.createItemStack());
+            return AEItemStack.fromItemStack(result);
+        }
+        return toBeSimulated;
+    }
 
 }

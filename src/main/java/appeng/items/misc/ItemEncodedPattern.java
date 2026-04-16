@@ -42,8 +42,10 @@ import appeng.api.AEApi;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.core.AppEng;
 import appeng.core.localization.GuiText;
+import appeng.helpers.FluidPatternHelper;
 import appeng.helpers.InvalidPatternHelper;
 import appeng.helpers.PatternHelper;
 import appeng.helpers.PatternNestHelper;
@@ -147,30 +149,33 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
         final boolean isCrafting = details.isCraftable();
         final boolean substitute = details.canSubstitute();
 
-        final IAEItemStack[] in = details.getCondensedInputs();
-        final IAEItemStack[] out = details.getCondensedOutputs();
+        // 使用泛型方法获取输入/输出，以支持流体显示
+        final IAEStack<?>[] in = details.getGenericCondensedInputs();
+        final IAEStack<?>[] out = details.getGenericCondensedOutputs();
 
         final String label = (isCrafting ? GuiText.Crafts.getLocal() : GuiText.Creates.getLocal()) + ": ";
         final String and = ' ' + GuiText.And.getLocal() + ' ';
         final String with = GuiText.With.getLocal() + ": ";
 
         boolean first = true;
-        for (final IAEItemStack anOut : out) {
+        for (final IAEStack<?> anOut : out) {
             if (anOut == null) {
                 continue;
             }
 
-            lines.add((first ? label : and) + anOut.getStackSize() + ' ' + Platform.getItemDisplayName(anOut));
+            lines.add((first ? label : and) + anOut.getStackSize() + ' '
+                    + anOut.asItemStackRepresentation().getDisplayName());
             first = false;
         }
 
         first = true;
-        for (final IAEItemStack anIn : in) {
+        for (final IAEStack<?> anIn : in) {
             if (anIn == null) {
                 continue;
             }
 
-            lines.add((first ? with : and) + anIn.getStackSize() + ' ' + Platform.getItemDisplayName(anIn));
+            lines.add((first ? with : and) + anIn.getStackSize() + ' '
+                    + anIn.asItemStackRepresentation().getDisplayName());
             first = false;
         }
 
@@ -190,6 +195,10 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
     @Override
     public ICraftingPatternDetails getPatternForItem(final ItemStack is, final World w) {
         try {
+            // 检查是否为流体合成配方
+            if (FluidPatternHelper.isFluidPattern(is)) {
+                return new FluidPatternHelper(is, w);
+            }
             return new PatternHelper(is, w);
         } catch (final Throwable t) {
             return null;

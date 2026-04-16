@@ -26,6 +26,8 @@ package appeng.api.networking.crafting;
 import java.util.concurrent.Future;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import net.minecraft.world.World;
@@ -34,6 +36,7 @@ import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridCache;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 
 public interface ICraftingGrid extends IGridCache {
 
@@ -47,6 +50,25 @@ public interface ICraftingGrid extends IGridCache {
      */
     ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEItemStack whatToCraft,
             ICraftingPatternDetails details, int slot, World world);
+
+    /**
+     * 获取泛型栈（物品/流体等）对应的合成配方集合。
+     * 默认委托到 IAEItemStack 版本，子类可以覆写以支持多类型。
+     */
+    default ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEStack<?> whatToCraft,
+            ICraftingPatternDetails details, int slot, World world) {
+        if (whatToCraft instanceof IAEItemStack) {
+            return getCraftingFor((IAEItemStack) whatToCraft, details, slot, world);
+        }
+        return ImmutableSet.of();
+    }
+
+    /**
+     * 获取所有可合成物品/流体的多类型 pattern 映射。
+     */
+    default ImmutableMap<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> getCraftingMultiPatterns() {
+        return ImmutableMap.of();
+    }
 
     /**
      * Begin calculating a crafting job.
@@ -64,6 +86,18 @@ public interface ICraftingGrid extends IGridCache {
             ICraftingCallback callback);
 
     /**
+     * 开始计算一个泛型栈（物品/流体等）的合成任务。
+     * 默认委托到 IAEItemStack 版本。
+     */
+    default Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc,
+            IAEStack<?> craftWhat, ICraftingCallback callback) {
+        if (craftWhat instanceof IAEItemStack) {
+            return beginCraftingJob(world, grid, actionSrc, (IAEItemStack) craftWhat, callback);
+        }
+        throw new UnsupportedOperationException("Cannot begin crafting job for non-item stack: " + craftWhat);
+    }
+
+    /**
      * Submit the job to the Crafting system for processing.
      *
      * @param job               - the crafting job from beginCraftingJob
@@ -79,6 +113,7 @@ public interface ICraftingGrid extends IGridCache {
      *         {@link ICraftingRequester} methods. if you send null, this object should be discarded after verifying the
      *         return state.
      */
+    @SuppressWarnings("rawtypes")
     ICraftingLink submitJob(ICraftingJob job, ICraftingRequester requestingMachine, ICraftingCPU target,
             boolean prioritizePower, IActionSource src);
 
@@ -95,6 +130,16 @@ public interface ICraftingGrid extends IGridCache {
     boolean canEmitFor(IAEItemStack what);
 
     /**
+     * 泛型版本的 canEmitFor。
+     */
+    default boolean canEmitFor(IAEStack<?> what) {
+        if (what instanceof IAEItemStack) {
+            return canEmitFor((IAEItemStack) what);
+        }
+        return false;
+    }
+
+    /**
      * is this item being crafted?
      *
      * @param what item being crafted
@@ -104,6 +149,16 @@ public interface ICraftingGrid extends IGridCache {
     boolean isRequesting(IAEItemStack what);
 
     /**
+     * 泛型版本的 isRequesting。
+     */
+    default boolean isRequesting(IAEStack<?> what) {
+        if (what instanceof IAEItemStack) {
+            return isRequesting((IAEItemStack) what);
+        }
+        return false;
+    }
+
+    /**
      * The total amount being requested across all crafting cpus of a grid.
      *
      * @param what item being requested, ignores stacksize
@@ -111,4 +166,14 @@ public interface ICraftingGrid extends IGridCache {
      * @return The total amount being requested.
      */
     long requesting(IAEItemStack what);
+
+    /**
+     * 泛型版本的 requesting。
+     */
+    default long requesting(IAEStack<?> what) {
+        if (what instanceof IAEItemStack) {
+            return requesting((IAEItemStack) what);
+        }
+        return 0;
+    }
 }

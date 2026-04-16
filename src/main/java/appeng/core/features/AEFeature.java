@@ -68,6 +68,7 @@ public enum AEFeature {
     WIRELESS_PATTERN_TERMINAL("WirelessPatternTerminal", Constants.CATEGORY_TOOLS),
     WIRELESS_FLUID_TERMINAL("WirelessFluidTerminal", Constants.CATEGORY_TOOLS),
     WIRELESS_INTERFACE_TERMINAL("WirelessInterfaceTerminal", Constants.CATEGORY_TOOLS),
+    WIRELESS_DUAL_INTERFACE_TERMINAL("WirelessDualInterfaceTerminal", Constants.CATEGORY_TOOLS),
 
     COLOR_APPLICATOR("ColorApplicator", Constants.CATEGORY_TOOLS),
     METEORITE_COMPASS("MeteoriteCompass", Constants.CATEGORY_TOOLS),
@@ -107,6 +108,7 @@ public enum AEFeature {
     PORTABLE_CELL("PortableCell", Constants.CATEGORY_PORTABLE_CELL),
 
     STORAGE_CELLS("StorageCells", Constants.CATEGORY_STORAGE),
+    FLUID_CELLS("FluidCells", Constants.CATEGORY_STORAGE),
     ME_CHEST("MEChest", Constants.CATEGORY_STORAGE),
     ME_DRIVE("MEDrive", Constants.CATEGORY_STORAGE),
     IO_PORT("IOPort", Constants.CATEGORY_STORAGE),

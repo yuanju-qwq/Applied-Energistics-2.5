@@ -171,6 +171,39 @@ public class PacketValueConfig extends AppEngPacket {
                 } else if (this.Name.equals("PatternTerminal.Substitute")) {
                     cpt.setSubstitute(this.Value.equals("1"));
                 }
+            } else if (c instanceof ContainerWirelessDualInterfaceTerminal) {
+                // 二合一接口终端中的样板编写功能
+                final ContainerWirelessDualInterfaceTerminal cdt = (ContainerWirelessDualInterfaceTerminal) c;
+                if (this.Name.equals("PatternTerminal.CraftMode")) {
+                    cdt.setCraftingMode(this.Value.equals("1"));
+                } else if (this.Name.equals("PatternTerminal.Encode")) {
+                    // 编码值：(ctrl?1:0)<<1|(shift?1:0) => 0=普通, 1=shift(移到背包), 2=ctrl, 3=ctrl+shift
+                    final int val = Integer.parseInt(this.Value);
+                    final boolean shift = (val & 1) != 0;
+                    if (shift) {
+                        cdt.encodeAndMoveToInventory();
+                    } else {
+                        cdt.encode();
+                    }
+                } else if (this.Name.equals("PatternTerminal.Clear")) {
+                    cdt.clear();
+                } else if (this.Name.equals("PatternTerminal.MultiplyByTwo")) {
+                    cdt.multiply(2);
+                } else if (this.Name.equals("PatternTerminal.MultiplyByThree")) {
+                    cdt.multiply(3);
+                } else if (this.Name.equals("PatternTerminal.DivideByTwo")) {
+                    cdt.divide(2);
+                } else if (this.Name.equals("PatternTerminal.DivideByThree")) {
+                    cdt.divide(3);
+                } else if (this.Name.equals("PatternTerminal.IncreaseByOne")) {
+                    cdt.increase(1);
+                } else if (this.Name.equals("PatternTerminal.DecreaseByOne")) {
+                    cdt.decrease(1);
+                } else if (this.Name.equals("PatternTerminal.MaximizeCount")) {
+                    cdt.maximizeCount();
+                } else if (this.Name.equals("PatternTerminal.Substitute")) {
+                    cdt.setSubstitute(this.Value.equals("1"));
+                }
             }
         } else if (this.Name.startsWith("StorageBus.")) {
             if (this.Name.equals("StorageBus.Action")) {

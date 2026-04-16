@@ -25,6 +25,7 @@ package appeng.api.networking.crafting;
 
 import appeng.api.networking.IGridNodeService;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 
 public interface ICraftingWatcherHost extends IGridNodeService {
 
@@ -43,4 +44,14 @@ public interface ICraftingWatcherHost extends IGridNodeService {
      * @param what         change
      */
     void onRequestChange(ICraftingGrid craftingGrid, IAEItemStack what);
+
+    /**
+     * 泛型版本：合成状态变更通知。
+     * 默认委托到 IAEItemStack 版本。
+     */
+    default void onRequestChange(ICraftingGrid craftingGrid, IAEStack<?> what) {
+        if (what instanceof IAEItemStack) {
+            onRequestChange(craftingGrid, (IAEItemStack) what);
+        }
+    }
 }

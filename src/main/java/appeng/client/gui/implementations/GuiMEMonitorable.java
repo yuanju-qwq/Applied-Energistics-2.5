@@ -21,7 +21,9 @@ package appeng.client.gui.implementations;
 import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -34,7 +36,11 @@ import net.minecraft.item.ItemStack;
 import appeng.api.config.SearchBoxMode;
 import appeng.api.config.Settings;
 import appeng.api.config.TerminalStyle;
+import appeng.api.config.YesNo;
+import appeng.api.config.SearchBoxFocusPriority;
 import appeng.api.implementations.guiobjects.IPortableCell;
+import appeng.api.storage.data.AEStackTypeRegistry;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.implementations.tiles.IMEChest;
 import appeng.api.implementations.tiles.IViewCellStorage;
 import appeng.api.storage.ITerminalHost;
@@ -42,11 +48,16 @@ import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.client.ActionKey;
+import appeng.api.storage.data.IAEStack;
 import appeng.client.gui.AEBaseMEGui;
+import appeng.client.gui.slots.VirtualMEMonitorableSlot;
+import appeng.client.gui.slots.VirtualMESlot;
 import appeng.client.gui.widgets.*;
+import appeng.client.gui.widgets.TypeToggleButton;
 import appeng.client.me.InternalSlotME;
 import appeng.client.me.ItemRepo;
 import appeng.client.me.SlotME;
+import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerMEMonitorable;
 import appeng.container.slot.AppEngSlot;
 import appeng.container.slot.SlotCraftingMatrix;
@@ -57,8 +68,10 @@ import appeng.core.AppEng;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
+import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.helpers.InventoryAction;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.integration.Integrations;
 import appeng.parts.reporting.AbstractPartTerminal;
@@ -95,6 +108,11 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
     private int currentMouseX = 0;
     private int currentMouseY = 0;
     private boolean delayedUpdate;
+
+    // 类型过滤按钮（每种 IAEStackType 一个）
+    private final List<TypeToggleButton> typeToggleButtons = new ArrayList<>();
+    // 记录各类型是否启用
+    private final Map<IAEStackType<?>, Boolean> enabledTypes = new HashMap<>();
 
     // To make JEI look nicer. Otherwise, the buttons will make JEI in a strange place.
     protected final int jeiOffset = Platform.isJEIEnabled() ? 24 : 0;
@@ -139,12 +157,15 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
         }
     }
 
-    public void postUpdate(final List<IAEItemStack> list) {
-        for (final IAEItemStack is : list) {
+    public void postUpdate(final List<IAEStack<?>> list) {
+        for (final IAEStack<?> is : list) {
             this.repo.postUpdate(is);
         }
 
-        if (isShiftKeyDown()) {
+        final boolean pauseEnabled = AEConfig.instance().getConfigManager()
+                .getSetting(Settings.PAUSE_WHEN_HOLDING_SHIFT) == YesNo.YES;
+
+        if (pauseEnabled && isShiftKeyDown()) {
             for (Slot slot : this.inventorySlots.inventorySlots) {
                 if (slot instanceof SlotME) {
                     if (this.isPointInRegion(slot.xPos, slot.yPos, 18, 18, currentMouseX, currentMouseY)) {
@@ -171,6 +192,16 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
     protected void actionPerformed(final GuiButton btn) {
         if (btn == this.craftingStatusBtn) {
             NetworkHandler.instance().sendToServer(new PacketSwitchGuis(GuiBridge.GUI_CRAFTING_STATUS));
+        }
+
+        // 处理类型过滤按钮点击
+        if (btn instanceof TypeToggleButton typeBtn) {
+            typeBtn.setTypeEnabled(!typeBtn.isTypeEnabled());
+            this.enabledTypes.put(typeBtn.getStackType(), typeBtn.isTypeEnabled());
+            this.repo.setTypeFilter(typeBtn.getStackType(), typeBtn.isTypeEnabled());
+            this.repo.updateView();
+            this.setScrollBar();
+            return;
         }
 
         if (btn instanceof GuiImgButton iBtn) {
@@ -241,6 +272,16 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
         }
 
         super.initGui();
+
+        // 创建 VirtualMEMonitorableSlot 实例并添加到 guiSlots 列表
+        this.guiSlots.removeIf(s -> s instanceof VirtualMEMonitorableSlot);
+        for (int y = 0; y < this.rows; y++) {
+            for (int x = 0; x < this.perRow; x++) {
+                final int slotIdx = x + y * this.perRow;
+                this.guiSlots.add(new VirtualMEMonitorableSlot(
+                        slotIdx, this.offsetX + x * 18, 18 + y * 18, this.repo, slotIdx));
+            }
+        }
         // full size : 204
         // extra slots : 72
         // slot 18
@@ -287,6 +328,20 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
                     Settings.TERMINAL_STYLE, AEConfig.instance()
                             .getConfigManager()
                             .getSetting(Settings.TERMINAL_STYLE)));
+            offset += 20;
+        }
+
+        // 类型过滤按钮（只有注册了多种类型时才显示）
+        this.typeToggleButtons.clear();
+        if (AEStackTypeRegistry.getAllTypes().size() > 1) {
+            int typeButtonX = this.guiLeft - 18;
+            for (IAEStackType<?> type : AEStackTypeRegistry.getSortedTypes()) {
+                TypeToggleButton btn = new TypeToggleButton(typeButtonX, offset, type);
+                btn.setTypeEnabled(this.enabledTypes.getOrDefault(type, true));
+                this.typeToggleButtons.add(btn);
+                this.buttonList.add(btn);
+                offset += 18;
+            }
         }
 
         this.searchField = new MEGuiTextField(this.fontRenderer, this.guiLeft + Math.max(80, this.offsetX),
@@ -486,8 +541,14 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
                     this.currentMouseY);
             final boolean wasSearchFieldFocused = this.searchField.isFocused();
 
+            // 搜索框焦点优先级处理
+            final SearchBoxFocusPriority focusPriority = (SearchBoxFocusPriority) AEConfig.instance()
+                    .getConfigManager().getSetting(Settings.SEARCH_BOX_FOCUS_PRIORITY);
+
             if (this.isAutoFocus && !this.searchField.isFocused() && mouseInGui) {
-                this.searchField.setFocused(true);
+                if (focusPriority != SearchBoxFocusPriority.NEVER) {
+                    this.searchField.setFocused(true);
+                }
             }
 
             if (this.searchField.textboxKeyTyped(character, key)) {
@@ -509,7 +570,10 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
     public void updateScreen() {
         this.repo.setPower(this.monitorableContainer.isPowered());
         if (this.delayedUpdate) {
-            if (isShiftKeyDown()) {
+            final boolean pauseEnabled = AEConfig.instance().getConfigManager()
+                    .getSetting(Settings.PAUSE_WHEN_HOLDING_SHIFT) == YesNo.YES;
+
+            if (pauseEnabled && isShiftKeyDown()) {
                 this.delayedUpdate = false;
                 for (Slot slot : this.inventorySlots.inventorySlots) {
                     if (slot instanceof SlotME) {
@@ -576,6 +640,42 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
 
     void setCustomSortOrder(final boolean customSortOrder) {
         this.customSortOrder = customSortOrder;
+    }
+
+    /**
+     * @return 某种类型在终端中是否处于启用显示状态
+     */
+    public boolean isTypeEnabled(IAEStackType<?> type) {
+        return this.enabledTypes.getOrDefault(type, true);
+    }
+
+    @Override
+    protected void mouseWheelEvent(final int x, final int y, final int wheel) {
+        // 先检查是否悬浮在 VirtualMEMonitorableSlot 上
+        for (final GuiCustomSlot slot : this.guiSlots) {
+            if (slot instanceof VirtualMEMonitorableSlot virtualSlot) {
+                if (this.isPointInRegion(slot.xPos(), slot.yPos(),
+                        slot.getWidth(), slot.getHeight(), x, y)) {
+                    final IAEStack<?> stack = virtualSlot.getAEStack();
+                    if (stack instanceof IAEItemStack itemStack) {
+                        ((AEBaseContainer) this.inventorySlots).setTargetStack(itemStack);
+                        final InventoryAction direction = wheel > 0
+                                ? InventoryAction.ROLL_DOWN
+                                : InventoryAction.ROLL_UP;
+                        final int times = Math.abs(wheel);
+                        final int inventorySize = this.inventorySlots.inventorySlots.size();
+                        for (int h = 0; h < times; h++) {
+                            final PacketInventoryAction p = new PacketInventoryAction(
+                                    direction, inventorySize, 0);
+                            NetworkHandler.instance().sendToServer(p);
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+
+        super.mouseWheelEvent(x, y, wheel);
     }
 
     @Deprecated

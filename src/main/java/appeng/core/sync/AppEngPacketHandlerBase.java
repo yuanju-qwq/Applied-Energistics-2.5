@@ -91,6 +91,8 @@ public class AppEngPacketHandlerBase {
 
         PACKET_CABLE_BUS_LANDING_PARTICLE(PacketCableBusLandingParticle.class),
 
+        PACKET_PINS_UPDATE(PacketPinsUpdate.class),
+
         ;
 
         private final Class<? extends AppEngPacket> packetClass;

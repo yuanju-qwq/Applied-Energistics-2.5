@@ -1,0 +1,33 @@
+{
+  "conditions": [
+    {
+      "type": "forge:and",
+      "values": [
+        {
+          "type": "minecraft:item_exists",
+          "item": "appliedenergistics2:wireless_dual_interface_terminal"
+        },
+        {
+          "type": "minecraft:item_exists",
+          "item": "appliedenergistics2:wireless_interface_terminal"
+        },
+        {
+          "type": "minecraft:item_exists",
+          "item": "appliedenergistics2:wireless_pattern_terminal"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "item": "appliedenergistics2:wireless_dual_interface_terminal"
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "item": "appliedenergistics2:wireless_interface_terminal"
+    },
+    {
+      "item": "appliedenergistics2:wireless_pattern_terminal"
+    }
+  ]
+}

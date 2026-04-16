@@ -42,6 +42,7 @@ public class MultiCraftingTracker {
     private final int size;
     private final ICraftingRequester owner;
 
+    @SuppressWarnings("rawtypes")
     private Future<ICraftingJob>[] jobs = null;
     private ICraftingLink[] links = null;
 

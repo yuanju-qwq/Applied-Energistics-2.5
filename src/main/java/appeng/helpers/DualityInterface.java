@@ -108,6 +108,7 @@ import appeng.util.InventoryAdaptor;
 import appeng.util.Platform;
 import appeng.util.inv.*;
 import appeng.util.item.AEItemStack;
+import appeng.fluids.util.AEFluidStack;
 
 public class DualityInterface implements IGridTickable, IStorageMonitorable, IInventoryDestination, IAEAppEngInventory,
         IConfigManagerHost, ICraftingProvider, IUpgradeableHost {
@@ -136,7 +137,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
     private boolean hasConfig = false;
     private int priority;
     private List<ICraftingPatternDetails> craftingList = null;
-    private List<ItemStack> waitingToSend = null;
+    private List<IAEStack<?>> waitingToSend = null;
     private IMEInventory<IAEItemStack> destination;
     private int isWorking = -1;
     private EnumSet<EnumFacing> visitedFaces = EnumSet.noneOf(EnumFacing.class);
@@ -254,8 +255,8 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
         }
         final NBTTagList waitingToSend = new NBTTagList();
         if (this.waitingToSend != null) {
-            for (final ItemStack is : this.waitingToSend) {
-                final NBTTagCompound itemNBT = stackToNBT(is);
+            for (final IAEStack<?> is : this.waitingToSend) {
+                final NBTTagCompound itemNBT = is.toNBTGeneric();
                 waitingToSend.appendTag(itemNBT);
             }
         }
@@ -285,8 +286,15 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
             for (int x = 0; x < waitingList.tagCount(); x++) {
                 final NBTTagCompound c = waitingList.getCompoundTagAt(x);
                 if (c != null) {
-                    final ItemStack is = stackFromNBT(c);
-                    this.addToSendList(is);
+                    // 尝试使用新的泛型反序列化
+                    IAEStack<?> stack = IAEStack.fromNBTGeneric(c);
+                    if (stack != null) {
+                        this.addToSendList(stack);
+                    } else {
+                        // 向后兼容：旧的 ItemStack 格式
+                        final ItemStack is = stackFromNBT(c);
+                        this.addToSendList(is);
+                    }
                 }
             }
         }
@@ -354,8 +362,8 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
         }
     }
 
-    private void addToSendList(final ItemStack is) {
-        if (is.isEmpty()) {
+    private void addToSendList(final IAEStack<?> is) {
+        if (is == null || is.getStackSize() <= 0) {
             return;
         }
 
@@ -372,23 +380,79 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
         }
     }
 
+    /**
+     * 向后兼容：接受 ItemStack 参数的 addToSendList。
+     */
+    private void addToSendList(final ItemStack is) {
+        if (is.isEmpty()) {
+            return;
+        }
+        this.addToSendList(AEItemStack.fromItemStack(is));
+    }
+
     private void addToSendListFacing(final ItemStack is, EnumFacing f) {
         if (is.isEmpty()) {
             return;
         }
+
+        // 检查物品是否为流体容器（如桶），若是则转换为 IAEFluidStack 推送
+        final IAEStack<?> converted = tryConvertToFluidStack(is);
+
         if (this.waitingToSendFacing == null) {
             this.waitingToSendFacing = new EnumMap<>(EnumFacing.class);
         }
 
         this.waitingToSendFacing.computeIfAbsent(f, k -> new ArrayList<>());
 
-        this.waitingToSendFacing.get(f).add(is);
+        if (converted instanceof IAEFluidStack) {
+            // 流体容器转换成功，使用流体适配器推送
+            // 但 waitingToSendFacing 仍使用 List<ItemStack>
+            // 所以流体需要直接放入 waitingToSend 泛型列表
+            if (this.waitingToSend == null) {
+                this.waitingToSend = new ArrayList<>();
+            }
+            this.waitingToSend.add(converted);
+        } else {
+            this.waitingToSendFacing.get(f).add(is);
+        }
 
         try {
             this.gridProxy.getTick().wakeDevice(this.gridProxy.getNode());
         } catch (final GridAccessException e) {
             // :P
         }
+    }
+
+    /**
+     * 尝试将 ItemStack 转换为 IAEFluidStack。
+     * <p>
+     * 优先检查 ItemFluidDrop（流体伪物品），其次检查流体容器（如桶）。
+     * 否则返回 null，表示应作为物品处理。
+     */
+    @Nullable
+    private static IAEStack<?> tryConvertToFluidStack(final ItemStack is) {
+        if (is.isEmpty()) {
+            return null;
+        }
+
+        // 检查是否为 ItemFluidDrop（流体伪物品）
+        if (appeng.fluids.items.ItemFluidDrop.isFluidDrop(is)) {
+            net.minecraftforge.fluids.FluidStack fs = appeng.fluids.items.ItemFluidDrop.getFluidStack(is);
+            if (fs != null) {
+                return AEFluidStack.fromFluidStack(fs);
+            }
+        }
+
+        // 检查物品是否为流体容器（如桶）
+        net.minecraftforge.fluids.capability.IFluidHandlerItem fluidHandler =
+                net.minecraftforge.fluids.FluidUtil.getFluidHandler(is.copy());
+        if (fluidHandler != null) {
+            net.minecraftforge.fluids.FluidStack drained = fluidHandler.drain(Integer.MAX_VALUE, false);
+            if (drained != null && drained.amount > 0) {
+                return AEFluidStack.fromFluidStack(drained);
+            }
+        }
+        return null;
     }
 
     private void readConfig() {
@@ -684,9 +748,9 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
         final TileEntity tile = this.iHost.getTileEntity();
         final World w = tile.getWorld();
 
-        final Iterator<ItemStack> i = this.waitingToSend.iterator();
+        final Iterator<IAEStack<?>> i = this.waitingToSend.iterator();
         while (i.hasNext()) {
-            ItemStack whatToSend = i.next();
+            IAEStack<?> whatToSend = i.next();
 
             for (final EnumFacing s : possibleDirections) {
                 final TileEntity te = w.getTileEntity(tile.getPos().offset(s));
@@ -696,22 +760,21 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
 
                 final InventoryAdaptor ad = InventoryAdaptor.getAdaptor(te, s.getOpposite());
                 if (ad != null) {
-                    final ItemStack result = ad.addItems(whatToSend);
+                    final IAEStack<?> result = ad.addStack(whatToSend);
 
-                    if (result.isEmpty()) {
-                        whatToSend = ItemStack.EMPTY;
+                    if (result == null || result.getStackSize() <= 0) {
+                        whatToSend = null;
                     } else {
-                        whatToSend.setCount(result.getCount());
-                        whatToSend.setTagCompound(result.getTagCompound());
+                        whatToSend = result;
                     }
 
-                    if (whatToSend.isEmpty()) {
+                    if (whatToSend == null) {
                         break;
                     }
                 }
             }
 
-            if (whatToSend.isEmpty()) {
+            if (whatToSend == null || whatToSend.getStackSize() <= 0) {
                 i.remove();
             }
         }
@@ -948,10 +1011,6 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
 
             return (IMEMonitor<T>) this.items;
         } else if (channel == AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class)) {
-            if (this.hasConfig()) {
-                return null;
-            }
-
             return (IMEMonitor<T>) this.fluids;
         }
 
@@ -1022,6 +1081,9 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
             public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
                 if (channel == AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)) {
                     return (IMEMonitor<T>) new InterfaceInventory(di);
+                }
+                if (channel == AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class)) {
+                    return (IMEMonitor<T>) di.fluids;
                 }
                 return null;
             }
@@ -1104,10 +1166,29 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                             }
 
                             this.visitedFaces.clear();
-                            for (int x = 0; x < table.getSizeInventory(); x++) {
-                                final ItemStack is = table.getStackInSlot(x);
-                                if (!is.isEmpty()) {
-                                    addToSendListFacing(is, s);
+
+                            // 对于流体 Pattern，使用泛型输入
+                            final IAEStack<?>[] genericInputs = patternDetails.getGenericCondensedInputs();
+                            boolean hasFluidInputs = false;
+                            for (IAEStack<?> gi : genericInputs) {
+                                if (gi != null && !(gi instanceof IAEItemStack)) {
+                                    hasFluidInputs = true;
+                                    break;
+                                }
+                            }
+
+                            if (hasFluidInputs) {
+                                for (IAEStack<?> gi : genericInputs) {
+                                    if (gi != null) {
+                                        this.addToSendList(gi.copy());
+                                    }
+                                }
+                            } else {
+                                for (int x = 0; x < table.getSizeInventory(); x++) {
+                                    final ItemStack is = table.getStackInSlot(x);
+                                    if (!is.isEmpty()) {
+                                        addToSendListFacing(is, s);
+                                    }
                                 }
                             }
                             onPushPatternSuccess(patternDetails);
@@ -1164,12 +1245,34 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
 
                 if (this.acceptsItems(ad, table)) {
                     this.visitedFaces.clear();
-                    for (int x = 0; x < table.getSizeInventory(); x++) {
-                        final ItemStack is = table.getStackInSlot(x);
-                        if (!is.isEmpty()) {
-                            addToSendListFacing(is, s);
+
+                    // 对于流体 Pattern，使用泛型输入来推送（支持流体栈）
+                    final IAEStack<?>[] genericInputs = patternDetails.getGenericCondensedInputs();
+                    boolean hasFluidInputs = false;
+                    for (IAEStack<?> gi : genericInputs) {
+                        if (gi != null && !(gi instanceof IAEItemStack)) {
+                            hasFluidInputs = true;
+                            break;
                         }
                     }
+
+                    if (hasFluidInputs) {
+                        // 流体 Pattern：从泛型输入推送
+                        for (IAEStack<?> gi : genericInputs) {
+                            if (gi != null) {
+                                this.addToSendList(gi.copy());
+                            }
+                        }
+                    } else {
+                        // 普通 Pattern：从 InventoryCrafting 推送
+                        for (int x = 0; x < table.getSizeInventory(); x++) {
+                            final ItemStack is = table.getStackInSlot(x);
+                            if (!is.isEmpty()) {
+                                addToSendListFacing(is, s);
+                            }
+                        }
+                    }
+
                     onPushPatternSuccess(patternDetails);
                     pushItemsOut(s);
                     return true;
@@ -1357,10 +1460,14 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
 
     public void addDrops(final List<ItemStack> drops) {
         if (this.waitingToSend != null) {
-            for (final ItemStack is : this.waitingToSend) {
-                if (!is.isEmpty()) {
-                    drops.add(is);
+            for (final IAEStack<?> aeStack : this.waitingToSend) {
+                if (aeStack instanceof IAEItemStack) {
+                    final ItemStack is = ((IAEItemStack) aeStack).createItemStack();
+                    if (!is.isEmpty()) {
+                        drops.add(is);
+                    }
                 }
+                // 流体类型的 IAEStack 无法作为掉落物，忽略
             }
         }
 

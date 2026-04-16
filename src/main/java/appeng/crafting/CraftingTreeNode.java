@@ -46,6 +46,10 @@ import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 import appeng.util.item.MeaningfulItemIterator;
 
+/**
+ * @deprecated 已被 v2 合成树（CraftingRequest + resolvers）替代。
+ */
+@Deprecated
 public class CraftingTreeNode {
 
     // what slot!

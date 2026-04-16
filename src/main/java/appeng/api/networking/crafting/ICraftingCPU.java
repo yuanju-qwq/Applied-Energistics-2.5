@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 
 public interface ICraftingCPU extends IBaseMonitor<IAEItemStack> {
 
@@ -61,6 +62,15 @@ public interface ICraftingCPU extends IBaseMonitor<IAEItemStack> {
      */
     @Nullable
     default IAEItemStack getFinalOutput() {
+        IAEStack<?> output = getFinalMultiOutput();
+        return output instanceof IAEItemStack ? (IAEItemStack) output : null;
+    }
+
+    /**
+     * 泛型版本：返回当前合成操作的最终输出（可能是物品或流体），如果没有合成则返回 null。
+     */
+    @Nullable
+    default IAEStack<?> getFinalMultiOutput() {
         return null;
     }
 

@@ -55,6 +55,12 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
             }
 
             if ((currentViewCell.getItem() instanceof ItemViewCell)) {
+                final ItemViewCell viewCellItem = (ItemViewCell) currentViewCell.getItem();
+
+                // 跳过已禁用的 ViewCell
+                if (!viewCellItem.getViewMode(currentViewCell)) {
+                    continue;
+                }
                 final IItemList<IAEItemStack> priorityList = AEApi.instance().storage()
                         .getStorageChannel(IItemStorageChannel.class).createList();
 
@@ -134,5 +140,23 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
     @Override
     public void setFuzzyMode(final ItemStack is, final FuzzyMode fzMode) {
         Platform.openNbtData(is).setString("FuzzyMode", fzMode.name());
+    }
+
+    /**
+     * 切换 ViewCell 的启用/禁用状态。
+     * 禁用时，此 ViewCell 的过滤规则不生效。
+     */
+    public void toggleViewMode(final ItemStack is) {
+        Platform.openNbtData(is).setBoolean("ViewMode", !getViewMode(is));
+    }
+
+    /**
+     * @return ViewCell 是否处于启用状态（默认 true）
+     */
+    public boolean getViewMode(final ItemStack is) {
+        if (Platform.openNbtData(is).hasKey("ViewMode")) {
+            return Platform.openNbtData(is).getBoolean("ViewMode");
+        }
+        return true;
     }
 }

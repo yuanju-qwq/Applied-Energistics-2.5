@@ -34,6 +34,7 @@ import org.lwjgl.input.Mouse;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -92,9 +93,9 @@ public class GuiInterfaceTerminal extends AEBaseGui {
     private final Map<String, Set<Object>> cachedSearches = new WeakHashMap<>();
     private final Map<ClientDCInternalInv, Integer> dimHashMap = new HashMap<>();
 
-    private final MEGuiTooltipTextField searchFieldOutputs;
-    private final MEGuiTooltipTextField searchFieldInputs;
-    private final MEGuiTooltipTextField searchFieldNames;
+    protected final MEGuiTooltipTextField searchFieldOutputs;
+    protected final MEGuiTooltipTextField searchFieldInputs;
+    protected final MEGuiTooltipTextField searchFieldNames;
 
     private final GuiImgButton guiButtonHideFull;
     private final GuiImgButton guiButtonAssemblersOnly;
@@ -145,6 +146,28 @@ public class GuiInterfaceTerminal extends AEBaseGui {
         guiButtonBrokenRecipes = new GuiImgButton(0, 0, Settings.ACTIONS, null);
         terminalStyleBox = new GuiImgButton(0, 0, Settings.TERMINAL_STYLE, null);
         guiTitle = GuiText.WirelessTerminal;
+    }
+
+    /**
+     * 受保护的构造器，供子类（如二合一接口终端）使用自定义Container
+     */
+    protected GuiInterfaceTerminal(final Container container, final GuiText title) {
+        super(container);
+
+        final GuiScrollbar scrollbar = new GuiScrollbar();
+        this.setScrollBar(scrollbar);
+        this.xSize = 208;
+        this.ySize = 255;
+
+        searchFieldInputs = createTextField(86, 12, ButtonToolTips.SearchFieldInputs.getLocal());
+        searchFieldOutputs = createTextField(86, 12, ButtonToolTips.SearchFieldOutputs.getLocal());
+        searchFieldNames = createTextField(71, 12, ButtonToolTips.SearchFieldNames.getLocal());
+
+        guiButtonAssemblersOnly = new GuiImgButton(0, 0, Settings.ACTIONS, null);
+        guiButtonHideFull = new GuiImgButton(0, 0, Settings.ACTIONS, null);
+        guiButtonBrokenRecipes = new GuiImgButton(0, 0, Settings.ACTIONS, null);
+        terminalStyleBox = new GuiImgButton(0, 0, Settings.TERMINAL_STYLE, null);
+        guiTitle = title;
     }
 
     private MEGuiTooltipTextField createTextField(final int width, final int height, final String tooltip) {
@@ -489,7 +512,7 @@ public class GuiInterfaceTerminal extends AEBaseGui {
     }
 
     /** Cycle to the next search bar if tab is pressed, going in reverse if shift is held. */
-    private boolean handleTab() {
+    protected boolean handleTab() {
         if (searchFieldInputs.isFocused()) {
             searchFieldInputs.setFocused(false);
             if (isShiftKeyDown())

@@ -84,6 +84,7 @@ public class PacketCraftRequest extends AppEngPacket {
 
                 cca.getItemToCraft().setStackSize(this.amount);
 
+                @SuppressWarnings("rawtypes")
                 Future<ICraftingJob> futureJob = null;
                 try {
                     final ICraftingGrid cg = g.getCache(ICraftingGrid.class);

@@ -36,6 +36,7 @@ import appeng.api.config.SortOrder;
 import appeng.api.config.ViewItems;
 import appeng.api.implementations.guiobjects.INetworkTool;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.client.gui.AEBaseGui;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
@@ -157,7 +158,7 @@ public class GuiNetworkStatus extends AEBaseGui implements ISortSource {
         int toolPosY = 0;
 
         for (int z = viewStart; z < Math.min(viewEnd, this.repo.size()); z++) {
-            final IAEItemStack refStack = this.repo.getReferenceItem(z);
+            final IAEStack<?> refStack = this.repo.getReferenceItem(z);
             if (refStack != null) {
                 GlStateManager.pushMatrix();
                 GlStateManager.scale(0.5, 0.5, 0.5);

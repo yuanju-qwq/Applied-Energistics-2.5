@@ -22,6 +22,14 @@ public class MEGuiTooltipTextField implements ITooltip {
     private String tooltip;
     private int fontPad;
 
+    /**
+     * 建议文本（suggestion）：按 TAB 可将其确认为正式搜索文本。
+     * suggestion 是从 rawSuggestion 中去除当前已输入前缀后的剩余部分。
+     * rawSuggestion 是完整的建议文本。
+     */
+    private String suggestion = "";
+    private String rawSuggestion = "";
+
     public int x;
     public int y;
     public int w;
@@ -128,7 +136,42 @@ public class MEGuiTooltipTextField implements ITooltip {
                     this.x + this.w - 1,
                     this.y + this.h - 1,
                     isFocused() ? 0xFF606060 : 0xFFA8A8A8);
+            // 绘制建议文本（灰色半透明，紧跟在已输入文本后面）
+            drawSuggestion();
             field.drawTextBox();
+        }
+    }
+
+    /**
+     * 绘制建议文本（suggestion），灰色显示在当前文本后面
+     */
+    private void drawSuggestion() {
+        if (!this.suggestion.isEmpty()) {
+            final FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
+            final int textWidth = fontRenderer.getStringWidth(this.getText());
+            final int availableWidth = this.w - PADDING * 2 - this.fontPad;
+
+            // 截断过长的建议文本
+            String drawString = this.suggestion;
+            if (textWidth + fontRenderer.getStringWidth(drawString) > availableWidth) {
+                StringBuilder builder = new StringBuilder();
+                int currentWidth = textWidth;
+                for (char c : this.suggestion.toCharArray()) {
+                    int charWidth = fontRenderer.getCharWidth(c);
+                    if (currentWidth + charWidth * 3 < availableWidth) {
+                        currentWidth += charWidth;
+                        builder.append(c);
+                    } else {
+                        break;
+                    }
+                }
+                drawString = builder.toString();
+            }
+
+            if (!drawString.isEmpty()) {
+                fontRenderer.drawString(drawString,
+                        this.x + PADDING + textWidth, this.y + PADDING, 0xC0C0C0);
+            }
         }
     }
 
@@ -232,5 +275,53 @@ public class MEGuiTooltipTextField implements ITooltip {
     @Override
     public int getHeight() {
         return h;
+    }
+
+    // ========== Suggestion（建议文本）相关方法 ==========
+
+    /**
+     * 设置建议文本。如果建议文本以当前已输入文本开头，则只显示剩余部分。
+     *
+     * @param rawSuggestion 完整的建议文本
+     */
+    public void setSuggestion(final String rawSuggestion) {
+        this.rawSuggestion = rawSuggestion;
+        final String currentText = this.getText();
+        if (rawSuggestion.startsWith(currentText)) {
+            this.suggestion = rawSuggestion.substring(currentText.length());
+        } else {
+            this.suggestion = "";
+        }
+    }
+
+    /**
+     * 根据当前文本刷新建议文本的显示部分
+     */
+    public void updateSuggestion() {
+        setSuggestion(this.rawSuggestion);
+    }
+
+    /**
+     * 获取当前显示的建议文本片段（去除已输入前缀后的部分）
+     */
+    public String getSuggestion() {
+        return this.suggestion;
+    }
+
+    /**
+     * 获取完整的建议文本
+     */
+    public String getRawSuggestion() {
+        return this.rawSuggestion;
+    }
+
+    /**
+     * 将建议文本确认为正式文本（TAB 补全功能）
+     */
+    public void setSuggestionToText() {
+        if (!this.rawSuggestion.isEmpty()) {
+            this.setText(this.rawSuggestion);
+            this.setSuggestion(this.rawSuggestion);
+        }
     }
 }

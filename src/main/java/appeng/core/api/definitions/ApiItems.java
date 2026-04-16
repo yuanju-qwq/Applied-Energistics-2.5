@@ -42,6 +42,7 @@ import appeng.entity.EntityIds;
 import appeng.fluids.items.BasicFluidStorageCell;
 import appeng.fluids.items.FluidDummyItem;
 import appeng.fluids.items.FluidDummyItemRendering;
+import appeng.fluids.items.ItemFluidDrop;
 import appeng.hooks.DispenserBlockTool;
 import appeng.hooks.DispenserMatterCannon;
 import appeng.items.materials.MaterialType;
@@ -81,6 +82,7 @@ public final class ApiItems implements IItems {
     private final IItemDefinition wirelessCraftingTerminal;
     private final IItemDefinition wirelessPatternTerminal;
     private final IItemDefinition wirelessInterfaceTerminal;
+    private final IItemDefinition wirelessDualInterfaceTerminal;
     private final IItemDefinition wirelessFluidTerminal;
     private final IItemDefinition biometricCard;
     private final IItemDefinition chargedStaff;
@@ -125,6 +127,8 @@ public final class ApiItems implements IItems {
     private final IItemDefinition toolReplicatorCard;
 
     private final IItemDefinition dummyFluidItem;
+
+    private final IItemDefinition fluidDrop;
 
     public ApiItems(FeatureFactory registry) {
         FeatureFactory certusTools = registry.features(AEFeature.CERTUS_QUARTZ_TOOLS);
@@ -209,6 +213,9 @@ public final class ApiItems implements IItems {
         this.wirelessInterfaceTerminal = powerTools
                 .item("wireless_interface_terminal", ToolWirelessInterfaceTerminal::new)
                 .addFeatures(AEFeature.WIRELESS_INTERFACE_TERMINAL).build();
+        this.wirelessDualInterfaceTerminal = powerTools
+                .item("wireless_dual_interface_terminal", ToolWirelessDualInterfaceTerminal::new)
+                .addFeatures(AEFeature.WIRELESS_DUAL_INTERFACE_TERMINAL).build();
 
         this.chargedStaff = powerTools.item("charged_staff", ToolChargedStaff::new).addFeatures(AEFeature.CHARGED_STAFF)
                 .build();
@@ -315,6 +322,11 @@ public final class ApiItems implements IItems {
 
         this.dummyFluidItem = registry.item("dummy_fluid_item", FluidDummyItem::new)
                 .rendering(new FluidDummyItemRendering()).build();
+
+        // 流体伪物品（Fluid Drop）— 用于在合成系统中表示流体
+        this.fluidDrop = registry.item("fluid_drop", ItemFluidDrop::new)
+                .features(AEFeature.FLUID_CELLS)
+                .build();
     }
 
     @Override
@@ -415,6 +427,11 @@ public final class ApiItems implements IItems {
     @Override
     public IItemDefinition wirelessInterfaceTerminal() {
         return wirelessInterfaceTerminal;
+    }
+
+    @Override
+    public IItemDefinition wirelessDualInterfaceTerminal() {
+        return wirelessDualInterfaceTerminal;
     }
 
     @Override
@@ -569,5 +586,9 @@ public final class ApiItems implements IItems {
 
     public IItemDefinition dummyFluidItem() {
         return this.dummyFluidItem;
+    }
+
+    public IItemDefinition fluidDrop() {
+        return this.fluidDrop;
     }
 }

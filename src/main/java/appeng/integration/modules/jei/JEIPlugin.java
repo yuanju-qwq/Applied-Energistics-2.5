@@ -97,6 +97,10 @@ public class JEIPlugin implements IModPlugin {
         registry.getRecipeTransferRegistry().addRecipeTransferHandler(
                 new RecipeTransferHandler<>(ContainerWirelessPatternTerminal.class),
                 Constants.UNIVERSAL_RECIPE_TRANSFER_UID);
+        // 二合一接口终端也支持 JEI 配方传输（样板编写功能）
+        registry.getRecipeTransferRegistry().addRecipeTransferHandler(
+                new RecipeTransferHandler<>(ContainerWirelessDualInterfaceTerminal.class),
+                Constants.UNIVERSAL_RECIPE_TRANSFER_UID);
 
         aeGuiHandler = new AEGuiHandler();
         registry.addAdvancedGuiHandlers(aeGuiHandler);

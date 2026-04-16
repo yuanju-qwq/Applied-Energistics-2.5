@@ -28,6 +28,10 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.TextFormatting;
 
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
+import appeng.client.gui.slots.VirtualMESlot;
+import appeng.client.gui.widgets.GuiCustomSlot;
+import appeng.client.gui.widgets.ITooltip;
 import appeng.client.me.SlotME;
 import appeng.container.slot.AppEngSlot;
 import appeng.container.slot.SlotPlayerHotBar;
@@ -109,5 +113,58 @@ public abstract class AEBaseMEGui extends AEBaseGui {
         }
 
         super.renderToolTip(stack, x, y);
+    }
+
+    @Override
+    protected void drawTooltip(ITooltip tooltip, int mouseX, int mouseY) {
+        if (tooltip instanceof VirtualMESlot virtualSlot && tooltip.isVisible()) {
+            final int tx = tooltip.xPos();
+            int ty = tooltip.yPos();
+
+            if (tx < mouseX && tx + tooltip.getWidth() > mouseX
+                    && ty < mouseY && ty + tooltip.getHeight() > mouseY) {
+
+                IAEStack<?> aeStack = virtualSlot.getAEStack();
+                if (aeStack != null) {
+                    // 获取物品的原始 tooltip
+                    ItemStack displayStack = aeStack.asItemStackRepresentation();
+                    if (!displayStack.isEmpty()) {
+                        final List<String> lines = this.getItemToolTip(displayStack);
+
+                        // 添加大数字格式化的精确数量
+                        if (aeStack.getStackSize() > 1) {
+                            final String local = ButtonToolTips.ItemsStored.getLocal();
+                            final String formattedAmount = NumberFormat.getNumberInstance(Locale.US)
+                                    .format(aeStack.getStackSize());
+                            lines.add(TextFormatting.GRAY + String.format(local, formattedAmount));
+                        }
+
+                        // 添加可请求数量
+                        if (aeStack instanceof IAEItemStack itemStack && itemStack.getCountRequestable() > 0) {
+                            final String local = ButtonToolTips.ItemsRequestable.getLocal();
+                            final String formattedAmount = NumberFormat.getNumberInstance(Locale.US)
+                                    .format(itemStack.getCountRequestable());
+                            lines.add(String.format(local, formattedAmount));
+                        }
+
+                        // 添加可合成标记
+                        if (aeStack.isCraftable() && AEConfig.instance().isShowCraftableTooltip()) {
+                            lines.add(TextFormatting.GRAY + ButtonToolTips.ItemsCraftable.getLocal());
+                        }
+
+                        // 调用子类追加 tooltip
+                        virtualSlot.addTooltip(lines);
+
+                        if (ty < 15) {
+                            ty = 15;
+                        }
+                        this.drawHoveringText(lines, mouseX, mouseY, this.fontRenderer);
+                        return;
+                    }
+                }
+            }
+        }
+
+        super.drawTooltip(tooltip, mouseX, mouseY);
     }
 }

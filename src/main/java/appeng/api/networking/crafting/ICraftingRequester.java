@@ -29,6 +29,7 @@ import appeng.api.config.Actionable;
 import appeng.api.networking.IGridNodeService;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 
 public interface ICraftingRequester extends IActionHost, IGridNodeService {
 
@@ -50,6 +51,17 @@ public interface ICraftingRequester extends IActionHost, IGridNodeService {
      * @return unwanted item
      */
     IAEItemStack injectCraftedItems(ICraftingLink link, IAEItemStack items, Actionable mode);
+
+    /**
+     * 泛型版本：注入已完成的合成结果（物品/流体等）。
+     * 默认委托到 IAEItemStack 版本。
+     */
+    default IAEStack<?> injectCraftedItems(ICraftingLink link, IAEStack<?> items, Actionable mode) {
+        if (items instanceof IAEItemStack) {
+            return injectCraftedItems(link, (IAEItemStack) items, mode);
+        }
+        return items;
+    }
 
     /**
      * called when the job changes from in progress, to either complete, or canceled.

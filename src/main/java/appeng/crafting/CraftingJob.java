@@ -19,6 +19,7 @@
 package appeng.crafting;
 
 import java.util.HashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
@@ -40,13 +41,19 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.DimensionalCoord;
 import appeng.core.AELog;
 import appeng.hooks.TickHandler;
 import appeng.me.cache.GridStorageCache;
 
-public class CraftingJob implements Runnable, ICraftingJob {
+/**
+ * @deprecated 已被 {@link appeng.crafting.v2.CraftingJobV2} 替代。
+ *             保留以提供向后兼容。
+ */
+@Deprecated
+public class CraftingJob implements Runnable, ICraftingJob<IAEItemStack> {
     private static final String LOG_CRAFTING_JOB = "CraftingJob (%s) issued by %s requesting [%s] using %s bytes took %s us";
     private static final String LOG_MACHINE_SOURCE_DETAILS = "Machine[object=%s, %s]";
 
@@ -263,7 +270,8 @@ public class CraftingJob implements Runnable, ICraftingJob {
     }
 
     @Override
-    public void populatePlan(final IItemList<IAEItemStack> plan) {
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public void populatePlan(final IItemList plan) {
         if (this.getTree() != null) {
             this.getTree().getPlan(plan);
         }
@@ -280,6 +288,13 @@ public class CraftingJob implements Runnable, ICraftingJob {
 
     World getWorld() {
         return this.world;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Future<ICraftingJob<IAEItemStack>> schedule() {
+        TickHandler.instance().registerCraftingSimulation(this.world, this);
+        return null;
     }
 
     /**
@@ -350,6 +365,14 @@ public class CraftingJob implements Runnable, ICraftingJob {
             throw new IllegalArgumentException("Material cannot be null");
         }
         return this.rootNode.getTotalCraftsForPrimaryOutput(material);
+    }
+
+    @Override
+    public long getTotalCraftsForPrimaryOutput(IAEStack<?> material) {
+        if (material instanceof IAEItemStack) {
+            return getTotalCraftsForPrimaryOutput((IAEItemStack) material);
+        }
+        return 0;
     }
 
 }

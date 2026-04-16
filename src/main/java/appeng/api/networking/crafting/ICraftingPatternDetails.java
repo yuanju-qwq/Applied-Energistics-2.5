@@ -23,6 +23,7 @@
 
 package appeng.api.networking.crafting;
 
+
 import java.util.Collections;
 import java.util.List;
 
@@ -30,93 +31,140 @@ import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
-import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 
-/**
- * do not implement provided by {@link ICraftingPatternItem}
- *
- * caching this INSTANCE will increase performance of validation and checks.
- */
+
 public interface ICraftingPatternDetails {
 
     /**
-     * @return source item.
+     * @return 编码了此配方的模式物品
      */
     ItemStack getPattern();
 
     /**
-     * @param slotIndex specific slot index
-     * @param itemStack item in slot
-     * @param world     crafting world
-     *
-     * @return if an item can be used in the specific slot for this pattern.
-     */
-    boolean isValidItemForSlot(int slotIndex, ItemStack itemStack, World world);
-
-    /**
-     * @return if this pattern is a crafting pattern ( work bench )
-     */
-    boolean isCraftable();
-
-    /**
-     * @return a list of the inputs, will include nulls.
+     * 获取原始输入（物品类型），包含 null 占位以保持槽位位置一致。
      */
     IAEItemStack[] getInputs();
 
     /**
-     * @return a list of the inputs, will be clean
+     * 获取精简后的输入（物品类型），合并相同物品，不含 null。
      */
     IAEItemStack[] getCondensedInputs();
 
     /**
-     * @return a list of the outputs, will be clean
+     * 获取精简后的输出（物品类型），合并相同物品，不含 null。
      */
     IAEItemStack[] getCondensedOutputs();
 
     /**
-     * The primary output of this pattern. The pattern will only be used to craft the primary output; the others are
-     * just byproducts.
+     * 获取原始输出（物品类型）。
+     */
+    IAEItemStack[] getOutputs();
+
+    /**
+     * 获取主要输出（第一个输出）。
+     * Pattern 只会被用来合成主要输出，其他是副产品。
      */
     default IAEItemStack getPrimaryOutput() {
         return getOutputs()[0];
     }
 
     /**
-     * @return a list of the outputs, will include nulls.
+     * 获取泛型主要输出（支持物品+流体）。
+     * 默认返回与 {@link #getPrimaryOutput()} 相同。
      */
-    IAEItemStack[] getOutputs();
-
-    /**
-     * @return if this pattern is enabled to support substitutions.
-     */
-    boolean canSubstitute();
-
-    default List<IAEItemStack> getSubstituteInputs(int slot) {
-        return Collections.emptyList();
+    default IAEStack<?> getGenericPrimaryOutput() {
+        return getPrimaryOutput();
     }
 
     /**
-     * Allow using this INSTANCE of the pattern details to preform the crafting action with performance enhancements.
-     *
-     * @param craftingInv inventory
-     * @param world       crafting world
-     *
-     * @return the crafted ( work bench ) item.
+     * 获取泛型精简输入（支持物品+流体等多种类型）。
+     * <p>
+     * 默认实现返回与 {@link #getCondensedInputs()} 相同的内容。
+     * 支持流体合成的 Pattern 应覆写此方法。
      */
-    ItemStack getOutput(InventoryCrafting craftingInv, World world);
+    default IAEStack<?>[] getGenericCondensedInputs() {
+        IAEItemStack[] items = getCondensedInputs();
+        IAEStack<?>[] result = new IAEStack<?>[items.length];
+        System.arraycopy(items, 0, result, 0, items.length);
+        return result;
+    }
 
     /**
-     * Get the priority of this pattern
-     *
-     * @return the priority of this pattern
+     * 获取泛型精简输出（支持物品+流体等多种类型）。
+     * <p>
+     * 默认实现返回与 {@link #getCondensedOutputs()} 相同的内容。
+     * 支持流体合成的 Pattern 应覆写此方法。
+     */
+    default IAEStack<?>[] getGenericCondensedOutputs() {
+        IAEItemStack[] items = getCondensedOutputs();
+        IAEStack<?>[] result = new IAEStack<?>[items.length];
+        System.arraycopy(items, 0, result, 0, items.length);
+        return result;
+    }
+
+    /**
+     * 获取泛型原始输入（支持物品+流体等多种类型）。
+     */
+    default IAEStack<?>[] getGenericInputs() {
+        IAEItemStack[] items = getInputs();
+        IAEStack<?>[] result = new IAEStack<?>[items.length];
+        System.arraycopy(items, 0, result, 0, items.length);
+        return result;
+    }
+
+    /**
+     * 获取泛型原始输出（支持物品+流体等多种类型）。
+     */
+    default IAEStack<?>[] getGenericOutputs() {
+        IAEItemStack[] items = getOutputs();
+        IAEStack<?>[] result = new IAEStack<?>[items.length];
+        System.arraycopy(items, 0, result, 0, items.length);
+        return result;
+    }
+
+    /**
+     * @return 是否为合成台配方（true）还是处理配方（false）
+     */
+    boolean isCraftable();
+
+    /**
+     * 检查指定槽位的物品是否可以作为该配方的有效输入。
+     * 只适用于合成台配方（isCraftable() == true）。
+     */
+    boolean isValidItemForSlot(int slotIndex, ItemStack i, World w);
+
+    /**
+     * 是否允许使用替代材料。
+     */
+    boolean canSubstitute();
+
+    /**
+     * @return 此配方的输出是否可以作为其他配方的替代输入
+     */
+    default boolean canBeSubstitute() {
+        return canSubstitute();
+    }
+
+    /**
+     * 获取指定槽位允许的替代输入列表。
+     */
+    List<IAEItemStack> getSubstituteInputs(int slot);
+
+    /**
+     * 获取合成台配方的输出结果。
+     * 只适用于合成台配方（isCraftable() == true）。
+     */
+    ItemStack getOutput(InventoryCrafting craftingInv, World w);
+
+    /**
+     * @return 配方优先级
      */
     int getPriority();
 
     /**
-     * Set the priority the of this pattern.
-     *
-     * @param priority priority of pattern
+     * 设置配方优先级。
      */
     void setPriority(int priority);
 }

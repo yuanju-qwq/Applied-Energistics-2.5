@@ -36,6 +36,10 @@ import appeng.api.storage.data.IItemList;
 import appeng.core.AEConfig;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 
+/**
+ * @deprecated 已被 v2 合成树（CraftableItemResolver.CraftFromPatternTask）替代。
+ */
+@Deprecated
 public class CraftingTreeProcess {
     private final CraftingTreeNode parent;
     final ICraftingPatternDetails details;

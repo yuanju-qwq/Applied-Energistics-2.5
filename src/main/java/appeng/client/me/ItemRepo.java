@@ -24,6 +24,8 @@ import appeng.api.AEApi;
 import appeng.api.config.*;
 import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.client.gui.widgets.IScrollSource;
 import appeng.client.gui.widgets.ISortSource;
@@ -41,17 +43,27 @@ import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.oredict.OreDictionary;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 public class ItemRepo {
 
-    private final IItemList<IAEItemStack> list = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList();
-    private List<IAEItemStack> view = new ArrayList<>();
+    /**
+     * 多类型存储列表：每种 IAEStackType 对应一个 IItemList。
+     */
+    @SuppressWarnings("rawtypes")
+    private final Map<IAEStackType<?>, IItemList> lists = new IdentityHashMap<>();
+
+    /**
+     * 视图列表：经过搜索、过滤、排序后的展示列表，包含所有类型的栈。
+     */
+    private List<IAEStack<?>> view = new ArrayList<>();
     private final IScrollSource src;
     private final ISortSource sortSrc;
+
+    /**
+     * 类型过滤：某种类型是否在终端中启用显示。
+     */
+    private final Map<IAEStackType<?>, Boolean> typeFilters = new IdentityHashMap<>();
 
     private int rowSize = 9;
 
@@ -74,7 +86,10 @@ public class ItemRepo {
         this.sortSrc = sortSrc;
     }
 
-    public IAEItemStack getReferenceItem(int idx) {
+    /**
+     * 获取指定索引处的 AE 栈（考虑滚动偏移）。
+     */
+    public IAEStack<?> getReferenceItem(int idx) {
         idx += this.src.getCurrentScroll() * this.rowSize;
 
         if (idx >= this.view.size()) {
@@ -87,22 +102,37 @@ public class ItemRepo {
         this.searchString = search == null ? "" : search;
     }
 
-    public void postUpdate(final IAEItemStack is) {
-        final IAEItemStack st = this.list.findPrecise(is);
+    /**
+     * 更新一个 AE 栈（任意类型：物品、流体等）。
+     */
+    @SuppressWarnings("unchecked")
+    public void postUpdate(final IAEStack<?> is) {
+        IAEStackType<?> type = is.getStackType();
+        IItemList list = this.lists.computeIfAbsent(type, t -> t.createList());
 
+        final IAEStack st = list.findPrecise(is);
         if (st != null) {
             st.reset();
             st.add(is);
         } else {
-            this.list.add(is);
+            list.add(is);
         }
 
         changed = true;
     }
 
     public long getItemCount(final IAEItemStack is) {
-        IAEItemStack st = this.list.findPrecise(is);
+        IItemList<IAEItemStack> list = this.getTypedList(is);
+        if (list == null) {
+            return 0;
+        }
+        IAEItemStack st = list.findPrecise(is);
         return st == null ? 0 : st.getStackSize();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends IAEStack<T>> IItemList<T> getTypedList(T stack) {
+        return this.lists.get(stack.getStackType());
     }
 
     public void setViewCell(final ItemStack[] list) {
@@ -110,6 +140,7 @@ public class ItemRepo {
         this.changed = true;
     }
 
+    @SuppressWarnings("unchecked")
     public void updateView() {
 
         final Enum viewMode = this.sortSrc.getSortDisplay();
@@ -156,17 +187,53 @@ public class ItemRepo {
             ItemSorters.setDirection((appeng.api.config.SortDir) sortDir);
             ItemSorters.init();
 
-            Comparator<IAEItemStack> c = getComparator(sortBy);
+            // 遍历所有类型的列表
+            for (var entry : this.lists.entrySet()) {
+                IAEStackType<?> type = entry.getKey();
 
-            for (IAEItemStack is : this.list) {
-                addIAE(is, viewMode);
+                // 检查类型过滤
+                if (!this.typeFilters.getOrDefault(type, true)) {
+                    continue;
+                }
+
+                IItemList list = entry.getValue();
+                for (Object obj : list) {
+                    IAEStack<?> is = (IAEStack<?>) obj;
+                    addIAE(is, viewMode);
+                }
             }
 
+            // 排序：物品使用 ItemSorters，流体按名称排序
+            Comparator<IAEStack<?>> c = getGenericComparator(sortBy);
             view.sort(c);
         }
     }
 
-    private static Comparator<IAEItemStack> getComparator(Enum sortBy) {
+    /**
+     * 获取支持多类型的排序比较器。
+     */
+    private static Comparator<IAEStack<?>> getGenericComparator(Enum sortBy) {
+        return (a, b) -> {
+            // 不同类型之间：物品优先于流体
+            if (a.getStackType() != b.getStackType()) {
+                return a.getStackType().getId().compareTo(b.getStackType().getId());
+            }
+
+            // 同一类型内部：使用对应的排序逻辑
+            if (a instanceof IAEItemStack ia && b instanceof IAEItemStack ib) {
+                return getItemComparator(sortBy).compare(ia, ib);
+            }
+
+            // 流体或其他类型：按名称 → 数量排序
+            String nameA = a.asItemStackRepresentation().getDisplayName();
+            String nameB = b.asItemStackRepresentation().getDisplayName();
+            int cmp = nameA.compareToIgnoreCase(nameB);
+            if (cmp != 0) return cmp;
+            return Long.compare(b.getStackSize(), a.getStackSize());
+        };
+    }
+
+    private static Comparator<IAEItemStack> getItemComparator(Enum sortBy) {
         Comparator<IAEItemStack> c;
 
         if (sortBy == SortOrder.MOD) {
@@ -185,12 +252,16 @@ public class ItemRepo {
         return c;
     }
 
-    private void addIAE(IAEItemStack is, Enum viewMode) {
+    @SuppressWarnings("unchecked")
+    private void addIAE(IAEStack<?> is, Enum viewMode) {
 
         final boolean needsZeroCopy = viewMode == ViewItems.CRAFTABLE;
 
-        if (this.myPartitionList != null && !this.myPartitionList.isListed(is)) {
-            return;
+        // ViewCell 过滤只对物品类型生效
+        if (is instanceof IAEItemStack itemStack) {
+            if (this.myPartitionList != null && !this.myPartitionList.isListed(itemStack)) {
+                return;
+            }
         }
 
         if (viewMode == ViewItems.CRAFTABLE && !is.isCraftable()) {
@@ -203,7 +274,7 @@ public class ItemRepo {
         final String query = lower(this.searchString).trim();
         if (query.isEmpty()) {
             if (needsZeroCopy) {
-                IAEItemStack copy = is.copy();
+                IAEStack<?> copy = is.copy();
                 copy.setStackSize(0);
                 this.view.add(copy);
             } else {
@@ -212,6 +283,24 @@ public class ItemRepo {
             return;
         }
 
+        // 对于非物品类型，仅按显示名称搜索
+        if (!(is instanceof IAEItemStack)) {
+            String displayName = lower(is.asItemStackRepresentation().getDisplayName());
+            boolean found = matchSimpleSearch(displayName, query);
+            if (found) {
+                if (needsZeroCopy) {
+                    IAEStack<?> copy = is.copy();
+                    copy.setStackSize(0);
+                    this.view.add(copy);
+                } else {
+                    this.view.add(is);
+                }
+            }
+            return;
+        }
+
+        IAEItemStack itemStack = (IAEItemStack) is;
+
         // Original setting behavior:
         // enabled = normal terms also search tooltip
         // disabled = only # searches tooltip
@@ -219,7 +308,7 @@ public class ItemRepo {
                 AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_TOOLTIPS) != YesNo.NO;
 
         // Base strings (null-safe)
-        final String itemName = lower(Platform.getItemDisplayName(is));
+        final String itemName = lower(Platform.getItemDisplayName(itemStack));
         String modId = null;
         String modName = null;
 
@@ -291,7 +380,7 @@ public class ItemRepo {
 
                         if (!termMatches && tooltipSearchEnabled) {
                             if (tooltipLower == null) {
-                                List<String> lines = Platform.getTooltip(is);
+                                List<String> lines = Platform.getTooltip(itemStack);
                                 StringBuilder sb = new StringBuilder();
                                 for (int i = 0; i < lines.size(); i++) {
                                     String line = lines.get(i);
@@ -311,7 +400,7 @@ public class ItemRepo {
 
                     case MOD:
                         if (modId == null) {
-                            modId = lower(Platform.getModId(is));
+                            modId = lower(Platform.getModId(itemStack));
                         }
 
                         if (modId.contains(term)) {
@@ -327,7 +416,7 @@ public class ItemRepo {
 
                     case TOOLTIP:
                         if (tooltipText == null) {
-                            List<String> lines = Platform.getTooltip(is);
+                            List<String> lines = Platform.getTooltip(itemStack);
                             StringBuilder sb = new StringBuilder();
                             for (int i = 0; i < lines.size(); i++) {
                                 String line = lines.get(i);
@@ -344,7 +433,7 @@ public class ItemRepo {
 
                     case OREDICT:
                         if (stack == null) {
-                            stack = safeItemStack(is);
+                            stack = safeItemStack(itemStack);
                         }
                         if (!stack.isEmpty()) {
                             if (oreIds == null) {
@@ -363,7 +452,7 @@ public class ItemRepo {
 
                     case REGISTRY:
                         if (stack == null) {
-                            stack = safeItemStack(is);
+                            stack = safeItemStack(itemStack);
                         }
                         if (!stack.isEmpty()) {
                             if (registryId == null) {
@@ -390,10 +479,10 @@ public class ItemRepo {
 
         if (found) {
             if (needsZeroCopy) {
-                is = is.copy();
-                is.setStackSize(0);
+                itemStack = itemStack.copy();
+                itemStack.setStackSize(0);
             }
-            this.view.add(is);
+            this.view.add(itemStack);
         }
     }
 
@@ -408,7 +497,9 @@ public class ItemRepo {
     }
 
     public void clear() {
-        this.list.resetStatus();
+        for (IItemList<?> list : this.lists.values()) {
+            list.resetStatus();
+        }
     }
 
     public boolean hasPower() {
@@ -435,8 +526,54 @@ public class ItemRepo {
         this.searchString = searchString;
     }
 
+    @SuppressWarnings("unchecked")
     public IItemList<IAEItemStack> getList() {
-        return list;
+        IAEStackType<?> itemType = appeng.api.storage.data.AEStackTypeRegistry.getType("item");
+        if (itemType != null) {
+            IItemList<?> list = this.lists.get(itemType);
+            if (list != null) {
+                return (IItemList<IAEItemStack>) list;
+            }
+        }
+        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList();
+    }
+
+    /**
+     * 设置某种类型在终端中是否启用显示。
+     */
+    public void setTypeFilter(IAEStackType<?> type, boolean enabled) {
+        this.typeFilters.put(type, enabled);
+        this.resort = true;
+    }
+
+    /**
+     * @return 某种类型在终端中是否启用显示
+     */
+    public boolean isTypeEnabled(IAEStackType<?> type) {
+        return this.typeFilters.getOrDefault(type, true);
+    }
+
+    /**
+     * 简单搜索：支持 OR (|) 和 NOT (-) 逻辑，用于非物品类型。
+     */
+    private static boolean matchSimpleSearch(String displayName, String query) {
+        final String[] orGroups = query.split("\\|");
+        for (String group : orGroups) {
+            final String trimmed = group.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            if (trimmed.startsWith("-")) {
+                if (!displayName.contains(trimmed.substring(1))) {
+                    return true;
+                }
+            } else {
+                if (displayName.contains(trimmed)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 

@@ -32,5 +32,6 @@ public interface ICraftingCallback {
      *
      * @param job - final job
      */
+    @SuppressWarnings("rawtypes")
     void calculationComplete(@Nonnull ICraftingJob job);
 }

@@ -825,6 +825,18 @@ public abstract class AEBaseContainer extends Container {
                 }
 
                 break;
+            case FILL_SINGLE_CONTAINER:
+            case FILL_CONTAINERS:
+            case DRAIN_SINGLE_CONTAINER:
+            case DRAIN_CONTAINERS:
+            case CONTAINER_QUICK_TRANSFER:
+                // 流体容器交互操作（预留，需在 ContainerMEMonitorable 等子类中实现）
+                break;
+            case SET_ITEM_PIN:
+            case SET_CONTAINER_PIN:
+            case UNSET_PIN:
+                // Pins 操作（预留，需在 ContainerMEMonitorable 等子类中实现）
+                break;
             default:
                 break;
         }

@@ -45,6 +45,7 @@ import mezz.jei.transfer.RecipeTransferErrorInternal;
 import appeng.container.implementations.ContainerCraftingTerm;
 import appeng.container.implementations.ContainerPatternEncoder;
 import appeng.container.implementations.ContainerWirelessCraftingTerminal;
+import appeng.container.implementations.ContainerWirelessDualInterfaceTerminal;
 import appeng.container.slot.SlotCraftingMatrix;
 import appeng.container.slot.SlotFakeCraftingMatrix;
 import appeng.core.AELog;
@@ -98,6 +99,23 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
                     NetworkHandler.instance().sendToServer(new PacketValueConfig("PatternTerminal.CraftMode", "0"));
                 }
 
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // 二合一接口终端的合成模式切换
+        if (container instanceof ContainerWirelessDualInterfaceTerminal dualContainer) {
+            try {
+                if (!dualContainer.isCraftingMode()) {
+                    if (recipeType.equals(VanillaRecipeCategoryUid.CRAFTING)) {
+                        NetworkHandler.instance()
+                                .sendToServer(new PacketValueConfig("PatternTerminal.CraftMode", "1"));
+                    }
+                } else if (!recipeType.equals(VanillaRecipeCategoryUid.CRAFTING)) {
+                    NetworkHandler.instance()
+                            .sendToServer(new PacketValueConfig("PatternTerminal.CraftMode", "0"));
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -165,6 +183,19 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             NetworkHandler.instance().sendToServer(new PacketJEIRecipe(recipe));
         } catch (IOException e) {
             AELog.debug(e);
+        }
+
+        // 二合一接口终端：将配方类别名称（机器名）设置为 Names 搜索框的建议文本
+        if (container instanceof ContainerWirelessDualInterfaceTerminal) {
+            final net.minecraft.client.gui.GuiScreen currentScreen =
+                    net.minecraft.client.Minecraft.getMinecraft().currentScreen;
+            if (currentScreen instanceof appeng.client.gui.implementations.GuiWirelessDualInterfaceTerminal gui) {
+                // 获取配方类别的本地化标题（例如："Crafting Table"、"卷板机"、"高炉" 等）
+                final String categoryTitle = recipeLayout.getRecipeCategory().getTitle();
+                if (categoryTitle != null && !categoryTitle.isEmpty()) {
+                    gui.setSearchFieldSuggestion(categoryTitle);
+                }
+            }
         }
 
         return null;

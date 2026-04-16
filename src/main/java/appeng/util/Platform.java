@@ -18,6 +18,7 @@
 
 package appeng.util;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.security.InvalidParameterException;
@@ -47,6 +48,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.CraftingManager;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.play.server.SPacketChunkData;
 import net.minecraft.server.management.PlayerChunkMap;
 import net.minecraft.server.management.PlayerChunkMapEntry;
@@ -79,6 +81,8 @@ import ic2.api.item.ICustomDamageItem;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
 import mezz.jei.config.Config;
+
+import io.netty.buffer.ByteBuf;
 
 import appeng.api.AEApi;
 import appeng.api.config.*;
@@ -623,6 +627,10 @@ public class Platform {
         ItemStack itemStack = ItemStack.EMPTY;
         if (o instanceof AEItemStack) {
             final String n = ((AEItemStack) o).getDisplayName();
+            return n == null ? "** Null" : n;
+        } else if (o instanceof IAEStack) {
+            // 泛型 IAEStack 类型（包括 AEFluidStack 等），使用通用的 getDisplayName()
+            final String n = ((IAEStack<?>) o).getDisplayName();
             return n == null ? "** Null" : n;
         } else if (o instanceof ItemStack) {
             itemStack = (ItemStack) o;
@@ -1576,4 +1584,72 @@ public class Platform {
         return null;
     }
 
+    /**
+     * 向上整除（ceiling division），等价于 Math.ceil((double)a / b) 但使用整数运算。
+     */
+    public static long ceilDiv(long a, long b) {
+        return (a + b - 1) / b;
+    }
+
+    /**
+     * 将泛型 IAEStack 写入 ByteBuf（带类型前缀）。
+     */
+    public static void writeStackByte(IAEStack<?> stack, ByteBuf buffer) {
+        try {
+            IAEStack.writeToPacketGeneric(buffer, stack);
+        } catch (RuntimeException | IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 从 ByteBuf 读取泛型 IAEStack（带类型前缀）。
+     */
+    public static IAEStack<?> readStackByte(ByteBuf buffer) {
+        try {
+            return IAEStack.fromPacketGeneric(buffer);
+        } catch (RuntimeException | IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 将泛型 IAEStack 写入 NBT（使用 toNBTGeneric 序列化）。
+     */
+    public static NBTTagCompound writeStackNBT(IAEStack<?> stack, NBTTagCompound tag) {
+        if (stack != null) {
+            stack.toNBTGeneric(tag);
+        }
+        return tag;
+    }
+
+    /**
+     * 将 IItemList 中所有栈写入 NBTTagList。
+     */
+    @SuppressWarnings("rawtypes")
+    public static NBTTagList writeAEStackListNBT(final IItemList myList) {
+        final NBTTagList out = new NBTTagList();
+        for (final Object stack : myList) {
+            if (stack instanceof IAEStack) {
+                final NBTTagCompound tag = new NBTTagCompound();
+                writeStackNBT((IAEStack<?>) stack, tag);
+                out.appendTag(tag);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 从 NBTTagList 读取泛型栈列表到指定的 IItemList。
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static void readAEStackListNBT(final IItemList myList, final NBTTagList tagList) {
+        for (int i = 0; i < tagList.tagCount(); i++) {
+            final NBTTagCompound tag = tagList.getCompoundTagAt(i);
+            final IAEStack<?> stack = IAEStack.fromNBTGeneric(tag);
+            if (stack != null) {
+                myList.add(stack);
+            }
+        }
+    }
 }

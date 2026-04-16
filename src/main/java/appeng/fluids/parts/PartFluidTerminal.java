@@ -51,7 +51,7 @@ public class PartFluidTerminal extends AbstractPartTerminal {
 
     @Override
     public GuiBridge getGui(EntityPlayer player) {
-        return GuiBridge.GUI_FLUID_TERMINAL;
+        return GuiBridge.GUI_ME;
     }
 
     @Override

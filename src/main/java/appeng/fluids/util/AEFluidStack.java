@@ -36,6 +36,7 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.core.Api;
 import appeng.fluids.items.FluidDummyItem;
 import appeng.util.Platform;
@@ -204,6 +205,11 @@ public final class AEFluidStack extends AEStack<IAEFluidStack> implements IAEFlu
     }
 
     @Override
+    public IAEStackType<IAEFluidStack> getStackType() {
+        return AEFluidStackType.INSTANCE;
+    }
+
+    @Override
     public int compareTo(final AEFluidStack other) {
         if (this.fluid != other.fluid) {
             return this.fluid.getName().compareTo(other.fluid.getName());
@@ -236,6 +242,34 @@ public final class AEFluidStack extends AEStack<IAEFluidStack> implements IAEFlu
             return is.getFluid() == this.fluid && Platform.itemComparisons().isNbtTagEqual(this.tagCompound, is.tag);
         }
         return false;
+    }
+
+    @Override
+    public boolean isSameType(final IAEFluidStack other) {
+        if (other == null) {
+            return false;
+        }
+        return this.equals(other);
+    }
+
+    @Override
+    public boolean isSameType(final Object obj) {
+        if (obj instanceof IAEFluidStack) {
+            return this.equals(obj);
+        } else if (obj instanceof FluidStack) {
+            return this.equals(obj);
+        }
+        return false;
+    }
+
+    @Override
+    public String getDisplayName() {
+        FluidStack fs = this.getFluidStack();
+        String n = fs.getLocalizedName();
+        if (n == null || n.isEmpty()) {
+            n = fs.getUnlocalizedName();
+        }
+        return n == null ? "** Null" : n;
     }
 
     @Override

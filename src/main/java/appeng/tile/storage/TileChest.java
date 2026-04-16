@@ -790,7 +790,7 @@ public class TileChest extends AENetworkPowerTile
             }
             if (this.cellHandler.getChannel() == AEApi.instance().storage()
                     .getStorageChannel(IFluidStorageChannel.class)) {
-                return GuiBridge.GUI_FLUID_TERMINAL;
+                return GuiBridge.GUI_ME;
             }
         }
         return null;

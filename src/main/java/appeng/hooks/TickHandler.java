@@ -19,7 +19,10 @@
 package appeng.hooks;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+
+import java.util.concurrent.Future;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.LinkedListMultimap;
@@ -41,7 +44,11 @@ import appeng.core.AEConfig;
 import appeng.core.AELog;
 import appeng.core.AppEng;
 import appeng.core.sync.packets.PacketPaintedEntity;
+import appeng.api.networking.crafting.ICraftingCallback;
+import appeng.api.networking.crafting.ICraftingJob;
 import appeng.crafting.CraftingJob;
+import appeng.crafting.v2.CraftingJobV2;
+import appeng.api.storage.data.IAEStack;
 import appeng.me.Grid;
 import appeng.tile.AEBaseTile;
 import appeng.util.IWorldCallable;
@@ -51,7 +58,7 @@ public class TickHandler {
 
     private static final TickHandler INSTANCE = new TickHandler();
     private final Queue<IWorldCallable<?>> serverQueue = new ArrayDeque<>();
-    private final Multimap<World, CraftingJob> craftingJobs = LinkedListMultimap.create();
+    private final Multimap<World, ICraftingJob<?>> craftingJobs = LinkedListMultimap.create();
     private final Map<World, Queue<IWorldCallable<?>>> callQueue = new WeakHashMap<>();
     private final HandlerRep server = new HandlerRep();
     private final HandlerRep client = new HandlerRep();
@@ -173,17 +180,17 @@ public class TickHandler {
 
         if (ev.phase == Phase.END) {
             synchronized (this.craftingJobs) {
-                final Collection<CraftingJob> jobSet = this.craftingJobs.get(ev.world);
+                final Collection<ICraftingJob<?>> jobSet = this.craftingJobs.get(ev.world);
 
                 if (!jobSet.isEmpty()) {
                     final int jobSize = jobSet.size();
                     final int microSecondsPerTick = AEConfig.instance().getCraftingCalculationTimePerTick() * 1000;
                     final int simTime = Math.max(1, microSecondsPerTick / jobSize);
 
-                    final Iterator<CraftingJob> i = jobSet.iterator();
+                    final Iterator<ICraftingJob<?>> i = jobSet.iterator();
 
                     while (i.hasNext()) {
-                        final CraftingJob cj = i.next();
+                        final ICraftingJob<?> cj = i.next();
                         if (!cj.simulateFor(simTime)) {
                             i.remove();
                         }
@@ -252,6 +259,72 @@ public class TickHandler {
     public void registerCraftingSimulation(final World world, final CraftingJob craftingJob) {
         synchronized (this.craftingJobs) {
             this.craftingJobs.put(world, craftingJob);
+        }
+    }
+
+    /**
+     * 注册 v2 合成计算任务并返回 Future。
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends IAEStack<T>> Future<ICraftingJob<T>> registerCraftingSimulation(final World world,
+            final CraftingJobV2<T> job) {
+        final CompletableFuture<ICraftingJob<T>> future = new CompletableFuture<>();
+        synchronized (this.craftingJobs) {
+            this.craftingJobs.put(world, new CraftingJobV2Wrapper<>(job, future));
+        }
+        return future;
+    }
+
+    /**
+     * 包装 CraftingJobV2 使其在 TickHandler 的 tick 循环中完成时设置 Future 结果。
+     */
+    private static class CraftingJobV2Wrapper<T extends IAEStack<T>> implements ICraftingJob<T> {
+
+        private final CraftingJobV2<T> delegate;
+        private final CompletableFuture<ICraftingJob<T>> future;
+
+        CraftingJobV2Wrapper(CraftingJobV2<T> delegate, CompletableFuture<ICraftingJob<T>> future) {
+            this.delegate = delegate;
+            this.future = future;
+        }
+
+        @Override
+        public boolean isSimulation() {
+            return delegate.isSimulation();
+        }
+
+        @Override
+        public long getByteTotal() {
+            return delegate.getByteTotal();
+        }
+
+        @Override
+        @SuppressWarnings("rawtypes")
+        public void populatePlan(appeng.api.storage.data.IItemList plan) {
+            delegate.populatePlan(plan);
+        }
+
+        @Override
+        public T getOutput() {
+            return delegate.getOutput();
+        }
+
+        @Override
+        public boolean simulateFor(int milli) {
+            boolean needsMore = delegate.simulateFor(milli);
+            if (!needsMore) {
+                future.complete(delegate);
+                ICraftingCallback cb = delegate.getCallback();
+                if (cb != null) {
+                    cb.calculationComplete(delegate);
+                }
+            }
+            return needsMore;
+        }
+
+        @Override
+        public Future<ICraftingJob<T>> schedule() {
+            return future;
         }
     }
 

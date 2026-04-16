@@ -42,6 +42,7 @@ import net.minecraftforge.fml.common.network.NetworkRegistry;
 import team.chisel.ctm.CTM;
 
 import appeng.api.AEApi;
+import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.core.crash.CrashInfo;
 import appeng.core.crash.IntegrationCrashEnhancement;
 import appeng.core.crash.ModCrashEnhancement;
@@ -50,6 +51,7 @@ import appeng.core.stats.AdvancementTriggers;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.worlddata.WorldData;
+import appeng.fluids.util.AEFluidStackType;
 import appeng.helpers.NonBlockingItems;
 import appeng.hooks.TickHandler;
 import appeng.integration.IntegrationRegistry;
@@ -61,6 +63,7 @@ import appeng.services.export.ExportProcess;
 import appeng.services.export.ForgeExportConfig;
 import appeng.services.version.VersionCheckerConfig;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStackType;
 
 @Mod(modid = AppEng.MOD_ID, acceptedMinecraftVersions = "[1.12.2]", name = AppEng.MOD_NAME, version = AEConfig.VERSION, dependencies = AppEng.MOD_DEPENDENCIES, guiFactory = "appeng.client.gui.config.AEConfigGuiFactory")
 public final class AppEng {
@@ -137,6 +140,11 @@ public final class AppEng {
 
         AEConfig.init(configFile);
         FacadeConfig.init(facadeFile);
+
+        // 注册 AEStackType 类型并初始化网络 ID
+        AEStackTypeRegistry.register(AEItemStackType.INSTANCE);
+        AEStackTypeRegistry.register(AEFluidStackType.INSTANCE);
+        AEStackTypeRegistry.initNetworkIds();
 
         final VersionCheckerConfig versionCheckerConfig = new VersionCheckerConfig(versionFile);
         this.exportConfig = new ForgeExportConfig(recipeConfiguration);

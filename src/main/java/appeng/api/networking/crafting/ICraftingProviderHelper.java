@@ -24,6 +24,7 @@
 package appeng.api.networking.crafting;
 
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 
 /**
  * Passed to a ICraftingProvider as a interface to manipulate the available crafting jobs.
@@ -39,4 +40,13 @@ public interface ICraftingProviderHelper {
      * Set an item can Emitable
      */
     void setEmitable(IAEItemStack what);
+
+    /**
+     * 泛型版本：设置一个栈（物品/流体等）可被发射。
+     */
+    default void setEmitable(IAEStack<?> what) {
+        if (what instanceof IAEItemStack) {
+            setEmitable((IAEItemStack) what);
+        }
+    }
 }

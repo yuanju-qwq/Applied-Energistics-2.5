@@ -120,6 +120,8 @@ public enum GuiBridge implements IGuiHandler {
     GUI_WIRELESS_INTERFACE_TERMINAL(ContainerWirelessInterfaceTerminal.class, WirelessTerminalGuiObject.class,
             GuiHostType.ITEM,
             null),
+    GUI_WIRELESS_DUAL_INTERFACE_TERMINAL(ContainerWirelessDualInterfaceTerminal.class,
+            WirelessTerminalGuiObject.class, GuiHostType.ITEM, null),
 
     GUI_NETWORK_STATUS(ContainerNetworkStatus.class, INetworkTool.class, GuiHostType.ITEM, null),
 
@@ -174,7 +176,8 @@ public enum GuiBridge implements IGuiHandler {
     GUI_EXPANDED_PROCESSING_PATTERN_TERMINAL(ContainerExpandedProcessingPatternTerm.class,
             PartExpandedProcessingPatternTerminal.class, GuiHostType.WORLD, SecurityPermissions.CRAFT),
 
-    GUI_FLUID_TERMINAL(ContainerFluidTerminal.class, ITerminalHost.class, GuiHostType.WORLD, SecurityPermissions.BUILD),
+    @Deprecated // 流体终端已集成到通用终端，此枚举保留向后兼容
+    GUI_FLUID_TERMINAL(ContainerMEMonitorable.class, ITerminalHost.class, GuiHostType.WORLD, SecurityPermissions.BUILD),
 
     // extends (Container/Gui) + Bus
     GUI_LEVEL_EMITTER(ContainerLevelEmitter.class, PartLevelEmitter.class, GuiHostType.WORLD,

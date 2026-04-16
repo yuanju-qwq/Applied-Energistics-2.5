@@ -44,5 +44,17 @@ public enum InventoryAction {
     PLACE_SINGLE,
     DOUBLE,
     HALVE,
-    PLACE_JEI_GHOST_ITEM
+    PLACE_JEI_GHOST_ITEM,
+
+    // 流体容器交互（从终端填充/抽取流体到手持容器）
+    FILL_SINGLE_CONTAINER,
+    FILL_CONTAINERS,
+    DRAIN_SINGLE_CONTAINER,
+    DRAIN_CONTAINERS,
+    CONTAINER_QUICK_TRANSFER,
+
+    // Pins 操作（物品钉选/置顶）
+    SET_ITEM_PIN,
+    SET_CONTAINER_PIN,
+    UNSET_PIN
 }

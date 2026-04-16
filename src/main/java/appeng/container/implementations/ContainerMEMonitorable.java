@@ -20,7 +20,7 @@ package appeng.container.implementations;
 
 import java.io.IOException;
 import java.nio.BufferOverflowException;
-import java.util.List;
+import java.util.*;
 
 import javax.annotation.Nonnull;
 
@@ -46,13 +46,17 @@ import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.networking.security.SecurityPermissions;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.parts.IPart;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.channels.IItemStorageChannel;
+import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
@@ -66,20 +70,35 @@ import appeng.container.slot.SlotRestrictedInput;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
+import appeng.core.sync.packets.PacketPinsUpdate;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.helpers.IPinsHandler;
 import appeng.helpers.WirelessTerminalGuiObject;
+import appeng.items.contents.PinList;
+import appeng.items.contents.PinsHandler;
+import appeng.items.contents.PinsHolder;
 import appeng.me.helpers.ChannelPowerSrc;
 import appeng.util.ConfigManager;
 import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 
+@SuppressWarnings("rawtypes")
 public class ContainerMEMonitorable extends AEBaseContainer
-        implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver<IAEItemStack> {
+        implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver {
 
     protected final SlotRestrictedInput[] cellView = new SlotRestrictedInput[5];
-    private final IMEMonitor<IAEItemStack> monitor;
-    public final IItemList<IAEItemStack> items = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-            .createList();
+
+    /**
+     * 多类型 Monitor 映射：每种已注册的 IAEStackType 对应一个 IMEMonitor。
+     * 物品和流体（以及未来扩展的其他类型）都在同一个终端中监控。
+     */
+    private final Map<IAEStackType<?>, IMEMonitor<?>> monitors = new IdentityHashMap<>();
+
+    /**
+     * 多类型更新队列：服务端收到变化通知后，按类型暂存待发送的变更。
+     */
+    private final Map<IAEStackType<?>, Set<IAEStack<?>>> updateQueue = new IdentityHashMap<>();
+
     private final IConfigManager clientCM;
     private final ITerminalHost host;
     @GuiSync(99)
@@ -90,6 +109,16 @@ public class ContainerMEMonitorable extends AEBaseContainer
     private IConfigManager serverCM;
     private IGridNode networkNode;
     protected int jeiOffset = Platform.isModLoaded("jei") ? 24 : 0;
+
+    /**
+     * 当 onListUpdate 触发时标记为 true，下次 detectAndSendChanges 时发送全量。
+     */
+    private boolean needListUpdate = false;
+
+    // 服务端 Pins 处理器
+    private PinsHandler serverPinsHandler;
+    // 标记是否需要在下次 detectAndSendChanges 时发送初始 Pins 数据
+    private boolean needsInitialPinsSync = true;
 
     public ContainerMEMonitorable(final InventoryPlayer ip, final ITerminalHost monitorable) {
         this(ip, monitorable, true);
@@ -115,12 +144,25 @@ public class ContainerMEMonitorable extends AEBaseContainer
         if (Platform.isServer()) {
             this.serverCM = monitorable.getConfigManager();
 
-            this.monitor = monitorable
-                    .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
-            if (this.monitor != null) {
-                this.monitor.addListener(this, null);
+            // 遍历所有已注册的 IAEStackType，获取对应的 IMEMonitor 并注册监听
+            boolean hasAnyMonitor = false;
+            for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
+                IMEMonitor<?> mon = monitorable.getMEMonitor(type);
+                if (mon != null) {
+                    mon.addListener(this, null);
+                    this.monitors.put(type, mon);
+                    this.updateQueue.put(type, new HashSet<>());
+                    hasAnyMonitor = true;
+                }
+            }
 
-                this.setCellInventory(this.monitor);
+            if (hasAnyMonitor) {
+                // 使用物品 monitor 作为 cell inventory（向后兼容）
+                IMEMonitor<?> itemMon = this.monitors.get(
+                        AEStackTypeRegistry.getType("item"));
+                if (itemMon != null) {
+                    this.setCellInventory(itemMon);
+                }
 
                 if (monitorable instanceof IPortableCell) {
                     this.setPowerSource((IEnergySource) monitorable);
@@ -150,8 +192,16 @@ public class ContainerMEMonitorable extends AEBaseContainer
             } else {
                 this.setValidContainer(false);
             }
-        } else {
-            this.monitor = null;
+        }
+
+        // 初始化服务端 Pins 处理器
+        if (Platform.isServer() && ip.player != null) {
+            final net.minecraft.world.storage.MapStorage storage = ip.player.getEntityWorld()
+                    .getMapStorage();
+            if (storage != null) {
+                PinsHolder holder = PinsHolder.getForPlayer(storage, ip.player.getUniqueID());
+                this.serverPinsHandler = new PinsHandler(holder);
+            }
         }
 
         this.canAccessViewCells = false;
@@ -222,11 +272,17 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void detectAndSendChanges() {
         if (Platform.isServer()) {
-            if (this.monitor != this.host
-                    .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class))) {
-                this.setValidContainer(false);
+            // 验证所有 monitor 仍然有效
+            for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
+                IMEMonitor<?> current = this.host.getMEMonitor(type);
+                IMEMonitor<?> stored = this.monitors.get(type);
+                if (stored != null && stored != current) {
+                    this.setValidContainer(false);
+                    return;
+                }
             }
 
             for (final Settings set : this.serverCM.getSettings()) {
@@ -248,25 +304,41 @@ public class ContainerMEMonitorable extends AEBaseContainer
                 }
             }
 
-            if (!this.items.isEmpty()) {
+            if (this.needListUpdate) {
+                // 全量重发所有类型的库存
+                this.needListUpdate = false;
+                for (final Object c : this.listeners) {
+                    if (c instanceof EntityPlayerMP player) {
+                        this.queueInventory(player);
+                    }
+                }
+            } else {
+                // 增量发送变更
                 try {
-                    final IItemList<IAEItemStack> monitorCache = this.monitor.getStorageList();
-
                     final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
-                    for (final IAEItemStack is : this.items) {
-                        final IAEItemStack send = monitorCache.findPrecise(is);
-                        if (send == null) {
-                            is.setStackSize(0);
-                            piu.appendItem(is);
-                        } else {
-                            piu.appendItem(send);
+                    for (var entry : this.updateQueue.entrySet()) {
+                        IAEStackType type = entry.getKey();
+                        IMEMonitor mon = this.monitors.get(type);
+                        if (mon == null) {
+                            continue;
+                        }
+                        IItemList storageList = mon.getStorageList();
+                        for (IAEStack<?> aes : entry.getValue()) {
+                            final IAEStack<?> send = storageList.findPrecise(aes);
+                            if (send == null) {
+                                aes.setStackSize(0);
+                                piu.appendStack(aes);
+                            } else {
+                                piu.appendStack(send);
+                            }
                         }
                     }
 
                     if (!piu.isEmpty()) {
-                        this.items.resetStatus();
-
+                        for (var queue : this.updateQueue.values()) {
+                            queue.clear();
+                        }
                         for (final Object c : this.listeners) {
                             if (c instanceof EntityPlayer) {
                                 NetworkHandler.instance().sendTo(piu, (EntityPlayerMP) c);
@@ -279,6 +351,23 @@ public class ContainerMEMonitorable extends AEBaseContainer
             }
 
             this.updatePowerStatus();
+
+            // 同步 Pins 数据到客户端
+            if (this.serverPinsHandler != null
+                    && (this.needsInitialPinsSync || this.serverPinsHandler.isDirty())) {
+                this.needsInitialPinsSync = false;
+                this.serverPinsHandler.clearDirty();
+                final PacketPinsUpdate pinsPacket = new PacketPinsUpdate(
+                        this.serverPinsHandler.getMaxPlayerPinRows(),
+                        this.serverPinsHandler.getMaxCraftingPinRows(),
+                        this.serverPinsHandler.getSectionOrder(),
+                        this.serverPinsHandler.getPins());
+                for (final Object c : this.listeners) {
+                    if (c instanceof EntityPlayerMP) {
+                        NetworkHandler.instance().sendTo(pinsPacket, (EntityPlayerMP) c);
+                    }
+                }
+            }
 
             final boolean oldAccessible = this.canAccessViewCells;
             this.canAccessViewCells = this.hasAccess(SecurityPermissions.BUILD, false);
@@ -327,30 +416,33 @@ public class ContainerMEMonitorable extends AEBaseContainer
     public void addListener(final IContainerListener c) {
         super.addListener(c);
 
-        this.queueInventory(c);
+        if (Platform.isServer() && c instanceof EntityPlayerMP player) {
+            this.queueInventory(player);
+        }
     }
 
-    private void queueInventory(final IContainerListener c) {
-        if (Platform.isServer() && c instanceof EntityPlayer && this.monitor != null) {
-            try {
-                PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
-                final IItemList<IAEItemStack> monitorCache = this.monitor.getStorageList();
+    @SuppressWarnings("unchecked")
+    private void queueInventory(final EntityPlayerMP player) {
+        try {
+            PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
-                for (final IAEItemStack send : monitorCache) {
+            for (var monitor : this.monitors.values()) {
+                IItemList storageList = monitor.getStorageList();
+                for (final Object obj : storageList) {
+                    IAEStack<?> send = (IAEStack<?>) obj;
                     try {
-                        piu.appendItem(send);
+                        piu.appendStack(send);
                     } catch (final BufferOverflowException boe) {
-                        NetworkHandler.instance().sendTo(piu, (EntityPlayerMP) c);
-
+                        NetworkHandler.instance().sendTo(piu, player);
                         piu = new PacketMEInventoryUpdate();
-                        piu.appendItem(send);
+                        piu.appendStack(send);
                     }
                 }
-
-                NetworkHandler.instance().sendTo(piu, (EntityPlayerMP) c);
-            } catch (final IOException e) {
-                AELog.debug(e);
             }
+
+            NetworkHandler.instance().sendTo(piu, player);
+        } catch (final IOException e) {
+            AELog.debug(e);
         }
     }
 
@@ -358,16 +450,18 @@ public class ContainerMEMonitorable extends AEBaseContainer
     public void removeListener(final IContainerListener c) {
         super.removeListener(c);
 
-        if (this.listeners.isEmpty() && this.monitor != null) {
-            this.monitor.removeListener(this);
+        if (this.listeners.isEmpty()) {
+            for (IMEMonitor<?> mon : this.monitors.values()) {
+                mon.removeListener(this);
+            }
         }
     }
 
     @Override
     public void onContainerClosed(final EntityPlayer player) {
         super.onContainerClosed(player);
-        if (this.monitor != null) {
-            this.monitor.removeListener(this);
+        for (IMEMonitor<?> mon : this.monitors.values()) {
+            mon.removeListener(this);
         }
     }
 
@@ -377,18 +471,22 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     @Override
-    public void postChange(final IBaseMonitor<IAEItemStack> monitor, final Iterable<IAEItemStack> change,
+    @SuppressWarnings("unchecked")
+    public void postChange(final IBaseMonitor monitor, final Iterable change,
             final IActionSource source) {
-        for (final IAEItemStack is : change) {
-            this.items.add(is);
+        for (final Object obj : change) {
+            IAEStack<?> aes = (IAEStack<?>) obj;
+            IAEStackType<?> type = aes.getStackType();
+            Set<IAEStack<?>> queue = this.updateQueue.get(type);
+            if (queue != null) {
+                queue.add(aes);
+            }
         }
     }
 
     @Override
     public void onListUpdate() {
-        for (final IContainerListener c : this.listeners) {
-            this.queueInventory(c);
-        }
+        this.needListUpdate = true;
     }
 
     @Override
@@ -437,13 +535,102 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     public IItemList<IAEItemStack> getItems() {
-        return items;
+        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList();
     }
 
-    public void postUpdate(final List<IAEItemStack> list) {
-        for (final IAEItemStack is : list) {
-            this.items.add(is);
+    /**
+     * 客户端接收到多类型 PacketMEInventoryUpdate 时调用。
+     * 将更新分发到 GUI 的 ItemRepo。
+     */
+    @SuppressWarnings("unchecked")
+    public void postUpdate(final List<IAEStack<?>> list) {
+        if (this.gui instanceof GuiMEMonitorable guiMonitorable) {
+            guiMonitorable.postUpdate(list);
         }
-        ((GuiMEMonitorable) this.gui).postUpdate(list);
     }
+
+    /**
+     * @return 物品类型的 Monitor（向后兼容）
+     */
+    @SuppressWarnings("unchecked")
+    public IMEMonitor<IAEItemStack> getItemMonitor() {
+        IAEStackType<?> itemType = AEStackTypeRegistry.getType("item");
+        if (itemType != null) {
+            return (IMEMonitor<IAEItemStack>) this.monitors.get(itemType);
+        }
+        return null;
+    }
+
+    /**
+     * @return 多类型 Monitor 映射
+     */
+    public Map<IAEStackType<?>, IMEMonitor<?>> getMonitors() {
+        return this.monitors;
+    }
+
+    // region Pins System
+
+    private PinList clientPinList = new PinList();
+    private PinsRows clientMaxPlayerPinRows = PinsRows.TWO;
+    private PinsRows clientMaxCraftingPinRows = PinsRows.ONE;
+    private PinSectionOrder clientPinSectionOrder = PinSectionOrder.PLAYER_FIRST;
+
+    /**
+     * 客户端接收到 Pins 更新包时调用。
+     */
+    public void postPinsUpdate(PinList pinList, PinsRows maxPlayerPinRows,
+            PinsRows maxCraftingPinRows, PinSectionOrder sectionOrder) {
+        this.clientPinList = pinList;
+        this.clientMaxPlayerPinRows = maxPlayerPinRows;
+        this.clientMaxCraftingPinRows = maxCraftingPinRows;
+        this.clientPinSectionOrder = sectionOrder;
+    }
+
+    public PinList getClientPinList() {
+        return this.clientPinList;
+    }
+
+    public PinsRows getClientMaxPlayerPinRows() {
+        return this.clientMaxPlayerPinRows;
+    }
+
+    public PinsRows getClientMaxCraftingPinRows() {
+        return this.clientMaxCraftingPinRows;
+    }
+
+    public PinSectionOrder getClientPinSectionOrder() {
+        return this.clientPinSectionOrder;
+    }
+
+    /**
+     * @return 服务端 Pins 处理器（仅服务端有值）
+     */
+    public IPinsHandler getServerPinsHandler() {
+        return this.serverPinsHandler;
+    }
+
+    /**
+     * 处理来自客户端的 Pin 操作请求。
+     *
+     * @param action Pin 操作类型
+     * @param stack  相关的栈（可为 null）
+     */
+    public void handlePinAction(appeng.helpers.InventoryAction action, IAEStack<?> stack) {
+        if (this.serverPinsHandler == null || stack == null) {
+            return;
+        }
+
+        switch (action) {
+            case SET_ITEM_PIN:
+                this.serverPinsHandler.addPlayerPin(stack);
+                break;
+            case UNSET_PIN:
+                this.serverPinsHandler.removePin(stack);
+                break;
+            default:
+                break;
+        }
+    }
+
+    // endregion
 }

@@ -111,6 +111,8 @@ public final class AEConfig extends Configuration implements IConfigurableObject
     private boolean disableColoredCableRecipesInJEI = true;
     private int craftingCalculationTimePerTick = 5;
     private int craftingMaxBatchSize = 2048;
+    private int maxCraftingSteps = 10000000;
+    private int maxCraftingTreeVisualizationSize = 1024 * 1024;
     private PowerUnits selectedPowerUnit = PowerUnits.AE;
     private boolean showCraftableTooltip = true;
     private boolean showPlacementPreview = true;
@@ -205,6 +207,8 @@ public final class AEConfig extends Configuration implements IConfigurableObject
         this.settings.registerSetting(Settings.SEARCH_TOOLTIPS, YesNo.YES);
         this.settings.registerSetting(Settings.TERMINAL_STYLE, TerminalStyle.TALL);
         this.settings.registerSetting(Settings.SEARCH_MODE, SearchBoxMode.AUTOSEARCH);
+        this.settings.registerSetting(Settings.PAUSE_WHEN_HOLDING_SHIFT, YesNo.YES);
+        this.settings.registerSetting(Settings.SEARCH_BOX_FOCUS_PRIORITY, SearchBoxFocusPriority.ALWAYS);
 
         this.spawnChargedChance = (float) (1.0
                 - this.get("worldGen", "spawnChargedChance", 1.0 - this.spawnChargedChance)
@@ -652,6 +656,14 @@ public final class AEConfig extends Configuration implements IConfigurableObject
 
     public int getCraftingMaxBatchSize() {
         return this.craftingMaxBatchSize;
+    }
+
+    public int getMaxCraftingSteps() {
+        return this.maxCraftingSteps;
+    }
+
+    public int getMaxCraftingTreeVisualizationSize() {
+        return this.maxCraftingTreeVisualizationSize;
     }
 
     public PowerUnits getSelectedPowerUnit() {

@@ -22,6 +22,7 @@ import java.util.*;
 
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 
 public final class FluidList implements IItemList<IAEFluidStack> {
@@ -157,6 +158,11 @@ public final class FluidList implements IItemList<IAEFluidStack> {
         for (final IAEFluidStack i : this) {
             i.reset();
         }
+    }
+
+    @Override
+    public IAEStackType<IAEFluidStack> getStackType() {
+        return AEFluidStackType.INSTANCE;
     }
 
     private IAEFluidStack getFluidRecord(final IAEFluidStack fluid) {

@@ -67,6 +67,8 @@ public interface IItems {
 
     IItemDefinition wirelessInterfaceTerminal();
 
+    IItemDefinition wirelessDualInterfaceTerminal();
+
     IItemDefinition wirelessFluidTerminal();
 
     IItemDefinition biometricCard();

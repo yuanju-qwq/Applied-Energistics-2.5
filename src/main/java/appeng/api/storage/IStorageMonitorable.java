@@ -23,7 +23,10 @@
 
 package appeng.api.storage;
 
+import javax.annotation.Nullable;
+
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 
 /**
  * Exposes the monitorable network inventories of a grid node that choses to export them. This interface can only be
@@ -32,5 +35,16 @@ import appeng.api.storage.data.IAEStack;
 public interface IStorageMonitorable {
 
     <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel);
+
+    /**
+     * 通过 {@link IAEStackType} 获取对应的 {@link IMEMonitor}。
+     * <p>
+     * 默认实现通过 IAEStackType.getStorageChannel() 桥接到旧的 channel 体系。
+     */
+    @SuppressWarnings("unchecked")
+    @Nullable
+    default <T extends IAEStack<T>> IMEMonitor<T> getMEMonitor(IAEStackType<T> type) {
+        return this.getInventory(type.getStorageChannel());
+    }
 
 }

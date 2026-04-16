@@ -43,6 +43,7 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.core.Api;
 import appeng.integration.modules.gregtech.ToolClass;
 import appeng.util.Platform;
@@ -186,6 +187,11 @@ public class AEItemStack extends AEStack<IAEItemStack> implements IAEItemStack {
     }
 
     @Override
+    public IAEStackType<IAEItemStack> getStackType() {
+        return AEItemStackType.INSTANCE;
+    }
+
+    @Override
     public ItemStack createItemStack() {
         return ItemHandlerHelper.copyStackWithSize(this.getDefinition(),
                 (int) Math.min(Integer.MAX_VALUE, this.getStackSize()));
@@ -227,6 +233,16 @@ public class AEItemStack extends AEStack<IAEItemStack> implements IAEItemStack {
         otherStack.setCount(oldSize);
 
         return ret;
+    }
+
+    @Override
+    public boolean isSameType(final Object obj) {
+        if (obj instanceof IAEItemStack) {
+            return this.isSameType((IAEItemStack) obj);
+        } else if (obj instanceof ItemStack) {
+            return this.isSameType((ItemStack) obj);
+        }
+        return false;
     }
 
     @Override
@@ -283,7 +299,7 @@ public class AEItemStack extends AEStack<IAEItemStack> implements IAEItemStack {
         return this.tooltip;
     }
 
-    @SideOnly(Side.CLIENT)
+    @Override
     public String getDisplayName() {
         if (this.displayName == null) {
             this.displayName = Platform.getItemDisplayName(this.asItemStackRepresentation());

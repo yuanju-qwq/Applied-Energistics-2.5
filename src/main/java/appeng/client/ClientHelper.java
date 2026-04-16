@@ -372,6 +372,9 @@ public class ClientHelper extends ServerHelper {
                     NetworkHandler.instance().sendToServer(new PacketTerminalUse(Terminal.WIRELESS_FLUID_TERMINAL));
                 } else if (k == WIT.getKeyBinding()) {
                     NetworkHandler.instance().sendToServer(new PacketTerminalUse(Terminal.WIRELESS_INTERFACE_TERMINAL));
+                } else if (k == WDIT.getKeyBinding()) {
+                    NetworkHandler.instance()
+                            .sendToServer(new PacketTerminalUse(Terminal.WIRELESS_DUAL_INTERFACE_TERMINAL));
                 }
             }
         }

@@ -68,7 +68,9 @@ import appeng.util.Platform;
 public class ContainerCraftConfirm extends AEBaseContainer {
 
     private final ArrayList<CraftingCPURecord> cpus = new ArrayList<>();
+    @SuppressWarnings("rawtypes")
     private Future<ICraftingJob> job;
+    @SuppressWarnings("rawtypes")
     private ICraftingJob result;
     @GuiSync(0)
     public long bytesUsed;
@@ -366,7 +368,8 @@ public class ContainerCraftConfirm extends AEBaseContainer {
             this.setAutoStart(false);
             if (g == null) {
                 this.setJob(
-                        cc.beginCraftingJob(this.getWorld(), grid, this.getActionSrc(), this.result.getOutput(), null));
+                        cc.beginCraftingJob(this.getWorld(), grid, this.getActionSrc(),
+                                this.result.getOutput(), null));
             } else if (originalGui != null && this.getOpenContext() != null) {
                 final TileEntity te = this.getOpenContext().getTile();
                 if (te != null) {

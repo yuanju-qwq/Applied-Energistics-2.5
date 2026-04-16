@@ -28,6 +28,7 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.util.Platform;
 
@@ -139,6 +140,11 @@ public final class ItemList implements IItemList<IAEItemStack> {
         for (final IAEItemStack i : this) {
             i.reset();
         }
+    }
+
+    @Override
+    public IAEStackType<IAEItemStack> getStackType() {
+        return AEItemStackType.INSTANCE;
     }
 
     private ItemVariantList getOrCreateRecord(Item item) {

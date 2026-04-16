@@ -23,6 +23,7 @@ import java.util.Iterator;
 
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 
 public class ItemListIgnoreCrafting<T extends IAEStack<T>> implements IItemList<T> {
@@ -91,5 +92,10 @@ public class ItemListIgnoreCrafting<T extends IAEStack<T>> implements IItemList<
     @Override
     public void resetStatus() {
         this.target.resetStatus();
+    }
+
+    @Override
+    public IAEStackType<?> getStackType() {
+        return this.target.getStackType();
     }
 }
