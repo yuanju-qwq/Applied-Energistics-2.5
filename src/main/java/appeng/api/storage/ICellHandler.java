@@ -47,8 +47,10 @@ public interface ICellHandler {
      * @deprecated 请使用 {@link #getCellInventory(ItemStack, ISaveProvider, IAEStackType)} 代替。
      */
     @Deprecated
-    <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
-            IStorageChannel<T> channel);
+    default <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
+            IStorageChannel<T> channel) {
+        return this.getCellInventory(is, host, channel.getStackType());
+    }
 
     /**
      * 通过 {@link IAEStackType} 获取 cell 的 inventory handler。
@@ -60,10 +62,8 @@ public interface ICellHandler {
      * @param type 请求的栈类型
      * @return 新的 IMEHandler，或 null
      */
-    default <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
-            IAEStackType<T> type) {
-        return this.getCellInventory(is, host, type.getStorageChannel());
-    }
+    <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
+            IAEStackType<T> type);
 
     /**
      * 0 - cell is missing.

@@ -68,7 +68,7 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
     protected AbstractCellInventory(final IStorageCell<T> cellType, final ItemStack o, final ISaveProvider container) {
         this.i = o;
         this.cellType = cellType;
-        this.itemsPerByte = this.cellType.getChannel().getUnitsPerByte();
+        this.itemsPerByte = this.cellType.getStackType().getUnitsPerByte();
         this.maxItemTypes = this.cellType.getTotalTypes(this.i);
 
         if (this.maxItemTypes > MAX_ITEM_TYPES) {
@@ -87,7 +87,7 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
 
     protected IItemList<T> getCellItems() {
         if (this.cellItems == null) {
-            this.cellItems = this.getChannel().createList();
+            this.cellItems = this.getStackType().createList();
             this.loadCellItems();
         }
 
@@ -159,7 +159,7 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
 
     private void loadCellItems() {
         if (this.cellItems == null) {
-            this.cellItems = this.getChannel().createList();
+            this.cellItems = this.getStackType().createList();
         }
 
         this.cellItems.resetStatus(); // clears totals and stuff.

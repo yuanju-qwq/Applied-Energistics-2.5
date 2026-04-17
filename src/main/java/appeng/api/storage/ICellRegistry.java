@@ -82,30 +82,30 @@ public interface ICellRegistry {
      */
     @Nullable
     @Deprecated
-    <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(IStorageChannel<T> channel, ItemStack is);
+    default <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(IStorageChannel<T> channel, ItemStack is) {
+        return this.getGuiHandler(channel.getStackType(), is);
+    }
 
     /**
      * 通过 {@link IAEStackType} 获取 GUI handler。
      */
     @Nullable
-    default <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(IAEStackType<T> type, ItemStack is) {
-        return this.getGuiHandler(type.getStorageChannel(), is);
-    }
+    <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(IAEStackType<T> type, ItemStack is);
 
     /**
      * @deprecated 请使用 {@link #getCellInventory(ItemStack, ISaveProvider, IAEStackType)} 代替。
      */
     @Nullable
     @Deprecated
-    <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
-            IStorageChannel<T> chan);
+    default <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
+            IStorageChannel<T> chan) {
+        return this.getCellInventory(is, host, chan.getStackType());
+    }
 
     /**
      * 通过 {@link IAEStackType} 获取 cell 的 inventory handler。
      */
     @Nullable
-    default <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
-            IAEStackType<T> type) {
-        return this.getCellInventory(is, host, type.getStorageChannel());
-    }
+    <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
+            IAEStackType<T> type);
 }

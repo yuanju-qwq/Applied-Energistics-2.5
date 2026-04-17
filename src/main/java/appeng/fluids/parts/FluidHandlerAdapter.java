@@ -35,6 +35,7 @@ import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.fluids.util.AEFluidStack;
 import appeng.fluids.util.AEFluidStackType;
@@ -144,8 +145,8 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
     }
 
     @Override
-    public IStorageChannel<IAEFluidStack> getChannel() {
-        return AEFluidStackType.INSTANCE.getStorageChannel();
+    public IAEStackType<IAEFluidStack> getStackType() {
+        return AEFluidStackType.INSTANCE;
     }
 
     @Override

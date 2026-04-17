@@ -32,6 +32,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.util.InventoryAdaptor;
 import appeng.util.inv.ItemSlot;
@@ -119,8 +120,8 @@ public class MEMonitorIInventory implements IMEMonitor<IAEItemStack>, ITickingMo
     }
 
     @Override
-    public IStorageChannel<IAEItemStack> getChannel() {
-        return AEItemStackType.INSTANCE.getStorageChannel();
+    public IAEStackType<IAEItemStack> getStackType() {
+        return AEItemStackType.INSTANCE;
     }
 
     @Override

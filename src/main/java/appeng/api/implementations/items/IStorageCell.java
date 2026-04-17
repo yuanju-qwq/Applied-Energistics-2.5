@@ -30,6 +30,7 @@ import net.minecraft.item.ItemStack;
 import appeng.api.storage.ICellWorkbenchItem;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 
 /**
  * Any item which implements this can be treated as an IMEInventory via Util.getCell / Util.isCell It automatically
@@ -103,8 +104,18 @@ public interface IStorageCell<T extends IAEStack<T>> extends ICellWorkbenchItem 
     double getIdleDrain();
 
     /**
+     * @deprecated 请使用 {@link #getStackType()} 代替。
      * @return the type of channel your cell should be part of
      */
+    @Deprecated
     @Nonnull
     IStorageChannel<T> getChannel();
+
+    /**
+     * @return 此 cell 对应的 {@link IAEStackType}
+     */
+    @Nonnull
+    default IAEStackType<T> getStackType() {
+        return getChannel().getStackType();
+    }
 }

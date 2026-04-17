@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -60,6 +60,7 @@ import appeng.api.storage.*;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEColor;
 import appeng.api.util.IConfigManager;
 import appeng.capabilities.Capabilities;
@@ -457,9 +458,9 @@ public class TileChest extends AENetworkPowerTile
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IStorageChannel<T> channel) {
+    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
         this.updateHandler();
-        if (this.cellHandler != null && this.cellHandler.getChannel() == channel) {
+        if (this.cellHandler != null && this.cellHandler.getStackType() == type) {
             return Collections.singletonList((IMEInventoryHandler<T>) this.cellHandler);
         }
         return Collections.emptyList();

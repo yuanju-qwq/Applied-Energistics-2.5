@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -25,6 +25,7 @@ import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.ISaveProvider;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.items.storage.ItemCreativeStorageCell;
 import appeng.me.storage.CreativeCellInventory;
 import appeng.util.item.AEItemStackType;
@@ -38,8 +39,8 @@ public final class CreativeCellHandler implements ICellHandler {
 
     @Override
     public <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(final ItemStack is, final ISaveProvider container,
-            final IStorageChannel<T> channel) {
-        if (channel == AEItemStackType.INSTANCE.getStorageChannel() && !is.isEmpty() && is
+            final IAEStackType<T> type) {
+        if (type == AEItemStackType.INSTANCE && !is.isEmpty() && is
                 .getItem() instanceof ItemCreativeStorageCell) {
             return (ICellInventoryHandler<T>) CreativeCellInventory.getCell(is);
         }

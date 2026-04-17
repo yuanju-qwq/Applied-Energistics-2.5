@@ -115,8 +115,8 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
-    public IStorageChannel<T> getChannel() {
-        return this.getHandler().getChannel();
+    public IAEStackType<?> getStackType() {
+        return this.getHandler().getStackType();
     }
 
     @Override

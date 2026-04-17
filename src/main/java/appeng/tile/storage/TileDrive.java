@@ -254,12 +254,6 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IStorageChannel<T> channel) {
-        return getCellArray(channel.getStackType());
-    }
-
-    @Override
     public int getPriority() {
         return this.priority;
     }

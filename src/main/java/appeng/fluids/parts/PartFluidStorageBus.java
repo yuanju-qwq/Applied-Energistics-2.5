@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2018, AlgorithmX2, All rights reserved.
  *
@@ -59,6 +59,7 @@ import appeng.api.parts.IPartModel;
 import appeng.api.storage.*;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AECableType;
 import appeng.api.util.IConfigManager;
@@ -519,8 +520,8 @@ public class PartFluidStorageBus extends PartUpgradeable implements IGridTickabl
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IStorageChannel<T> channel) {
-        if (channel == AEFluidStackType.INSTANCE.getStorageChannel()) {
+    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
+        if (type == AEFluidStackType.INSTANCE) {
             final IMEInventoryHandler<IAEFluidStack> out = this.getInternalHandler();
             if (out != null) {
                 return Collections.singletonList((IMEInventoryHandler<T>) out);

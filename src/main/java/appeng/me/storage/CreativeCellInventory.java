@@ -27,6 +27,7 @@ import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.items.contents.CellConfig;
 import appeng.util.item.AEItemStack;
@@ -81,8 +82,8 @@ public class CreativeCellInventory implements IMEInventoryHandler<IAEItemStack> 
     }
 
     @Override
-    public IStorageChannel<IAEItemStack> getChannel() {
-        return AEItemStackType.INSTANCE.getStorageChannel();
+    public IAEStackType<IAEItemStack> getStackType() {
+        return AEItemStackType.INSTANCE;
     }
 
     @Override

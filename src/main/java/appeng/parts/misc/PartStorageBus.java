@@ -1,4 +1,4 @@
-﻿/*
+﻿﻿﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -60,6 +60,7 @@ import appeng.api.parts.IPartModel;
 import appeng.api.storage.*;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AECableType;
 import appeng.api.util.IConfigManager;
@@ -553,8 +554,8 @@ public class PartStorageBus extends PartUpgradeable
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IStorageChannel<T> channel) {
-        if (channel == AEItemStackType.INSTANCE.getStorageChannel()) {
+    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
+        if (type == AEItemStackType.INSTANCE) {
             final IMEInventoryHandler<IAEItemStack> out = this.getInternalHandler();
             if (out != null) {
                 return Collections.singletonList((IMEInventoryHandler<T>) out);

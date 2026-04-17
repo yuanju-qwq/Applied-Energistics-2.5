@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -50,6 +50,7 @@ import appeng.api.implementations.items.IStorageCell;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEColor;
 import appeng.api.util.DimensionalCoord;
@@ -436,7 +437,7 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
     }
 
     @Override
-    public IStorageChannel<IAEItemStack> getChannel() {
-        return AEItemStackType.INSTANCE.getStorageChannel();
+    public IAEStackType<IAEItemStack> getStackType() {
+        return AEItemStackType.INSTANCE;
     }
 }

@@ -31,6 +31,7 @@ import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.util.Platform;
 import appeng.util.prioritylist.FuzzyPriorityList;
@@ -43,13 +44,20 @@ import appeng.util.prioritylist.PrecisePriorityList;
  */
 public class BasicCellInventoryHandler<T extends IAEStack<T>> extends MEInventoryHandler<T>
         implements ICellInventoryHandler<T> {
+    /** @deprecated 请使用 {@link #BasicCellInventoryHandler(IMEInventory, IAEStackType)} 代替 */
+    @Deprecated
     @SuppressWarnings("unchecked")
     public BasicCellInventoryHandler(final IMEInventory<T> c, final IStorageChannel<T> channel) {
-        super(c, channel);
+        this(c, channel.getStackType());
+    }
+
+    @SuppressWarnings("unchecked")
+    public BasicCellInventoryHandler(final IMEInventory<T> c, final IAEStackType<T> type) {
+        super(c, type);
 
         final ICellInventory ci = this.getCellInv();
         if (ci != null) {
-            final IItemList<T> priorityList = channel.createList();
+            final IItemList<T> priorityList = type.createList();
 
             final IItemHandler upgrades = ci.getUpgradesInventory();
             final IItemHandler config = ci.getConfigInventory();
@@ -83,7 +91,7 @@ public class BasicCellInventoryHandler<T extends IAEStack<T>> extends MEInventor
             for (int x = 0; x < config.getSlots(); x++) {
                 final ItemStack is = config.getStackInSlot(x);
                 if (!is.isEmpty()) {
-                    final T configItem = channel.createStack(is);
+                    final T configItem = type.createStack(is);
                     if (configItem != null) {
                         priorityList.add(configItem);
                     }

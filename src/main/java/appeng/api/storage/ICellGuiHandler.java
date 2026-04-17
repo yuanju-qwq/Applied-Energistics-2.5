@@ -13,7 +13,9 @@ public interface ICellGuiHandler {
      * @deprecated 请使用 {@link #isHandlerFor(IAEStackType)} 代替。
      */
     @Deprecated
-    <T extends IAEStack<T>> boolean isHandlerFor(IStorageChannel<T> channel);
+    default <T extends IAEStack<T>> boolean isHandlerFor(IStorageChannel<T> channel) {
+        return this.isHandlerFor(channel.getStackType());
+    }
 
     /**
      * 判断此 handler 是否可以处理指定的栈类型。
@@ -21,9 +23,7 @@ public interface ICellGuiHandler {
      * @param type 栈类型
      * @return 如果可以处理返回 true
      */
-    default <T extends IAEStack<T>> boolean isHandlerFor(IAEStackType<T> type) {
-        return this.isHandlerFor(type.getStorageChannel());
-    }
+    <T extends IAEStack<T>> boolean isHandlerFor(IAEStackType<T> type);
 
     /**
      * Return true to prioritize this handler for the provided {@link ItemStack}.
@@ -39,15 +39,15 @@ public interface ICellGuiHandler {
      * @deprecated 请使用 {@link #openChestGui(EntityPlayer, IChestOrDrive, ICellHandler, IMEInventoryHandler, ItemStack, IAEStackType)} 代替。
      */
     @Deprecated
-    <T extends IAEStack<T>> void openChestGui(EntityPlayer player, IChestOrDrive chest, ICellHandler cellHandler,
-            IMEInventoryHandler<T> inv, ItemStack is, IStorageChannel<T> chan);
+    default <T extends IAEStack<T>> void openChestGui(EntityPlayer player, IChestOrDrive chest, ICellHandler cellHandler,
+            IMEInventoryHandler<T> inv, ItemStack is, IStorageChannel<T> chan) {
+        this.openChestGui(player, chest, cellHandler, inv, is, chan.getStackType());
+    }
 
     /**
      * 通过 {@link IAEStackType} 打开 ME Chest 的 GUI。
      */
-    default <T extends IAEStack<T>> void openChestGui(EntityPlayer player, IChestOrDrive chest,
-            ICellHandler cellHandler, IMEInventoryHandler<T> inv, ItemStack is, IAEStackType<T> type) {
-        this.openChestGui(player, chest, cellHandler, inv, is, type.getStorageChannel());
-    }
+    <T extends IAEStack<T>> void openChestGui(EntityPlayer player, IChestOrDrive chest,
+            ICellHandler cellHandler, IMEInventoryHandler<T> inv, ItemStack is, IAEStackType<T> type);
 
 }

@@ -1,4 +1,4 @@
-﻿package appeng.core.features.registries.cell;
+package appeng.core.features.registries.cell;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -10,6 +10,7 @@ import appeng.api.storage.ICellHandler;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEPartLocation;
 import appeng.core.sync.GuiBridge;
 import appeng.util.Platform;
@@ -17,13 +18,13 @@ import appeng.util.item.AEItemStackType;
 
 public class BasicItemCellGuiHandler implements ICellGuiHandler {
     @Override
-    public <T extends IAEStack<T>> boolean isHandlerFor(final IStorageChannel<T> channel) {
-        return channel == AEItemStackType.INSTANCE.getStorageChannel();
+    public <T extends IAEStack<T>> boolean isHandlerFor(final IAEStackType<T> type) {
+        return type == AEItemStackType.INSTANCE;
     }
 
     @Override
     public <T extends IAEStack<T>> void openChestGui(final EntityPlayer player, final IChestOrDrive chest, final ICellHandler cellHandler,
-            final IMEInventoryHandler<T> inv, final ItemStack is, final IStorageChannel<T> chan) {
+            final IMEInventoryHandler<T> inv, final ItemStack is, final IAEStackType<T> type) {
         Platform.openGUI(player, (TileEntity) chest, AEPartLocation.fromFacing(chest.getUp()), GuiBridge.GUI_ME);
     }
 }

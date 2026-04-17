@@ -1,4 +1,4 @@
-﻿package appeng.fluids.parts;
+package appeng.fluids.parts;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,6 +33,7 @@ import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.core.sync.GuiBridge;
@@ -171,14 +172,14 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
     }
 
     @Override
-    public IStorageChannel<IAEFluidStack> getChannel() {
-        return AEFluidStackType.INSTANCE.getStorageChannel();
+    public IAEStackType<IAEFluidStack> getStackType() {
+        return AEFluidStackType.INSTANCE;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IStorageChannel<T> channel) {
-        if (channel == AEFluidStackType.INSTANCE.getStorageChannel()) {
+    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
+        if (type == AEFluidStackType.INSTANCE) {
             final List<IMEInventoryHandler<T>> handler = new ArrayList<>(1);
             handler.add((IMEInventoryHandler<T>) this.myHandler);
             return handler;

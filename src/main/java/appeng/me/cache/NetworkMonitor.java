@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -94,11 +94,6 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     @Override
     public IItemList<T> getAvailableItems(final IItemList<T> out) {
         return this.getHandler().getAvailableItems(out);
-    }
-
-    @Override
-    public IStorageChannel<T> getChannel() {
-        return this.getHandler().getChannel();
     }
 
     @Override

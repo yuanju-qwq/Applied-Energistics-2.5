@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -28,6 +28,7 @@ import appeng.api.storage.ICellHandler;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEPartLocation;
 import appeng.core.sync.GuiBridge;
 import appeng.util.Platform;
@@ -36,13 +37,13 @@ import appeng.fluids.util.AEFluidStackType;
 public class BasicFluidCellGuiHandler implements ICellGuiHandler {
 
     @Override
-    public <T extends IAEStack<T>> boolean isHandlerFor(final IStorageChannel<T> channel) {
-        return channel == AEFluidStackType.INSTANCE.getStorageChannel();
+    public <T extends IAEStack<T>> boolean isHandlerFor(final IAEStackType<T> type) {
+        return type == AEFluidStackType.INSTANCE;
     }
 
     @Override
     public <T extends IAEStack<T>> void openChestGui(final EntityPlayer player, final IChestOrDrive chest, final ICellHandler cellHandler,
-            final IMEInventoryHandler<T> inv, final ItemStack is, final IStorageChannel<T> chan) {
+            final IMEInventoryHandler<T> inv, final ItemStack is, final IAEStackType<T> type) {
         Platform.openGUI(player, (TileEntity) chest, AEPartLocation.fromFacing(chest.getUp()),
                 GuiBridge.GUI_ME);
     }

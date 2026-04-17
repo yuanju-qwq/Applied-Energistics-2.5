@@ -13,16 +13,17 @@ import appeng.api.storage.ISaveProvider;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
 import appeng.util.item.AEStack;
 
 public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInventory<T> {
-    private final IStorageChannel<T> channel;
+    private final IAEStackType<T> stackType;
 
     private BasicCellInventory(final IStorageCell<T> cellType, final ItemStack o, final ISaveProvider container) {
         super(cellType, o, container);
-        this.channel = cellType.getChannel();
+        this.stackType = cellType.getStackType();
     }
 
     public static <T extends IAEStack<T>> ICellInventory<T> createInventory(final ItemStack o,
@@ -54,7 +55,7 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
     public static <T extends AEStack<T>> boolean isCellOfType(final ItemStack input, IStorageChannel<?> channel) {
         final IStorageCell<?> type = getStorageCell(input);
 
-        return type != null && type.getChannel() == channel;
+        return type != null && type.getChannel().getStackType() == channel.getStackType();
     }
 
     public static boolean isCell(final ItemStack input) {
@@ -87,7 +88,7 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
     @SuppressWarnings("unchecked")
     private static boolean isCellEmpty(ICellInventory inv) {
         if (inv != null) {
-            return inv.getAvailableItems(inv.getChannel().createList()).isEmpty();
+            return inv.getAvailableItems(inv.getStackType().createList()).isEmpty();
         }
         return true;
     }
@@ -201,8 +202,8 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
     }
 
     @Override
-    public IStorageChannel<T> getChannel() {
-        return this.channel;
+    public IAEStackType<T> getStackType() {
+        return this.stackType;
     }
 
     @Override
@@ -210,7 +211,7 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
         // Now load the item stack
         final T t;
         try {
-            t = this.getChannel().createFromNBT(compoundTag);
+            t = this.getStackType().createFromNBT(compoundTag);
             if (t == null) {
                 AELog.warn("Removing item " + compoundTag
                         + " from storage cell because the associated item type couldn't be found.");

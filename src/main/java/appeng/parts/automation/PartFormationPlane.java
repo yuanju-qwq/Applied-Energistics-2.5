@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -53,6 +53,7 @@ import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.core.AEConfig;
@@ -174,8 +175,8 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IStorageChannel<T> channel) {
-        if (channel == AEItemStackType.INSTANCE.getStorageChannel()) {
+    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
+        if (type == AEItemStackType.INSTANCE) {
             final List<IMEInventoryHandler<T>> handler = new ArrayList<>(1);
             handler.add((IMEInventoryHandler<T>) this.myHandler);
             return handler;
@@ -312,8 +313,8 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
     }
 
     @Override
-    public IStorageChannel<IAEItemStack> getChannel() {
-        return AEItemStackType.INSTANCE.getStorageChannel();
+    public IAEStackType<IAEItemStack> getStackType() {
+        return AEItemStackType.INSTANCE;
     }
 
     @Override

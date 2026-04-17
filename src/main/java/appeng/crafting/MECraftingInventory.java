@@ -520,8 +520,8 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     }
 
     @Override
-    public IStorageChannel<IAEItemStack> getChannel() {
-        return AEItemStackType.INSTANCE.getStorageChannel();
+    public IAEStackType<IAEItemStack> getStackType() {
+        return AEItemStackType.INSTANCE;
     }
 
     // ========== 旧 API 兼容 ==========

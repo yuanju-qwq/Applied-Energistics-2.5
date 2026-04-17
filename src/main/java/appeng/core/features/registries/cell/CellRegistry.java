@@ -28,6 +28,7 @@ import net.minecraft.item.ItemStack;
 
 import appeng.api.storage.*;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 
 public class CellRegistry implements ICellRegistry {
 
@@ -79,13 +80,13 @@ public class CellRegistry implements ICellRegistry {
 
     @Override
     public <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(final ItemStack is,
-            final ISaveProvider container, final IStorageChannel<T> chan) {
+            final ISaveProvider container, final IAEStackType<T> type) {
         if (is.isEmpty()) {
             return null;
         }
         for (final ICellHandler ch : this.handlers) {
             if (ch.isCell(is)) {
-                return ch.getCellInventory(is, container, chan);
+                return ch.getCellInventory(is, container, type);
             }
         }
         return null;
@@ -97,11 +98,11 @@ public class CellRegistry implements ICellRegistry {
     }
 
     @Override
-    public <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(final IStorageChannel<T> channel, final ItemStack is) {
+    public <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(final IAEStackType<T> type, final ItemStack is) {
         ICellGuiHandler fallBack = null;
 
         for (final ICellGuiHandler ch : this.guiHandlers) {
-            if (ch.isHandlerFor(channel)) {
+            if (ch.isHandlerFor(type)) {
                 if (ch.isSpecializedFor(is)) {
                     return ch;
                 }

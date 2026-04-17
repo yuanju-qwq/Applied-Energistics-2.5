@@ -129,7 +129,7 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
         this.gettingAvailableContent = true;
         try {
             if (this.storageFilter == StorageFilter.EXTRACTABLE_ONLY) {
-                var stackList = this.internal.getAvailableItems(this.getChannel().createList());
+                var stackList = this.internal.getAvailableItems(this.getStackType().createList());
                 for (final T t : stackList) {
                     if (this.shouldItemBeAvailable(t)) {
                         out.add(t);
@@ -146,8 +146,8 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
     }
 
     @Override
-    public IStorageChannel<T> getChannel() {
-        return this.internal.getChannel();
+    public IAEStackType<?> getStackType() {
+        return this.internal.getStackType();
     }
 
     @Override

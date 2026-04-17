@@ -39,7 +39,9 @@ public interface ICellProvider extends IGridNodeService {
      * @deprecated 请使用 {@link #getCellArray(IAEStackType)} 代替。
      */
     @Deprecated
-    <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(IStorageChannel<T> channel);
+    default <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(IStorageChannel<T> channel) {
+        return this.getCellArray(channel.getStackType());
+    }
 
     /**
      * 通过 {@link IAEStackType} 获取存储 cell 列表。
@@ -49,9 +51,7 @@ public interface ICellProvider extends IGridNodeService {
      * @param type 栈类型
      * @return 有效的 handler 列表，不能为 null
      */
-    default <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(IAEStackType<T> type) {
-        return this.getCellArray(type.getStorageChannel());
-    }
+    <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(IAEStackType<T> type);
 
     /**
      * the storage's priority.

@@ -294,11 +294,6 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
     }
 
     @Override
-    public IStorageChannel<T> getChannel() {
-        return this.myStackType.getStorageChannel();
-    }
-
-    @Override
     public IAEStackType<T> getStackType() {
         return this.myStackType;
     }

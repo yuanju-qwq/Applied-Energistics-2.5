@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -54,6 +54,7 @@ import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.crafting.CraftingLink;
 import appeng.crafting.CraftingLinkNexus;
@@ -361,10 +362,10 @@ public class CraftingGridCache
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IStorageChannel<T> channel) {
+    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
         final List<IMEInventoryHandler<T>> list = new ArrayList<>(1);
 
-        if (channel == AEItemStackType.INSTANCE.getStorageChannel()) {
+        if (type == AEItemStackType.INSTANCE) {
             list.add((IMEInventoryHandler<T>) this);
         }
 
@@ -446,8 +447,8 @@ public class CraftingGridCache
     }
 
     @Override
-    public IStorageChannel<IAEItemStack> getChannel() {
-        return AEItemStackType.INSTANCE.getStorageChannel();
+    public IAEStackType<IAEItemStack> getStackType() {
+        return AEItemStackType.INSTANCE;
     }
 
     @Override

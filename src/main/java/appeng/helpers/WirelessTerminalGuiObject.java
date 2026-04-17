@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -45,6 +45,7 @@ import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.DimensionalCoord;
 import appeng.api.util.IConfigManager;
@@ -217,11 +218,11 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
     }
 
     @Override
-    public IStorageChannel<IAEItemStack> getChannel() {
+    public IAEStackType<IAEItemStack> getStackType() {
         if (this.itemStorage != null) {
-            return this.itemStorage.getChannel();
+            return (IAEStackType<IAEItemStack>) this.itemStorage.getStackType();
         }
-        return AEItemStackType.INSTANCE.getStorageChannel();
+        return AEItemStackType.INSTANCE;
     }
 
     @Override
