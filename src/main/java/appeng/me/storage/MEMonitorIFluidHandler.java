@@ -25,7 +25,6 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
-import appeng.api.AEApi;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.config.StorageFilter;
@@ -34,15 +33,14 @@ import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IItemList;
 import appeng.fluids.util.AEFluidStack;
+import appeng.fluids.util.AEFluidStackType;
 
 public class MEMonitorIFluidHandler implements IMEMonitor<IAEFluidStack>, ITickingMonitor {
     private final IFluidHandler handler;
-    private IItemList<IAEFluidStack> cache = AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class)
-            .createList();
+    private IItemList<IAEFluidStack> cache = AEFluidStackType.INSTANCE.createList();
     private final HashMap<IMEMonitorHandlerReceiver<IAEFluidStack>, Object> listeners = new HashMap<>();
     private IActionSource mySource;
     private StorageFilter mode = StorageFilter.EXTRACTABLE_ONLY;
@@ -108,8 +106,8 @@ public class MEMonitorIFluidHandler implements IMEMonitor<IAEFluidStack>, ITicki
     }
 
     @Override
-    public IStorageChannel getChannel() {
-        return AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class);
+    public IStorageChannel<IAEFluidStack> getChannel() {
+        return AEFluidStackType.INSTANCE.getStorageChannel();
     }
 
     @Override
@@ -119,8 +117,7 @@ public class MEMonitorIFluidHandler implements IMEMonitor<IAEFluidStack>, ITicki
         final List<IAEFluidStack> changes = new ArrayList<>();
         final IFluidTankProperties[] tankProperties = this.handler.getTankProperties();
 
-        IItemList<IAEFluidStack> currentlyOnStorage = AEApi.instance().storage()
-                .getStorageChannel(IFluidStorageChannel.class).createList();
+        IItemList<IAEFluidStack> currentlyOnStorage = AEFluidStackType.INSTANCE.createList();
 
         for (IFluidTankProperties tankProperty : tankProperties) {
             if (this.mode == StorageFilter.EXTRACTABLE_ONLY && this.handler.drain(1, false) == null) {
@@ -200,7 +197,7 @@ public class MEMonitorIFluidHandler implements IMEMonitor<IAEFluidStack>, ITicki
     }
 
     @Override
-    public IItemList<IAEFluidStack> getAvailableItems(final IItemList out) {
+    public IItemList<IAEFluidStack> getAvailableItems(final IItemList<IAEFluidStack> out) {
         for (final IAEFluidStack fs : cache) {
             out.addStorage(fs);
         }

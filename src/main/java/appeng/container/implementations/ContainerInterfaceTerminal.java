@@ -758,6 +758,14 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
     }
 
 
+    /**
+     * 供子类通过接口 ID 获取服务端的样板存储 IItemHandler（用于 PlacePattern 等操作）
+     */
+    protected IItemHandler getInterfacePatternHandlerById(long id) {
+        final InvTracker inv = this.byId.get(id);
+        return inv != null ? inv.server : null;
+    }
+
     private static class InvTracker {
 
         private final long sortBy;

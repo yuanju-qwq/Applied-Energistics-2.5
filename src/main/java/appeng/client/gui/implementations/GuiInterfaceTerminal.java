@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -34,7 +34,6 @@ import org.lwjgl.input.Mouse;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -44,11 +43,9 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.Constants;
 
-import appeng.api.AEApi;
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
 import appeng.api.config.TerminalStyle;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.client.gui.AEBaseGui;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
@@ -69,11 +66,12 @@ import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.parts.reporting.PartInterfaceTerminal;
 import appeng.util.BlockPosUtils;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStackType;
 
 public class GuiInterfaceTerminal extends AEBaseGui {
 
-    protected static final int OFFSET_X = 21;
-    protected final GuiText guiTitle;
+    private static final int OFFSET_X = 21;
+    private final GuiText guiTitle;
     private static final int MAGIC_HEIGHT_NUMBER = 52 + 99;
     private static final String MOLECULAR_ASSEMBLER = "tile.appliedenergistics2.molecular_assembler";
 
@@ -93,9 +91,9 @@ public class GuiInterfaceTerminal extends AEBaseGui {
     private final Map<String, Set<Object>> cachedSearches = new WeakHashMap<>();
     private final Map<ClientDCInternalInv, Integer> dimHashMap = new HashMap<>();
 
-    protected final MEGuiTooltipTextField searchFieldOutputs;
-    protected final MEGuiTooltipTextField searchFieldInputs;
-    protected final MEGuiTooltipTextField searchFieldNames;
+    private final MEGuiTooltipTextField searchFieldOutputs;
+    private final MEGuiTooltipTextField searchFieldInputs;
+    private final MEGuiTooltipTextField searchFieldNames;
 
     private final GuiImgButton guiButtonHideFull;
     private final GuiImgButton guiButtonAssemblersOnly;
@@ -146,28 +144,6 @@ public class GuiInterfaceTerminal extends AEBaseGui {
         guiButtonBrokenRecipes = new GuiImgButton(0, 0, Settings.ACTIONS, null);
         terminalStyleBox = new GuiImgButton(0, 0, Settings.TERMINAL_STYLE, null);
         guiTitle = GuiText.WirelessTerminal;
-    }
-
-    /**
-     * 受保护的构造器，供子类（如二合一接口终端）使用自定义Container
-     */
-    protected GuiInterfaceTerminal(final Container container, final GuiText title) {
-        super(container);
-
-        final GuiScrollbar scrollbar = new GuiScrollbar();
-        this.setScrollBar(scrollbar);
-        this.xSize = 208;
-        this.ySize = 255;
-
-        searchFieldInputs = createTextField(86, 12, ButtonToolTips.SearchFieldInputs.getLocal());
-        searchFieldOutputs = createTextField(86, 12, ButtonToolTips.SearchFieldOutputs.getLocal());
-        searchFieldNames = createTextField(71, 12, ButtonToolTips.SearchFieldNames.getLocal());
-
-        guiButtonAssemblersOnly = new GuiImgButton(0, 0, Settings.ACTIONS, null);
-        guiButtonHideFull = new GuiImgButton(0, 0, Settings.ACTIONS, null);
-        guiButtonBrokenRecipes = new GuiImgButton(0, 0, Settings.ACTIONS, null);
-        terminalStyleBox = new GuiImgButton(0, 0, Settings.TERMINAL_STYLE, null);
-        guiTitle = title;
     }
 
     private MEGuiTooltipTextField createTextField(final int width, final int height, final String tooltip) {
@@ -246,7 +222,7 @@ public class GuiInterfaceTerminal extends AEBaseGui {
         Keyboard.enableRepeatEvents(false);
     }
 
-    protected void repositionSlots() {
+    private void repositionSlots() {
         for (final Object obj : this.inventorySlots.inventorySlots) {
             if (obj instanceof AppEngSlot slot) {
                 slot.yPos = this.ySize + slot.getY() - 78 - 7;
@@ -512,7 +488,7 @@ public class GuiInterfaceTerminal extends AEBaseGui {
     }
 
     /** Cycle to the next search bar if tab is pressed, going in reverse if shift is held. */
-    protected boolean handleTab() {
+    private boolean handleTab() {
         if (searchFieldInputs.isFocused()) {
             searchFieldInputs.setFocused(false);
             if (isShiftKeyDown())
@@ -821,7 +797,7 @@ public class GuiInterfaceTerminal extends AEBaseGui {
             final ItemStack parsedItemStack = new ItemStack(tag.getCompoundTagAt(i));
             if (!parsedItemStack.isEmpty()) {
                 final String displayName = Platform
-                        .getItemDisplayName(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
+                        .getItemDisplayName(AEItemStackType.INSTANCE.getStorageChannel()
                                 .createStack(parsedItemStack))
                         .toLowerCase();
 

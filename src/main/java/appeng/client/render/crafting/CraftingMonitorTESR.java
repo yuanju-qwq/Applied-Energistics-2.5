@@ -24,7 +24,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.client.render.TesrRenderHelper;
 import appeng.tile.crafting.TileCraftingMonitorTile;
 
@@ -43,14 +43,14 @@ public class CraftingMonitorTESR extends TileEntitySpecialRenderer<TileCraftingM
 
         EnumFacing facing = te.getForward();
 
-        IAEItemStack jobProgress = te.getJobProgress();
+        IAEStack<?> jobProgress = te.getJobProgress();
         if (jobProgress != null) {
             GlStateManager.pushMatrix();
             GlStateManager.translate(x + 0.5, y + 0.5, z + 0.5);
 
             TesrRenderHelper.moveToFace(facing);
             TesrRenderHelper.rotateToFace(facing, (byte) 0);
-            TesrRenderHelper.renderItem2dWithAmount(jobProgress, 0.7f, 0.1f);
+            TesrRenderHelper.renderStack2dWithAmount(jobProgress, 0.7f, 0.1f);
 
             GlStateManager.popMatrix();
         }

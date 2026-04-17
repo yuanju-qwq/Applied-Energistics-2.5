@@ -8,6 +8,7 @@ import javax.annotation.Nonnull;
 
 import appeng.api.config.CraftingMode;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.crafting.MECraftingInventory;
 import appeng.crafting.v2.CraftingContext;
@@ -68,8 +69,8 @@ public class IgnoreMissingItemResolver implements CraftingRequestResolver {
         }
 
         @Override
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        public void populatePlan(IItemList targetPlan) {
+        @SuppressWarnings("unchecked")
+        public void populatePlan(IItemList<IAEStackBase> targetPlan) {
             if (fulfilled > 0) targetPlan.addRequestable(request.stack.copy().setCountRequestable(fulfilled));
         }
 

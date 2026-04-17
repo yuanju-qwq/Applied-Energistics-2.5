@@ -80,6 +80,8 @@ import appeng.entity.EntityIds;
 import appeng.entity.EntityTinyTNTPrimed;
 import appeng.fluids.block.BlockFluidInterface;
 import appeng.fluids.tile.TileFluidInterface;
+import appeng.block.misc.BlockDualInterface;
+import appeng.tile.misc.TileDualInterface;
 import appeng.hooks.DispenserBehaviorTinyTNT;
 import appeng.tile.crafting.TileCraftingMonitorTile;
 import appeng.tile.crafting.TileCraftingStorageTile;
@@ -135,6 +137,7 @@ public final class ApiBlocks implements IBlocks {
     private final ITileDefinition chest;
     private final ITileDefinition iface;
     private final ITileDefinition fluidIface;
+    private final ITileDefinition dualIface;
     private final ITileDefinition cellWorkbench;
     private final ITileDefinition iOPort;
     private final ITileDefinition condenser;
@@ -347,6 +350,10 @@ public final class ApiBlocks implements IBlocks {
         this.fluidIface = registry.block("fluid_interface", BlockFluidInterface::new)
                 .features(AEFeature.FLUID_INTERFACE)
                 .tileEntity(new TileEntityDefinition(TileFluidInterface.class))
+                .build();
+        this.dualIface = registry.block("dual_interface", BlockDualInterface::new)
+                .features(AEFeature.INTERFACE)
+                .tileEntity(new TileEntityDefinition(TileDualInterface.class))
                 .build();
         this.cellWorkbench = registry.block("cell_workbench", BlockCellWorkbench::new)
                 .features(AEFeature.STORAGE_CELLS)
@@ -834,6 +841,11 @@ public final class ApiBlocks implements IBlocks {
     @Override
     public ITileDefinition fluidIface() {
         return this.fluidIface;
+    }
+
+    @Override
+    public ITileDefinition dualIface() {
+        return this.dualIface;
     }
 
     @Override

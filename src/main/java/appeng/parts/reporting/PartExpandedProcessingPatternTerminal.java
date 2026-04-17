@@ -9,12 +9,14 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import appeng.api.parts.IPartModel;
+import appeng.api.storage.StorageName;
 import appeng.core.AppEng;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.Reflected;
 import appeng.items.parts.PartModels;
 import appeng.parts.PartModel;
 import appeng.tile.inventory.AppEngInternalInventory;
+import appeng.tile.inventory.IAEStackInventory;
 
 public class PartExpandedProcessingPatternTerminal extends AbstractPartEncoder {
     @PartModels
@@ -31,8 +33,10 @@ public class PartExpandedProcessingPatternTerminal extends AbstractPartEncoder {
     @Reflected
     public PartExpandedProcessingPatternTerminal(final ItemStack is) {
         super(is);
-        this.crafting = new AppEngInternalInventory(this, PROCESSING_INPUT_LIMIT);
-        this.output = new AppEngInternalInventory(this, PROCESSING_OUTPUT_LIMIT);
+        this.craftingAE = new IAEStackInventory(this, PROCESSING_INPUT_LIMIT,
+                StorageName.CRAFTING_INPUT);
+        this.outputAE = new IAEStackInventory(this, PROCESSING_OUTPUT_LIMIT,
+                StorageName.CRAFTING_OUTPUT);
         this.pattern = new AppEngInternalInventory(this, 2);
         this.craftingMode = false;
     }

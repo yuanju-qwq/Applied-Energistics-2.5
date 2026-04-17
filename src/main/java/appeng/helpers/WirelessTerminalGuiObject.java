@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -43,7 +43,6 @@ import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
@@ -58,6 +57,7 @@ import appeng.tile.networking.TileWireless;
 import appeng.tile.qnb.TileQuantumBridge;
 import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.InvOperation;
+import appeng.util.item.AEItemStackType;
 
 public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, IInventorySlotAware, IViewCellStorage,
         IAEAppEngInventory, IUpgradeableCellHost {
@@ -105,7 +105,7 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
                     this.sg = this.targetGrid.getCache(IStorageGrid.class);
                     if (this.sg != null) {
                         this.itemStorage = this.sg
-                                .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                                .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
                     }
                 }
             }
@@ -217,11 +217,11 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
     }
 
     @Override
-    public IStorageChannel getChannel() {
+    public IStorageChannel<IAEItemStack> getChannel() {
         if (this.itemStorage != null) {
             return this.itemStorage.getChannel();
         }
-        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class);
+        return AEItemStackType.INSTANCE.getStorageChannel();
     }
 
     @Override

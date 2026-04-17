@@ -84,6 +84,7 @@ public final class ApiItems implements IItems {
     private final IItemDefinition wirelessInterfaceTerminal;
     private final IItemDefinition wirelessDualInterfaceTerminal;
     private final IItemDefinition wirelessFluidTerminal;
+    private final IItemDefinition wirelessUniversalTerminal;
     private final IItemDefinition biometricCard;
     private final IItemDefinition chargedStaff;
     private final IItemDefinition massCannon;
@@ -216,6 +217,9 @@ public final class ApiItems implements IItems {
         this.wirelessDualInterfaceTerminal = powerTools
                 .item("wireless_dual_interface_terminal", ToolWirelessDualInterfaceTerminal::new)
                 .addFeatures(AEFeature.WIRELESS_DUAL_INTERFACE_TERMINAL).build();
+        this.wirelessUniversalTerminal = powerTools
+                .item("wireless_universal_terminal", ToolWirelessUniversalTerminal::new)
+                .addFeatures(AEFeature.WIRELESS_UNIVERSAL_TERMINAL).build();
 
         this.chargedStaff = powerTools.item("charged_staff", ToolChargedStaff::new).addFeatures(AEFeature.CHARGED_STAFF)
                 .build();
@@ -432,6 +436,11 @@ public final class ApiItems implements IItems {
     @Override
     public IItemDefinition wirelessDualInterfaceTerminal() {
         return wirelessDualInterfaceTerminal;
+    }
+
+    @Override
+    public IItemDefinition wirelessUniversalTerminal() {
+        return wirelessUniversalTerminal;
     }
 
     @Override

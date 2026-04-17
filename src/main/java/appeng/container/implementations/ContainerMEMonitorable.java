@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -53,10 +53,10 @@ import appeng.api.parts.IPart;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.ITerminalHost;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
@@ -82,14 +82,14 @@ import appeng.me.helpers.ChannelPowerSrc;
 import appeng.util.ConfigManager;
 import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStackType;
 
-@SuppressWarnings("rawtypes")
+@SuppressWarnings("unchecked")
 public class ContainerMEMonitorable extends AEBaseContainer
         implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver {
 
     protected final SlotRestrictedInput[] cellView = new SlotRestrictedInput[5];
-    public final IItemList<IAEItemStack> items = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-            .createList();
+    public final IItemList<IAEItemStack> items = AEItemStackType.INSTANCE.createList();
 
     /**
      * 多类型 Monitor 映射：每种已注册的 IAEStackType 对应一个 IMEMonitor。
@@ -150,7 +150,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
             // 遍历所有已注册的 IAEStackType，获取对应的 IMEMonitor 并注册监听
             boolean hasAnyMonitor = false;
             for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
-                IMEMonitor<?> mon = monitorable.getMEMonitor(type);
+                IMEMonitor<?> mon = monitorable.getInventory(type);
                 if (mon != null) {
                     mon.addListener(this, null);
                     this.monitors.put(type, mon);
@@ -280,7 +280,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
         if (Platform.isServer()) {
             // 验证所有 monitor 仍然有效
             for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
-                IMEMonitor<?> current = this.host.getMEMonitor(type);
+                IMEMonitor<?> current = this.host.getInventory(type);
                 IMEMonitor<?> stored = this.monitors.get(type);
                 if (stored != null && stored != current) {
                     this.setValidContainer(false);
@@ -322,13 +322,14 @@ public class ContainerMEMonitorable extends AEBaseContainer
 
                     for (var entry : this.updateQueue.entrySet()) {
                         IAEStackType type = entry.getKey();
-                        IMEMonitor mon = this.monitors.get(type);
+                        IMEMonitor<?> mon = this.monitors.get(type);
                         if (mon == null) {
                             continue;
                         }
-                        IItemList storageList = mon.getStorageList();
+                        IItemList<?> storageList = mon.getStorageList();
                         for (IAEStack<?> aes : entry.getValue()) {
-                            final IAEStack<?> send = storageList.findPrecise(aes);
+                            @SuppressWarnings("rawtypes")
+                            final IAEStack<?> send = (IAEStack<?>) ((IItemList) storageList).findPrecise(aes);
                             if (send == null) {
                                 aes.setStackSize(0);
                                 piu.appendStack(aes);
@@ -430,9 +431,9 @@ public class ContainerMEMonitorable extends AEBaseContainer
             PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
             for (var monitor : this.monitors.values()) {
-                IItemList storageList = monitor.getStorageList();
-                for (final Object obj : storageList) {
-                    IAEStack<?> send = (IAEStack<?>) obj;
+                IItemList<?> storageList = monitor.getStorageList();
+                for (final IAEStackBase stackBase : (IItemList<IAEStackBase>) storageList) {
+                    final IAEStack<?> send = (IAEStack<?>) stackBase;
                     try {
                         piu.appendStack(send);
                     } catch (final BufferOverflowException boe) {

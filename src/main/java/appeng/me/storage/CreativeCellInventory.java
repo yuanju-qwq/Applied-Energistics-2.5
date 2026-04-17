@@ -20,23 +20,21 @@ package appeng.me.storage;
 
 import net.minecraft.item.ItemStack;
 
-import appeng.api.AEApi;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.items.contents.CellConfig;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class CreativeCellInventory implements IMEInventoryHandler<IAEItemStack> {
 
-    private final IItemList<IAEItemStack> itemListCache = AEApi.instance().storage()
-            .getStorageChannel(IItemStorageChannel.class).createList();
+    private final IItemList<IAEItemStack> itemListCache = AEItemStackType.INSTANCE.createList();
 
     protected CreativeCellInventory(final ItemStack o) {
         final CellConfig cc = new CellConfig(o);
@@ -49,9 +47,9 @@ public class CreativeCellInventory implements IMEInventoryHandler<IAEItemStack> 
         }
     }
 
-    public static ICellInventoryHandler getCell(final ItemStack o) {
-        return new BasicCellInventoryHandler(new CreativeCellInventory(o),
-                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+    public static ICellInventoryHandler<IAEItemStack> getCell(final ItemStack o) {
+        return new BasicCellInventoryHandler<>(new CreativeCellInventory(o),
+                AEItemStackType.INSTANCE.getStorageChannel());
     }
 
     @Override
@@ -75,7 +73,7 @@ public class CreativeCellInventory implements IMEInventoryHandler<IAEItemStack> 
     }
 
     @Override
-    public IItemList<IAEItemStack> getAvailableItems(final IItemList out) {
+    public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
         for (final IAEItemStack ais : this.itemListCache) {
             out.add(ais);
         }
@@ -83,8 +81,8 @@ public class CreativeCellInventory implements IMEInventoryHandler<IAEItemStack> 
     }
 
     @Override
-    public IStorageChannel getChannel() {
-        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class);
+    public IStorageChannel<IAEItemStack> getChannel() {
+        return AEItemStackType.INSTANCE.getStorageChannel();
     }
 
     @Override

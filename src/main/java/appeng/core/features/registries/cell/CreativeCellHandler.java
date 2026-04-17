@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -20,14 +20,14 @@ package appeng.core.features.registries.cell;
 
 import net.minecraft.item.ItemStack;
 
-import appeng.api.AEApi;
 import appeng.api.storage.ICellHandler;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.ISaveProvider;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
+import appeng.api.storage.data.IAEStack;
 import appeng.items.storage.ItemCreativeStorageCell;
 import appeng.me.storage.CreativeCellInventory;
+import appeng.util.item.AEItemStackType;
 
 public final class CreativeCellHandler implements ICellHandler {
 
@@ -37,22 +37,22 @@ public final class CreativeCellHandler implements ICellHandler {
     }
 
     @Override
-    public ICellInventoryHandler getCellInventory(final ItemStack is, final ISaveProvider container,
-            final IStorageChannel channel) {
-        if (channel == AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class) && !is.isEmpty() && is
+    public <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(final ItemStack is, final ISaveProvider container,
+            final IStorageChannel<T> channel) {
+        if (channel == AEItemStackType.INSTANCE.getStorageChannel() && !is.isEmpty() && is
                 .getItem() instanceof ItemCreativeStorageCell) {
-            return CreativeCellInventory.getCell(is);
+            return (ICellInventoryHandler<T>) CreativeCellInventory.getCell(is);
         }
         return null;
     }
 
     @Override
-    public int getStatusForCell(final ItemStack is, final ICellInventoryHandler handler) {
+    public <T extends IAEStack<T>> int getStatusForCell(final ItemStack is, final ICellInventoryHandler<T> handler) {
         return 2;
     }
 
     @Override
-    public double cellIdleDrain(final ItemStack is, final ICellInventoryHandler handler) {
+    public <T extends IAEStack<T>> double cellIdleDrain(final ItemStack is, final ICellInventoryHandler<T> handler) {
         return 0;
     }
 }

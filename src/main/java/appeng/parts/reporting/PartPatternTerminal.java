@@ -27,12 +27,14 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 
 import appeng.api.parts.IPartModel;
+import appeng.api.storage.StorageName;
 import appeng.core.AppEng;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.Reflected;
 import appeng.items.parts.PartModels;
 import appeng.parts.PartModel;
 import appeng.tile.inventory.AppEngInternalInventory;
+import appeng.tile.inventory.IAEStackInventory;
 
 public class PartPatternTerminal extends AbstractPartEncoder {
 
@@ -48,8 +50,9 @@ public class PartPatternTerminal extends AbstractPartEncoder {
     @Reflected
     public PartPatternTerminal(final ItemStack is) {
         super(is);
-        this.crafting = new AppEngInternalInventory(this, CRAFTING_GRID_DIMENSION * CRAFTING_GRID_DIMENSION);
-        this.output = new AppEngInternalInventory(this, 3);
+        this.craftingAE = new IAEStackInventory(this, CRAFTING_GRID_DIMENSION * CRAFTING_GRID_DIMENSION,
+                StorageName.CRAFTING_INPUT);
+        this.outputAE = new IAEStackInventory(this, 3, StorageName.CRAFTING_OUTPUT);
         this.pattern = new AppEngInternalInventory(this, 2);
     }
 

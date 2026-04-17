@@ -20,6 +20,7 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.crafting.MECraftingInventory;
 import appeng.crafting.v2.CraftingContext;
@@ -103,8 +104,8 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             this.allowSimulation = allowSimulation;
             this.isComplex = isComplex;
 
-            IAEStack<?>[] pInputs = pattern.getGenericCondensedInputs();
-            IAEStack<?>[] pOutputs = pattern.getGenericCondensedOutputs();
+            IAEStack<?>[] pInputs = pattern.getCondensedAEInputs();
+            IAEStack<?>[] pOutputs = pattern.getCondensedAEOutputs();
 
             if (!hasRecursiveInputs(pInputs, pOutputs)) {
                 this.patternInputs = pInputs;
@@ -142,8 +143,8 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             this.craftingMachine = serializer.readItemStack();
             this.totalCraftsDone = buffer.readLong();
 
-            IAEStack<?>[] pInputs = pattern.getGenericCondensedInputs();
-            IAEStack<?>[] pOutputs = pattern.getGenericCondensedOutputs();
+            IAEStack<?>[] pInputs = pattern.getCondensedAEInputs();
+            IAEStack<?>[] pOutputs = pattern.getCondensedAEOutputs();
             if (!hasRecursiveInputs(pInputs, pOutputs)) {
                 this.patternInputs = pInputs;
                 this.patternOutputs = pOutputs;
@@ -466,7 +467,7 @@ public class CraftableItemResolver implements CraftingRequestResolver {
 
         private void requestComplexInputs(CraftingContext context, SubstitutionMode childMode, long toCraft,
                 ArrayList<CraftingRequest> newChildren) {
-            final IAEStack<?>[] slotInputs = pattern.getGenericInputs();
+            final IAEStack<?>[] slotInputs = pattern.getAEInputs();
             for (int slot = 0; slot < slotInputs.length; slot++) {
                 final IAEStack<?> input = slotInputs[slot];
                 if (input == null) {
@@ -548,8 +549,8 @@ public class CraftableItemResolver implements CraftingRequestResolver {
         // ====================== 计划 & CPU 启动 ======================
 
         @Override
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        public void populatePlan(IItemList targetPlan) {
+        @SuppressWarnings("unchecked")
+        public void populatePlan(IItemList<IAEStackBase> targetPlan) {
             if (totalCraftsDone > 0) {
                 for (RequestAndPerCraftAmount childPair : childRequests) {
                     childPair.request.usedResolvers.forEach(re -> re.task.populatePlan(targetPlan));

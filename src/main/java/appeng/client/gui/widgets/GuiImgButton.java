@@ -173,6 +173,8 @@ public class GuiImgButton extends GuiButton implements ITooltip {
                     ButtonToolTips.ToggleMolecularAssemblers, ButtonToolTips.ToggleMolecularAssemblersOffDesc);
             this.registerApp(6 + 6 * 16, Settings.ACTIONS, ActionItems.HIGHLIGHT_INTERFACE,
                     ButtonToolTips.HighlightInterface, "");
+            this.registerApp(6 + 4 * 16, Settings.ACTIONS, ActionItems.DOUBLE_STACKS,
+                    ButtonToolTips.DoubleStacks, ButtonToolTips.DoubleStacksDesc);
             this.registerApp(4 + 5 * 16, Settings.ACTIONS, ActionItems.TOGGLE_SHOW_ONLY_INVALID_PATTERNS_OFF,
                     ButtonToolTips.ToggleShowOnlyInvalidInterface,
                     ButtonToolTips.ToggleShowOnlyInvalidInterfaceOffDesc);
@@ -185,6 +187,12 @@ public class GuiImgButton extends GuiButton implements ITooltip {
                     ButtonToolTips.SubstitutionsDescEnabled);
             this.registerApp(7 + 3 * 16, Settings.ACTIONS, ItemSubstitution.DISABLED, ButtonToolTips.Substitutions,
                     ButtonToolTips.SubstitutionsDescDisabled);
+
+            // 合并模式按钮图标（Combine）
+            this.registerApp(5 + 3 * 16, Settings.ACTIONS, CombineMode.ENABLED, ButtonToolTips.CombineMode,
+                    ButtonToolTips.CombineModeYes);
+            this.registerApp(8 + 3 * 16, Settings.ACTIONS, CombineMode.DISABLED, ButtonToolTips.CombineMode,
+                    ButtonToolTips.CombineModeNo);
 
             this.registerApp(16, Settings.VIEW_MODE, ViewItems.STORED, ButtonToolTips.View, ButtonToolTips.StoredItems);
             this.registerApp(18, Settings.VIEW_MODE, ViewItems.ALL, ButtonToolTips.View,

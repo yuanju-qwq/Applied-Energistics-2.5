@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -27,7 +27,6 @@ import javax.annotation.Nullable;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
-import appeng.api.AEApi;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.events.MENetworkStorageEvent;
@@ -36,11 +35,12 @@ import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IFluidStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.me.storage.ItemWatcher;
+import appeng.util.item.AEItemStackType;
+import appeng.fluids.util.AEFluidStackType;
 
 public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     @Nonnull
@@ -53,7 +53,7 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     @Nonnull
     private final GridStorageCache myGridCache;
     @Nonnull
-    private final IStorageChannel<T> myChannel;
+    private final IAEStackType<T> myStackType;
     @Nonnull
     private final IItemList<T> cachedList;
     @Nonnull
@@ -64,10 +64,10 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     private long gridFluidCount;
     public boolean forceUpdate;
 
-    public NetworkMonitor(final GridStorageCache cache, final IStorageChannel<T> chan) {
+    public NetworkMonitor(final GridStorageCache cache, final IAEStackType<T> type) {
         this.myGridCache = cache;
-        this.myChannel = chan;
-        this.cachedList = chan.createList();
+        this.myStackType = type;
+        this.cachedList = type.createList();
         this.listeners = new Object2ObjectOpenHashMap<>();
     }
 
@@ -102,6 +102,11 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
+    public IAEStackType<T> getStackType() {
+        return this.myStackType;
+    }
+
+    @Override
     public int getPriority() {
         return this.getHandler().getPriority();
     }
@@ -112,18 +117,18 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     public long getGridCurrentCount() {
-        if (myChannel == AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)) {
+        if (myStackType == AEItemStackType.INSTANCE) {
             return gridItemCount;
-        } else if (myChannel == AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class)) {
+        } else if (myStackType == AEFluidStackType.INSTANCE) {
             return gridFluidCount;
         }
         return 0;
     }
 
     public void incGridCurrentCount(long count) {
-        if (myChannel == AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)) {
+        if (myStackType == AEItemStackType.INSTANCE) {
             gridItemCount += count;
-        } else if (myChannel == AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class)) {
+        } else if (myStackType == AEFluidStackType.INSTANCE) {
             gridFluidCount += count;
         }
     }
@@ -156,7 +161,7 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
 
     @Nullable
     private IMEInventoryHandler<T> getHandler() {
-        return this.myGridCache.getInventoryHandler(this.myChannel);
+        return this.myGridCache.getInventoryHandler(this.myStackType);
     }
 
     private Iterator<Entry<IMEMonitorHandlerReceiver<T>, Object>> getListeners() {
@@ -224,7 +229,7 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
                     this.myGridCache.getInterestManager().enableTransactions();
 
                     for (final ItemWatcher iw : list) {
-                        iw.getHost().onStackChange(this.getStorageList(), fullStack, change, src, this.getChannel());
+                        iw.getHost().onStackChange(this.getStorageList(), fullStack, change, src, this.myStackType);
                     }
 
                     this.myGridCache.getInterestManager().disableTransactions();
@@ -276,7 +281,7 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
                     this.myGridCache.getInterestManager().enableTransactions();
 
                     for (final ItemWatcher iw : list) {
-                        iw.getHost().onStackChange(this.getStorageList(), fullStack, stack, null, this.getChannel());
+                        iw.getHost().onStackChange(this.getStorageList(), fullStack, stack, null, this.myStackType);
                     }
 
                     this.myGridCache.getInterestManager().disableTransactions();
@@ -284,9 +289,9 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
             }
         }
 
-        if (myChannel == AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)) {
+        if (myStackType == AEItemStackType.INSTANCE) {
             gridItemCount = count;
-        } else if (myChannel == AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class)) {
+        } else if (myStackType == AEFluidStackType.INSTANCE) {
             gridFluidCount = count;
         }
 
@@ -309,7 +314,7 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
         }
         if (this.sendEvent) {
             this.sendEvent = false;
-            this.myGridCache.getGrid().postEvent(new MENetworkStorageEvent(this, this.myChannel));
+            this.myGridCache.getGrid().postEvent(new MENetworkStorageEvent(this, this.myStackType));
         }
     }
 }

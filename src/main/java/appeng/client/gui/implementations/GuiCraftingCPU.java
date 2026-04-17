@@ -33,12 +33,12 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 
-import appeng.api.AEApi;
 import appeng.api.config.SortDir;
 import appeng.api.config.SortOrder;
 import appeng.api.config.ViewItems;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEColor;
 import appeng.client.gui.AEBaseGui;
@@ -52,6 +52,7 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.util.Platform;
 import appeng.util.ReadableNumberConverter;
+import appeng.util.item.IAEStackList;
 
 public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
     private static final int GUI_HEIGHT = 210;
@@ -87,14 +88,11 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
 
     private final ContainerCraftingCPU craftingCpu;
 
-    private IItemList<IAEItemStack> storage = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-            .createList();
-    private IItemList<IAEItemStack> active = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-            .createList();
-    private IItemList<IAEItemStack> pending = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-            .createList();
+    private IItemList<IAEStackBase> storage = new IAEStackList();
+    private IItemList<IAEStackBase> active = new IAEStackList();
+    private IItemList<IAEStackBase> pending = new IAEStackList();
 
-    private List<IAEItemStack> visual = new ArrayList<>();
+    private List<IAEStack<?>> visual = new ArrayList<>();
 
     private GuiButton cancel;
     private GuiButton switchButton;
@@ -117,9 +115,9 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
     }
 
     public void clearItems() {
-        this.storage = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList();
-        this.active = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList();
-        this.pending = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList();
+        this.storage = new IAEStackList();
+        this.active = new IAEStackList();
+        this.pending = new IAEStackList();
         this.visual = new ArrayList<>();
     }
 
@@ -249,14 +247,17 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
 
         final ReadableNumberConverter converter = ReadableNumberConverter.INSTANCE;
         for (int z = viewStart; z < Math.min(viewEnd, this.visual.size()); z++) {
-            final IAEItemStack refStack = this.visual.get(z);// repo.getReferenceItem( z );
+            final IAEStack<?> refStack = this.visual.get(z);// repo.getReferenceItem( z );
             if (refStack != null) {
                 GlStateManager.pushMatrix();
                 GlStateManager.scale(0.5, 0.5, 0.5);
 
-                final IAEItemStack stored = this.storage.findPrecise(refStack);
-                final IAEItemStack activeStack = this.active.findPrecise(refStack);
-                final IAEItemStack pendingStack = this.pending.findPrecise(refStack);
+                @SuppressWarnings("unchecked")
+                final IAEStack<?> stored = (IAEStack<?>) this.storage.findPrecise(refStack);
+                @SuppressWarnings("unchecked")
+                final IAEStack<?> activeStack = (IAEStack<?>) this.active.findPrecise(refStack);
+                @SuppressWarnings("unchecked")
+                final IAEStack<?> pendingStack = (IAEStack<?>) this.pending.findPrecise(refStack);
 
                 int lines = 0;
 
@@ -373,33 +374,46 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
     }
 
     public void postUpdate(final List<IAEItemStack> list, final byte ref) {
+        // 旧接口兼容：转为泛型版本
+        final List<IAEStack<?>> genericList = new ArrayList<>(list.size());
+        for (IAEItemStack item : list) {
+            genericList.add(item);
+        }
+        postGenericUpdate(genericList, ref);
+    }
+
+    /**
+     * 泛型版本：接收包含物品和流体的合成状态更新。
+     */
+    @SuppressWarnings("unchecked")
+    public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
         switch (ref) {
             case 0:
-                for (final IAEItemStack l : list) {
+                for (final IAEStack<?> l : list) {
                     this.handleInput(this.storage, l);
                 }
                 break;
 
             case 1:
-                for (final IAEItemStack l : list) {
+                for (final IAEStack<?> l : list) {
                     this.handleInput(this.active, l);
                 }
                 break;
 
             case 2:
-                for (final IAEItemStack l : list) {
+                for (final IAEStack<?> l : list) {
                     this.handleInput(this.pending, l);
                 }
                 break;
         }
 
-        for (final IAEItemStack l : list) {
+        for (final IAEStack<?> l : list) {
             final long amt = this.getTotal(l);
 
             if (amt <= 0) {
                 this.deleteVisualStack(l);
             } else {
-                final IAEItemStack is = this.findVisualStack(l);
+                final IAEStack<?> is = this.findVisualStack(l);
                 is.setStackSize(amt);
             }
         }
@@ -407,8 +421,9 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
         this.setScrollBar();
     }
 
-    private void handleInput(final IItemList<IAEItemStack> s, final IAEItemStack l) {
-        IAEItemStack a = s.findPrecise(l);
+    @SuppressWarnings("unchecked")
+    private void handleInput(final IItemList<IAEStackBase> s, final IAEStack<?> l) {
+        IAEStack<?> a = (IAEStack<?>) s.findPrecise(l);
 
         if (l.getStackSize() <= 0) {
             if (a != null) {
@@ -417,7 +432,7 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
         } else {
             if (a == null) {
                 s.add(l.copy());
-                a = s.findPrecise(l);
+                a = (IAEStack<?>) s.findPrecise(l);
             }
 
             if (a != null) {
@@ -426,10 +441,11 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
         }
     }
 
-    private long getTotal(final IAEItemStack is) {
-        final IAEItemStack a = this.storage.findPrecise(is);
-        final IAEItemStack b = this.active.findPrecise(is);
-        final IAEItemStack c = this.pending.findPrecise(is);
+    @SuppressWarnings("unchecked")
+    private long getTotal(final IAEStack<?> is) {
+        final IAEStack<?> a = (IAEStack<?>) this.storage.findPrecise(is);
+        final IAEStack<?> b = (IAEStack<?>) this.active.findPrecise(is);
+        final IAEStack<?> c = (IAEStack<?>) this.pending.findPrecise(is);
 
         long total = 0;
 
@@ -448,11 +464,11 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
         return total;
     }
 
-    private void deleteVisualStack(final IAEItemStack l) {
-        final Iterator<IAEItemStack> i = this.visual.iterator();
+    private void deleteVisualStack(final IAEStack<?> l) {
+        final Iterator<IAEStack<?>> i = this.visual.iterator();
 
         while (i.hasNext()) {
-            final IAEItemStack o = i.next();
+            final IAEStack<?> o = i.next();
             if (o.equals(l)) {
                 i.remove();
                 return;
@@ -460,14 +476,14 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
         }
     }
 
-    private IAEItemStack findVisualStack(final IAEItemStack l) {
-        for (final IAEItemStack o : this.visual) {
+    private IAEStack<?> findVisualStack(final IAEStack<?> l) {
+        for (final IAEStack<?> o : this.visual) {
             if (o.equals(l)) {
                 return o;
             }
         }
 
-        final IAEItemStack stack = l.copy();
+        final IAEStack<?> stack = l.copy();
         this.visual.add(stack);
 
         return stack;
@@ -488,7 +504,7 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
         return ViewItems.ALL;
     }
 
-    public List<IAEItemStack> getVisual() {
+    public List<IAEStack<?>> getVisual() {
         return visual;
     }
 

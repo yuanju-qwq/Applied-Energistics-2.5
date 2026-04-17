@@ -1,4 +1,4 @@
-package appeng.container.implementations;
+﻿package appeng.container.implementations;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -10,10 +10,8 @@ import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.oredict.OreDictionary;
 
-import appeng.api.AEApi;
 import appeng.api.config.*;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.container.guisync.GuiSync;
 import appeng.container.slot.SlotRestrictedInput;
@@ -23,6 +21,7 @@ import appeng.parts.misc.PartOreDicStorageBus;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 import appeng.util.item.OreReference;
+import appeng.util.item.AEItemStackType;
 
 public class ContainerOreDictStorageBus extends ContainerUpgradeable {
     private final PartOreDicStorageBus part;
@@ -69,7 +68,7 @@ public class ContainerOreDictStorageBus extends ContainerUpgradeable {
         Set<Integer> oreIDs = new HashSet<>();
 
         for (IAEItemStack itemStack : cellInv.getAvailableItems(
-                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList())) {
+                AEItemStackType.INSTANCE.createList())) {
             OreReference ref = ((AEItemStack) itemStack).getOre().orElse(null);
             if (ref != null) {
                 oreIDs.addAll(ref.getOres());

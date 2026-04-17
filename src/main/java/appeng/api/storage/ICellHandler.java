@@ -26,6 +26,7 @@ package appeng.api.storage;
 import net.minecraft.item.ItemStack;
 
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 
 /**
  * Registration record for {@link ICellRegistry}
@@ -43,18 +44,26 @@ public interface ICellHandler {
     boolean isCell(ItemStack is);
 
     /**
-     * If you cannot handle the provided item, return null
-     *
-     * @param is      a storage cell item.
-     * @param host    anytime the contents of your storage cell changes it should use this to request a save, please
-     *                note, this value can be null. If provided, the host is responsible for persisting the cell
-     *                content.
-     * @param channel the storage channel requested.
-     *
-     * @return a new IMEHandler for the provided item
+     * @deprecated 请使用 {@link #getCellInventory(ItemStack, ISaveProvider, IAEStackType)} 代替。
      */
+    @Deprecated
     <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
             IStorageChannel<T> channel);
+
+    /**
+     * 通过 {@link IAEStackType} 获取 cell 的 inventory handler。
+     * <p>
+     * 如果无法处理该物品，返回 null。
+     *
+     * @param is   存储 cell 物品
+     * @param host 负责持久化 cell 内容的宿主，可为 null
+     * @param type 请求的栈类型
+     * @return 新的 IMEHandler，或 null
+     */
+    default <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
+            IAEStackType<T> type) {
+        return this.getCellInventory(is, host, type.getStorageChannel());
+    }
 
     /**
      * 0 - cell is missing.

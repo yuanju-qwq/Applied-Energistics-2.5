@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2018, AlgorithmX2, All rights reserved.
  *
@@ -49,7 +49,6 @@ import gregtech.api.block.machines.BlockMachine;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
-import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.config.Settings;
 import appeng.api.config.Upgrades;
@@ -67,8 +66,6 @@ import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.storage.*;
-import appeng.api.storage.channels.IFluidStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -98,6 +95,8 @@ import appeng.util.InventoryAdaptor;
 import appeng.util.Platform;
 import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.InvOperation;
+import appeng.util.item.AEItemStackType;
+import appeng.fluids.util.AEFluidStackType;
 
 public class DualityFluidInterface implements IGridTickable, IStorageMonitorable, IAEFluidInventory, IAEAppEngInventory,
         IUpgradeableHost, IConfigManagerHost, IConfigurableFluidInventory {
@@ -119,10 +118,10 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
     private int priority;
 
     private final MEMonitorPassThrough<IAEItemStack> items = new MEMonitorPassThrough<>(
-            new NullInventory<IAEItemStack>(), AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+            new NullInventory<IAEItemStack>(), AEItemStackType.INSTANCE.getStorageChannel());
     private final MEMonitorPassThrough<IAEFluidStack> fluids = new MEMonitorPassThrough<>(
             new NullInventory<IAEFluidStack>(),
-            AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class));
+            AEFluidStackType.INSTANCE.getStorageChannel());
     private boolean resetConfigCache = true;
     private IMEMonitor<IAEFluidStack> configCachedHandler;
 
@@ -164,13 +163,13 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
 
     @Override
     public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-        if (channel == AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)) {
+        if (channel == AEItemStackType.INSTANCE.getStorageChannel()) {
             if (this.hasConfig()) {
                 return null;
             }
 
             return (IMEMonitor<T>) this.items;
-        } else if (channel == AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class)) {
+        } else if (channel == AEFluidStackType.INSTANCE.getStorageChannel()) {
             if (this.hasConfig()) {
                 if (resetConfigCache) {
                     resetConfigCache = false;
@@ -228,9 +227,9 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
     public void gridChanged() {
         try {
             this.items.setInternal(this.gridProxy.getStorage()
-                    .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)));
+                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel()));
             this.fluids.setInternal(this.gridProxy.getStorage()
-                    .getInventory(AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class)));
+                    .getInventory(AEFluidStackType.INSTANCE.getStorageChannel()));
         } catch (final GridAccessException gae) {
             this.items.setInternal(new NullInventory<>());
             this.fluids.setInternal(new NullInventory<>());
@@ -454,7 +453,7 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
         boolean changed = false;
         try {
             final IMEInventory<IAEFluidStack> dest = this.gridProxy.getStorage()
-                    .getInventory(AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class));
+                    .getInventory(AEFluidStackType.INSTANCE.getStorageChannel());
             final IEnergySource src = this.gridProxy.getEnergy();
 
             if (work.getStackSize() > 0) {
@@ -462,7 +461,7 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
                 if (this.tanks.fill(slot, work.getFluidStack(), false) != work.getStackSize()) {
                     changed = true;
                 } else if (this.gridProxy.getStorage()
-                        .getInventory(AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class))
+                        .getInventory(AEFluidStackType.INSTANCE.getStorageChannel())
                         .getStorageList().findPrecise(work) != null) {
                     final IAEFluidStack acquired = Platform.poweredExtraction(src, dest, work,
                             this.interfaceRequestSource);

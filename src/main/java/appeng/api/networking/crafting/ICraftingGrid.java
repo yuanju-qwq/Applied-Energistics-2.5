@@ -41,34 +41,28 @@ import appeng.api.storage.data.IAEStack;
 public interface ICraftingGrid extends IGridCache {
 
     /**
-     * @param whatToCraft requested craft
-     * @param world       crafting world
-     * @param slot        slot index
-     * @param details     pattern details
+     * 获取指定栈（物品/流体等）对应的合成配方集合。
      *
-     * @return a collection of crafting patterns for the item in question.
+     * @param whatToCraft 请求的合成目标
+     * @param details     pattern details
+     * @param slot        slot index
+     * @param world       crafting world
+     * @return 对应的合成配方集合
      */
+    ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEStack<?> whatToCraft,
+            ICraftingPatternDetails details, int slot, World world);
+
+    /**
+     * @deprecated 使用 {@link #getCraftingFor(IAEStack, ICraftingPatternDetails, int, World)} 替代
+     */
+    @Deprecated
     ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEItemStack whatToCraft,
             ICraftingPatternDetails details, int slot, World world);
 
     /**
-     * 获取泛型栈（物品/流体等）对应的合成配方集合。
-     * 默认委托到 IAEItemStack 版本，子类可以覆写以支持多类型。
-     */
-    default ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEStack<?> whatToCraft,
-            ICraftingPatternDetails details, int slot, World world) {
-        if (whatToCraft instanceof IAEItemStack) {
-            return getCraftingFor((IAEItemStack) whatToCraft, details, slot, world);
-        }
-        return ImmutableSet.of();
-    }
-
-    /**
      * 获取所有可合成物品/流体的多类型 pattern 映射。
      */
-    default ImmutableMap<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> getCraftingMultiPatterns() {
-        return ImmutableMap.of();
-    }
+    ImmutableMap<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> getCraftingMultiPatterns();
 
     /**
      * Begin calculating a crafting job.
@@ -82,20 +76,15 @@ public interface ICraftingGrid extends IGridCache {
      * @return a future which will at an undetermined point in the future get you the {@link ICraftingJob} do not wait
      *         on this, your be waiting forever.
      */
-    Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc, IAEItemStack craftWhat,
+    Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc, IAEStack<?> craftWhat,
             ICraftingCallback callback);
 
     /**
-     * 开始计算一个泛型栈（物品/流体等）的合成任务。
-     * 默认委托到 IAEItemStack 版本。
+     * @deprecated 使用 {@link #beginCraftingJob(World, IGrid, IActionSource, IAEStack, ICraftingCallback)} 替代
      */
-    default Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc,
-            IAEStack<?> craftWhat, ICraftingCallback callback) {
-        if (craftWhat instanceof IAEItemStack) {
-            return beginCraftingJob(world, grid, actionSrc, (IAEItemStack) craftWhat, callback);
-        }
-        throw new UnsupportedOperationException("Cannot begin crafting job for non-item stack: " + craftWhat);
-    }
+    @Deprecated
+    Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc, IAEItemStack craftWhat,
+            ICraftingCallback callback);
 
     /**
      * Submit the job to the Crafting system for processing.
@@ -113,7 +102,7 @@ public interface ICraftingGrid extends IGridCache {
      *         {@link ICraftingRequester} methods. if you send null, this object should be discarded after verifying the
      *         return state.
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings("unchecked")
     ICraftingLink submitJob(ICraftingJob job, ICraftingRequester requestingMachine, ICraftingCPU target,
             boolean prioritizePower, IActionSource src);
 
@@ -123,57 +112,44 @@ public interface ICraftingGrid extends IGridCache {
     ImmutableSet<ICraftingCPU> getCpus();
 
     /**
-     * @param what to be requested item
+     * 检查指定栈（物品/流体等）是否可以通过合成发射器请求。
      *
-     * @return true if the item can be requested via a crafting emitter.
+     * @param what 要检查的栈
+     * @return true 如果可以发射
      */
+    boolean canEmitFor(IAEStack<?> what);
+
+    /**
+     * @deprecated 使用 {@link #canEmitFor(IAEStack)} 替代
+     */
+    @Deprecated
     boolean canEmitFor(IAEItemStack what);
 
     /**
-     * 泛型版本的 canEmitFor。
+     * 检查指定栈（物品/流体等）是否正在被合成。
+     *
+     * @param what 要检查的栈
+     * @return true 如果正在合成
      */
-    default boolean canEmitFor(IAEStack<?> what) {
-        if (what instanceof IAEItemStack) {
-            return canEmitFor((IAEItemStack) what);
-        }
-        return false;
-    }
+    boolean isRequesting(IAEStack<?> what);
 
     /**
-     * is this item being crafted?
-     *
-     * @param what item being crafted
-     *
-     * @return true if it is being crafting
+     * @deprecated 使用 {@link #isRequesting(IAEStack)} 替代
      */
+    @Deprecated
     boolean isRequesting(IAEItemStack what);
 
     /**
-     * 泛型版本的 isRequesting。
+     * 获取网格中所有合成 CPU 正在请求的指定栈的总量。
+     *
+     * @param what 要查询的栈，忽略 stackSize
+     * @return 正在请求的总量
      */
-    default boolean isRequesting(IAEStack<?> what) {
-        if (what instanceof IAEItemStack) {
-            return isRequesting((IAEItemStack) what);
-        }
-        return false;
-    }
+    long requesting(IAEStack<?> what);
 
     /**
-     * The total amount being requested across all crafting cpus of a grid.
-     *
-     * @param what item being requested, ignores stacksize
-     *
-     * @return The total amount being requested.
+     * @deprecated 使用 {@link #requesting(IAEStack)} 替代
      */
+    @Deprecated
     long requesting(IAEItemStack what);
-
-    /**
-     * 泛型版本的 requesting。
-     */
-    default long requesting(IAEStack<?> what) {
-        if (what instanceof IAEItemStack) {
-            return requesting((IAEItemStack) what);
-        }
-        return 0;
-    }
 }

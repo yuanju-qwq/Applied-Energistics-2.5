@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -36,9 +36,9 @@ import net.minecraftforge.common.ForgeHooks;
 import appeng.api.AEApi;
 import appeng.api.definitions.*;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
+import appeng.util.item.AEItemStackType;
 
 public final class DisassembleRecipe extends net.minecraftforge.registries.IForgeRegistryEntry.Impl<IRecipe>
         implements IRecipe {
@@ -96,11 +96,10 @@ public final class DisassembleRecipe extends net.minecraftforge.registries.IForg
                             .registries()
                             .cell()
                             .getCellInventory(stackInSlot, null,
-                                    AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                                    AEItemStackType.INSTANCE.getStorageChannel());
                     if (cellInv != null) {
                         final IItemList<IAEItemStack> list = cellInv
-                                .getAvailableItems(AEApi.instance().storage()
-                                        .getStorageChannel(IItemStorageChannel.class).createList());
+                                .getAvailableItems(AEItemStackType.INSTANCE.createList());
                         if (!list.isEmpty()) {
                             return ItemStack.EMPTY;
                         }

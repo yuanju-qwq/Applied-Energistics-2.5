@@ -1,4 +1,4 @@
-package appeng.fluids.parts;
+﻿package appeng.fluids.parts;
 
 import java.util.List;
 
@@ -15,7 +15,6 @@ import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 
-import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.config.PowerMultiplier;
 import appeng.api.networking.IGridNode;
@@ -33,7 +32,6 @@ import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartHost;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
@@ -48,6 +46,7 @@ import appeng.parts.PartBasicState;
 import appeng.parts.automation.PlaneConnections;
 import appeng.parts.automation.PlaneModels;
 import appeng.util.Platform;
+import appeng.fluids.util.AEFluidStackType;
 
 public class PartFluidAnnihilationPlane extends PartBasicState implements IGridTickable {
     private static final PlaneModels MODELS = new PlaneModels("part/fluid_annihilation_plane_",
@@ -254,7 +253,7 @@ public class PartFluidAnnihilationPlane extends PartBasicState implements IGridT
         try {
             final IStorageGrid storage = this.getProxy().getStorage();
             final IMEInventory<IAEFluidStack> inv = storage
-                    .getInventory(AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class));
+                    .getInventory(AEFluidStackType.INSTANCE.getStorageChannel());
 
             if (modulate) {
                 final IEnergyGrid energy = this.getProxy().getEnergy();

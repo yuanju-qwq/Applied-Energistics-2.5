@@ -20,7 +20,9 @@ public enum KeyBindings {
     WIT(new KeyBinding("key.open_wireless_interface_terminal.desc", KeyConflictContext.UNIVERSAL, KeyModifier.SHIFT,
             Keyboard.KEY_I, KEY_CATEGORY)),
     WDIT(new KeyBinding("key.open_wireless_dual_interface_terminal.desc", KeyConflictContext.UNIVERSAL, KeyModifier.SHIFT,
-            Keyboard.KEY_O, KEY_CATEGORY));
+            Keyboard.KEY_O, KEY_CATEGORY)),
+    WUT(new KeyBinding("key.open_wireless_universal_terminal.desc", KeyConflictContext.UNIVERSAL, KeyModifier.SHIFT,
+            Keyboard.KEY_U, KEY_CATEGORY));
 
     private KeyBinding keyBinding;
 

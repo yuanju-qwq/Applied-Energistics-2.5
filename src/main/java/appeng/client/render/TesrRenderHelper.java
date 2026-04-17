@@ -32,6 +32,7 @@ import net.minecraftforge.fluids.FluidStack;
 
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.util.IWideReadableNumberConverter;
 import appeng.util.ReadableNumberConverter;
 
@@ -197,6 +198,17 @@ public class TesrRenderHelper {
         GlStateManager.translate(-0.5f * width, 0.0f, 0.5f);
         fr.drawString(renderedStackSize, 0, 0, 0);
 
+    }
+
+    /**
+     * 泛型版本：根据栈的实际类型分发到物品或流体渲染方法。
+     */
+    public static void renderStack2dWithAmount(IAEStack<?> stack, float scale, float spacing) {
+        if (stack instanceof IAEItemStack itemStack) {
+            renderItem2dWithAmount(itemStack, scale, spacing);
+        } else if (stack instanceof IAEFluidStack fluidStack) {
+            renderFluid2dWithAmount(fluidStack, scale, spacing);
+        }
     }
 
     public static void renderItem2d(IAEItemStack itemStack, float itemScale) {

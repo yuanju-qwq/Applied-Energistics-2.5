@@ -19,15 +19,35 @@
 package appeng.client.gui.implementations;
 
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
+import appeng.client.gui.widgets.UniversalTerminalButtons;
 import appeng.container.implementations.ContainerWirelessTerm;
 import appeng.helpers.WirelessTerminalGuiObject;
 
 public class GuiWirelessTerm extends GuiMEMonitorable {
 
+    private UniversalTerminalButtons universalButtons;
+
     public GuiWirelessTerm(final InventoryPlayer inventoryPlayer, final WirelessTerminalGuiObject te) {
         super(inventoryPlayer, te, new ContainerWirelessTerm(inventoryPlayer, te));
+    }
+
+    @Override
+    public void initGui() {
+        super.initGui();
+        this.universalButtons = new UniversalTerminalButtons(
+                ((appeng.container.AEBaseContainer) this.inventorySlots).getPlayerInv());
+        this.universalButtons.initButtons(this.guiLeft, this.guiTop, this.buttonList, 200, this.itemRender);
+    }
+
+    @Override
+    protected void actionPerformed(final GuiButton btn) {
+        if (this.universalButtons != null && this.universalButtons.handleButtonClick(btn)) {
+            return;
+        }
+        super.actionPerformed(btn);
     }
 
     @Override

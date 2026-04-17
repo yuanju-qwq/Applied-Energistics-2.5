@@ -1,4 +1,4 @@
-package appeng.fluids.container;
+﻿package appeng.fluids.container;
 
 import java.io.IOException;
 import java.nio.BufferOverflowException;
@@ -18,7 +18,6 @@ import net.minecraftforge.items.IItemHandler;
 
 import baubles.api.BaublesApi;
 
-import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.config.PowerMultiplier;
 import appeng.api.config.Settings;
@@ -36,7 +35,6 @@ import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.ITerminalHost;
-import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
@@ -44,14 +42,13 @@ import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
+import appeng.container.helper.WirelessContainerHelper;
 import appeng.container.interfaces.IInventorySlotAware;
 import appeng.container.slot.AppEngSlot;
 import appeng.container.slot.SlotPlayerHotBar;
 import appeng.container.slot.SlotPlayerInv;
 import appeng.container.slot.SlotRestrictedInput;
-import appeng.core.AEConfig;
 import appeng.core.AELog;
-import appeng.core.localization.PlayerMessages;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEFluidInventoryUpdate;
 import appeng.core.sync.packets.PacketTargetFluidStack;
@@ -59,23 +56,22 @@ import appeng.core.sync.packets.PacketValueConfig;
 import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.InventoryAction;
 import appeng.helpers.WirelessTerminalGuiObject;
-import appeng.parts.automation.StackUpgradeInventory;
-import appeng.tile.inventory.AppEngInternalInventory;
 import appeng.util.ConfigManager;
 import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.InvOperation;
+import appeng.fluids.util.AEFluidStackType;
 
 public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAEAppEngInventory, IConfigManagerHost,
         IConfigurableObject, IMEMonitorHandlerReceiver<IAEFluidStack>, IUpgradeableCellContainer, IInventorySlotAware {
 
     protected final WirelessTerminalGuiObject wirelessTerminalGUIObject;
+    protected final WirelessContainerHelper wirelessHelper;
 
     private final IConfigManager clientCM;
     private final IMEMonitor<IAEFluidStack> monitor;
-    private final IItemList<IAEFluidStack> fluids = AEApi.instance().storage()
-            .getStorageChannel(IFluidStorageChannel.class).createList();
+    private final IItemList<IAEFluidStack> fluids = appeng.api.AEFluidStackType.INSTANCE.createList();
     @GuiSync(99)
     public boolean hasPower = false;
     private final ITerminalHost terminal;
@@ -84,11 +80,6 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
     private IGridNode networkNode;
     // Holds the fluid the client wishes to extract, or null for insert
     private IAEFluidStack clientRequestedTargetFluid = null;
-    private double powerMultiplier = 0.5;
-    private int ticks = 0;
-    private final int slot;
-
-    protected AppEngInternalInventory upgrades;
 
     public ContainerMEPortableFluidCell(final InventoryPlayer ip, final IPortableCell monitorable) {
         this(ip, monitorable, null, true);
@@ -105,6 +96,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
 
         this.terminal = monitorable;
         this.wirelessTerminalGUIObject = (WirelessTerminalGuiObject) monitorable;
+        this.wirelessHelper = new WirelessContainerHelper(this.wirelessTerminalGUIObject, ip, this);
 
         this.clientCM = new ConfigManager(this);
 
@@ -114,7 +106,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
         if (Platform.isServer()) {
             this.serverCM = terminal.getConfigManager();
             this.monitor = terminal
-                    .getInventory(AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class));
+                    .getInventory(appeng.api.AEFluidStackType.INSTANCE.getStorageChannel());
 
             if (this.monitor != null) {
                 this.monitor.addListener(this, null);
@@ -135,23 +127,12 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
             this.monitor = null;
         }
 
-        if (monitorable != null) {
-            final int slotIndex = ((IInventorySlotAware) monitorable).getInventorySlot();
-            if (!((IInventorySlotAware) monitorable).isBaubleSlot()) {
-                this.lockPlayerInventorySlot(slotIndex);
-            }
-            this.slot = slotIndex;
-        } else {
-            this.slot = -1;
-            this.lockPlayerInventorySlot(ip.currentItem);
-        }
-
         if (bindInventory) {
             this.bindPlayerInventory(ip, 0, 140);
         }
-        hasPower = this.wirelessTerminalGUIObject.extractAEPower(this.getPowerMultiplier(), Actionable.SIMULATE,
-                PowerMultiplier.CONFIG) > 0.001;
-        upgrades = new StackUpgradeInventory(wirelessTerminalGUIObject.getItemStack(), this, 2);
+        hasPower = this.wirelessTerminalGUIObject.extractAEPower(this.wirelessHelper.getPowerMultiplier(),
+                Actionable.SIMULATE, PowerMultiplier.CONFIG) > 0.001;
+        this.wirelessHelper.initUpgrades(this);
         this.loadFromNBT();
 
         this.setupUpgrades();
@@ -160,60 +141,10 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
     @Override
     public void detectAndSendChanges() {
         if (Platform.isServer()) {
-            final ItemStack currentItem;
-            if (wirelessTerminalGUIObject.isBaubleSlot()) {
-                currentItem = BaublesApi.getBaublesHandler(this.getPlayerInv().player).getStackInSlot(this.slot);
-            } else {
-                currentItem = this.slot < 0 ? this.getPlayerInv().getCurrentItem()
-                        : this.getPlayerInv().getStackInSlot(this.slot);
-            }
-
-            if (currentItem.isEmpty()) {
-                this.setValidContainer(false);
-            } else if (!this.wirelessTerminalGUIObject.getItemStack().isEmpty()
-                    && currentItem != this.wirelessTerminalGUIObject.getItemStack()) {
-                if (ItemStack.areItemsEqual(this.wirelessTerminalGUIObject.getItemStack(), currentItem)) {
-                    if (wirelessTerminalGUIObject.isBaubleSlot()) {
-                        BaublesApi.getBaublesHandler(this.getPlayerInv().player).setStackInSlot(this.slot,
-                                this.wirelessTerminalGUIObject.getItemStack());
-                    } else {
-                        this.getPlayerInv().setInventorySlotContents(this.slot,
-                                this.wirelessTerminalGUIObject.getItemStack());
-                    }
-                } else {
-                    this.setValidContainer(false);
-                }
-            }
-
-            // drain 1 ae t
-            this.ticks++;
-            if (this.ticks > 10) {
-                double ext = this.wirelessTerminalGUIObject.extractAEPower(this.getPowerMultiplier() * this.ticks,
-                        Actionable.MODULATE, PowerMultiplier.CONFIG);
-                if (ext < this.getPowerMultiplier() * this.ticks) {
-                    if (Platform.isServer() && this.isValidContainer()) {
-                        this.getPlayerInv().player.sendMessage(PlayerMessages.DeviceNotPowered.get());
-                    }
-
-                    this.setValidContainer(false);
-                }
-                this.ticks = 0;
-                this.hasPower = ext > 0.001;
-            }
-
-            if (!this.wirelessTerminalGUIObject.rangeCheck()) {
-                if (Platform.isServer() && this.isValidContainer()) {
-                    this.getPlayerInv().player.sendMessage(PlayerMessages.OutOfRange.get());
-                }
-
-                this.setValidContainer(false);
-            } else {
-                this.setPowerMultiplier(
-                        AEConfig.instance().wireless_getDrainRate(this.wirelessTerminalGUIObject.getRange()));
-            }
+            this.wirelessHelper.tickWirelessStatus(this);
 
             if (this.monitor != this.terminal
-                    .getInventory(AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class))) {
+                    .getInventory(appeng.api.AEFluidStackType.INSTANCE.getStorageChannel())) {
                 this.setValidContainer(false);
             }
 
@@ -467,14 +398,6 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
         }
     }
 
-    private double getPowerMultiplier() {
-        return this.powerMultiplier;
-    }
-
-    void setPowerMultiplier(final double powerMultiplier) {
-        this.powerMultiplier = powerMultiplier;
-    }
-
     public boolean isValid(Object verificationToken) {
         return true;
     }
@@ -582,31 +505,20 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
 
     @Override
     public void setupUpgrades() {
-        if (wirelessTerminalGUIObject != null) {
-            for (int upgradeSlot = 0; upgradeSlot < availableUpgrades(); upgradeSlot++) {
-                this.addSlotToContainer(
-                        (new SlotRestrictedInput(SlotRestrictedInput.PlacableItemType.UPGRADES, upgrades, upgradeSlot,
-                                183, 139 + upgradeSlot * 18, this.getInventoryPlayer()))
-                                .setNotDraggable());
-            }
+        SlotRestrictedInput slot = this.wirelessHelper.createMagnetSlot(
+                this.getInventoryPlayer(), 183, 139);
+        if (slot != null) {
+            this.addSlotToContainer(slot);
         }
     }
 
     @Override
     public void saveChanges() {
-        if (Platform.isServer()) {
-            NBTTagCompound tag = new NBTTagCompound();
-            this.upgrades.writeToNBT(tag, "upgrades");
-
-            this.wirelessTerminalGUIObject.saveChanges(tag);
-        }
+        this.wirelessHelper.saveChanges();
     }
 
     private void loadFromNBT() {
-        NBTTagCompound data = wirelessTerminalGUIObject.getItemStack().getTagCompound();
-        if (data != null) {
-            upgrades.readFromNBT(wirelessTerminalGUIObject.getItemStack().getTagCompound().getCompoundTag("upgrades"));
-        }
+        this.wirelessHelper.loadUpgradesFromNBT();
     }
 
     @Override
@@ -616,11 +528,11 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
 
     @Override
     public int getInventorySlot() {
-        return wirelessTerminalGUIObject.getInventorySlot();
+        return this.wirelessHelper.getInventorySlot();
     }
 
     @Override
     public boolean isBaubleSlot() {
-        return wirelessTerminalGUIObject.isBaubleSlot();
+        return this.wirelessHelper.isBaubleSlot();
     }
 }

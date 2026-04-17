@@ -12,16 +12,28 @@ import net.minecraftforge.items.IItemHandler;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.parts.IPartModel;
+import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.inventory.AppEngInternalInventory;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.inv.InvOperation;
+import appeng.util.item.AEItemStack;
 
-public abstract class AbstractPartEncoder extends AbstractPartTerminal {
+public abstract class AbstractPartEncoder extends AbstractPartTerminal implements IIAEStackInventory {
 
+    // 原始 Minecraft 格式库存（pattern 槽位仍然使用此格式）
+    protected AppEngInternalInventory pattern;
+
+    // 泛型栈库存（crafting 和 output 使用此格式，支持物品/流体等）
+    protected IAEStackInventory craftingAE;
+    protected IAEStackInventory outputAE;
+
+    // 兼容旧代码的 AppEngInternalInventory 引用（保留供旧容器代码访问，但不再作为主要存储）
     protected AppEngInternalInventory crafting;
     protected AppEngInternalInventory output;
-    protected AppEngInternalInventory pattern;
 
     protected boolean craftingMode = true;
     protected boolean substitute = false;
@@ -43,16 +55,16 @@ public abstract class AbstractPartEncoder extends AbstractPartTerminal {
     public void readFromNBT(final NBTTagCompound data) {
         super.readFromNBT(data);
         this.pattern.readFromNBT(data, "pattern");
-        this.output.readFromNBT(data, "outputList");
-        this.crafting.readFromNBT(data, "crafting");
+        this.craftingAE.readFromNBT(data, "crafting");
+        this.outputAE.readFromNBT(data, "outputList");
     }
 
     @Override
     public void writeToNBT(final NBTTagCompound data) {
         super.writeToNBT(data);
         this.pattern.writeToNBT(data, "pattern");
-        this.output.writeToNBT(data, "outputList");
-        this.crafting.writeToNBT(data, "crafting");
+        this.craftingAE.writeToNBT(data, "crafting");
+        this.outputAE.writeToNBT(data, "outputList");
     }
 
     @Override
@@ -68,24 +80,22 @@ public abstract class AbstractPartEncoder extends AbstractPartTerminal {
                     this.setCraftingRecipe(details.isCraftable());
                     this.setSubstitution(details.canSubstitute());
 
-                    for (int x = 0; x < this.crafting.getSlots() && x < details.getInputs().length; x++) {
+                    for (int x = 0; x < this.craftingAE.getSizeInventory() && x < details.getInputs().length; x++) {
                         final IAEItemStack item = details.getInputs()[x];
-                        this.crafting.setStackInSlot(x, item == null ? ItemStack.EMPTY : item.createItemStack());
+                        this.craftingAE.putAEStackInSlot(x, item);
                     }
 
-                    for (int x = 0; x < this.output.getSlots(); x++) {
+                    for (int x = 0; x < this.outputAE.getSizeInventory(); x++) {
                         final IAEItemStack item;
                         if (x < details.getOutputs().length) {
                             item = details.getOutputs()[x];
                         } else {
                             item = null;
                         }
-                        this.output.setStackInSlot(x, item == null ? ItemStack.EMPTY : item.createItemStack());
+                        this.outputAE.putAEStackInSlot(x, item);
                     }
                 }
             }
-        } else if (inv == this.crafting) {
-            this.fixCraftingRecipes();
         }
 
         this.getHost().markForSave();
@@ -93,10 +103,10 @@ public abstract class AbstractPartEncoder extends AbstractPartTerminal {
 
     private void fixCraftingRecipes() {
         if (this.isCraftingRecipe()) {
-            for (int x = 0; x < this.crafting.getSlots(); x++) {
-                final ItemStack is = this.crafting.getStackInSlot(x);
-                if (!is.isEmpty()) {
-                    is.setCount(1);
+            for (int x = 0; x < this.craftingAE.getSizeInventory(); x++) {
+                final IAEStack<?> is = this.craftingAE.getAEStackInSlot(x);
+                if (is != null) {
+                    is.setStackSize(1);
                 }
             }
         }
@@ -121,19 +131,30 @@ public abstract class AbstractPartEncoder extends AbstractPartTerminal {
 
     @Override
     public IItemHandler getInventoryByName(final String name) {
-        if (name.equals("crafting")) {
-            return this.crafting;
-        }
-
-        if (name.equals("output")) {
-            return this.output;
-        }
-
         if (name.equals("pattern")) {
             return this.pattern;
         }
 
         return super.getInventoryByName(name);
+    }
+
+    // ---- IIAEStackInventory 实现 ----
+
+    @Override
+    public void saveAEStackInv() {
+        this.fixCraftingRecipes();
+        this.getHost().markForSave();
+    }
+
+    @Override
+    public IAEStackInventory getAEInventoryByName(StorageName name) {
+        if (name == StorageName.CRAFTING_INPUT) {
+            return this.craftingAE;
+        }
+        if (name == StorageName.CRAFTING_OUTPUT) {
+            return this.outputAE;
+        }
+        return null;
     }
 
     @Override

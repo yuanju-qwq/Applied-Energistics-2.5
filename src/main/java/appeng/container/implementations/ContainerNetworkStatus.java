@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -26,14 +26,12 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 
-import appeng.api.AEApi;
 import appeng.api.implementations.guiobjects.INetworkTool;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridBlock;
 import appeng.api.networking.IGridHost;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.energy.IEnergyGrid;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
@@ -44,6 +42,7 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class ContainerNetworkStatus extends AEBaseContainer {
 
@@ -102,8 +101,7 @@ public class ContainerNetworkStatus extends AEBaseContainer {
                 final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
                 for (final Class<? extends IGridHost> machineClass : this.network.getMachinesClasses()) {
-                    final IItemList<IAEItemStack> list = AEApi.instance().storage()
-                            .getStorageChannel(IItemStorageChannel.class).createList();
+                    final IItemList<IAEItemStack> list = AEItemStackType.INSTANCE.createList();
                     for (final IGridNode machine : this.network.getMachines(machineClass)) {
                         final IGridBlock blk = machine.getGridBlock();
                         final ItemStack is = blk.getMachineRepresentation();

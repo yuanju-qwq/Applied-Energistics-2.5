@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2020, AlgorithmX2, All rights reserved.
  *
@@ -41,12 +41,11 @@ import ic2.api.item.ICustomDamageItem;
 
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
-import appeng.core.Api;
 import appeng.integration.modules.gregtech.ToolClass;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStackType;
 
 public class AEItemStack extends AEStack<IAEItemStack> implements IAEItemStack {
     private static final String NBT_STACKSIZE = "Cnt";
@@ -183,7 +182,7 @@ public class AEItemStack extends AEStack<IAEItemStack> implements IAEItemStack {
 
     @Override
     public IStorageChannel<IAEItemStack> getChannel() {
-        return Api.INSTANCE.storage().getStorageChannel(IItemStorageChannel.class);
+        return AEItemStackType.INSTANCE.getStorageChannel();
     }
 
     @Override

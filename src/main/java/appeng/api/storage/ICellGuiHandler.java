@@ -6,15 +6,24 @@ import net.minecraft.item.ItemStack;
 
 import appeng.api.implementations.tiles.IChestOrDrive;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 
 public interface ICellGuiHandler {
     /**
-     * Return true if this handler can show GUI for this channel.
-     * 
-     * @param channel Storage channel
-     * @return True if handled, else false.
+     * @deprecated 请使用 {@link #isHandlerFor(IAEStackType)} 代替。
      */
+    @Deprecated
     <T extends IAEStack<T>> boolean isHandlerFor(IStorageChannel<T> channel);
+
+    /**
+     * 判断此 handler 是否可以处理指定的栈类型。
+     *
+     * @param type 栈类型
+     * @return 如果可以处理返回 true
+     */
+    default <T extends IAEStack<T>> boolean isHandlerFor(IAEStackType<T> type) {
+        return this.isHandlerFor(type.getStorageChannel());
+    }
 
     /**
      * Return true to prioritize this handler for the provided {@link ItemStack}.
@@ -27,18 +36,18 @@ public interface ICellGuiHandler {
     }
 
     /**
-     * Called when the storage cell is placed in an ME Chest and the user tries to open the terminal side, if your item
-     * is not available via ME Chests simply tell the user they can't use it, or something, other wise you should open
-     * your gui and display the cell to the user.
-     *
-     * @param player      player opening chest gui
-     * @param chest       to be opened chest
-     * @param cellHandler cell handler
-     * @param inv         inventory handler
-     * @param is          item
-     * @param chan        storage channel
+     * @deprecated 请使用 {@link #openChestGui(EntityPlayer, IChestOrDrive, ICellHandler, IMEInventoryHandler, ItemStack, IAEStackType)} 代替。
      */
+    @Deprecated
     <T extends IAEStack<T>> void openChestGui(EntityPlayer player, IChestOrDrive chest, ICellHandler cellHandler,
             IMEInventoryHandler<T> inv, ItemStack is, IStorageChannel<T> chan);
+
+    /**
+     * 通过 {@link IAEStackType} 打开 ME Chest 的 GUI。
+     */
+    default <T extends IAEStack<T>> void openChestGui(EntityPlayer player, IChestOrDrive chest,
+            ICellHandler cellHandler, IMEInventoryHandler<T> inv, ItemStack is, IAEStackType<T> type) {
+        this.openChestGui(player, chest, cellHandler, inv, is, type.getStorageChannel());
+    }
 
 }

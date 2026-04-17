@@ -150,6 +150,8 @@ public enum GuiText {
     Stores,
     Next,
     SelectAmount,
+    SetAmount,
+    PatternRename,
     Lumen,
     Empty,
 
@@ -230,7 +232,12 @@ public enum GuiText {
     Deprecated,
 
     // Used in Pattern Encoding GUI
-    PatternEncoding;
+    PatternEncoding,
+
+    // Used in Wireless Universal Terminal
+    CurrentMode,
+    InstalledModes,
+    SwitchTerminal;
 
     private final String root;
 

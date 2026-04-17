@@ -35,6 +35,9 @@ import appeng.api.config.ActionItems;
 import appeng.api.config.ItemSubstitution;
 import appeng.api.config.Settings;
 import appeng.api.storage.ITerminalHost;
+import appeng.api.storage.data.IAEStackType;
+import appeng.client.gui.slots.VirtualMEPatternSlot;
+import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.container.implementations.ContainerPatternEncoder;
@@ -50,7 +53,9 @@ import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.helpers.InventoryAction;
 import appeng.helpers.WirelessTerminalGuiObject;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredients {
 
@@ -63,7 +68,7 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
     private static final String CRAFTMODE_CRFTING = "1";
     private static final String CRAFTMODE_PROCESSING = "0";
 
-    private final ContainerPatternEncoder container;
+    protected final ContainerPatternEncoder container;
 
     private GuiTabButton tabCraftButton;
     private GuiTabButton tabProcessButton;
@@ -79,6 +84,9 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
     private GuiImgButton minusOneBtn;
     private GuiImgButton maxCountBtn;
     public Map<Target<?>, Object> mapTargetSlot = new HashMap<>();
+
+    protected VirtualMEPatternSlot[] craftingVSlots;
+    protected VirtualMEPatternSlot[] outputVSlots;
 
     public GuiPatternTerm(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(inventoryPlayer, te, new ContainerPatternTerm(inventoryPlayer, te));
@@ -227,6 +235,8 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
         this.encodeBtn = new GuiImgButton(this.guiLeft + 147, this.guiTop + this.ySize - 142, Settings.ACTIONS,
                 ActionItems.ENCODE);
         this.buttonList.add(this.encodeBtn);
+
+        this.initVirtualSlots();
     }
 
     @Override
@@ -322,5 +332,45 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
     @Override
     public Map<Target<?>, Object> getFakeSlotTargetMap() {
         return mapTargetSlot;
+    }
+
+    // ---- 虚拟槽位初始化 ----
+
+    protected void initVirtualSlots() {
+        final IAEStackInventory craftInv = this.container.getCraftingAEInv();
+        final IAEStackInventory outInv = this.container.getOutputAEInv();
+
+        if (craftInv != null) {
+            this.craftingVSlots = new VirtualMEPatternSlot[craftInv.getSizeInventory()];
+            for (int y = 0; y < 3; y++) {
+                for (int x = 0; x < 3; x++) {
+                    final int slotIdx = x + y * 3;
+                    VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
+                            slotIdx, 18 + x * 18, -76 + y * 18,
+                            craftInv, slotIdx, this::acceptType);
+                    this.craftingVSlots[slotIdx] = slot;
+                    this.guiSlots.add(slot);
+                }
+            }
+        }
+
+        if (outInv != null) {
+            this.outputVSlots = new VirtualMEPatternSlot[outInv.getSizeInventory()];
+            for (int y = 0; y < outInv.getSizeInventory(); y++) {
+                VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
+                        y, 110, -76 + y * 18,
+                        outInv, y, this::acceptType);
+                this.outputVSlots[y] = slot;
+                this.guiSlots.add(slot);
+            }
+        }
+    }
+
+    protected boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
+        // 物品类型始终接受；流体类型只在处理模式下接受
+        if (type == AEItemStackType.INSTANCE) {
+            return true;
+        }
+        return !this.container.isCraftingMode();
     }
 }

@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.MutableClassToInstanceMap;
@@ -47,13 +49,17 @@ import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.crafting.CraftingLink;
 import appeng.fluids.items.FluidDummyItem;
 import appeng.fluids.util.AEFluidStack;
+import appeng.fluids.util.AEFluidStackType;
 import appeng.fluids.util.FluidList;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 import appeng.util.item.ItemList;
 
 public class ApiStorage implements IStorageHelper {
@@ -89,7 +95,7 @@ public class ApiStorage implements IStorageHelper {
     }
 
     @Override
-    public Collection<IStorageChannel<? extends IAEStack<?>>> storageChannels() {
+    public Collection<IStorageChannel<? extends IAEStackBase>> storageChannels() {
         return Collections.unmodifiableCollection(this.channels.values());
     }
 
@@ -125,6 +131,12 @@ public class ApiStorage implements IStorageHelper {
 
     private static final class ItemStorageChannel implements IItemStorageChannel {
 
+        @Nonnull
+        @Override
+        public IAEStackType<IAEItemStack> getStackType() {
+            return AEItemStackType.INSTANCE;
+        }
+
         @Override
         public IItemList<IAEItemStack> createList() {
             return new ItemList();
@@ -156,6 +168,12 @@ public class ApiStorage implements IStorageHelper {
     }
 
     private static final class FluidStorageChannel implements IFluidStorageChannel {
+
+        @Nonnull
+        @Override
+        public IAEStackType<IAEFluidStack> getStackType() {
+            return AEFluidStackType.INSTANCE;
+        }
 
         @Override
         public int transferFactor() {

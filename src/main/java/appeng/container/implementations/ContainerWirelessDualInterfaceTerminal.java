@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -42,6 +42,8 @@ import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.AEApi;
@@ -58,10 +60,11 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.AEStackTypeRegistry;
+import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.IConfigManager;
@@ -76,6 +79,8 @@ import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.fluids.items.ItemFluidDrop;
+import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.IContainerCraftingPacket;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.me.helpers.ChannelPowerSrc;
@@ -85,6 +90,7 @@ import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 import appeng.util.helpers.ItemHandlerUtil;
 import appeng.util.inv.InvOperation;
+import appeng.util.item.AEItemStack;
 
 /**
  * 无线二合一接口终端的容器
@@ -97,7 +103,7 @@ import appeng.util.inv.InvOperation;
  * - 样板编写：本类内嵌的 crafting/output/pattern 槽位
  * - ME物品浏览：通过 IMEMonitorHandlerReceiver 监控 AE 网络库存变化
  */
-@SuppressWarnings("rawtypes")
+@SuppressWarnings("unchecked")
 public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInterfaceTerminal
         implements IOptionalSlotHost, IContainerCraftingPacket, IMEMonitorHandlerReceiver,
         IConfigurableObject, IConfigManagerHost {
@@ -118,6 +124,12 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     private boolean craftingMode = true;
     private boolean substitute = false;
+    private boolean beSubstitute = false;
+    private boolean inverted = false;
+    private boolean combine = false;
+    private int activePage = 0;
+    private static final int OUTPUT_SLOTS_PER_PAGE = 3;
+    private static final int TOTAL_OUTPUT_SLOTS = 24;
     private IRecipe currentRecipe;
 
     // ========== ME 网络监控相关字段（从 ContainerMEMonitorable 移植） ==========
@@ -171,11 +183,11 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
         // 初始化样板编写的物品栏
         this.crafting = new AppEngInternalInventory(this, CRAFTING_GRID_DIMENSION * CRAFTING_GRID_DIMENSION);
-        this.patternOutput = new AppEngInternalInventory(this, 3);
+        this.patternOutput = new AppEngInternalInventory(this, TOTAL_OUTPUT_SLOTS);
         this.patternSlots = new AppEngInternalInventory(this, 2);
 
         this.craftingSlots = new SlotFakeCraftingMatrix[9];
-        this.outputSlots = new OptionalSlotFake[3];
+        this.outputSlots = new OptionalSlotFake[TOTAL_OUTPUT_SLOTS];
 
         this.loadPatternFromNBT();
 
@@ -184,7 +196,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             this.serverCM = gui.getConfigManager();
 
             for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
-                IMEMonitor<?> mon = gui.getMEMonitor(type);
+                IMEMonitor<?> mon = gui.getInventory(type);
                 if (mon != null) {
                     mon.addListener(this, null);
                     this.meMonitors.put(type, mon);
@@ -196,7 +208,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             this.setPowerSource(gui);
             @SuppressWarnings("unchecked")
             IMEMonitor<IAEItemStack> itemMon = (IMEMonitor<IAEItemStack>) gui
-                    .getMEMonitor(AEStackTypeRegistry.getType("item"));
+                    .getInventory(AEStackTypeRegistry.getType("item"));
             if (itemMon != null) {
                 this.setCellInventory(itemMon);
             }
@@ -391,24 +403,83 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         }
     }
 
+    public boolean isBeSubstitute() {
+        return this.beSubstitute;
+    }
+
+    public void setBeSubstitute(boolean beSubstitute) {
+        this.beSubstitute = beSubstitute;
+        NBTTagCompound nbtTagCompound = guiObject.getItemStack().getTagCompound();
+        if (nbtTagCompound != null) {
+            nbtTagCompound.setBoolean("beSubstitute", beSubstitute);
+        }
+    }
+
+    public boolean isInverted() {
+        return this.inverted;
+    }
+
+    public void setInverted(boolean inverted) {
+        this.inverted = inverted;
+        NBTTagCompound nbtTagCompound = guiObject.getItemStack().getTagCompound();
+        if (nbtTagCompound != null) {
+            nbtTagCompound.setBoolean("isInverted", inverted);
+        }
+    }
+
+    public boolean isCombine() {
+        return this.combine;
+    }
+
+    public void setCombine(boolean combine) {
+        this.combine = combine;
+        NBTTagCompound nbtTagCompound = guiObject.getItemStack().getTagCompound();
+        if (nbtTagCompound != null) {
+            nbtTagCompound.setBoolean("isCombine", combine);
+        }
+    }
+
+    public int getActivePage() {
+        return this.activePage;
+    }
+
+    public void setActivePage(int page) {
+        final int maxPage = getTotalPages() - 1;
+        this.activePage = Math.max(0, Math.min(page, maxPage));
+        this.updateOrderOfOutputSlots();
+    }
+
+    public int getTotalPages() {
+        return (TOTAL_OUTPUT_SLOTS + OUTPUT_SLOTS_PER_PAGE - 1) / OUTPUT_SLOTS_PER_PAGE;
+    }
+
     /**
      * 更新输出槽位的显示/隐藏状态：
-     * - 合成模式下：显示 craftSlot（单个输出），隐藏 outputSlots
-     * - 处理模式下：隐藏 craftSlot，显示 outputSlots（3个输出）
+     * - 合成模式下：显示 craftSlot（单个输出），隐藏所有 outputSlots
+     * - 处理模式下：隐藏 craftSlot，仅显示当前 activePage 对应的 3 个 outputSlots
+     *   并将它们的 yPos 重新定位到前 3 个槽的位置
      */
     private void updateOrderOfOutputSlots() {
         if (!this.isCraftingMode()) {
             if (craftSlot != null) {
                 this.craftSlot.xPos = -9000;
             }
-            for (int y = 0; y < 3; y++) {
-                this.outputSlots[y].xPos = this.outputSlots[y].getX();
+            final int pageStart = this.activePage * OUTPUT_SLOTS_PER_PAGE;
+            for (int y = 0; y < TOTAL_OUTPUT_SLOTS; y++) {
+                if (y >= pageStart && y < pageStart + OUTPUT_SLOTS_PER_PAGE) {
+                    this.outputSlots[y].xPos = this.outputSlots[y].getX();
+                    // 将当前页的槽位 yPos 映射到前 3 个槽位的位置
+                    final int pageIndex = y - pageStart;
+                    this.outputSlots[y].yPos = this.outputSlots[pageIndex].getY();
+                } else {
+                    this.outputSlots[y].xPos = -9000;
+                }
             }
         } else {
             if (craftSlot != null) {
                 this.craftSlot.xPos = this.craftSlot.getX();
             }
-            for (int y = 0; y < 3; y++) {
+            for (int y = 0; y < TOTAL_OUTPUT_SLOTS; y++) {
                 this.outputSlots[y].xPos = -9000;
             }
         }
@@ -513,6 +584,12 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         encodedValue.setTag("out", tagOut);
         encodedValue.setBoolean("crafting", this.isCraftingMode());
         encodedValue.setBoolean("substitute", this.isSubstitute());
+        encodedValue.setBoolean("beSubstitute", this.isBeSubstitute());
+
+        // 标记流体样板（当输入或输出中包含流体时）
+        if (containsFluid(in) || containsFluid(out)) {
+            encodedValue.setBoolean("fluidPattern", true);
+        }
 
         if (this.getPlayerInv().player != null) {
             encodedValue.setString("encoderName", this.getPlayerInv().player.getName());
@@ -690,25 +767,300 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         }
     }
 
-    // ========== 辅助方法 ==========
+    // ========== PlacePattern（将编码样板放入接口） ==========
 
-    private ItemStack[] getInputs() {
-        final ItemStack[] input = new ItemStack[craftingSlots.length];
-        boolean hasValue = false;
-
-        for (int x = 0; x < this.craftingSlots.length; x++) {
-            input[x] = this.craftingSlots[x].getStack();
-            if (!input[x].isEmpty()) {
-                hasValue = true;
+    /**
+     * 将编码输出槽中的样板放入指定接口的指定槽位。
+     * 条件：目标槽为空、编码输出有样板、接口中不存在完全相同的样板。
+     *
+     * @param interfaceId 接口终端中的接口 ID
+     * @param slot        目标接口的槽位索引
+     */
+    public void placePattern(long interfaceId, int slot) {
+        final IItemHandler interfaceHandler = this.getInterfacePatternHandlerById(interfaceId);
+        if (interfaceHandler == null) {
+            return;
+        }
+        if (slot < 0 || slot >= interfaceHandler.getSlots()) {
+            return;
+        }
+        if (!interfaceHandler.getStackInSlot(slot).isEmpty()) {
+            return;
+        }
+        if (this.patternSlotOUT == null || !this.patternSlotOUT.getHasStack()) {
+            return;
+        }
+        final ItemStack pattern = this.patternSlotOUT.getStack();
+        // 检查接口中是否已有完全相同的样板
+        for (int i = 0; i < interfaceHandler.getSlots(); i++) {
+            final ItemStack existing = interfaceHandler.getStackInSlot(i);
+            if (!existing.isEmpty() && Platform.itemComparisons().isSameItem(existing, pattern)) {
+                return;
             }
         }
-
-        if (hasValue) {
-            return input;
-        }
-        return null;
+        // 放入样板并清空编码输出
+        ItemHandlerUtil.setStackInSlot(interfaceHandler, slot, pattern.copy());
+        this.patternSlotOUT.putStack(ItemStack.EMPTY);
+        this.detectAndSendChanges();
     }
 
+    /**
+     * 获取编码输出槽
+     */
+    public SlotRestrictedInput getPatternSlotOUT() {
+        return this.patternSlotOUT;
+    }
+
+    // ========== DoubleStacks（编码面板翻倍/减半） ==========
+
+    /**
+     * 对编码面板上的输入/输出进行翻倍或减半。
+     * 位掩码参数：
+     *   bit 0 = shift（快速模式：×8/÷8，否则 ×2/÷2）
+     *   bit 1 = 右键（反向/除法）
+     * 仅在处理模式下生效。
+     *
+     * @param val 位掩码参数
+     */
+    public void doubleStacks(int val) {
+        if (this.isCraftingMode()) {
+            return;
+        }
+        boolean fast = (val & 1) != 0;
+        boolean backwards = (val & 2) != 0;
+        int multi = fast ? 8 : 2;
+
+        if (backwards) {
+            if (canDivide(this.craftingSlots, multi) && canDivide(this.outputSlots, multi)) {
+                divideSlots(this.craftingSlots, multi);
+                divideSlots(this.outputSlots, multi);
+            }
+        } else {
+            if (canMultiply(this.craftingSlots, multi) && canMultiply(this.outputSlots, multi)) {
+                multiplySlots(this.craftingSlots, multi);
+                multiplySlots(this.outputSlots, multi);
+            }
+        }
+        this.detectAndSendChanges();
+    }
+
+    private boolean canMultiply(net.minecraft.inventory.Slot[] slots, int multi) {
+        for (net.minecraft.inventory.Slot s : slots) {
+            ItemStack st = s.getStack();
+            if (!st.isEmpty() && (long) st.getCount() * multi > Integer.MAX_VALUE) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean canDivide(net.minecraft.inventory.Slot[] slots, int multi) {
+        for (net.minecraft.inventory.Slot s : slots) {
+            ItemStack st = s.getStack();
+            if (!st.isEmpty() && st.getCount() / multi <= 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void multiplySlots(net.minecraft.inventory.Slot[] slots, int multi) {
+        for (net.minecraft.inventory.Slot s : slots) {
+            ItemStack st = s.getStack();
+            if (!st.isEmpty()) {
+                st.setCount(st.getCount() * multi);
+            }
+        }
+    }
+
+    private void divideSlots(net.minecraft.inventory.Slot[] slots, int multi) {
+        for (net.minecraft.inventory.Slot s : slots) {
+            ItemStack st = s.getStack();
+            if (!st.isEmpty()) {
+                st.setCount(st.getCount() / multi);
+            }
+        }
+    }
+
+    // ========== InterfaceTerminal.Double（接口样板翻倍/减半） ==========
+
+    /**
+     * 对指定接口中所有已编码的处理样板（非合成模式）进行翻倍或减半。
+     * 直接修改样板物品的 NBT 标签中 in/out 列表的 Count 字段。
+     *
+     * @param val         位掩码参数（bit 0=shift快速, bit 1=右键反向）
+     * @param interfaceId 接口终端中的接口 ID
+     */
+    public void doubleInterfacePatterns(int val, long interfaceId) {
+        final IItemHandler handler = this.getInterfacePatternHandlerById(interfaceId);
+        if (handler == null) {
+            return;
+        }
+
+        boolean fast = (val & 1) != 0;
+        boolean backwards = (val & 2) != 0;
+        int multi = fast ? 8 : 2;
+
+        final World world = this.getPlayerInv().player.world;
+
+        for (int i = 0; i < handler.getSlots(); i++) {
+            ItemStack stack = handler.getStackInSlot(i);
+            if (stack.isEmpty() || !(stack.getItem() instanceof ICraftingPatternItem cpi)) {
+                continue;
+            }
+            ICraftingPatternDetails details = cpi.getPatternForItem(stack, world);
+            if (details == null || details.isCraftable()) {
+                continue;
+            }
+            ItemStack copy = stack.copy();
+            if (backwards) {
+                if (!dividePatternNBT(copy, multi)) {
+                    continue;
+                }
+            } else {
+                if (!multiplyPatternNBT(copy, multi)) {
+                    continue;
+                }
+            }
+            ItemHandlerUtil.setStackInSlot(handler, i, copy);
+        }
+        this.detectAndSendChanges();
+    }
+
+    /**
+     * 乘以指定倍数：修改样板 NBT 中所有 in/out 条目的 Count 字段
+     * @return 是否所有条目都能安全乘以（不溢出 Integer.MAX_VALUE）
+     */
+    private boolean multiplyPatternNBT(ItemStack pattern, int multi) {
+        NBTTagCompound tag = pattern.getTagCompound();
+        if (tag == null) {
+            return false;
+        }
+        if (!canMultiplyNBTList(tag.getTagList("in", 10), multi)
+                || !canMultiplyNBTList(tag.getTagList("out", 10), multi)) {
+            return false;
+        }
+        multiplyNBTList(tag.getTagList("in", 10), multi);
+        multiplyNBTList(tag.getTagList("out", 10), multi);
+        return true;
+    }
+
+    /**
+     * 除以指定除数：修改样板 NBT 中所有 in/out 条目的 Count 字段
+     * @return 是否所有条目都能安全除以（结果 >= 1）
+     */
+    private boolean dividePatternNBT(ItemStack pattern, int multi) {
+        NBTTagCompound tag = pattern.getTagCompound();
+        if (tag == null) {
+            return false;
+        }
+        if (!canDivideNBTList(tag.getTagList("in", 10), multi)
+                || !canDivideNBTList(tag.getTagList("out", 10), multi)) {
+            return false;
+        }
+        divideNBTList(tag.getTagList("in", 10), multi);
+        divideNBTList(tag.getTagList("out", 10), multi);
+        return true;
+    }
+
+    /**
+     * 从 NBT 条目中获取物品数量，兼容 stackSize 扩展字段
+     */
+    private int getCountFromNBT(NBTTagCompound entry) {
+        if (entry.hasKey("stackSize")) {
+            return entry.getInteger("stackSize");
+        }
+        return entry.getInteger("Count");
+    }
+
+    /**
+     * 将物品数量写回 NBT 条目，大于 127 时同时写入 stackSize 扩展字段
+     */
+    private void setCountToNBT(NBTTagCompound entry, int count) {
+        entry.setInteger("Count", count);
+        if (count > Byte.MAX_VALUE) {
+            entry.setInteger("stackSize", count);
+        } else {
+            entry.removeTag("stackSize");
+        }
+    }
+
+    private boolean canMultiplyNBTList(NBTTagList list, int multi) {
+        for (int i = 0; i < list.tagCount(); i++) {
+            NBTTagCompound entry = list.getCompoundTagAt(i);
+            if (!entry.isEmpty() && entry.hasKey("Count")) {
+                long result = (long) getCountFromNBT(entry) * multi;
+                if (result > Integer.MAX_VALUE || result <= 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean canDivideNBTList(NBTTagList list, int multi) {
+        for (int i = 0; i < list.tagCount(); i++) {
+            NBTTagCompound entry = list.getCompoundTagAt(i);
+            if (!entry.isEmpty() && entry.hasKey("Count")) {
+                int count = getCountFromNBT(entry);
+                if (count > 0 && count / multi <= 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void multiplyNBTList(NBTTagList list, int multi) {
+        for (int i = 0; i < list.tagCount(); i++) {
+            NBTTagCompound entry = list.getCompoundTagAt(i);
+            if (!entry.isEmpty() && entry.hasKey("Count")) {
+                int count = getCountFromNBT(entry);
+                if (count > 0) {
+                    setCountToNBT(entry, count * multi);
+                }
+            }
+        }
+    }
+
+    private void divideNBTList(NBTTagList list, int multi) {
+        for (int i = 0; i < list.tagCount(); i++) {
+            NBTTagCompound entry = list.getCompoundTagAt(i);
+            if (!entry.isEmpty() && entry.hasKey("Count")) {
+                int count = getCountFromNBT(entry);
+                if (count > 0) {
+                    setCountToNBT(entry, count / multi);
+                }
+            }
+        }
+    }
+
+    // ========== 辅助方法 ==========
+
+    /**
+     * 获取编码时的输入物品列表。
+     * 当 inverted=false 时，从 craftingSlots（输入区）获取；
+     * 当 inverted=true 时，从 outputSlots（输出区当作输入）获取。
+     */
+    private ItemStack[] getInputs() {
+        ItemStack[] result;
+        if (this.inverted && !this.isCraftingMode()) {
+            result = getItemsFromOutputSlots();
+        } else {
+            result = getItemsFromCraftingSlots();
+        }
+        // 合并模式：处理模式下合并同类输入
+        if (this.combine && !this.isCraftingMode() && result != null) {
+            result = combineItems(result);
+        }
+        return result;
+    }
+
+    /**
+     * 获取编码时的输出物品列表。
+     * 当 inverted=false 时，从 outputSlots（输出区）获取；
+     * 当 inverted=true 时，从 craftingSlots（输入区当作输出）获取。
+     */
     private ItemStack[] getOutputs() {
         if (this.isCraftingMode()) {
             final ItemStack out = this.getAndUpdateOutput();
@@ -716,22 +1068,69 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                 return new ItemStack[] { out };
             }
         } else {
-            final List<ItemStack> list = new ArrayList<>(outputSlots.length);
-            boolean hasValue = false;
-
-            for (final OptionalSlotFake outputSlot : this.outputSlots) {
-                final ItemStack out = outputSlot.getStack();
-                if (!out.isEmpty() && out.getCount() > 0) {
-                    list.add(out);
-                    hasValue = true;
-                }
+            ItemStack[] result;
+            if (this.inverted) {
+                result = getItemsFromCraftingSlots();
+            } else {
+                result = getItemsFromOutputSlots();
             }
-
-            if (hasValue) {
-                return list.toArray(new ItemStack[0]);
+            // 合并模式：处理模式下合并同类输出
+            if (this.combine && result != null) {
+                result = combineItems(result);
             }
+            return result;
         }
         return null;
+    }
+
+    private ItemStack[] getItemsFromCraftingSlots() {
+        final ItemStack[] input = new ItemStack[craftingSlots.length];
+        boolean hasValue = false;
+        for (int x = 0; x < this.craftingSlots.length; x++) {
+            input[x] = this.craftingSlots[x].getStack();
+            if (!input[x].isEmpty()) {
+                hasValue = true;
+            }
+        }
+        return hasValue ? input : null;
+    }
+
+    private ItemStack[] getItemsFromOutputSlots() {
+        final List<ItemStack> list = new ArrayList<>(outputSlots.length);
+        boolean hasValue = false;
+        for (final OptionalSlotFake outputSlot : this.outputSlots) {
+            final ItemStack out = outputSlot.getStack();
+            if (!out.isEmpty() && out.getCount() > 0) {
+                list.add(out);
+                hasValue = true;
+            }
+        }
+        return hasValue ? list.toArray(new ItemStack[0]) : null;
+    }
+
+    /**
+     * 合并相同物品：将 ItemStack 数组中 Item+NBT 相同的条目合并为一个，数量累加。
+     * 用于 Combine（合并模式）下的编码。
+     */
+    private ItemStack[] combineItems(ItemStack[] items) {
+        final List<ItemStack> merged = new ArrayList<>();
+        for (ItemStack stack : items) {
+            if (stack.isEmpty()) {
+                continue;
+            }
+            boolean found = false;
+            for (ItemStack existing : merged) {
+                if (ItemStack.areItemsEqual(existing, stack) && ItemStack.areItemStackTagsEqual(existing, stack)) {
+                    existing.grow(stack.getCount());
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                merged.add(stack.copy());
+            }
+        }
+        return merged.isEmpty() ? null : merged.toArray(new ItemStack[0]);
     }
 
     private ItemStack getAndUpdateOutput() {
@@ -777,9 +1176,49 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private NBTBase createItemTag(final ItemStack i) {
         final NBTTagCompound c = new NBTTagCompound();
         if (!i.isEmpty()) {
+            // 流体伪物品（ItemFluidDrop）：使用泛型格式序列化为流体
+            if (i.getItem() instanceof ItemFluidDrop) {
+                IAEFluidStack fluidStack = ItemFluidDrop.getAeFluidStack(
+                        AEItemStack.fromItemStack(i));
+                if (fluidStack != null) {
+                    return fluidStack.toNBTGeneric();
+                }
+            }
+            // 流体容器（桶等）：提取流体后使用泛型格式序列化
+            FluidStack fluid = FluidUtil.getFluidContained(i);
+            if (fluid != null && fluid.amount > 0) {
+                IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(fluid);
+                if (aeFluid != null) {
+                    aeFluid.setStackSize((long) fluid.amount * i.getCount());
+                    return aeFluid.toNBTGeneric();
+                }
+            }
+            // 普通物品：使用标准序列化
             i.writeToNBT(c);
         }
         return c;
+    }
+
+    /**
+     * 检查输入/输出中是否包含流体条目（ItemFluidDrop 或流体容器）。
+     */
+    private boolean containsFluid(ItemStack[] stacks) {
+        if (stacks == null) {
+            return false;
+        }
+        for (ItemStack stack : stacks) {
+            if (stack.isEmpty()) {
+                continue;
+            }
+            if (stack.getItem() instanceof ItemFluidDrop) {
+                return true;
+            }
+            FluidStack fluid = FluidUtil.getFluidContained(stack);
+            if (fluid != null && fluid.amount > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ========== 生命周期方法覆写 ==========
@@ -787,15 +1226,12 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     @Override
     public void saveChanges() {
         if (Platform.isServer()) {
-            NBTTagCompound tag = new NBTTagCompound();
+            NBTTagCompound tag = this.wirelessHelper.saveUpgradesToNBT();
 
             // 保存样板编写数据
             this.crafting.writeToNBT(tag, "craftingGrid");
             this.patternOutput.writeToNBT(tag, "output");
             this.patternSlots.writeToNBT(tag, "patterns");
-
-            // 保存升级数据（父类的upgrades）
-            this.upgrades.writeToNBT(tag, "upgrades");
 
             this.guiObject.saveChanges(tag);
         }
@@ -864,10 +1300,40 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                 } else {
                     nbtTagCompound.setBoolean("isSubstitute", false);
                 }
+                // 同步绝对替换模式（beSubstitute）
+                if (nbtTagCompound.hasKey("beSubstitute")) {
+                    boolean beSub = nbtTagCompound.getBoolean("beSubstitute");
+                    if (this.isBeSubstitute() != beSub) {
+                        this.beSubstitute = beSub;
+                    }
+                } else {
+                    nbtTagCompound.setBoolean("beSubstitute", false);
+                }
+                // 同步反转模式（inverted）
+                if (nbtTagCompound.hasKey("isInverted")) {
+                    boolean inv = nbtTagCompound.getBoolean("isInverted");
+                    if (this.isInverted() != inv) {
+                        this.inverted = inv;
+                    }
+                } else {
+                    nbtTagCompound.setBoolean("isInverted", false);
+                }
+                // 同步合并模式（combine）
+                if (nbtTagCompound.hasKey("isCombine")) {
+                    boolean comb = nbtTagCompound.getBoolean("isCombine");
+                    if (this.isCombine() != comb) {
+                        this.combine = comb;
+                    }
+                } else {
+                    nbtTagCompound.setBoolean("isCombine", false);
+                }
             } else {
                 nbtTagCompound = new NBTTagCompound();
                 nbtTagCompound.setBoolean("isCraftingMode", false);
                 nbtTagCompound.setBoolean("isSubstitute", false);
+                nbtTagCompound.setBoolean("beSubstitute", false);
+                nbtTagCompound.setBoolean("isInverted", false);
+                nbtTagCompound.setBoolean("isCombine", false);
                 guiObject.getItemStack().setTagCompound(nbtTagCompound);
             }
 
@@ -887,13 +1353,14 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
                     for (var entry : this.meUpdateQueue.entrySet()) {
                         IAEStackType type = entry.getKey();
-                        IMEMonitor mon = this.meMonitors.get(type);
+                        IMEMonitor<?> mon = this.meMonitors.get(type);
                         if (mon == null) {
                             continue;
                         }
-                        IItemList storageList = mon.getStorageList();
+                        IItemList<?> storageList = mon.getStorageList();
                         for (IAEStack<?> aes : entry.getValue()) {
-                            final IAEStack<?> send = storageList.findPrecise(aes);
+                            @SuppressWarnings("rawtypes")
+                            final IAEStack<?> send = (IAEStack<?>) ((IItemList) storageList).findPrecise(aes);
                             if (send == null) {
                                 aes.setStackSize(0);
                                 piu.appendStack(aes);
@@ -929,9 +1396,9 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
             for (var monitor : this.meMonitors.values()) {
-                IItemList storageList = monitor.getStorageList();
-                for (final Object obj : storageList) {
-                    IAEStack<?> send = (IAEStack<?>) obj;
+                IItemList<?> storageList = monitor.getStorageList();
+                for (final IAEStackBase stackBase : (IItemList<IAEStackBase>) storageList) {
+                    final IAEStack<?> send = (IAEStack<?>) stackBase;
                     try {
                         piu.appendStack(send);
                     } catch (final BufferOverflowException boe) {

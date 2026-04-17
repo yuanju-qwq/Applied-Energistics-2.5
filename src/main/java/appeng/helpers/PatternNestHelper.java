@@ -22,8 +22,6 @@ import static appeng.helpers.ItemStackHelper.stackFromNBT;
 
 import java.util.*;
 
-import com.glodblock.github.loader.FCItems;
-
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -38,11 +36,11 @@ import net.minecraftforge.common.crafting.IShapedRecipe;
 
 import appeng.api.AEApi;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.container.ContainerNull;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class PatternNestHelper implements ICraftingPatternDetails, Comparable<PatternNestHelper> {
 
@@ -114,7 +112,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                             NBTTagCompound nestedIngredient = nestedIn.getCompoundTagAt(i);
                             ItemStack nestedGs = stackFromNBT(nestedIngredient);
                             if (!nestedIngredient.isEmpty() && !nestedGs.isEmpty()) {
-                                in.add(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
+                                in.add(AEItemStackType.INSTANCE.getStorageChannel()
                                         .createStack(nestedGs));
                             }
                         }
@@ -126,7 +124,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                                 NBTTagCompound nestedResult = nestedOut.getCompoundTagAt(i);
                                 ItemStack nestedGs = stackFromNBT(nestedResult);
                                 if (!nestedResult.isEmpty() && !nestedGs.isEmpty()) {
-                                    out.add(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
+                                    out.add(AEItemStackType.INSTANCE.getStorageChannel()
                                             .createStack(nestedGs));
                                 }
                             }
@@ -137,7 +135,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
 
                 // 普通物品加入输入
                 if (!gs.isEmpty()) {
-                    in.add(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createStack(gs));
+                    in.add(AEItemStackType.INSTANCE.getStorageChannel().createStack(gs));
                 }
             }
         } else {
@@ -156,7 +154,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                     this.markItemAs(x, gs, TestStatus.ACCEPT);
                 }
 
-                in.add(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createStack(gs));
+                in.add(AEItemStackType.INSTANCE.getStorageChannel().createStack(gs));
                 this.testFrame.setInventorySlotContents(x, gs);
             }
         }
@@ -167,7 +165,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
             this.standardRecipe = CraftingManager.findMatchingRecipe(this.crafting, w);
             if (this.standardRecipe != null) {
                 this.correctOutput = this.standardRecipe.getCraftingResult(this.crafting);
-                out.add(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
+                out.add(AEItemStackType.INSTANCE.getStorageChannel()
                         .createStack(this.correctOutput));
             } else {
                 throw new IllegalStateException("No pattern here!");
@@ -187,7 +185,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                 }
 
                 if (!gs.isEmpty()) {
-                    out.add(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createStack(gs));
+                    out.add(AEItemStackType.INSTANCE.getStorageChannel().createStack(gs));
                 }
             }
         }
@@ -270,7 +268,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
     }
 
     private boolean isFluidPattern(ItemStack stack) {
-        return stack.getItem() == FCItems.DENSE_ENCODED_PATTERN;
+        return FluidPatternHelper.isFluidPattern(stack);
     }
 
     private void markItemAs(final int slotIndex, final ItemStack i, final TestStatus b) {

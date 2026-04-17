@@ -17,6 +17,8 @@ import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 
@@ -27,11 +29,15 @@ import appeng.api.implementations.guiobjects.IGuiItemObject;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.ITerminalHost;
-import appeng.api.storage.channels.IItemStorageChannel;
+import appeng.api.storage.StorageName;
+import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
 import appeng.container.ContainerNull;
 import appeng.container.guisync.GuiSync;
+import appeng.container.interfaces.IVirtualSlotHolder;
+import appeng.container.interfaces.IVirtualSlotSource;
 import appeng.container.slot.AppEngSlot;
 import appeng.container.slot.IOptionalSlotHost;
 import appeng.container.slot.OptionalSlotFake;
@@ -41,11 +47,14 @@ import appeng.container.slot.SlotPlayerHotBar;
 import appeng.container.slot.SlotPlayerInv;
 import appeng.container.slot.SlotRestrictedInput;
 import appeng.core.sync.packets.PacketPatternSlot;
+import appeng.fluids.items.ItemFluidDrop;
+import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.IContainerCraftingPacket;
 import appeng.items.storage.ItemViewCell;
 import appeng.me.helpers.MachineSource;
 import appeng.parts.reporting.AbstractPartEncoder;
 import appeng.tile.inventory.AppEngInternalInventory;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.InventoryAdaptor;
 import appeng.util.Platform;
 import appeng.util.inv.AdaptorItemHandler;
@@ -53,9 +62,12 @@ import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.InvOperation;
 import appeng.util.inv.WrapperCursorItemHandler;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
-        implements IAEAppEngInventory, IOptionalSlotHost, IContainerCraftingPacket {
+        implements IAEAppEngInventory, IOptionalSlotHost, IContainerCraftingPacket,
+        IVirtualSlotHolder, IVirtualSlotSource {
 
     protected AbstractPartEncoder patternTerminal = null;
 
@@ -71,6 +83,10 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
     protected SlotFakeCraftingMatrix[] craftingSlots;
     protected OptionalSlotFake[] outputSlots;
+
+    // 服务端用于增量同步的客户端快照
+    private IAEStack<?>[] craftingClientSlots;
+    private IAEStack<?>[] outputClientSlots;
 
     @GuiSync(97)
     public boolean craftingMode = true;
@@ -140,17 +156,16 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     @Override
     public void onChangeInventory(IItemHandler inv, int slot, InvOperation mc, ItemStack removedStack,
             ItemStack newStack) {
-        if (inv == this.crafting) {
-            this.fixCraftingRecipes();
-        }
     }
 
     void fixCraftingRecipes() {
         if (this.isCraftingMode()) {
-            for (int x = 0; x < this.crafting.getSlots(); x++) {
-                final ItemStack is = this.crafting.getStackInSlot(x);
-                if (!is.isEmpty()) {
-                    is.setCount(1);
+            final IAEStackInventory inv = this.getCraftingAEInv();
+            if (inv == null) return;
+            for (int x = 0; x < inv.getSizeInventory(); x++) {
+                final IAEStack<?> is = inv.getAEStackInSlot(x);
+                if (is != null) {
+                    is.setStackSize(1);
                 }
             }
         }
@@ -288,6 +303,11 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         encodedValue.setBoolean("crafting", this.isCraftingMode());
         encodedValue.setBoolean("substitute", this.isSubstitute());
 
+        // 标记流体样板（当输入或输出中包含流体时）
+        if (containsFluid(in) || containsFluid(out)) {
+            encodedValue.setBoolean("fluidPattern", true);
+        }
+
         if (this.getPlayerInv().player != null) {
             encodedValue.setString("encoderName", this.getPlayerInv().player.getName());
         }
@@ -309,187 +329,155 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     }
 
     public void multiply(int multiple) {
-        ItemStack[] input = new ItemStack[craftingSlots.length];
-        boolean canMultiplyInputs = true;
-        boolean canMultiplyOutputs = true;
+        final IAEStackInventory craftInv = this.getCraftingAEInv();
+        final IAEStackInventory outInv = this.getOutputAEInv();
+        if (craftInv == null || outInv == null) return;
 
-        for (int x = 0; x < this.craftingSlots.length; x++) {
-            input[x] = this.craftingSlots[x].getStack();
-            if (!input[x].isEmpty() && input[x].getCount() * multiple < 1) {
-                canMultiplyInputs = false;
-            }
+        for (int x = 0; x < craftInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            if (is != null && is.getStackSize() * multiple < 1) return;
         }
-        for (final OptionalSlotFake outputSlot : this.outputSlots) {
-            final ItemStack out = outputSlot.getStack();
-            if (!out.isEmpty() && out.getCount() * multiple < 1) {
-                canMultiplyOutputs = false;
-            }
+        for (int x = 0; x < outInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            if (is != null && is.getStackSize() * multiple < 1) return;
         }
-        if (canMultiplyInputs && canMultiplyOutputs) {
-            for (SlotFakeCraftingMatrix craftingSlot : this.craftingSlots) {
-                ItemStack stack = craftingSlot.getStack();
-                if (!stack.isEmpty()) {
-                    craftingSlot.getStack().setCount(stack.getCount() * multiple);
-                }
-            }
-            for (OptionalSlotFake outputSlot : this.outputSlots) {
-                ItemStack stack = outputSlot.getStack();
-                if (!stack.isEmpty()) {
-                    outputSlot.getStack().setCount(stack.getCount() * multiple);
-                }
-            }
+
+        for (int x = 0; x < craftInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            if (is != null) is.setStackSize(is.getStackSize() * multiple);
+        }
+        for (int x = 0; x < outInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            if (is != null) is.setStackSize(is.getStackSize() * multiple);
         }
     }
 
     public void divide(int divide) {
-        ItemStack[] input = new ItemStack[craftingSlots.length];
-        boolean canDivideInputs = true;
-        boolean canDivideOutputs = true;
+        final IAEStackInventory craftInv = this.getCraftingAEInv();
+        final IAEStackInventory outInv = this.getOutputAEInv();
+        if (craftInv == null || outInv == null) return;
 
-        for (int x = 0; x < this.craftingSlots.length; x++) {
-            input[x] = this.craftingSlots[x].getStack();
-            if (!input[x].isEmpty() && input[x].getCount() % divide != 0) {
-                canDivideInputs = false;
-            }
+        for (int x = 0; x < craftInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            if (is != null && is.getStackSize() % divide != 0) return;
         }
-        for (final OptionalSlotFake outputSlot : this.outputSlots) {
-            final ItemStack out = outputSlot.getStack();
-            if (!out.isEmpty() && out.getCount() % divide != 0) {
-                canDivideOutputs = false;
-            }
+        for (int x = 0; x < outInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            if (is != null && is.getStackSize() % divide != 0) return;
         }
-        if (canDivideInputs && canDivideOutputs) {
-            for (SlotFakeCraftingMatrix craftingSlot : this.craftingSlots) {
-                ItemStack stack = craftingSlot.getStack();
-                if (!stack.isEmpty()) {
-                    craftingSlot.getStack().setCount(stack.getCount() / divide);
-                }
-            }
-            for (OptionalSlotFake outputSlot : this.outputSlots) {
-                ItemStack stack = outputSlot.getStack();
-                if (!stack.isEmpty()) {
-                    outputSlot.getStack().setCount(stack.getCount() / divide);
-                }
-            }
+
+        for (int x = 0; x < craftInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            if (is != null) is.setStackSize(is.getStackSize() / divide);
+        }
+        for (int x = 0; x < outInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            if (is != null) is.setStackSize(is.getStackSize() / divide);
         }
     }
 
     public void increase(int increase) {
-        ItemStack[] input = new ItemStack[craftingSlots.length];
-        boolean canIncreaseInputs = true;
-        boolean canIncreaseOutputs = true;
+        final IAEStackInventory craftInv = this.getCraftingAEInv();
+        final IAEStackInventory outInv = this.getOutputAEInv();
+        if (craftInv == null || outInv == null) return;
 
-        for (int x = 0; x < this.craftingSlots.length; x++) {
-            input[x] = this.craftingSlots[x].getStack();
-            if (!input[x].isEmpty() && input[x].getCount() + increase < 1) {
-                canIncreaseInputs = false;
-            }
+        for (int x = 0; x < craftInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            if (is != null && is.getStackSize() + increase < 1) return;
         }
-        for (final OptionalSlotFake outputSlot : this.outputSlots) {
-            final ItemStack out = outputSlot.getStack();
-            if (!out.isEmpty() && out.getCount() + increase < 1) {
-                canIncreaseOutputs = false;
-            }
+        for (int x = 0; x < outInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            if (is != null && is.getStackSize() + increase < 1) return;
         }
-        if (canIncreaseInputs && canIncreaseOutputs) {
-            for (SlotFakeCraftingMatrix craftingSlot : this.craftingSlots) {
-                ItemStack stack = craftingSlot.getStack();
-                if (!stack.isEmpty()) {
-                    craftingSlot.getStack().setCount(stack.getCount() + increase);
-                }
-            }
-            for (OptionalSlotFake outputSlot : this.outputSlots) {
-                ItemStack stack = outputSlot.getStack();
-                if (!stack.isEmpty()) {
-                    outputSlot.getStack().setCount(stack.getCount() + increase);
-                }
-            }
+
+        for (int x = 0; x < craftInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            if (is != null) is.setStackSize(is.getStackSize() + increase);
+        }
+        for (int x = 0; x < outInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            if (is != null) is.setStackSize(is.getStackSize() + increase);
         }
     }
 
     public void decrease(int decrease) {
-        ItemStack[] input = new ItemStack[craftingSlots.length];
-        boolean canDecreaseInputs = true;
-        boolean canDecreaseOutputs = true;
+        final IAEStackInventory craftInv = this.getCraftingAEInv();
+        final IAEStackInventory outInv = this.getOutputAEInv();
+        if (craftInv == null || outInv == null) return;
 
-        for (int x = 0; x < this.craftingSlots.length; x++) {
-            input[x] = this.craftingSlots[x].getStack();
-            if (!input[x].isEmpty() && input[x].getCount() - decrease < 1) {
-                canDecreaseInputs = false;
-            }
+        for (int x = 0; x < craftInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            if (is != null && is.getStackSize() - decrease < 1) return;
         }
-        for (final OptionalSlotFake outputSlot : this.outputSlots) {
-            final ItemStack out = outputSlot.getStack();
-            if (!out.isEmpty() && out.getCount() - decrease < 1) {
-                canDecreaseOutputs = false;
-            }
+        for (int x = 0; x < outInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            if (is != null && is.getStackSize() - decrease < 1) return;
         }
-        if (canDecreaseInputs && canDecreaseOutputs) {
-            for (SlotFakeCraftingMatrix craftingSlot : this.craftingSlots) {
-                ItemStack stack = craftingSlot.getStack();
-                if (!stack.isEmpty()) {
-                    craftingSlot.getStack().setCount(stack.getCount() - decrease);
-                }
-            }
-            for (OptionalSlotFake outputSlot : this.outputSlots) {
-                ItemStack stack = outputSlot.getStack();
-                if (!stack.isEmpty()) {
-                    outputSlot.getStack().setCount(stack.getCount() - decrease);
-                }
-            }
+
+        for (int x = 0; x < craftInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            if (is != null) is.setStackSize(is.getStackSize() - decrease);
+        }
+        for (int x = 0; x < outInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            if (is != null) is.setStackSize(is.getStackSize() - decrease);
         }
     }
 
     public void maximizeCount() {
-        ItemStack[] input = new ItemStack[craftingSlots.length];
-        boolean canGrowInputs = true;
-        boolean canGrowOutputs = true;
-        int maxInputStackGrowth = 0;
-        int maxOutputStackGrowth = 0;
+        final IAEStackInventory craftInv = this.getCraftingAEInv();
+        final IAEStackInventory outInv = this.getOutputAEInv();
+        if (craftInv == null || outInv == null) return;
 
-        for (int x = 0; x < this.craftingSlots.length; x++) {
-            input[x] = this.craftingSlots[x].getStack();
-            if (!input[x].isEmpty() && input[x].getMaxStackSize() - input[x].getCount() > maxInputStackGrowth) {
-                maxInputStackGrowth = input[x].getMaxStackSize() - input[x].getCount();
-            }
-            if (!input[x].isEmpty() && input[x].getCount() + maxInputStackGrowth > input[x].getMaxStackSize()) {
-                canGrowInputs = false;
-            }
-        }
-        for (final OptionalSlotFake outputSlot : this.outputSlots) {
-            final ItemStack out = outputSlot.getStack();
-            {
-                maxOutputStackGrowth = out.getMaxStackSize() - out.getCount();
-            }
-            if (!out.isEmpty() && out.getCount() + maxOutputStackGrowth > out.getMaxStackSize()) {
-                canGrowOutputs = false;
+        long maxCount = Long.MAX_VALUE;
+        for (int x = 0; x < craftInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            if (is != null && is instanceof IAEItemStack) {
+                long maxPerStack = ((IAEItemStack) is).getDefinition().getMaxStackSize();
+                maxCount = Math.min(maxCount, maxPerStack);
             }
         }
-        if (canGrowInputs && canGrowOutputs) {
-            int maxStackGrowth = Math.min(maxInputStackGrowth, maxOutputStackGrowth);
-            for (SlotFakeCraftingMatrix craftingSlot : this.craftingSlots) {
-                ItemStack stack = craftingSlot.getStack();
-                if (!stack.isEmpty()) {
-                    craftingSlot.getStack().setCount(stack.getCount() + maxStackGrowth);
-                }
+        for (int x = 0; x < outInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            if (is != null && is instanceof IAEItemStack) {
+                long maxPerStack = ((IAEItemStack) is).getDefinition().getMaxStackSize();
+                maxCount = Math.min(maxCount, maxPerStack);
             }
-            for (OptionalSlotFake outputSlot : this.outputSlots) {
-                ItemStack stack = outputSlot.getStack();
-                if (!stack.isEmpty()) {
-                    outputSlot.getStack().setCount(stack.getCount() + maxStackGrowth);
-                }
-            }
+        }
+        if (maxCount == Long.MAX_VALUE || maxCount < 1) return;
+
+        for (int x = 0; x < craftInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            if (is != null) is.setStackSize(maxCount);
+        }
+        for (int x = 0; x < outInv.getSizeInventory(); x++) {
+            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            if (is != null) is.setStackSize(maxCount);
         }
     }
 
     protected ItemStack[] getInputs() {
-        final ItemStack[] input = new ItemStack[craftingSlots.length];
+        final IAEStackInventory inv = this.getCraftingAEInv();
+        if (inv == null) return null;
+
+        final ItemStack[] input = new ItemStack[inv.getSizeInventory()];
         boolean hasValue = false;
 
-        for (int x = 0; x < this.craftingSlots.length; x++) {
-            input[x] = this.craftingSlots[x].getStack();
-            if (!input[x].isEmpty()) {
+        for (int x = 0; x < inv.getSizeInventory(); x++) {
+            final IAEStack<?> stack = inv.getAEStackInSlot(x);
+            if (stack instanceof IAEItemStack) {
+                input[x] = ((IAEItemStack) stack).createItemStack();
                 hasValue = true;
+            } else if (stack instanceof IAEFluidStack) {
+                // 流体栈转换为 ItemFluidDrop
+                input[x] = ItemFluidDrop.newStack(((IAEFluidStack) stack).getFluidStack());
+                if (!input[x].isEmpty()) {
+                    hasValue = true;
+                } else {
+                    input[x] = ItemStack.EMPTY;
+                }
+            } else {
+                input[x] = ItemStack.EMPTY;
             }
         }
 
@@ -508,15 +496,23 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                 return new ItemStack[] { out };
             }
         } else {
-            final List<ItemStack> list = new ArrayList<>(outputSlots.length);
+            final IAEStackInventory inv = this.getOutputAEInv();
+            if (inv == null) return null;
+
+            final List<ItemStack> list = new ArrayList<>(inv.getSizeInventory());
             boolean hasValue = false;
 
-            for (final OptionalSlotFake outputSlot : this.outputSlots) {
-                final ItemStack out = outputSlot.getStack();
-
-                if (!out.isEmpty() && out.getCount() > 0) {
-                    list.add(out);
+            for (int x = 0; x < inv.getSizeInventory(); x++) {
+                final IAEStack<?> stack = inv.getAEStackInSlot(x);
+                if (stack instanceof IAEItemStack) {
+                    list.add(((IAEItemStack) stack).createItemStack());
                     hasValue = true;
+                } else if (stack instanceof IAEFluidStack) {
+                    ItemStack fluidDrop = ItemFluidDrop.newStack(((IAEFluidStack) stack).getFluidStack());
+                    if (!fluidDrop.isEmpty()) {
+                        list.add(fluidDrop);
+                        hasValue = true;
+                    }
                 }
             }
 
@@ -532,8 +528,18 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         final World world = this.getPlayerInv().player.world;
         final InventoryCrafting ic = new InventoryCrafting(this, 3, 3);
 
+        final IAEStackInventory inv = this.getCraftingAEInv();
         for (int x = 0; x < ic.getSizeInventory(); x++) {
-            ic.setInventorySlotContents(x, this.crafting.getStackInSlot(x));
+            if (inv != null) {
+                final IAEStack<?> stack = inv.getAEStackInSlot(x);
+                if (stack instanceof IAEItemStack) {
+                    ic.setInventorySlotContents(x, ((IAEItemStack) stack).createItemStack());
+                } else {
+                    ic.setInventorySlotContents(x, ItemStack.EMPTY);
+                }
+            } else {
+                ic.setInventorySlotContents(x, ItemStack.EMPTY);
+            }
         }
 
         if (this.currentRecipe == null || !this.currentRecipe.matches(ic, world)) {
@@ -631,6 +637,26 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                     iGuiItemObject.getItemStack().setTagCompound(nbtTagCompound);
                 }
             }
+
+            // 使用虚拟槽位同步 crafting 和 output IAEStackInventory
+            final IAEStackInventory craftInv = this.getCraftingAEInv();
+            final IAEStackInventory outInv = this.getOutputAEInv();
+            if (craftInv != null) {
+                this.initClientSlotsIfNeeded(craftInv, outInv);
+                this.updateVirtualSlots(StorageName.CRAFTING_INPUT, craftInv, this.craftingClientSlots);
+            }
+            if (outInv != null) {
+                this.updateVirtualSlots(StorageName.CRAFTING_OUTPUT, outInv, this.outputClientSlots);
+            }
+        }
+    }
+
+    private void initClientSlotsIfNeeded(IAEStackInventory craftInv, IAEStackInventory outInv) {
+        if (this.craftingClientSlots == null) {
+            this.craftingClientSlots = new IAEStack<?>[craftInv.getSizeInventory()];
+        }
+        if (this.outputClientSlots == null && outInv != null) {
+            this.outputClientSlots = new IAEStack<?>[outInv.getSizeInventory()];
         }
     }
 
@@ -661,19 +687,64 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         final NBTTagCompound c = new NBTTagCompound();
 
         if (!i.isEmpty()) {
+            // 流体伪物品（ItemFluidDrop）：使用泛型格式序列化为流体
+            if (i.getItem() instanceof ItemFluidDrop) {
+                IAEFluidStack fluidStack = ItemFluidDrop.getAeFluidStack(
+                        AEItemStack.fromItemStack(i));
+                if (fluidStack != null) {
+                    return fluidStack.toNBTGeneric();
+                }
+            }
+            // 流体容器（桶等）：提取流体后使用泛型格式序列化
+            FluidStack fluid = FluidUtil.getFluidContained(i);
+            if (fluid != null && fluid.amount > 0) {
+                IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(fluid);
+                if (aeFluid != null) {
+                    aeFluid.setStackSize((long) fluid.amount * i.getCount());
+                    return aeFluid.toNBTGeneric();
+                }
+            }
+            // 普通物品：使用标准序列化
             stackWriteToNBT(i, c);
         }
 
         return c;
     }
 
-    public void clear() {
-        for (final Slot s : this.craftingSlots) {
-            s.putStack(ItemStack.EMPTY);
+    /**
+     * 检查输入/输出中是否包含流体条目（ItemFluidDrop 或流体容器）。
+     */
+    protected boolean containsFluid(ItemStack[] stacks) {
+        if (stacks == null) {
+            return false;
         }
+        for (ItemStack stack : stacks) {
+            if (stack.isEmpty()) {
+                continue;
+            }
+            if (stack.getItem() instanceof ItemFluidDrop) {
+                return true;
+            }
+            FluidStack fluid = FluidUtil.getFluidContained(stack);
+            if (fluid != null && fluid.amount > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-        for (final Slot s : this.outputSlots) {
-            s.putStack(ItemStack.EMPTY);
+    public void clear() {
+        final IAEStackInventory craftInv = this.getCraftingAEInv();
+        final IAEStackInventory outInv = this.getOutputAEInv();
+        if (craftInv != null) {
+            for (int x = 0; x < craftInv.getSizeInventory(); x++) {
+                craftInv.putAEStackInSlot(x, null);
+            }
+        }
+        if (outInv != null) {
+            for (int x = 0; x < outInv.getSizeInventory(); x++) {
+                outInv.putAEStackInSlot(x, null);
+            }
         }
 
         this.detectAndSendChanges();
@@ -725,10 +796,10 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             IMEMonitor<IAEItemStack> storage = null;
             if (getPart() != null) {
                 storage = this.getPart()
-                        .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                        .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
             } else if (iGuiItemObject != null) {
                 storage = ((ITerminalHost) iGuiItemObject)
-                        .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                        .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
             }
 
             final IItemList<IAEItemStack> all = storage.getStorageList();
@@ -779,5 +850,53 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                 }
             }
         }
+    }
+
+    // ---- IVirtualSlotHolder 实现（客户端接收服务端推送的虚拟槽位数据）----
+
+    @Override
+    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
+        IAEStackInventory inv = null;
+        if (invName == StorageName.CRAFTING_INPUT) {
+            inv = this.getCraftingAEInv();
+        } else if (invName == StorageName.CRAFTING_OUTPUT) {
+            inv = this.getOutputAEInv();
+        }
+        if (inv != null) {
+            for (var entry : slotStacks.int2ObjectEntrySet()) {
+                inv.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+            }
+        }
+    }
+
+    // ---- IVirtualSlotSource 实现（服务端接收客户端发来的虚拟槽位更新）----
+
+    @Override
+    public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
+        IAEStackInventory inv = null;
+        if (invName == StorageName.CRAFTING_INPUT) {
+            inv = this.getCraftingAEInv();
+        } else if (invName == StorageName.CRAFTING_OUTPUT) {
+            inv = this.getOutputAEInv();
+        }
+        if (inv != null && slotId >= 0 && slotId < inv.getSizeInventory()) {
+            inv.putAEStackInSlot(slotId, aes);
+        }
+    }
+
+    // ---- IAEStackInventory 访问器 ----
+
+    public IAEStackInventory getCraftingAEInv() {
+        if (this.patternTerminal != null) {
+            return this.patternTerminal.getAEInventoryByName(StorageName.CRAFTING_INPUT);
+        }
+        return null;
+    }
+
+    public IAEStackInventory getOutputAEInv() {
+        if (this.patternTerminal != null) {
+            return this.patternTerminal.getAEInventoryByName(StorageName.CRAFTING_OUTPUT);
+        }
+        return null;
     }
 }

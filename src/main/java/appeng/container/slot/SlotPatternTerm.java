@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -24,14 +24,13 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 
-import appeng.api.AEApi;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IStorageMonitorable;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.packets.PacketPatternSlot;
 import appeng.helpers.IContainerCraftingPacket;
+import appeng.util.item.AEItemStackType;
 
 public class SlotPatternTerm extends SlotCraftingTerm {
 
@@ -51,7 +50,7 @@ public class SlotPatternTerm extends SlotCraftingTerm {
     public AppEngPacket getRequest(final boolean shift) throws IOException {
         return new PacketPatternSlot(this
                 .getPattern(),
-                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createStack(this.getStack()),
+                AEItemStackType.INSTANCE.getStorageChannel().createStack(this.getStack()),
                 shift);
     }
 

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -29,15 +29,14 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
 
-import appeng.api.AEApi;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.fluids.items.ItemFluidDrop;
 import appeng.fluids.util.AEFluidStack;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 /**
  * 支持流体输入/输出的处理配方（非合成台配方）。
@@ -106,8 +105,7 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
                 // 回退：当作普通物品
                 final ItemStack gs = ItemStackHelper.stackFromNBT(tag);
                 if (!gs.isEmpty()) {
-                    IAEItemStack aeItem = AEApi.instance().storage()
-                            .getStorageChannel(IItemStorageChannel.class).createStack(gs);
+                    IAEItemStack aeItem = AEItemStackType.INSTANCE.getStorageChannel().createStack(gs);
                     if (aeItem != null) {
                         inGeneric.add(aeItem);
                         inItems.add(aeItem);
@@ -157,8 +155,7 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
             } else {
                 final ItemStack gs = ItemStackHelper.stackFromNBT(tag);
                 if (!gs.isEmpty()) {
-                    IAEItemStack aeItem = AEApi.instance().storage()
-                            .getStorageChannel(IItemStorageChannel.class).createStack(gs);
+                    IAEItemStack aeItem = AEItemStackType.INSTANCE.getStorageChannel().createStack(gs);
                     if (aeItem != null) {
                         outGeneric.add(aeItem);
                         outItems.add(aeItem);
@@ -236,31 +233,23 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
     }
 
     @Override
-    public IAEStack<?>[] getGenericCondensedInputs() {
+    public IAEStack<?>[] getCondensedAEInputs() {
         return this.genericCondensedInputs;
     }
 
     @Override
-    public IAEStack<?>[] getGenericCondensedOutputs() {
+    public IAEStack<?>[] getCondensedAEOutputs() {
         return this.genericCondensedOutputs;
     }
 
     @Override
-    public IAEStack<?>[] getGenericInputs() {
+    public IAEStack<?>[] getAEInputs() {
         return this.genericInputs;
     }
 
     @Override
-    public IAEStack<?>[] getGenericOutputs() {
+    public IAEStack<?>[] getAEOutputs() {
         return this.genericOutputs;
-    }
-
-    @Override
-    public IAEStack<?> getGenericPrimaryOutput() {
-        if (this.genericCondensedOutputs.length > 0) {
-            return this.genericCondensedOutputs[0];
-        }
-        return getPrimaryOutput();
     }
 
     @Override
@@ -340,7 +329,7 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
         return tmp.values().toArray(new IAEItemStack[0]);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings("unchecked")
     private static IAEStack<?>[] condenseGenericList(IAEStack<?>[] items) {
         final LinkedHashMap<IAEStack<?>, IAEStack<?>> tmp = new LinkedHashMap<>();
         for (IAEStack<?> io : items) {

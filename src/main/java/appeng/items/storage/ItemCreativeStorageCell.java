@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -32,9 +32,9 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.ICellWorkbenchItem;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.items.AEBaseItem;
 import appeng.items.contents.CellConfig;
+import appeng.util.item.AEItemStackType;
 
 public class ItemCreativeStorageCell extends AEBaseItem implements ICellWorkbenchItem {
 
@@ -75,7 +75,7 @@ public class ItemCreativeStorageCell extends AEBaseItem implements ICellWorkbenc
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,
-                        AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                        AEItemStackType.INSTANCE.getStorageChannel());
 
         if (inventory instanceof ICellInventoryHandler) {
             final CellConfig cc = new CellConfig(stack);

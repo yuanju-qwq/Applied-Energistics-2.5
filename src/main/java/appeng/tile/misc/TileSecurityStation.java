@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -56,7 +56,6 @@ import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.ITerminalHost;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.*;
@@ -73,6 +72,7 @@ import appeng.util.helpers.ItemHandlerUtil;
 import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.InvOperation;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class TileSecurityStation extends AENetworkTile implements ITerminalHost, IAEAppEngInventory, ILocatable,
         IConfigManagerHost, ISecurityProvider, IColorableTile {
@@ -242,7 +242,7 @@ public class TileSecurityStation extends AENetworkTile implements ITerminalHost,
 
     @Override
     public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-        if (channel == AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)) {
+        if (channel == AEItemStackType.INSTANCE.getStorageChannel()) {
             return (IMEMonitor<T>) this.securityMonitor;
         }
         return null;

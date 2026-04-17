@@ -35,9 +35,21 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fluids.FluidStack;
 
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 
+/**
+ * @deprecated 请使用 {@link IAEStackType} 代替。所有方法已迁移至 {@link IAEStackType}。
+ * 此接口保留仅为向后兼容，将在未来版本移除。
+ */
+@Deprecated
 public interface IStorageChannel<T extends IAEStack<T>> {
+
+    /**
+     * @return 对应的 {@link IAEStackType}，用于向新 API 桥接
+     */
+    @Nonnull
+    IAEStackType<T> getStackType();
 
     /**
      * Can be used as factor for transferring stacks of a channel.

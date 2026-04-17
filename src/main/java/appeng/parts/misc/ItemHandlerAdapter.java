@@ -28,7 +28,6 @@ import net.minecraftforge.items.IItemHandler;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
-import appeng.api.AEApi;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.config.Settings;
@@ -38,7 +37,7 @@ import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.channels.IItemStorageChannel;
+import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.core.AELog;
@@ -48,6 +47,7 @@ import appeng.me.storage.ITickingMonitor;
 import appeng.util.inv.ItemHandlerIterator;
 import appeng.util.inv.ItemSlot;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 /**
  * Wraps an Item Handler in such a way that it can be used as an IMEInventory for items.
@@ -223,8 +223,8 @@ class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAE
     }
 
     @Override
-    public IItemStorageChannel getChannel() {
-        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class);
+    public IStorageChannel<IAEItemStack> getChannel() {
+        return AEItemStackType.INSTANCE.getStorageChannel();
     }
 
     @Override
@@ -254,8 +254,7 @@ class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAE
     private static class InventoryCache implements Iterable<ItemSlot> {
         private final IItemHandler itemHandler;
         private final StorageFilter mode;
-        IItemList<IAEItemStack> currentlyCached = AEApi.instance().storage()
-                .getStorageChannel(IItemStorageChannel.class).createList();
+        IItemList<IAEItemStack> currentlyCached = AEItemStackType.INSTANCE.createList();
 
         public InventoryCache(IItemHandler itemHandler, StorageFilter mode) {
             this.mode = mode;
@@ -274,8 +273,7 @@ class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAE
         public List<IAEItemStack> update() {
             final List<IAEItemStack> changes = new ArrayList<>();
 
-            IItemList<IAEItemStack> currentlyOnStorage = AEApi.instance().storage()
-                    .getStorageChannel(IItemStorageChannel.class).createList();
+            IItemList<IAEItemStack> currentlyOnStorage = AEItemStackType.INSTANCE.createList();
 
             for (final ItemSlot is : this) {
                 if (this.mode == StorageFilter.EXTRACTABLE_ONLY && !is.isExtractable()) {

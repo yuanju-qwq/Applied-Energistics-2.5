@@ -25,6 +25,7 @@ package appeng.api.storage;
 
 import appeng.api.config.AccessRestriction;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 
 /**
  * Thin logic layer that can be swapped with different IMEInventory implementations, used to handle features related to
@@ -32,7 +33,7 @@ import appeng.api.storage.data.IAEStack;
  *
  * @param <T>
  */
-public interface IMEInventoryHandler<T extends IAEStack<T>> extends IMEInventory<T> {
+public interface IMEInventoryHandler<T extends IAEStackBase> extends IMEInventory<T> {
 
     /**
      * determine if items can be injected/extracted.

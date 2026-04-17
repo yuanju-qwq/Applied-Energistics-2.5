@@ -85,6 +85,39 @@ public interface IAEStackType<T extends IAEStack<T>> {
     int getAmountPerUnit();
 
     /**
+     * 传输因子，用于 IO 端口等批量传输场景。
+     * <p>
+     * 例如流体为 1000（每次传输 1000 mB 以匹配物品通道每次传输一桶），物品为 1。
+     *
+     * @return 传输因子
+     */
+    default int transferFactor() {
+        return 1;
+    }
+
+    /**
+     * 每字节可存储的单位数量。
+     * <p>
+     * 标准值：物品为 8，流体为 8000。
+     *
+     * @return 每字节的单位数
+     */
+    default int getUnitsPerByte() {
+        return 8;
+    }
+
+    /**
+     * 从原生对象（如 {@link ItemStack}、{@link net.minecraftforge.fluids.FluidStack}）创建对应的 AE 栈。
+     * <p>
+     * 参数类型不做约束以保持灵活性。通常用于将 MC 原生栈转换为 {@link IAEStack}。
+     *
+     * @param input 要转换的原生对象
+     * @return 转换后的栈，如果不支持该输入类型则返回 null
+     */
+    @Nullable
+    T createStack(@Nonnull Object input);
+
+    /**
      * @return 在聊天/Tooltip 中用于该类型的颜色
      */
     default TextFormatting getColorDefinition() {

@@ -56,5 +56,18 @@ public enum InventoryAction {
     // Pins 操作（物品钉选/置顶）
     SET_ITEM_PIN,
     SET_CONTAINER_PIN,
-    UNSET_PIN
+    UNSET_PIN,
+
+    // 样板终端精确数值设置（中键点击样板槽位）
+    SET_PATTERN_VALUE,
+
+    // 样板终端名称设置（Ctrl+中键点击样板槽位）
+    SET_PATTERN_NAME,
+
+    // Ctrl+左键/右键 流体容器交互：提取容器中的流体放入 SlotFake
+    PICKUP_FLUID_FROM_CONTAINER,
+    PLACE_SINGLE_FLUID_FROM_CONTAINER,
+
+    // Ctrl+Shift+左键：提取所有流体（上限 Integer.MAX_VALUE mB）
+    PICKUP_ALL_FLUID_FROM_CONTAINER
 }

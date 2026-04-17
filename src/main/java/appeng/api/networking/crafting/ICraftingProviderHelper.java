@@ -37,16 +37,13 @@ public interface ICraftingProviderHelper {
     void addCraftingOption(ICraftingMedium medium, ICraftingPatternDetails api);
 
     /**
-     * Set an item can Emitable
+     * 设置一个栈（物品/流体等）可被发射。
      */
-    void setEmitable(IAEItemStack what);
+    void setEmitable(IAEStack<?> what);
 
     /**
-     * 泛型版本：设置一个栈（物品/流体等）可被发射。
+     * @deprecated 使用 {@link #setEmitable(IAEStack)} 替代
      */
-    default void setEmitable(IAEStack<?> what) {
-        if (what instanceof IAEItemStack) {
-            setEmitable((IAEItemStack) what);
-        }
-    }
+    @Deprecated
+    void setEmitable(IAEItemStack what);
 }

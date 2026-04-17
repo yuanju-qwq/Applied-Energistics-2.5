@@ -32,7 +32,6 @@ import net.minecraft.util.text.TextFormatting;
 
 import appeng.api.AEApi;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -79,7 +78,16 @@ public class AEItemStackType implements IAEStackType<IAEItemStack> {
     @Nonnull
     @Override
     public IItemList<IAEItemStack> createList() {
-        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList();
+        return new ItemList();
+    }
+
+    @Nullable
+    @Override
+    public IAEItemStack createStack(@Nonnull Object input) {
+        if (input instanceof ItemStack) {
+            return AEItemStack.fromItemStack((ItemStack) input);
+        }
+        return null;
     }
 
     @Override
@@ -122,7 +130,13 @@ public class AEItemStackType implements IAEStackType<IAEItemStack> {
 
     @Nonnull
     @Override
+    @SuppressWarnings("unchecked")
     public IStorageChannel<IAEItemStack> getStorageChannel() {
-        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class);
+        for (IStorageChannel<?> ch : AEApi.instance().storage().storageChannels()) {
+            if (ch.getStackType() == this) {
+                return (IStorageChannel<IAEItemStack>) ch;
+            }
+        }
+        throw new IllegalStateException("No IStorageChannel registered for AEItemStackType");
     }
 }

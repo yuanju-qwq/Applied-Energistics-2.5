@@ -16,19 +16,23 @@
  * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
  */
 
-package appeng.crafting;
+package appeng.container.interfaces;
 
-import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.StorageName;
+import appeng.api.storage.data.IAEStack;
 
-public class CraftingCalculationFailure extends RuntimeException {
+/**
+ * 由服务端 Container 实现，当客户端通过 {@link appeng.core.sync.packets.PacketVirtualSlot}
+ * 发送虚拟槽位更新请求时，调用此接口将变更应用到服务端 IAEStackInventory。
+ */
+public interface IVirtualSlotSource {
 
-    private static final long serialVersionUID = 654603652836724823L;
-
-    private final IAEItemStack missing;
-
-    public CraftingCalculationFailure(final IAEItemStack what, final long howMany) {
-        super("this should have been caught!");
-        this.missing = what.copy();
-        this.missing.setStackSize(howMany);
-    }
+    /**
+     * 更新指定库存名称和槽位索引的虚拟栈。
+     *
+     * @param invName 库存名称
+     * @param slotId  槽位索引
+     * @param aes     新的栈内容（null 表示清空）
+     */
+    void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes);
 }

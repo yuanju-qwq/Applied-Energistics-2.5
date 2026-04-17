@@ -42,25 +42,24 @@ public interface ICraftingRequester extends IActionHost, IGridNodeService {
     ImmutableSet<ICraftingLink> getRequestedJobs();
 
     /**
-     * items are injected into the requester as they are completed, any items that cannot be taken, or are unwanted can
-     * be returned.
+     * 注入已完成的合成结果（物品/流体等）。
+     * 实现者应覆写此方法来接收合成完成的栈。
      *
-     * @param items item
+     * @param link  合成链接
+     * @param items 已完成的合成栈
      * @param mode  action mode
-     *
-     * @return unwanted item
-     */
-    IAEItemStack injectCraftedItems(ICraftingLink link, IAEItemStack items, Actionable mode);
-
-    /**
-     * 泛型版本：注入已完成的合成结果（物品/流体等）。
-     * 默认委托到 IAEItemStack 版本。
+     * @return 不被接受的部分
      */
     default IAEStack<?> injectCraftedItems(ICraftingLink link, IAEStack<?> items, Actionable mode) {
-        if (items instanceof IAEItemStack) {
-            return injectCraftedItems(link, (IAEItemStack) items, mode);
-        }
-        return items;
+        return null;
+    }
+
+    /**
+     * @deprecated 使用 {@link #injectCraftedItems(ICraftingLink, IAEStack, Actionable)} 替代
+     */
+    @Deprecated
+    default IAEItemStack injectCraftedItems(ICraftingLink link, IAEItemStack items, Actionable mode) {
+        return (IAEItemStack) injectCraftedItems(link, (IAEStack<?>) items, mode);
     }
 
     /**

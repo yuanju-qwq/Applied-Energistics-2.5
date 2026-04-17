@@ -27,6 +27,7 @@ import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.util.prioritylist.DefaultPriorityList;
 import appeng.util.prioritylist.IPartitionList;
@@ -55,17 +56,23 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
     private boolean isSticky;
     private boolean gettingAvailableContent;
 
-    public MEInventoryHandler(final IMEInventory<T> i, final IStorageChannel<T> channel) {
+    public MEInventoryHandler(final IMEInventory<T> i, final IAEStackType<T> type) {
         if (i instanceof IMEInventoryHandler) {
             this.internal = (IMEInventoryHandler<T>) i;
         } else {
-            this.internal = new MEPassThrough<>(i, channel);
+            this.internal = new MEPassThrough<>(i, type);
         }
 
         this.myPriority = 0;
         this.myWhitelist = IncludeExclude.WHITELIST;
         this.setBaseAccess(AccessRestriction.READ_WRITE);
         this.myPartitionList = new DefaultPriorityList<>();
+    }
+
+    /** @deprecated 请使用 {@link #MEInventoryHandler(IMEInventory, IAEStackType)} 代替 */
+    @Deprecated
+    public MEInventoryHandler(final IMEInventory<T> i, final IStorageChannel<T> channel) {
+        this(i, channel.getStackType());
     }
 
     IncludeExclude getWhitelist() {

@@ -26,7 +26,6 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.IContainerListener;
 
-import appeng.api.AEApi;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.crafting.CraftingItemList;
 import appeng.api.networking.crafting.ICraftingCPU;
@@ -34,8 +33,9 @@ import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.client.gui.implementations.GuiCraftingCPU;
 import appeng.container.AEBaseContainer;
@@ -50,10 +50,9 @@ import appeng.tile.crafting.TileCraftingTile;
 import appeng.util.Platform;
 
 public class ContainerCraftingCPU extends AEBaseContainer
-        implements IMEMonitorHandlerReceiver<IAEItemStack>, ICustomNameObject {
+        implements IMEMonitorHandlerReceiver<IAEStackBase>, ICustomNameObject {
 
-    private final IItemList<IAEItemStack> list = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-            .createList();
+    private final IItemList<IAEStackBase> list = new appeng.util.item.IAEStackList();
     private IGrid network;
     private CraftingCPUCluster monitor = null;
     private String cpuName = null;
@@ -103,7 +102,7 @@ public class ContainerCraftingCPU extends AEBaseContainer
             this.cpuName = c.getName();
             this.setMonitor((CraftingCPUCluster) c);
             this.list.resetStatus();
-            this.getMonitor().getListOfItem(this.list, CraftingItemList.ALL);
+            this.getMonitor().getGenericListOfItem(this.list, CraftingItemList.ALL);
             this.getMonitor().addListener(this, null);
             this.setEstimatedTime(0);
         } else {
@@ -165,10 +164,10 @@ public class ContainerCraftingCPU extends AEBaseContainer
                     final PacketMEInventoryUpdate b = new PacketMEInventoryUpdate((byte) 1);
                     final PacketMEInventoryUpdate c = new PacketMEInventoryUpdate((byte) 2);
 
-                    for (final IAEItemStack out : this.list) {
-                        a.appendItem(this.getMonitor().getItemStack(out, CraftingItemList.STORAGE));
-                        b.appendItem(this.getMonitor().getItemStack(out, CraftingItemList.ACTIVE));
-                        c.appendItem(this.getMonitor().getItemStack(out, CraftingItemList.PENDING));
+                    for (final IAEStackBase out : this.list) {
+                        a.appendStack(this.getMonitor().getItemStack((IAEStack<?>) out, CraftingItemList.STORAGE));
+                        b.appendStack(this.getMonitor().getItemStack((IAEStack<?>) out, CraftingItemList.ACTIVE));
+                        c.appendStack(this.getMonitor().getItemStack((IAEStack<?>) out, CraftingItemList.PENDING));
                     }
 
                     this.list.resetStatus();
@@ -202,9 +201,9 @@ public class ContainerCraftingCPU extends AEBaseContainer
     }
 
     @Override
-    public void postChange(final IBaseMonitor<IAEItemStack> monitor, final Iterable<IAEItemStack> change,
+    public void postChange(final IBaseMonitor<IAEStackBase> monitor, final Iterable<IAEStackBase> change,
             final IActionSource actionSource) {
-        for (IAEItemStack is : change) {
+        for (IAEStackBase is : change) {
             is = is.copy();
             is.setStackSize(1);
             this.list.add(is);
@@ -252,6 +251,13 @@ public class ContainerCraftingCPU extends AEBaseContainer
 
     public void postUpdate(final List<IAEItemStack> list, final byte ref) {
         this.guiCraftingCPU.postUpdate(list, ref);
+    }
+
+    /**
+     * 泛型版本：接收包含物品和流体的合成状态更新。
+     */
+    public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
+        this.guiCraftingCPU.postGenericUpdate(list, ref);
     }
 
     public void setGui(GuiCraftingCPU guiCraftingCPU) {

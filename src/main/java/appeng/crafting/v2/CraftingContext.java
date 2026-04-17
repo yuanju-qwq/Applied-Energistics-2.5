@@ -36,6 +36,7 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.container.ContainerNull;
 import appeng.core.AEConfig;
@@ -184,7 +185,7 @@ public final class CraftingContext {
                 for (final ImmutableList<ICraftingPatternDetails> patternSet : availablePatterns.values()) {
                     for (final ICraftingPatternDetails pattern : patternSet) {
                         if (pattern.canBeSubstitute()) {
-                            for (final IAEStack<?> output : pattern.getGenericOutputs()) {
+                            for (final IAEStack<?> output : pattern.getAEOutputs()) {
                                 if (output instanceof IAEItemStack) {
                                     fuzzyPatternCache.put(((IAEItemStack) output).copy(), pattern);
                                 }
@@ -212,7 +213,7 @@ public final class CraftingContext {
             return cached;
         }
 
-        final IAEStack<?>[] inputs = pattern.getGenericInputs();
+        final IAEStack<?>[] inputs = pattern.getAEInputs();
         // 只有物品类型的合成台配方才可能有复杂行为
         boolean allItems = true;
         for (IAEStack<?> s : inputs) {
@@ -425,8 +426,7 @@ public final class CraftingContext {
         }
 
         @Override
-        @SuppressWarnings("rawtypes")
-        public void populatePlan(IItemList targetPlan) {
+        public void populatePlan(IItemList<IAEStackBase> targetPlan) {
         }
 
         @Override

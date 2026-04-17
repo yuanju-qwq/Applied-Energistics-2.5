@@ -31,6 +31,7 @@ import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.me.cache.SecurityCache;
 
@@ -41,15 +42,15 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
     private static final Comparator<Integer> PRIORITY_SORTER = (o1, o2) -> Integer.compare(o2, o1);
 
     private static int currentPass = 0;
-    private final IStorageChannel<T> myChannel;
+    private final IAEStackType<T> myStackType;
     private final SecurityCache security;
     private final NavigableMap<Integer, List<IMEInventoryHandler<T>>> craftingPriorityInventory;
     private final NavigableMap<Integer, List<IMEInventoryHandler<T>>> priorityInventory;
     private final NavigableMap<Integer, List<IMEInventoryHandler<T>>> stickyPriorityInventory;
     private int myPass = 0;
 
-    public NetworkInventoryHandler(final IStorageChannel<T> chan, final SecurityCache security) {
-        this.myChannel = chan;
+    public NetworkInventoryHandler(final IAEStackType<T> type, final SecurityCache security) {
+        this.myStackType = type;
         this.security = security;
         this.priorityInventory = new TreeMap<>(PRIORITY_SORTER);
         this.stickyPriorityInventory = new TreeMap<>(PRIORITY_SORTER);
@@ -294,7 +295,12 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
 
     @Override
     public IStorageChannel<T> getChannel() {
-        return this.myChannel;
+        return this.myStackType.getStorageChannel();
+    }
+
+    @Override
+    public IAEStackType<T> getStackType() {
+        return this.myStackType;
     }
 
     @Override

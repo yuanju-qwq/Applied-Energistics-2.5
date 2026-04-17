@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2020, AlgorithmX2, All rights reserved.
  *
@@ -31,6 +31,7 @@ import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStackType;
 
 public final class ItemList implements IItemList<IAEItemStack> {
 

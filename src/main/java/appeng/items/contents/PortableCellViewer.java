@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -30,7 +30,6 @@ import appeng.api.implementations.items.IAEItemPowerStorage;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
@@ -38,6 +37,7 @@ import appeng.container.interfaces.IInventorySlotAware;
 import appeng.me.helpers.MEMonitorHandler;
 import appeng.util.ConfigManager;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStackType;
 
 public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implements IPortableCell, IInventorySlotAware {
 
@@ -47,7 +47,7 @@ public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implement
 
     public PortableCellViewer(final ItemStack is, final int slot) {
         super(AEApi.instance().registries().cell().getCellInventory(is, null,
-                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)));
+                AEItemStackType.INSTANCE.getStorageChannel()));
         this.ips = (IAEItemPowerStorage) is.getItem();
         this.target = is;
         this.inventorySlot = slot;
@@ -104,7 +104,7 @@ public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implement
 
     @Override
     public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-        if (channel == AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)) {
+        if (channel == AEItemStackType.INSTANCE.getStorageChannel()) {
             return (IMEMonitor<T>) this;
         }
         return null;

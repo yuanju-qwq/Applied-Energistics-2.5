@@ -148,6 +148,8 @@ public interface IBlocks {
 
     ITileDefinition fluidIface();
 
+    ITileDefinition dualIface();
+
     ITileDefinition cellWorkbench();
 
     ITileDefinition iOPort();

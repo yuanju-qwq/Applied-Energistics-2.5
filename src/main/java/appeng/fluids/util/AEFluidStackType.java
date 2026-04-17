@@ -35,7 +35,6 @@ import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 
 import appeng.api.AEApi;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -82,7 +81,35 @@ public class AEFluidStackType implements IAEStackType<IAEFluidStack> {
     @Nonnull
     @Override
     public IItemList<IAEFluidStack> createList() {
-        return AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class).createList();
+        return new FluidList();
+    }
+
+    @Override
+    public int transferFactor() {
+        return 1000;
+    }
+
+    @Override
+    public int getUnitsPerByte() {
+        return 8000;
+    }
+
+    @Nullable
+    @Override
+    public IAEFluidStack createStack(@Nonnull Object input) {
+        if (input instanceof FluidStack) {
+            return AEFluidStack.fromFluidStack((FluidStack) input);
+        }
+        if (input instanceof ItemStack) {
+            final ItemStack is = (ItemStack) input;
+            if (is.getItem() instanceof appeng.fluids.items.FluidDummyItem) {
+                return AEFluidStack.fromFluidStack(
+                        ((appeng.fluids.items.FluidDummyItem) is.getItem()).getFluidStack(is));
+            } else {
+                return AEFluidStack.fromFluidStack(FluidUtil.getFluidContained(is));
+            }
+        }
+        return null;
     }
 
     @Override
@@ -139,7 +166,13 @@ public class AEFluidStackType implements IAEStackType<IAEFluidStack> {
 
     @Nonnull
     @Override
+    @SuppressWarnings("unchecked")
     public IStorageChannel<IAEFluidStack> getStorageChannel() {
-        return AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class);
+        for (IStorageChannel<?> ch : AEApi.instance().storage().storageChannels()) {
+            if (ch.getStackType() == this) {
+                return (IStorageChannel<IAEFluidStack>) ch;
+            }
+        }
+        throw new IllegalStateException("No IStorageChannel registered for AEFluidStackType");
     }
 }

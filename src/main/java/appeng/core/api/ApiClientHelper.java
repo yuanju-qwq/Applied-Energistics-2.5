@@ -17,8 +17,6 @@ import net.minecraftforge.oredict.OreDictionary;
 import appeng.api.config.IncludeExclude;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ICellInventoryHandler;
-import appeng.api.storage.channels.IFluidStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -29,8 +27,10 @@ import appeng.core.localization.GuiText;
 import appeng.core.localization.Tooltips;
 import appeng.fluids.items.FluidDummyItem;
 import appeng.fluids.util.AEFluidStack;
+import appeng.fluids.util.AEFluidStackType;
 import appeng.util.ReadableNumberConverter;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class ApiClientHelper implements IClientHelper {
 
@@ -42,7 +42,7 @@ public class ApiClientHelper implements IClientHelper {
             return;
         }
 
-        final ICellInventory<?> cellInventory = handler.getCellInv();
+        final ICellInventory<T> cellInventory = handler.getCellInv();
 
         if (cellInventory != null) {
             lines.add(
@@ -52,7 +52,7 @@ public class ApiClientHelper implements IClientHelper {
                     .getFormattedText());
         }
 
-        IItemList<?> itemList = cellInventory.getChannel().createList();
+        IItemList<T> itemList = cellInventory.getChannel().createList();
 
         if (handler.isPreformatted()) {
             final String list = (handler.getIncludeExcludeMode() == IncludeExclude.WHITELIST ? GuiText.Included
@@ -71,19 +71,21 @@ public class ApiClientHelper implements IClientHelper {
             if (Minecraft.getMinecraft().gameSettings.advancedItemTooltips || Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)
                     || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)) {
                 IItemHandler inv = cellInventory.getConfigInventory();
-                cellInventory.getAvailableItems((IItemList) itemList);
+                cellInventory.getAvailableItems(itemList);
                 for (int i = 0; i < inv.getSlots(); i++) {
                     final ItemStack is = inv.getStackInSlot(i);
                     if (!is.isEmpty()) {
-                        if (cellInventory.getChannel() instanceof IItemStorageChannel) {
+                        if (cellInventory.getChannel().getStackType() == AEItemStackType.INSTANCE) {
+                            @SuppressWarnings("unchecked")
+                            IItemList<IAEItemStack> itemItemList = (IItemList<IAEItemStack>) (IItemList<?>) itemList;
                             if (!handler.isFuzzy()) {
                                 final IAEItemStack ais = AEItemStack.fromItemStack(is);
-                                IAEItemStack stocked = ((IItemList<IAEItemStack>) itemList).findPrecise(ais);
+                                IAEItemStack stocked = itemItemList.findPrecise(ais);
                                 lines.add("[" + is.getDisplayName() + "]" + ": " + (stocked == null ? "0"
                                         : ReadableNumberConverter.INSTANCE.toWideReadableForm(stocked.getStackSize())));
                             } else {
                                 final IAEItemStack ais = AEItemStack.fromItemStack(is);
-                                Collection<IAEItemStack> stocked = ((IItemList<IAEItemStack>) itemList).findFuzzy(ais,
+                                Collection<IAEItemStack> stocked = itemItemList.findFuzzy(ais,
                                         handler.getCellInv().getFuzzyMode());
 
                                 int[] ids = OreDictionary.getOreIDs(is);
@@ -103,14 +105,16 @@ public class ApiClientHelper implements IClientHelper {
                                             + ReadableNumberConverter.INSTANCE.toWideReadableForm(size));
                                 }
                             }
-                        } else if (cellInventory.getChannel() instanceof IFluidStorageChannel) {
+                        } else if (cellInventory.getChannel().getStackType() == AEFluidStackType.INSTANCE) {
+                            @SuppressWarnings("unchecked")
+                            IItemList<IAEFluidStack> fluidItemList = (IItemList<IAEFluidStack>) (IItemList<?>) itemList;
                             final AEFluidStack ais;
                             if (is.getItem() instanceof FluidDummyItem) {
                                 ais = AEFluidStack.fromFluidStack(((FluidDummyItem) is.getItem()).getFluidStack(is));
                             } else {
                                 ais = AEFluidStack.fromFluidStack(FluidUtil.getFluidContained(is));
                             }
-                            IAEFluidStack stocked = ((IItemList<IAEFluidStack>) itemList).findPrecise(ais);
+                            IAEFluidStack stocked = fluidItemList.findPrecise(ais);
                             lines.add("[" + is.getDisplayName() + "]" + ": "
                                     + (stocked == null ? "0" : fluidStackSize(stocked.getStackSize())));
                         }
@@ -122,8 +126,8 @@ public class ApiClientHelper implements IClientHelper {
                 return;
             if (Minecraft.getMinecraft().gameSettings.advancedItemTooltips
                     || Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)) {
-                cellInventory.getAvailableItems((IItemList) itemList);
-                for (IAEStack<?> s : itemList) {
+                cellInventory.getAvailableItems(itemList);
+                for (T s : itemList) {
                     if (s instanceof IAEItemStack) {
                         lines.add(((IAEItemStack) s).getDefinition().getDisplayName() + ": "
                                 + ReadableNumberConverter.INSTANCE.toWideReadableForm(s.getStackSize()));

@@ -27,8 +27,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemHandlerHelper;
 
-import appeng.api.AEApi;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.core.AELog;
 import appeng.util.Platform;
@@ -37,6 +35,7 @@ import appeng.util.inv.InvOperation;
 import appeng.util.item.AEItemStack;
 import appeng.util.iterators.AEInvIterator;
 import appeng.util.iterators.InvIterator;
+import appeng.util.item.AEItemStackType;
 
 public class AppEngInternalAEInventory implements IItemHandlerModifiable, Iterable<ItemStack> {
     private final IAEAppEngInventory te;
@@ -152,10 +151,7 @@ public class AppEngInternalAEInventory implements IItemHandlerModifiable, Iterab
 
         if (!simulate) {
             if (existing.isEmpty()) {
-                this.inv[slot] = AEApi.instance()
-                        .storage()
-                        .getStorageChannel(IItemStorageChannel.class)
-                        .createStack(
+                this.inv[slot] = AEItemStack.fromItemStack(
                                 reachedLimit ? ItemHandlerHelper.copyStackWithSize(stack, limit) : stack);
             } else {
                 existing.grow(reachedLimit ? limit : stack.getCount());
@@ -192,7 +188,7 @@ public class AppEngInternalAEInventory implements IItemHandlerModifiable, Iterab
     @Override
     public void setStackInSlot(final int slot, final ItemStack newItemStack) {
         ItemStack oldStack = this.getStackInSlot(slot).copy();
-        this.inv[slot] = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
+        this.inv[slot] = AEItemStackType.INSTANCE.getStorageChannel()
                 .createStack(newItemStack);
 
         if (this.te != null && Platform.isServer()) {

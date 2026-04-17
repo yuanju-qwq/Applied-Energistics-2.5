@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2018, AlgorithmX2, All rights reserved.
  *
@@ -24,12 +24,12 @@ import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.AEApi;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.fluids.helper.FluidCellConfig;
 import appeng.items.materials.MaterialType;
 import appeng.items.storage.AbstractStorageCell;
 import appeng.util.InventoryAdaptor;
+import appeng.fluids.util.AEFluidStackType;
 
 /**
  * @author DrummerMC
@@ -79,7 +79,7 @@ public final class BasicFluidStorageCell extends AbstractStorageCell<IAEFluidSta
 
     @Override
     public IStorageChannel<IAEFluidStack> getChannel() {
-        return AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class);
+        return AEFluidStackType.INSTANCE.getStorageChannel();
     }
 
     @Override

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -43,8 +43,6 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.IStorageMonitorableAccessor;
-import appeng.api.storage.channels.IFluidStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
@@ -58,6 +56,8 @@ import appeng.util.inv.InvOperation;
 import appeng.util.inv.WrapperChainedItemHandler;
 import appeng.util.inv.WrapperFilteredItemHandler;
 import appeng.util.inv.filter.AEItemFilters;
+import appeng.util.item.AEItemStackType;
+import appeng.fluids.util.AEFluidStackType;
 
 public class TileCondenser extends AEBaseInvTile implements IConfigManagerHost, IConfigurableObject {
 
@@ -283,8 +283,7 @@ public class TileCondenser extends AEBaseInvTile implements IConfigManagerHost, 
         @Override
         public int fill(FluidStack resource, boolean doFill) {
             if (doFill) {
-                final IStorageChannel<IAEFluidStack> chan = AEApi.instance().storage()
-                        .getStorageChannel(IFluidStorageChannel.class);
+                final IStorageChannel<IAEFluidStack> chan = AEFluidStackType.INSTANCE.getStorageChannel();
                 TileCondenser.this
                         .addPower((resource == null ? 0.0 : (double) resource.amount) / chan.transferFactor());
             }
@@ -325,7 +324,7 @@ public class TileCondenser extends AEBaseInvTile implements IConfigManagerHost, 
 
         @Override
         public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-            if (channel == AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)) {
+            if (channel == AEItemStackType.INSTANCE.getStorageChannel()) {
                 return (IMEMonitor<T>) this.itemInventory;
             } else {
                 return new CondenserVoidInventory<>(TileCondenser.this, channel);

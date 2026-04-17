@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -34,13 +34,10 @@ import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.PlayerMainInvWrapper;
 
-import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.channels.IFluidStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.core.AELog;
@@ -54,6 +51,8 @@ import appeng.parts.PartModel;
 import appeng.util.InventoryAdaptor;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
+import appeng.fluids.util.AEFluidStackType;
 
 public class PartConversionMonitor extends AbstractPartMonitor {
 
@@ -185,7 +184,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
             final IEnergySource energy = this.getProxy().getEnergy();
             final IMEMonitor<IAEItemStack> cell = this.getProxy()
                     .getStorage()
-                    .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
 
             if (allItems) {
                 if (this.getDisplayed() != null && this.getDisplayed() instanceof IAEItemStack) {
@@ -233,7 +232,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
                 final IMEMonitor<IAEItemStack> cell = this.getProxy()
                         .getStorage()
                         .getInventory(
-                                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                                AEItemStackType.INSTANCE.getStorageChannel());
 
                 input.setStackSize(count);
 
@@ -284,7 +283,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
             final IMEMonitor<IAEFluidStack> cell = this.getProxy()
                     .getStorage()
                     .getInventory(
-                            AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class));
+                            AEFluidStackType.INSTANCE.getStorageChannel());
             final IAEFluidStack notStorable = Platform.poweredInsert(energy, cell, AEFluidStack.fromFluidStack(extract),
                     new PlayerSource(player, this), Actionable.SIMULATE);
 
@@ -343,7 +342,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
             final IMEMonitor<IAEFluidStack> cell = this.getProxy()
                     .getStorage()
                     .getInventory(
-                            AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class));
+                            AEFluidStackType.INSTANCE.getStorageChannel());
             final IAEFluidStack canPull = Platform.poweredExtraction(energy, cell, stack,
                     new PlayerSource(player, this), Actionable.SIMULATE);
             if (canPull == null || canPull.getStackSize() < 1) {

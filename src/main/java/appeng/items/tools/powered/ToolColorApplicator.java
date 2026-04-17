@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -57,7 +57,6 @@ import appeng.api.implementations.tiles.IColorableTile;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEColor;
@@ -76,6 +75,7 @@ import appeng.me.helpers.BaseActionSource;
 import appeng.tile.misc.TilePaint;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class ToolColorApplicator extends AEBasePoweredItem
         implements IStorageCell<IAEItemStack>, IItemGroup, IBlockTool, IMouseWheelItem {
@@ -433,7 +433,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,
-                        AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                        AEItemStackType.INSTANCE.getStorageChannel());
 
         AEApi.instance().client().addCellInformation(cdi, lines);
     }
@@ -490,7 +490,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
 
     @Override
     public IStorageChannel<IAEItemStack> getChannel() {
-        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class);
+        return AEItemStackType.INSTANCE.getStorageChannel();
     }
 
     @Override

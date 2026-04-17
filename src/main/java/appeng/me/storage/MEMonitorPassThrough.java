@@ -29,6 +29,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.util.Platform;
 import appeng.util.inv.ItemListIgnoreCrafting;
@@ -40,11 +41,17 @@ public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T
     private IActionSource changeSource;
     private IMEMonitor<T> monitor;
 
-    public MEMonitorPassThrough(final IMEInventory<T> i, final IStorageChannel channel) {
-        super(i, channel);
+    public MEMonitorPassThrough(final IMEInventory<T> i, final IAEStackType<T> type) {
+        super(i, type);
         if (i instanceof IMEMonitor) {
             this.monitor = (IMEMonitor<T>) i;
         }
+    }
+
+    /** @deprecated 请使用 {@link #MEMonitorPassThrough(IMEInventory, IAEStackType)} 代替 */
+    @Deprecated
+    public MEMonitorPassThrough(final IMEInventory<T> i, final IStorageChannel<T> channel) {
+        this(i, channel.getStackType());
     }
 
     @Override
@@ -54,18 +61,18 @@ public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T
         }
 
         this.monitor = null;
-        final IItemList<T> before = this.getInternal() == null ? this.getWrappedChannel().createList()
+        final IItemList<T> before = this.getInternal() == null ? this.getWrappedType().createList()
                 : this.getInternal()
-                        .getAvailableItems(new ItemListIgnoreCrafting(this.getWrappedChannel().createList()));
+                        .getAvailableItems(new ItemListIgnoreCrafting(this.getWrappedType().createList()));
 
         super.setInternal(i);
         if (i instanceof IMEMonitor) {
             this.monitor = (IMEMonitor<T>) i;
         }
 
-        final IItemList<T> after = this.getInternal() == null ? this.getWrappedChannel().createList()
+        final IItemList<T> after = this.getInternal() == null ? this.getWrappedType().createList()
                 : this.getInternal()
-                        .getAvailableItems(new ItemListIgnoreCrafting(this.getWrappedChannel().createList()));
+                        .getAvailableItems(new ItemListIgnoreCrafting(this.getWrappedType().createList()));
 
         if (this.monitor != null && this.listeners.size() > 0) {
             this.monitor.addListener(this, this.monitor);
@@ -75,7 +82,7 @@ public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T
     }
 
     @Override
-    public IItemList<T> getAvailableItems(final IItemList out) {
+    public IItemList<T> getAvailableItems(final IItemList<T> out) {
         super.getAvailableItems(new ItemListIgnoreCrafting(out));
         return out;
     }
@@ -98,7 +105,7 @@ public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T
     @Override
     public IItemList<T> getStorageList() {
         if (this.monitor == null) {
-            final IItemList<T> out = this.getWrappedChannel().createList();
+            final IItemList<T> out = this.getWrappedType().createList();
             this.getInternal().getAvailableItems(new ItemListIgnoreCrafting(out));
             return out;
         }

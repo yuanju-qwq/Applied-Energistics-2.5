@@ -30,18 +30,17 @@ import appeng.api.implementations.items.IBiometricCard;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.MEMonitorHandler;
 import appeng.me.helpers.MachineSource;
 import appeng.tile.misc.TileSecurityStation;
+import appeng.util.item.AEItemStackType;
 
 public class SecurityStationInventory implements IMEInventoryHandler<IAEItemStack> {
 
-    private final IItemList<IAEItemStack> storedItems = AEApi.instance().storage()
-            .getStorageChannel(IItemStorageChannel.class).createList();
+    private final IItemList<IAEItemStack> storedItems = AEItemStackType.INSTANCE.createList();
     private final TileSecurityStation securityTile;
     private final MachineSource src;
 
@@ -61,7 +60,7 @@ public class SecurityStationInventory implements IMEInventoryHandler<IAEItemStac
 
                     if (securityTile.getProxy().isActive()) {
                         ((MEMonitorHandler<IAEItemStack>) securityTile
-                                .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)))
+                                .getInventory(AEItemStackType.INSTANCE))
                                 .postChangesToListeners(Collections.singletonList(input.copy()), this.src);
                     }
 
@@ -99,7 +98,7 @@ public class SecurityStationInventory implements IMEInventoryHandler<IAEItemStac
 
                 if (securityTile.getProxy().isActive()) {
                     ((MEMonitorHandler<IAEItemStack>) securityTile
-                            .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)))
+                            .getInventory(AEItemStackType.INSTANCE))
                             .postChangesToListeners(
                                     Collections.singletonList(target.copy().setStackSize(-target.getStackSize())),
                                     this.src);
@@ -114,7 +113,7 @@ public class SecurityStationInventory implements IMEInventoryHandler<IAEItemStac
     }
 
     @Override
-    public IItemList<IAEItemStack> getAvailableItems(final IItemList out) {
+    public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
         for (final IAEItemStack ais : this.getStoredItems()) {
             out.add(ais);
         }
@@ -123,8 +122,8 @@ public class SecurityStationInventory implements IMEInventoryHandler<IAEItemStac
     }
 
     @Override
-    public IStorageChannel getChannel() {
-        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class);
+    public IStorageChannel<IAEItemStack> getChannel() {
+        return AEItemStackType.INSTANCE.getStorageChannel();
     }
 
     @Override

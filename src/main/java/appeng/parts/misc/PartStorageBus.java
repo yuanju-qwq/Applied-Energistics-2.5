@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -58,7 +58,7 @@ import appeng.api.parts.IPart;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.*;
-import appeng.api.storage.channels.IItemStorageChannel;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AECableType;
@@ -78,16 +78,20 @@ import appeng.me.storage.MEInventoryHandler;
 import appeng.parts.PartModel;
 import appeng.parts.automation.PartUpgradeable;
 import appeng.tile.inventory.AppEngInternalAEInventory;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.tile.inventory.IIAEStackInventory;
 import appeng.tile.misc.TileInterface;
 import appeng.tile.networking.TileCableBus;
 import appeng.util.ConfigManager;
 import appeng.util.Platform;
 import appeng.util.inv.InvOperation;
+import appeng.util.item.AEItemStackType;
 import appeng.util.prioritylist.FuzzyPriorityList;
 import appeng.util.prioritylist.PrecisePriorityList;
 
 public class PartStorageBus extends PartUpgradeable
-        implements IGridTickable, ICellContainer, IMEMonitorHandlerReceiver<IAEItemStack>, IPriorityHost {
+        implements IGridTickable, ICellContainer, IMEMonitorHandlerReceiver<IAEItemStack>, IPriorityHost,
+        IIAEStackInventory {
     public static final ResourceLocation MODEL_BASE = new ResourceLocation(AppEng.MOD_ID, "part/storage_bus_base");
     @PartModels
     public static final IPartModel MODELS_OFF = new PartModel(MODEL_BASE,
@@ -101,7 +105,7 @@ public class PartStorageBus extends PartUpgradeable
     @CapabilityInject(IItemRepository.class)
     public static Capability<IItemRepository> ITEM_REPOSITORY_CAPABILITY = null;
     protected final IActionSource mySrc;
-    protected final AppEngInternalAEInventory Config = new AppEngInternalAEInventory(this, 63);
+    protected final IAEStackInventory Config = new IAEStackInventory(this, 63, StorageName.CONFIG);
     protected int priority = 0;
     protected boolean cached = false;
     protected ITickingMonitor monitor = null;
@@ -165,10 +169,6 @@ public class PartStorageBus extends PartUpgradeable
     public void onChangeInventory(final IItemHandler inv, final int slot, final InvOperation mc,
             final ItemStack removedStack, final ItemStack newStack) {
         super.onChangeInventory(inv, slot, mc, removedStack, newStack);
-
-        if (inv == this.Config) {
-            this.resetCache(true);
-        }
     }
 
     @Override
@@ -194,11 +194,23 @@ public class PartStorageBus extends PartUpgradeable
 
     @Override
     public IItemHandler getInventoryByName(final String name) {
-        if (name.equals("config")) {
+        return super.getInventoryByName(name);
+    }
+
+    // ---- IIAEStackInventory 实现 ----
+
+    @Override
+    public void saveAEStackInv() {
+        this.resetCache(true);
+        this.getHost().markForSave();
+    }
+
+    @Override
+    public IAEStackInventory getAEInventoryByName(StorageName name) {
+        if (name == StorageName.CONFIG) {
             return this.Config;
         }
-
-        return super.getInventoryByName(name);
+        return null;
     }
 
     protected void resetCache(final boolean fullReset) {
@@ -237,7 +249,7 @@ public class PartStorageBus extends PartUpgradeable
                 readOncePass = false;
                 try {
                     this.getProxy().getStorage().postAlterationOfStoredItems(
-                            AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class), filteredChanges,
+                            AEItemStackType.INSTANCE, filteredChanges,
                             mySrc);
                 } catch (final GridAccessException e) {
                     // :(
@@ -249,7 +261,7 @@ public class PartStorageBus extends PartUpgradeable
             }
             try {
                 this.getProxy().getStorage().postAlterationOfStoredItems(
-                        AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class), filteredChanges,
+                        AEItemStackType.INSTANCE, filteredChanges,
                         source);
             } catch (final GridAccessException e) {
                 // :(
@@ -338,8 +350,7 @@ public class PartStorageBus extends PartUpgradeable
 
         final MEInventoryHandler<IAEItemStack> in = this.getInternalHandler();
 
-        IItemList<IAEItemStack> before = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-                .createList();
+        IItemList<IAEItemStack> before = AEItemStackType.INSTANCE.createList();
         if (in != null) {
             if (accessChanged) {
                 AccessRestriction currentAccess = (AccessRestriction) ((ConfigManager) this.getConfigManager())
@@ -366,8 +377,7 @@ public class PartStorageBus extends PartUpgradeable
 
         final MEInventoryHandler<IAEItemStack> out = this.getInternalHandler();
 
-        IItemList<IAEItemStack> after = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-                .createList();
+        IItemList<IAEItemStack> after = AEItemStackType.INSTANCE.createList();
 
         if (in != out) {
             if (out != null) {
@@ -388,7 +398,7 @@ public class PartStorageBus extends PartUpgradeable
         if (accessor != null) {
             IStorageMonitorable inventory = accessor.getInventory(this.mySrc);
             if (inventory != null) {
-                return inventory.getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                return inventory.getInventory(AEItemStackType.INSTANCE.getStorageChannel());
             }
 
             // So this could / can be a design decision. If the tile does support our custom capability,
@@ -429,7 +439,7 @@ public class PartStorageBus extends PartUpgradeable
                 IStorageMonitorable inventory = accessor.getInventory(this.mySrc);
                 if (inventory != null) {
                     return Objects.hash(target, inventory
-                            .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)));
+                            .getInventory(AEItemStackType.INSTANCE.getStorageChannel()));
                 }
             }
             return Objects.hash(target, target.getCapability(Capabilities.STORAGE_MONITORABLE_ACCESSOR, targetSide));
@@ -478,7 +488,7 @@ public class PartStorageBus extends PartUpgradeable
 
             if (inv != null) {
                 this.handler = new MEInventoryHandler<>(inv,
-                        AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                        AEItemStackType.INSTANCE.getStorageChannel());
 
                 this.handler.setBaseAccess((AccessRestriction) this.getConfigManager().getSetting(Settings.ACCESS));
                 this.handler.setWhitelist(this.getInstalledUpgrades(Upgrades.INVERTER) > 0 ? IncludeExclude.BLACKLIST
@@ -487,14 +497,13 @@ public class PartStorageBus extends PartUpgradeable
                 this.handler
                         .setStorageFilter((StorageFilter) this.getConfigManager().getSetting(Settings.STORAGE_FILTER));
 
-                final IItemList<IAEItemStack> priorityList = AEApi.instance().storage()
-                        .getStorageChannel(IItemStorageChannel.class).createList();
+                final IItemList<IAEItemStack> priorityList = AEItemStackType.INSTANCE.createList();
 
                 final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
-                for (int x = 0; x < this.Config.getSlots() && x < slotsToUse; x++) {
-                    final IAEItemStack is = this.Config.getAEStackInSlot(x);
-                    if (is != null) {
-                        priorityList.add(is);
+                for (int x = 0; x < this.Config.getSizeInventory() && x < slotsToUse; x++) {
+                    final IAEStack<?> stack = this.Config.getAEStackInSlot(x);
+                    if (stack instanceof IAEItemStack) {
+                        priorityList.add((IAEItemStack) stack);
                     }
                 }
 
@@ -543,11 +552,12 @@ public class PartStorageBus extends PartUpgradeable
     }
 
     @Override
-    public List<IMEInventoryHandler> getCellArray(final IStorageChannel channel) {
-        if (channel == AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)) {
+    @SuppressWarnings("unchecked")
+    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IStorageChannel<T> channel) {
+        if (channel == AEItemStackType.INSTANCE.getStorageChannel()) {
             final IMEInventoryHandler<IAEItemStack> out = this.getInternalHandler();
             if (out != null) {
-                return Collections.singletonList(out);
+                return Collections.singletonList((IMEInventoryHandler<T>) out);
             }
         }
         return Collections.emptyList();

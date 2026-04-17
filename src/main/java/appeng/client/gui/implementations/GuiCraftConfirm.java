@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -34,8 +34,9 @@ import net.minecraft.item.ItemStack;
 
 import appeng.api.AEApi;
 import appeng.api.storage.ITerminalHost;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.client.gui.AEBaseGui;
 import appeng.client.gui.widgets.GuiScrollbar;
@@ -52,6 +53,7 @@ import appeng.parts.reporting.PartExpandedProcessingPatternTerminal;
 import appeng.parts.reporting.PartPatternTerminal;
 import appeng.parts.reporting.PartTerminal;
 import appeng.util.Platform;
+import appeng.util.item.IAEStackList;
 
 public class GuiCraftConfirm extends AEBaseGui {
 
@@ -59,16 +61,11 @@ public class GuiCraftConfirm extends AEBaseGui {
 
     private final int rows = 5;
 
-    private final IItemList<IAEItemStack> storage = AEApi.instance().storage()
-            .getStorageChannel(IItemStorageChannel.class).createList();
-    private final IItemList<IAEItemStack> pending = AEApi.instance().storage()
-            .getStorageChannel(IItemStorageChannel.class).createList();
-    private final IItemList<IAEItemStack> missing = AEApi.instance().storage()
-            .getStorageChannel(IItemStorageChannel.class).createList();
+    private final IItemList<IAEStackBase> storage = new IAEStackList();
+    private final IItemList<IAEStackBase> pending = new IAEStackList();
+    private final IItemList<IAEStackBase> missing = new IAEStackList();
 
-    private final List<IAEItemStack> visual = new ArrayList<>();
-    private final Map<IAEItemStack, Long> craftingRounds = new HashMap<>();
-    private final Map<IAEItemStack, Double> materialRatios = new HashMap<>();
+    private final List<IAEStack<?>> visual = new ArrayList<>();
 
     private GuiBridge OriginalGui;
     private GuiButton cancel;
@@ -236,14 +233,17 @@ public class GuiCraftConfirm extends AEBaseGui {
         final int offY = 23;
 
         for (int z = viewStart; z < Math.min(viewEnd, this.visual.size()); z++) {
-            final IAEItemStack refStack = this.visual.get(z);// repo.getReferenceItem( z );
+            final IAEStack<?> refStack = this.visual.get(z);// repo.getReferenceItem( z );
             if (refStack != null) {
                 GlStateManager.pushMatrix();
                 GlStateManager.scale(0.5, 0.5, 0.5);
 
-                final IAEItemStack stored = this.storage.findPrecise(refStack);
-                final IAEItemStack pendingStack = this.pending.findPrecise(refStack);
-                final IAEItemStack missingStack = this.missing.findPrecise(refStack);
+                @SuppressWarnings("unchecked")
+                final IAEStack<?> stored = (IAEStack<?>) this.storage.findPrecise(refStack);
+                @SuppressWarnings("unchecked")
+                final IAEStack<?> pendingStack = (IAEStack<?>) this.pending.findPrecise(refStack);
+                @SuppressWarnings("unchecked")
+                final IAEStack<?> missingStack = (IAEStack<?>) this.missing.findPrecise(refStack);
 
                 int lines = 0;
 
@@ -255,11 +255,10 @@ public class GuiCraftConfirm extends AEBaseGui {
                 }
                 if (pendingStack != null && pendingStack.getStackSize() > 0) {
                     lines++;
+                    if (pendingStack.getCountRequestableCrafts() > 0) {
+                        lines++;
+                    }
                 }
-                if (materialRatios.containsKey(refStack))
-                    lines++;
-                if (craftingRounds.containsKey(refStack))
-                    lines++;
 
                 final int negY = ((lines - 1) * 5) / 2;
                 int downY = 0;
@@ -284,23 +283,6 @@ public class GuiCraftConfirm extends AEBaseGui {
                     }
 
                     downY += 5;
-
-                    Double ratio = this.materialRatios.get(refStack);
-                    if (ratio != null && ratio > 0) {
-                        double usedPercent = ratio * 100;
-                        String ratioStr;
-                        if (usedPercent < 0.01) {
-                            ratioStr = GuiText.MaterialUsagePercentage.getLocal() + ": <0.01%";
-                        } else {
-                            ratioStr = String.format("%s: %.2f%%", GuiText.MaterialUsagePercentage.getLocal(),
-                                    usedPercent);
-                        }
-                        final int wRatio = 4 + this.fontRenderer.getStringWidth(ratioStr);
-                        this.fontRenderer.drawString(ratioStr,
-                                (int) ((x * (1 + sectionLength) + xo + sectionLength - 19 - (wRatio * 0.5)) * 2),
-                                (y * offY + yo + 6 - negY + downY) * 2, 4210752);
-                        downY += 5;
-                    }
                 }
 
                 boolean red = false;
@@ -348,9 +330,10 @@ public class GuiCraftConfirm extends AEBaseGui {
 
                     downY += 5;
 
-                    Long rounds = this.craftingRounds.get(refStack);
-                    if (rounds != null && rounds > 0) {
-                        String roundsStr = String.format("%s: %d", GuiText.PatternExecutionCount.getLocal(), rounds);
+                    long craftRounds = pendingStack.getCountRequestableCrafts();
+                    if (craftRounds > 0) {
+                        String roundsStr = String.format("%s: %d", GuiText.PatternExecutionCount.getLocal(),
+                                craftRounds);
                         final int wRounds = 4 + this.fontRenderer.getStringWidth(roundsStr);
                         this.fontRenderer.drawString(roundsStr,
                                 (int) ((x * (1 + sectionLength) + xo + sectionLength - 19 - (wRounds * 0.5)) * 2),
@@ -368,24 +351,13 @@ public class GuiCraftConfirm extends AEBaseGui {
                 if (this.tooltip == z - viewStart) {
                     dspToolTip = Platform.getItemDisplayName(refStack);
 
-                    Double ratio = this.materialRatios.get(refStack);
-                    if (ratio != null && ratio > 0) {
-                        double usedPercent = ratio * 100;
-                        String ratioDisplay;
-                        if (usedPercent < 0.01) {
-                            ratioDisplay = GuiText.MaterialUsagePercentage.getLocal() + ": <0.01%";
-                        } else {
-                            ratioDisplay = String.format("%s: %.2f%%", GuiText.MaterialUsagePercentage.getLocal(),
-                                    usedPercent);
+                    if (pendingStack != null) {
+                        long rounds = pendingStack.getCountRequestableCrafts();
+                        if (rounds > 0) {
+                            lineList.add(String.format("%s: %d",
+                                    GuiText.PatternExecutionCount.getLocal(),
+                                    rounds));
                         }
-                        lineList.add(ratioDisplay);
-                    }
-
-                    Long rounds = this.craftingRounds.get(refStack);
-                    if (rounds != null && rounds > 0) {
-                        lineList.add(String.format("%s: %d",
-                                GuiText.PatternExecutionCount.getLocal(),
-                                rounds));
                     }
 
                     if (lineList.size() > 0) {
@@ -433,41 +405,46 @@ public class GuiCraftConfirm extends AEBaseGui {
     }
 
     public void postUpdate(final List<IAEItemStack> list, final byte ref) {
+        // 旧接口兼容：转为泛型版本
+        final List<IAEStack<?>> genericList = new ArrayList<>(list.size());
+        for (IAEItemStack item : list) {
+            genericList.add(item);
+        }
+        postGenericUpdate(genericList, ref);
+    }
+
+    /**
+     * 泛型版本：接收包含物品和流体的合成计划更新。
+     */
+    @SuppressWarnings("unchecked")
+    public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
         switch (ref) {
             case 0:
-                for (final IAEItemStack l : list) {
+                for (final IAEStack<?> l : list) {
                     this.handleInput(this.storage, l);
                 }
                 break;
 
             case 1:
-                for (final IAEItemStack l : list) {
+                for (final IAEStack<?> l : list) {
                     this.handleInput(this.pending, l);
                 }
                 break;
 
             case 2:
-                for (final IAEItemStack l : list) {
+                for (final IAEStack<?> l : list) {
                     this.handleInput(this.missing, l);
                 }
                 break;
-
-            case 3:
-                this.handleCraftingRounds(list);
-                break;
-
-            case 4:
-                this.handleMaterialRatios(list);
-                break;
         }
 
-        for (final IAEItemStack l : list) {
+        for (final IAEStack<?> l : list) {
             final long amt = this.getTotal(l);
 
             if (amt <= 0) {
                 this.deleteVisualStack(l);
             } else {
-                final IAEItemStack is = this.findVisualStack(l);
+                final IAEStack<?> is = this.findVisualStack(l);
                 is.setStackSize(amt);
             }
         }
@@ -475,25 +452,9 @@ public class GuiCraftConfirm extends AEBaseGui {
         this.setScrollBar();
     }
 
-    private void handleMaterialRatios(List<IAEItemStack> itemStacks) {
-        for (final IAEItemStack stack : itemStacks) {
-            double ratio = stack.getStackSize() / 10000.0;
-            IAEItemStack key = stack.copy();
-            key.setStackSize(1);
-            this.materialRatios.put(key, ratio);
-        }
-    }
-
-    private void handleCraftingRounds(List<IAEItemStack> list) {
-        this.craftingRounds.clear();
-        for (IAEItemStack stack : list) {
-            IAEItemStack key = stack.copy().reset();
-            this.craftingRounds.put(key, stack.getStackSize());
-        }
-    }
-
-    private void handleInput(final IItemList<IAEItemStack> s, final IAEItemStack l) {
-        IAEItemStack a = s.findPrecise(l);
+    @SuppressWarnings("unchecked")
+    private void handleInput(final IItemList<IAEStackBase> s, final IAEStack<?> l) {
+        IAEStack<?> a = (IAEStack<?>) s.findPrecise(l);
 
         if (l.getStackSize() <= 0) {
             if (a != null) {
@@ -502,19 +463,21 @@ public class GuiCraftConfirm extends AEBaseGui {
         } else {
             if (a == null) {
                 s.add(l.copy());
-                a = s.findPrecise(l);
+                a = (IAEStack<?>) s.findPrecise(l);
             }
 
             if (a != null) {
                 a.setStackSize(l.getStackSize());
+                a.setCountRequestableCrafts(l.getCountRequestableCrafts());
             }
         }
     }
 
-    private long getTotal(final IAEItemStack is) {
-        final IAEItemStack a = this.storage.findPrecise(is);
-        final IAEItemStack c = this.pending.findPrecise(is);
-        final IAEItemStack m = this.missing.findPrecise(is);
+    @SuppressWarnings("unchecked")
+    private long getTotal(final IAEStack<?> is) {
+        final IAEStack<?> a = (IAEStack<?>) this.storage.findPrecise(is);
+        final IAEStack<?> c = (IAEStack<?>) this.pending.findPrecise(is);
+        final IAEStack<?> m = (IAEStack<?>) this.missing.findPrecise(is);
 
         long total = 0;
 
@@ -533,10 +496,10 @@ public class GuiCraftConfirm extends AEBaseGui {
         return total;
     }
 
-    private void deleteVisualStack(final IAEItemStack l) {
-        final Iterator<IAEItemStack> i = this.visual.iterator();
+    private void deleteVisualStack(final IAEStack<?> l) {
+        final Iterator<IAEStack<?>> i = this.visual.iterator();
         while (i.hasNext()) {
-            final IAEItemStack o = i.next();
+            final IAEStack<?> o = i.next();
             if (o.equals(l)) {
                 i.remove();
                 return;
@@ -544,14 +507,14 @@ public class GuiCraftConfirm extends AEBaseGui {
         }
     }
 
-    private IAEItemStack findVisualStack(final IAEItemStack l) {
-        for (final IAEItemStack o : this.visual) {
+    private IAEStack<?> findVisualStack(final IAEStack<?> l) {
+        for (final IAEStack<?> o : this.visual) {
             if (o.equals(l)) {
                 return o;
             }
         }
 
-        final IAEItemStack stack = l.copy();
+        final IAEStack<?> stack = l.copy();
         this.visual.add(stack);
         return stack;
     }
@@ -594,7 +557,7 @@ public class GuiCraftConfirm extends AEBaseGui {
         }
     }
 
-    public List<IAEItemStack> getVisual() {
+    public List<IAEStack<?>> getVisual() {
         return visual;
     }
 

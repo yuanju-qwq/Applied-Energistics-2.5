@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2018, AlgorithmX2, All rights reserved.
  *
@@ -25,12 +25,10 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 
-import appeng.api.AEApi;
 import appeng.api.config.Settings;
 import appeng.api.config.SortOrder;
 import appeng.api.config.ViewItems;
 import appeng.api.config.YesNo;
-import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IItemList;
 import appeng.client.gui.widgets.IScrollSource;
@@ -39,6 +37,7 @@ import appeng.core.AEConfig;
 import appeng.fluids.util.FluidSorters;
 import appeng.util.Platform;
 import appeng.util.prioritylist.IPartitionList;
+import appeng.fluids.util.AEFluidStackType;
 
 /**
  * @author BrockWS
@@ -46,8 +45,7 @@ import appeng.util.prioritylist.IPartitionList;
  * @since rv6 22/05/2018
  */
 public class FluidRepo {
-    private final IItemList<IAEFluidStack> list = AEApi.instance().storage()
-            .getStorageChannel(IFluidStorageChannel.class).createList();
+    private final IItemList<IAEFluidStack> list = AEFluidStackType.INSTANCE.createList();
     private final ArrayList<IAEFluidStack> view = new ArrayList<>();
     private final IScrollSource src;
     private final ISortSource sortSrc;

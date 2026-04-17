@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -51,7 +51,7 @@ import appeng.api.parts.IPartItem;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
@@ -65,6 +65,7 @@ import appeng.util.Platform;
 import appeng.util.inv.InvOperation;
 import appeng.util.prioritylist.FuzzyPriorityList;
 import appeng.util.prioritylist.PrecisePriorityList;
+import appeng.util.item.AEItemStackType;
 
 public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack> {
 
@@ -75,9 +76,8 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
         return MODELS.getModels();
     }
 
-    private final MEInventoryHandler<IAEItemStack> myHandler = new MEInventoryHandler<>(this, AEApi.instance()
-            .storage()
-            .getStorageChannel(IItemStorageChannel.class));
+    private final MEInventoryHandler<IAEItemStack> myHandler = new MEInventoryHandler<>(this,
+            AEItemStackType.INSTANCE.getStorageChannel());
     private final AppEngInternalAEInventory Config = new AppEngInternalAEInventory(this, 63);
 
     public PartFormationPlane(final ItemStack is) {
@@ -95,8 +95,7 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
                 this.getInstalledUpgrades(Upgrades.INVERTER) > 0 ? IncludeExclude.BLACKLIST : IncludeExclude.WHITELIST);
         this.myHandler.setPriority(this.getPriority());
 
-        final IItemList<IAEItemStack> priorityList = AEApi.instance().storage()
-                .getStorageChannel(IItemStorageChannel.class).createList();
+        final IItemList<IAEItemStack> priorityList = AEItemStackType.INSTANCE.createList();
 
         final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
         for (int x = 0; x < this.Config.getSlots() && x < slotsToUse; x++) {
@@ -174,10 +173,11 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
     }
 
     @Override
-    public List<IMEInventoryHandler> getCellArray(final IStorageChannel channel) {
-        if (channel == AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)) {
-            final List<IMEInventoryHandler> handler = new ArrayList<>(1);
-            handler.add(this.myHandler);
+    @SuppressWarnings("unchecked")
+    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IStorageChannel<T> channel) {
+        if (channel == AEItemStackType.INSTANCE.getStorageChannel()) {
+            final List<IMEInventoryHandler<T>> handler = new ArrayList<>(1);
+            handler.add((IMEInventoryHandler<T>) this.myHandler);
             return handler;
         }
         return Collections.emptyList();
@@ -313,7 +313,7 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
 
     @Override
     public IStorageChannel<IAEItemStack> getChannel() {
-        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class);
+        return AEItemStackType.INSTANCE.getStorageChannel();
     }
 
     @Override

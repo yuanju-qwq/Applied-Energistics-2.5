@@ -38,20 +38,21 @@ public interface ICraftingWatcherHost extends IGridNodeService {
     void updateWatcher(ICraftingWatcher newWatcher);
 
     /**
-     * Called when a crafting status changes.
-     *
-     * @param craftingGrid current crafting grid
-     * @param what         change
-     */
-    void onRequestChange(ICraftingGrid craftingGrid, IAEItemStack what);
-
-    /**
-     * 泛型版本：合成状态变更通知。
+     * 合成状态变更通知（支持物品/流体等多种类型）。
      * 默认委托到 IAEItemStack 版本。
+     *
+     * @param craftingGrid 当前合成网格
+     * @param what         变更的栈
      */
     default void onRequestChange(ICraftingGrid craftingGrid, IAEStack<?> what) {
         if (what instanceof IAEItemStack) {
             onRequestChange(craftingGrid, (IAEItemStack) what);
         }
     }
+
+    /**
+     * @deprecated 使用 {@link #onRequestChange(ICraftingGrid, IAEStack)} 替代
+     */
+    @Deprecated
+    void onRequestChange(ICraftingGrid craftingGrid, IAEItemStack what);
 }

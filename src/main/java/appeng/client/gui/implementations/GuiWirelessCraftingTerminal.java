@@ -27,6 +27,7 @@ import net.minecraft.inventory.Slot;
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
 import appeng.client.gui.widgets.GuiImgButton;
+import appeng.client.gui.widgets.UniversalTerminalButtons;
 import appeng.container.implementations.ContainerWirelessCraftingTerminal;
 import appeng.container.slot.SlotCraftingMatrix;
 import appeng.core.localization.GuiText;
@@ -38,6 +39,7 @@ import appeng.helpers.WirelessTerminalGuiObject;
 public class GuiWirelessCraftingTerminal extends GuiMEMonitorable {
 
     private GuiImgButton clearBtn;
+    private UniversalTerminalButtons universalButtons;
 
     public GuiWirelessCraftingTerminal(final InventoryPlayer inventoryPlayer, final WirelessTerminalGuiObject te) {
         super(inventoryPlayer, te, new ContainerWirelessCraftingTerminal(inventoryPlayer, te));
@@ -46,6 +48,9 @@ public class GuiWirelessCraftingTerminal extends GuiMEMonitorable {
 
     @Override
     protected void actionPerformed(final GuiButton btn) {
+        if (this.universalButtons != null && this.universalButtons.handleButtonClick(btn)) {
+            return;
+        }
         super.actionPerformed(btn);
 
         if (this.clearBtn == btn) {
@@ -70,6 +75,9 @@ public class GuiWirelessCraftingTerminal extends GuiMEMonitorable {
         this.buttonList.add(this.clearBtn = new GuiImgButton(this.guiLeft + 92, this.guiTop + this.ySize - 156,
                 Settings.ACTIONS, ActionItems.STASH));
         this.clearBtn.setHalfSize(true);
+        this.universalButtons = new UniversalTerminalButtons(
+                ((appeng.container.AEBaseContainer) this.inventorySlots).getPlayerInv());
+        this.universalButtons.initButtons(this.guiLeft, this.guiTop, this.buttonList, 200, this.itemRender);
     }
 
     @Override

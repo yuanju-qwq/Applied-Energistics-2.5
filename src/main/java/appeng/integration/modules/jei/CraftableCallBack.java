@@ -1,4 +1,4 @@
-package appeng.integration.modules.jei;
+﻿package appeng.integration.modules.jei;
 
 import java.util.Collection;
 import java.util.List;
@@ -16,9 +16,7 @@ import net.minecraftforge.items.wrapper.PlayerMainInvWrapper;
 
 import mezz.jei.api.gui.ITooltipCallback;
 
-import appeng.api.AEApi;
 import appeng.api.config.FuzzyMode;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.container.AEBaseContainer;
@@ -29,6 +27,7 @@ import appeng.helpers.IContainerCraftingPacket;
 import appeng.helpers.InventoryAction;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class CraftableCallBack implements ITooltipCallback<ItemStack> {
     private final IItemList<IAEItemStack> list;
@@ -113,8 +112,7 @@ public class CraftableCallBack implements ITooltipCallback<ItemStack> {
 
     IItemList<IAEItemStack> mergeInventories(IItemList<IAEItemStack> repo,
             ContainerMEMonitorable containerCraftingTerm) {
-        IItemList<IAEItemStack> itemList = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-                .createList();
+        IItemList<IAEItemStack> itemList = AEItemStackType.INSTANCE.createList();
         for (IAEItemStack i : repo) {
             itemList.addStorage(i);
         }

@@ -26,6 +26,8 @@ package appeng.api.storage;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 
 /**
@@ -38,7 +40,7 @@ import appeng.api.storage.data.IItemList;
  * If you want to request a stack of an item, you should should determine that prior to requesting the stack from the
  * inventory.
  */
-public interface IMEInventory<T extends IAEStack<T>> {
+public interface IMEInventory<T extends IAEStackBase> {
 
     /**
      * Store new items, or simulate the addition of new items into the ME Inventory.
@@ -75,12 +77,23 @@ public interface IMEInventory<T extends IAEStack<T>> {
      *
      * @return a new list of this inventories content
      */
+    @SuppressWarnings("unchecked")
     default IItemList<T> getAvailableItems() {
-        return getAvailableItems(getChannel().createList());
+        return getAvailableItems((IItemList<T>) getStackType().createList());
     }
 
     /**
+     * @deprecated 请使用 {@link #getStackType()} 代替。
      * @return the type of channel your handler should be part of
      */
-    IStorageChannel<T> getChannel();
+    @Deprecated
+    @SuppressWarnings("rawtypes")
+    IStorageChannel getChannel();
+
+    /**
+     * @return 此 inventory 对应的 {@link IAEStackType}
+     */
+    default IAEStackType<?> getStackType() {
+        return getChannel().getStackType();
+    }
 }

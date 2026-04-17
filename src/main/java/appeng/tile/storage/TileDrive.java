@@ -39,6 +39,7 @@ import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.*;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
@@ -60,7 +61,7 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
     private final DriveWatcher<IAEItemStack>[] invBySlot = new DriveWatcher[10];
     private final IActionSource mySrc;
     private boolean isCached = false;
-    private final Map<IStorageChannel<? extends IAEStack<?>>, List<IMEInventoryHandler>> inventoryHandlers;
+    private final Map<IAEStackType<?>, List<IMEInventoryHandler<?>>> inventoryHandlers;
     private int priority = 0;
     private boolean wasActive = false;
     private final DriveCellManager cellManager;
@@ -242,9 +243,20 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
     }
 
     @Override
-    public List<IMEInventoryHandler> getCellArray(final IStorageChannel channel) {
+    @SuppressWarnings("unchecked")
+    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
         this.updateState();
-        return this.inventoryHandlers.get(channel);
+        final List<IMEInventoryHandler<?>> handlers = this.inventoryHandlers.get(type);
+        if (handlers == null) {
+            return Collections.emptyList();
+        }
+        return (List<IMEInventoryHandler<T>>) (List<?>) handlers;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IStorageChannel<T> channel) {
+        return getCellArray(channel.getStackType());
     }
 
     @Override

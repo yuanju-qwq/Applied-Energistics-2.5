@@ -53,6 +53,7 @@ import appeng.api.implementations.items.MemoryCardMessages;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.parts.*;
+import appeng.api.storage.StorageName;
 import appeng.api.util.*;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.IConfigurableFluidInventory;
@@ -68,6 +69,8 @@ import appeng.me.helpers.IGridProxyable;
 import appeng.parts.automation.PartLevelEmitter;
 import appeng.parts.networking.PartCable;
 import appeng.tile.inventory.AppEngInternalAEInventory;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.SettingsFrom;
 
@@ -338,6 +341,18 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
             }
         }
 
+        // IAEStackInventory 路径（支持泛型栈配置的部件，如改造后的 PartStorageBus / PartLevelEmitter）
+        if (this instanceof IIAEStackInventory iiaeStackInventory) {
+            IAEStackInventory aeInv = iiaeStackInventory.getAEInventoryByName(StorageName.CONFIG);
+            if (aeInv != null) {
+                aeInv.readFromNBT(compound, "config");
+            }
+            if (this instanceof PartLevelEmitter) {
+                final PartLevelEmitter partLevelEmitter = (PartLevelEmitter) this;
+                partLevelEmitter.setReportingValue(compound.getLong("reportingValue"));
+            }
+        }
+
         if (this instanceof IConfigurableFluidInventory) {
             final IFluidHandler tank = ((IConfigurableFluidInventory) this).getFluidInventoryByName("config");
             if (tank instanceof AEFluidInventory) {
@@ -353,6 +368,8 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
                 partFluidLevelEmitter.setReportingValue(compound.getLong("reportingValue"));
             }
         }
+
+        uploadSettingsFromStackTag(compound);
     }
 
     /**
@@ -394,6 +411,18 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
             }
         }
 
+        // IAEStackInventory 路径（支持泛型栈配置的部件）
+        if (this instanceof IIAEStackInventory iiaeStackInventory) {
+            IAEStackInventory aeInv = iiaeStackInventory.getAEInventoryByName(StorageName.CONFIG);
+            if (aeInv != null) {
+                aeInv.writeToNBT(output, "config");
+            }
+            if (this instanceof PartLevelEmitter) {
+                final PartLevelEmitter partLevelEmitter = (PartLevelEmitter) this;
+                output.setLong("reportingValue", partLevelEmitter.getReportingValue());
+            }
+        }
+
         if (this instanceof IConfigurableFluidInventory) {
             final IFluidHandler tank = ((IConfigurableFluidInventory) this).getFluidInventoryByName("config");
             if (tank instanceof AEFluidInventory) {
@@ -404,6 +433,8 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
                 output.setLong("reportingValue", partFluidLevelEmitter.getReportingValue());
             }
         }
+
+        downloadSettingsToStackTag(output);
 
         return output;
     }

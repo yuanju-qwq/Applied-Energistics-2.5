@@ -93,6 +93,12 @@ public class AppEngPacketHandlerBase {
 
         PACKET_PINS_UPDATE(PacketPinsUpdate.class),
 
+        PACKET_PATTERN_VALUE_SET(PacketPatternValueSet.class),
+
+        PACKET_PATTERN_NAME_SET(PacketPatternNameSet.class),
+
+        PACKET_VIRTUAL_SLOT(PacketVirtualSlot.class),
+
         ;
 
         private final Class<? extends AppEngPacket> packetClass;

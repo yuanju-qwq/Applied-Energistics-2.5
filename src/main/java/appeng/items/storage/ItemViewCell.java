@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -21,12 +21,10 @@ package appeng.items.storage;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 
-import appeng.api.AEApi;
 import appeng.api.config.FuzzyMode;
 import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IUpgradeModule;
 import appeng.api.storage.ICellWorkbenchItem;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.items.AEBaseItem;
@@ -38,6 +36,7 @@ import appeng.util.prioritylist.FuzzyPriorityList;
 import appeng.util.prioritylist.IPartitionList;
 import appeng.util.prioritylist.MergedPriorityList;
 import appeng.util.prioritylist.PrecisePriorityList;
+import appeng.util.item.AEItemStackType;
 
 public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
     public ItemViewCell() {
@@ -61,8 +60,7 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
                 if (!viewCellItem.getViewMode(currentViewCell)) {
                     continue;
                 }
-                final IItemList<IAEItemStack> priorityList = AEApi.instance().storage()
-                        .getStorageChannel(IItemStorageChannel.class).createList();
+                final IItemList<IAEItemStack> priorityList = AEItemStackType.INSTANCE.createList();
 
                 final ICellWorkbenchItem vc = (ICellWorkbenchItem) currentViewCell.getItem();
                 final IItemHandler upgrades = vc.getUpgradesInventory(currentViewCell);

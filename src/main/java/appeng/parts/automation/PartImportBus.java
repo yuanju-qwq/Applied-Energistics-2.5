@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -25,7 +25,6 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.Vec3d;
 
-import appeng.api.AEApi;
 import appeng.api.config.*;
 import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.energy.IEnergySource;
@@ -34,7 +33,6 @@ import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AECableType;
 import appeng.core.AppEng;
@@ -49,6 +47,7 @@ import appeng.util.InventoryAdaptor;
 import appeng.util.Platform;
 import appeng.util.inv.IInventoryDestination;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class PartImportBus extends PartSharedItemBus implements IInventoryDestination {
 
@@ -85,10 +84,10 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
             final IMEMonitor<IAEItemStack> inv = this.getProxy()
                     .getStorage()
                     .getInventory(
-                            AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                            AEItemStackType.INSTANCE.getStorageChannel());
 
             final IAEItemStack out = inv.injectItems(
-                    AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createStack(stack),
+                    AEItemStackType.INSTANCE.getStorageChannel().createStack(stack),
                     Actionable.SIMULATE,
                     this.source);
             if (out == null) {
@@ -138,7 +137,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
                 final IMEMonitor<IAEItemStack> inv = this.getProxy()
                         .getStorage()
                         .getInventory(
-                                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                                AEItemStackType.INSTANCE.getStorageChannel());
                 final IEnergyGrid energy = this.getProxy().getEnergy();
 
                 boolean Configured = false;
@@ -190,7 +189,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
         }
 
         if (!newItems.isEmpty()) {
-            final IAEItemStack aeStack = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
+            final IAEItemStack aeStack = AEItemStackType.INSTANCE.getStorageChannel()
                     .createStack(newItems);
             final IAEItemStack failed = Platform.poweredInsert(energy, inv, aeStack, this.source);
 

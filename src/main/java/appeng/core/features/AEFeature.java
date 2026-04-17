@@ -69,6 +69,7 @@ public enum AEFeature {
     WIRELESS_FLUID_TERMINAL("WirelessFluidTerminal", Constants.CATEGORY_TOOLS),
     WIRELESS_INTERFACE_TERMINAL("WirelessInterfaceTerminal", Constants.CATEGORY_TOOLS),
     WIRELESS_DUAL_INTERFACE_TERMINAL("WirelessDualInterfaceTerminal", Constants.CATEGORY_TOOLS),
+    WIRELESS_UNIVERSAL_TERMINAL("WirelessUniversalTerminal", Constants.CATEGORY_TOOLS),
 
     COLOR_APPLICATOR("ColorApplicator", Constants.CATEGORY_TOOLS),
     METEORITE_COMPASS("MeteoriteCompass", Constants.CATEGORY_TOOLS),

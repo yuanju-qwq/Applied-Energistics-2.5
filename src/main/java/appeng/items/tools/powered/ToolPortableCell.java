@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -41,7 +41,6 @@ import appeng.api.implementations.items.IItemGroup;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AEPartLocation;
 import appeng.core.AEConfig;
@@ -52,6 +51,7 @@ import appeng.items.contents.CellUpgrades;
 import appeng.items.contents.PortableCellViewer;
 import appeng.items.tools.powered.powersink.AEBasePoweredItem;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStackType;
 
 public class ToolPortableCell extends AEBasePoweredItem implements IStorageCell<IAEItemStack>, IGuiItem, IItemGroup {
     public ToolPortableCell() {
@@ -80,7 +80,7 @@ public class ToolPortableCell extends AEBasePoweredItem implements IStorageCell<
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,
-                        AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                        AEItemStackType.INSTANCE.getStorageChannel());
 
         AEApi.instance().client().addCellInformation(cdi, lines);
     }
@@ -122,7 +122,7 @@ public class ToolPortableCell extends AEBasePoweredItem implements IStorageCell<
 
     @Override
     public IStorageChannel<IAEItemStack> getChannel() {
-        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class);
+        return AEItemStackType.INSTANCE.getStorageChannel();
     }
 
     @Override

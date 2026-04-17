@@ -106,6 +106,7 @@ import appeng.recipes.AEItemResolver;
 import appeng.recipes.AERecipeLoader;
 import appeng.recipes.game.DisassembleRecipe;
 import appeng.recipes.game.FacadeRecipe;
+import appeng.recipes.game.UniversalTerminalRecipe;
 import appeng.recipes.ores.OreDictionaryHandler;
 import appeng.spatial.BiomeGenStorage;
 import appeng.spatial.StorageWorldProvider;
@@ -287,6 +288,12 @@ final class Registration {
             });
         }
 
+        // 通用无线终端合成配方
+        if (AEConfig.instance().isFeatureEnabled(AEFeature.WIRELESS_UNIVERSAL_TERMINAL)) {
+            UniversalTerminalRecipe utr = new UniversalTerminalRecipe();
+            registry.register(utr.setRegistryName(AppEng.MOD_ID.toLowerCase(), "wireless_universal_terminal_crafting"));
+        }
+
         definitions.getRegistry().getBootstrapComponents(IRecipeRegistrationComponent.class)
                 .forEachRemaining(b -> b.recipeRegistration(side, registry));
 
@@ -462,6 +469,12 @@ final class Registration {
         items.wirelessDualInterfaceTerminal().maybeItem().ifPresent(terminal -> registries.wireless()
                 .registerWirelessHandler((IWirelessTermHandler) terminal));
 
+        // 通用无线终端注册
+        items.wirelessUniversalTerminal().maybeItem().ifPresent(terminal -> {
+            registries.wireless().registerWirelessHandler((IWirelessTermHandler) terminal);
+            Upgrades.MAGNET.registerItem(items.wirelessUniversalTerminal(), 1);
+        });
+
         // Charge Rates
         items.chargedStaff().maybeItem()
                 .ifPresent(chargedStaff -> registries.charger().addChargeRate(chargedStaff, 320d));
@@ -470,6 +483,8 @@ final class Registration {
         items.colorApplicator().maybeItem()
                 .ifPresent(colorApplicator -> registries.charger().addChargeRate(colorApplicator, 800d));
         items.wirelessTerminal().maybeItem().ifPresent(terminal -> registries.charger().addChargeRate(terminal, 8000d));
+        items.wirelessUniversalTerminal().maybeItem()
+                .ifPresent(terminal -> registries.charger().addChargeRate(terminal, 8000d));
         items.entropyManipulator().maybeItem()
                 .ifPresent(entropyManipulator -> registries.charger().addChargeRate(entropyManipulator, 8000d));
         items.massCannon().maybeItem().ifPresent(massCannon -> registries.charger().addChargeRate(massCannon, 8000d));

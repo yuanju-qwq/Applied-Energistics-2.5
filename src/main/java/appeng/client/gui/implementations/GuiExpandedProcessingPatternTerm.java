@@ -17,9 +17,13 @@ import appeng.api.config.ActionItems;
 import appeng.api.config.ItemSubstitution;
 import appeng.api.config.Settings;
 import appeng.api.storage.ITerminalHost;
+import appeng.api.storage.data.IAEStackType;
+import appeng.client.gui.slots.VirtualMEPatternSlot;
+import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.container.implementations.ContainerExpandedProcessingPatternTerm;
+import appeng.container.implementations.ContainerPatternEncoder;
 import appeng.container.interfaces.IJEIGhostIngredients;
 import appeng.container.slot.AppEngSlot;
 import appeng.container.slot.SlotFake;
@@ -29,7 +33,9 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.helpers.InventoryAction;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredients {
     private static final String BACKGROUND_EXPANDED_PROCESSING_MODE = "guis/pattern_processing_expanded.png";
@@ -55,8 +61,13 @@ public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implement
     private GuiImgButton maxCountBtn;
     public Map<IGhostIngredientHandler.Target<?>, Object> mapTargetSlot = new HashMap<>();
 
+    private VirtualMEPatternSlot[] craftingVSlots;
+    private VirtualMEPatternSlot[] outputVSlots;
+    private final ContainerPatternEncoder container;
+
     public GuiExpandedProcessingPatternTerm(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(inventoryPlayer, te, new ContainerExpandedProcessingPatternTerm(inventoryPlayer, te));
+        this.container = (ContainerPatternEncoder) this.inventorySlots;
         this.setReservedSpace(81);
     }
 
@@ -185,6 +196,8 @@ public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implement
         this.encodeBtn = new GuiImgButton(this.guiLeft + 147, this.guiTop + this.ySize - 142, Settings.ACTIONS,
                 ActionItems.ENCODE);
         this.buttonList.add(this.encodeBtn);
+
+        this.initVirtualSlots();
     }
 
     @Override
@@ -256,5 +269,44 @@ public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implement
     @Override
     public Map<IGhostIngredientHandler.Target<?>, Object> getFakeSlotTargetMap() {
         return mapTargetSlot;
+    }
+
+    // ---- 虚拟槽位初始化 ----
+
+    private void initVirtualSlots() {
+        final IAEStackInventory craftInv = this.container.getCraftingAEInv();
+        final IAEStackInventory outInv = this.container.getOutputAEInv();
+
+        if (craftInv != null) {
+            final int slotsPerPage = 16; // 4x4 per page
+            this.craftingVSlots = new VirtualMEPatternSlot[craftInv.getSizeInventory()];
+            for (int i = 0; i < craftInv.getSizeInventory(); i++) {
+                final int x = (i % 4) * 18;
+                final int y = (i / 4 % 4) * 18;
+                VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
+                        i, 15 + x, -76 + y,
+                        craftInv, i, this::acceptType);
+                this.craftingVSlots[i] = slot;
+                this.guiSlots.add(slot);
+            }
+        }
+
+        if (outInv != null) {
+            this.outputVSlots = new VirtualMEPatternSlot[outInv.getSizeInventory()];
+            for (int i = 0; i < outInv.getSizeInventory(); i++) {
+                final int x = (i % 4) * 18;
+                final int y = (i / 4 % 4) * 18;
+                VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
+                        i, 109 + x, -76 + y,
+                        outInv, i, this::acceptType);
+                this.outputVSlots[i] = slot;
+                this.guiSlots.add(slot);
+            }
+        }
+    }
+
+    private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
+        // 扩展处理样板终端始终为处理模式，接受所有类型
+        return true;
     }
 }

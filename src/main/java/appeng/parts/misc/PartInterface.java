@@ -205,7 +205,7 @@ public class PartInterface extends PartBasicState implements IGridTickable, ISto
     }
 
     @Override
-    public void onStackReturnNetwork(IAEItemStack stack) {
+    public void onStackReturnNetwork(IAEStack<?> stack) {
         this.duality.onStackReturnedToNetwork(stack);
     }
 

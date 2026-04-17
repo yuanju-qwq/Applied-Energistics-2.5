@@ -55,6 +55,7 @@ import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
@@ -223,7 +224,7 @@ public class TileInterface extends AENetworkInvTile
     }
 
     @Override
-    public void onStackReturnNetwork(IAEItemStack stack) {
+    public void onStackReturnNetwork(IAEStack<?> stack) {
         this.duality.onStackReturnedToNetwork(stack);
     }
 

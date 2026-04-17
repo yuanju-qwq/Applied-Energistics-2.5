@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2024, AlgorithmX2, All rights reserved.
  *
@@ -38,7 +38,6 @@ import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import appeng.api.AEApi;
 import appeng.api.networking.events.MENetworkChannelsChanged;
 import appeng.api.networking.events.MENetworkEventSubscribe;
 import appeng.api.networking.events.MENetworkPowerStatusChange;
@@ -48,11 +47,10 @@ import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IFluidStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.client.render.TesrRenderHelper;
 import appeng.core.AppEng;
@@ -63,6 +61,8 @@ import appeng.me.GridAccessException;
 import appeng.parts.PartModel;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
+import appeng.fluids.util.AEFluidStackType;
 
 public class PartRateMonitor extends AbstractPartDisplay implements IStackWatcherHost {
     private static final int TICKS_PER_SECOND = 20;
@@ -333,12 +333,12 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
         try {
             if (this.configuredItem != null) {
                 final IMEMonitor<IAEItemStack> inv = this.getProxy().getStorage()
-                        .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                        .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
                 final IAEItemStack found = inv.getStorageList().findPrecise(this.configuredItem);
                 this.currentAmount = found != null ? found.getStackSize() : 0;
             } else if (this.configuredFluid != null) {
                 final IMEMonitor<IAEFluidStack> inv = this.getProxy().getStorage()
-                        .getInventory(AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class));
+                        .getInventory(AEFluidStackType.INSTANCE.getStorageChannel());
                 final IAEFluidStack found = inv.getStorageList().findPrecise(this.configuredFluid);
                 this.currentAmount = found != null ? found.getStackSize() : 0;
             }
@@ -349,7 +349,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
 
     @Override
     public void onStackChange(IItemList<?> o, IAEStack<?> fullStack, IAEStack<?> diffStack, IActionSource src,
-                              IStorageChannel<?> chan) {
+                              IAEStackType<?> type) {
         if (this.configuredItem != null && fullStack instanceof IAEItemStack) {
             this.currentAmount = fullStack.getStackSize();
         } else if (this.configuredFluid != null && fullStack instanceof IAEFluidStack) {

@@ -25,6 +25,7 @@ import appeng.api.networking.crafting.ICraftingCPU;
 import appeng.api.networking.crafting.ICraftingLink;
 import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 
 public class CraftingLink implements ICraftingLink {
 
@@ -150,7 +151,18 @@ public class CraftingLink implements ICraftingLink {
         }
     }
 
+    /**
+     * IAEItemStack 重载 — 向后兼容。
+     */
     public IAEItemStack injectItems(final IAEItemStack input, final Actionable mode) {
+        IAEStack<?> result = injectItems((IAEStack<?>) input, mode);
+        return result instanceof IAEItemStack ? (IAEItemStack) result : null;
+    }
+
+    /**
+     * 泛型版本：将已完成的合成结果注入请求者。
+     */
+    public IAEStack<?> injectItems(final IAEStack<?> input, final Actionable mode) {
         if (this.tie == null || this.tie.getRequest() == null || this.tie.getRequest().getRequester() == null) {
             return input;
         }

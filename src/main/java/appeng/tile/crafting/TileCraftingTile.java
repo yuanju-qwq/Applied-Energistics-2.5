@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -34,7 +34,6 @@ import appeng.api.networking.events.MENetworkChannelsChanged;
 import appeng.api.networking.events.MENetworkEventSubscribe;
 import appeng.api.networking.events.MENetworkPowerStatusChange;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.block.crafting.BlockCraftingUnit;
 import appeng.block.crafting.BlockCraftingUnit.CraftingUnitType;
@@ -45,6 +44,7 @@ import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.AENetworkProxyMultiblock;
 import appeng.tile.grid.AENetworkTile;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStackType;
 
 public class TileCraftingTile extends AENetworkTile implements IAEMultiBlock<CraftingCPUCluster>, IPowerChannelState {
 
@@ -256,7 +256,7 @@ public class TileCraftingTile extends AENetworkTile implements IAEMultiBlock<Cra
             }
 
             for (IAEItemStack ais : inv.getAvailableItems(
-                    AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList())) {
+                    AEItemStackType.INSTANCE.createList())) {
                 ais = ais.copy();
                 ais.setStackSize(ais.getDefinition().getMaxStackSize());
                 while (true) {

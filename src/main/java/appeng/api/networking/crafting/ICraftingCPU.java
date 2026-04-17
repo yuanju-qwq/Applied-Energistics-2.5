@@ -29,8 +29,9 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 
-public interface ICraftingCPU extends IBaseMonitor<IAEItemStack> {
+public interface ICraftingCPU extends IBaseMonitor<IAEStackBase> {
 
     /**
      * @return true if the CPU currently has a job.
@@ -59,7 +60,9 @@ public interface ICraftingCPU extends IBaseMonitor<IAEItemStack> {
 
     /**
      * @return final output of the current crafting operation, or null if not crafting
+     * @deprecated 使用 {@link #getFinalMultiOutput()} 替代
      */
+    @Deprecated
     @Nullable
     default IAEItemStack getFinalOutput() {
         IAEStack<?> output = getFinalMultiOutput();

@@ -26,7 +26,7 @@ import net.minecraft.tileentity.TileEntity;
 import mcp.mobius.waila.api.IWailaConfigHandler;
 import mcp.mobius.waila.api.IWailaDataAccessor;
 
-import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.core.localization.WailaText;
 import appeng.integration.modules.waila.BaseWailaDataProvider;
 import appeng.tile.crafting.TileCraftingMonitorTile;
@@ -54,7 +54,7 @@ public final class CraftingMonitorWailaDataProvider extends BaseWailaDataProvide
         final TileEntity te = accessor.getTileEntity();
         if (te instanceof TileCraftingMonitorTile) {
             final TileCraftingMonitorTile monitor = (TileCraftingMonitorTile) te;
-            final IAEItemStack displayStack = monitor.getJobProgress();
+            final IAEStack<?> displayStack = monitor.getJobProgress();
 
             if (displayStack != null) {
                 final String currentCrafting = displayStack.asItemStackRepresentation().getDisplayName();

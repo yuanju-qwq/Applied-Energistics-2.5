@@ -26,6 +26,8 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.*;
+import appeng.api.storage.data.IAEStackType;
+import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiNumberBox;
 import appeng.container.implementations.ContainerLevelEmitter;
@@ -36,6 +38,8 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketConfigButton;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.parts.automation.PartLevelEmitter;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.util.item.AEItemStackType;
 
 public class GuiLevelEmitter extends GuiUpgradeable {
 
@@ -53,8 +57,12 @@ public class GuiLevelEmitter extends GuiUpgradeable {
     private GuiImgButton levelMode;
     private GuiImgButton craftingMode;
 
+    private VirtualMEPhantomSlot configSlot;
+    private final ContainerLevelEmitter containerLevelEmitter;
+
     public GuiLevelEmitter(final InventoryPlayer inventoryPlayer, final PartLevelEmitter te) {
         super(new ContainerLevelEmitter(inventoryPlayer, te));
+        this.containerLevelEmitter = (ContainerLevelEmitter) this.inventorySlots;
     }
 
     @Override
@@ -69,6 +77,8 @@ public class GuiLevelEmitter extends GuiUpgradeable {
         this.level.setVisible(true);
         this.level.setFocused(true);
         ((ContainerLevelEmitter) this.inventorySlots).setTextField(this.level);
+
+        this.initVirtualSlots();
     }
 
     @Override
@@ -241,5 +251,26 @@ public class GuiLevelEmitter extends GuiUpgradeable {
                 super.keyTyped(character, key);
             }
         }
+    }
+
+    // ---- 虚拟槽位初始化 ----
+
+    private void initVirtualSlots() {
+        this.guiSlots.clear();
+        final IAEStackInventory inputInv = this.containerLevelEmitter.getConfig();
+        // 配置槽位位于 GUI 左上方，坐标参考 lvlemitter.png 布局
+        this.configSlot = new VirtualMEPhantomSlot(
+                0,
+                155,
+                9,
+                inputInv,
+                0,
+                this::acceptType);
+        this.guiSlots.add(this.configSlot);
+    }
+
+    private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
+        // 当前只接受物品类型，未来可扩展为支持流体等
+        return type == AEItemStackType.INSTANCE;
     }
 }

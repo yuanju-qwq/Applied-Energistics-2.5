@@ -26,7 +26,7 @@ import net.minecraft.util.EnumFacing;
 import appeng.api.implementations.IUpgradeableHost;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.crafting.ICraftingRequester;
-import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 
 public interface IInterfaceHost extends ICraftingProvider, IUpgradeableHost, ICraftingRequester {
 
@@ -38,7 +38,7 @@ public interface IInterfaceHost extends ICraftingProvider, IUpgradeableHost, ICr
 
     void saveChanges();
 
-    default void onStackReturnNetwork(IAEItemStack stack) {
+    default void onStackReturnNetwork(IAEStack<?> stack) {
         getInterfaceDuality().onStackReturnedToNetwork(stack);
     }
 }

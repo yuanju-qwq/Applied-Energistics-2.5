@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2018, AlgorithmX2, All rights reserved.
  *
@@ -23,10 +23,8 @@ import java.util.Iterator;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraftforge.items.IItemHandler;
 
-import appeng.api.AEApi;
 import appeng.api.config.*;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IItemList;
 import appeng.container.guisync.GuiSync;
@@ -35,6 +33,7 @@ import appeng.fluids.parts.PartFluidStorageBus;
 import appeng.fluids.util.IAEFluidTank;
 import appeng.util.Platform;
 import appeng.util.iterators.NullIterator;
+import appeng.fluids.util.AEFluidStackType;
 
 /**
  * @author BrockWS
@@ -147,7 +146,7 @@ public class ContainerFluidStorageBus extends ContainerFluidConfigurable {
         if (cellInv != null) {
             final IItemList<IAEFluidStack> list = cellInv
                     .getAvailableItems(
-                            AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class).createList());
+                            AEFluidStackType.INSTANCE.createList());
             i = list.iterator();
         }
 

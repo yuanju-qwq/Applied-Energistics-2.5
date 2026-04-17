@@ -142,6 +142,13 @@ public enum GuiBridge implements IGuiHandler {
     GUI_FLUID_INTERFACE(ContainerFluidInterface.class, IFluidInterfaceHost.class, GuiHostType.WORLD,
             SecurityPermissions.BUILD),
 
+    // 二合一接口（物品面 + 流体面）
+    GUI_DUAL_ITEM_INTERFACE(ContainerDualItemInterface.class, IInterfaceHost.class, GuiHostType.WORLD,
+            SecurityPermissions.BUILD),
+
+    GUI_DUAL_FLUID_INTERFACE(ContainerDualFluidInterface.class, IFluidInterfaceHost.class, GuiHostType.WORLD,
+            SecurityPermissions.BUILD),
+
     GUI_BUS(ContainerUpgradeable.class, IUpgradeableHost.class, GuiHostType.WORLD, SecurityPermissions.BUILD),
 
     GUI_BUS_FLUID(ContainerFluidIO.class, PartSharedFluidBus.class, GuiHostType.WORLD, SecurityPermissions.BUILD),
@@ -196,6 +203,12 @@ public enum GuiBridge implements IGuiHandler {
     GUI_MAC(ContainerMAC.class, TileMolecularAssembler.class, GuiHostType.WORLD, null),
 
     GUI_CRAFTING_AMOUNT(ContainerCraftAmount.class, ITerminalHost.class, GuiHostType.ITEM_OR_WORLD,
+            SecurityPermissions.CRAFT),
+
+    GUI_PATTERN_VALUE_AMOUNT(ContainerPatternValueAmount.class, ITerminalHost.class, GuiHostType.ITEM_OR_WORLD,
+            SecurityPermissions.CRAFT),
+
+    GUI_PATTERN_VALUE_NAME(ContainerPatternValueName.class, ITerminalHost.class, GuiHostType.ITEM_OR_WORLD,
             SecurityPermissions.CRAFT),
 
     GUI_CRAFTING_CONFIRM(ContainerCraftConfirm.class, ITerminalHost.class, GuiHostType.ITEM_OR_WORLD,

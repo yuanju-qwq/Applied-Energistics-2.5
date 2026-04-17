@@ -12,14 +12,19 @@ import net.minecraft.world.World;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
-import appeng.api.AEApi;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
-import appeng.api.storage.channels.IItemStorageChannel;
+import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
+import appeng.fluids.items.ItemFluidDrop;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 /**
- * 支持空输出的特殊加工模板解析器 仅适用于加工模式（isCrafting=false），合成模式必须有输出
+ * 支持空输出的特殊加工模板解析器。仅适用于加工模式（isCrafting=false），合成模式必须有输出。
+ * <p>
+ * 支持多类型栈（物品+流体等），通过泛型 {@code aeTypeId} NBT 字段识别栈类型。
+ * 旧格式（纯物品 NBT）亦可向后兼容。
  */
 public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable<SpecialPatternHelper> {
 
@@ -33,10 +38,19 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
     private final ItemStack patternItem;
     private final boolean isCrafting;
     private final boolean canSubstitute;
+
+    // 物品类型的输入/输出（向后兼容旧接口）
     private final IAEItemStack[] inputs;
     private final IAEItemStack[] outputs;
     private final IAEItemStack[] condensedInputs;
     private final IAEItemStack[] condensedOutputs;
+
+    // 泛型输入/输出（包含物品+流体等所有类型）
+    private final IAEStack<?>[] genericInputs;
+    private final IAEStack<?>[] genericOutputs;
+    private final IAEStack<?>[] genericCondensedInputs;
+    private final IAEStack<?>[] genericCondensedOutputs;
+
     private final Map<Integer, List<IAEItemStack>> substituteInputs = new HashMap<>();
     private final IAEItemStack pattern;
     private int priority = 0;
@@ -60,39 +74,89 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         this.patternItem = is;
         this.pattern = AEItemStack.fromItemStack(is);
 
-        // 解析输入
+        final List<IAEItemStack> inItems = new ArrayList<>();
+        final List<IAEItemStack> outItems = new ArrayList<>();
+        final List<IAEStack<?>> inGeneric = new ArrayList<>();
+        final List<IAEStack<?>> outGeneric = new ArrayList<>();
+
+        // ========== 解析输入 ==========
         final NBTTagList inTag = encodedValue.getTagList("in", 10);
-        final List<IAEItemStack> in = new ArrayList<>();
         for (int x = 0; x < inTag.tagCount() && x < PROCESSING_INPUT_LIMIT; x++) {
             final NBTTagCompound ingredient = inTag.getCompoundTagAt(x);
-            final ItemStack gs = stackFromNBT(ingredient);
-
-            if (!ingredient.isEmpty() && gs.isEmpty()) {
-                throw new IllegalArgumentException("Invalid input at slot " + x);
+            if (ingredient.isEmpty()) {
+                inItems.add(null);
+                inGeneric.add(null);
+                continue;
             }
-            in.add(gs.isEmpty() ? null
-                    : AEApi.instance().storage()
-                            .getStorageChannel(IItemStorageChannel.class).createStack(gs));
+
+            // 尝试泛型反序列化（带 aeTypeId）
+            IAEStack<?> generic = IAEStack.fromNBTGeneric(ingredient);
+            if (generic != null) {
+                inGeneric.add(generic);
+                if (generic instanceof IAEItemStack itemStack) {
+                    inItems.add(itemStack);
+                } else if (generic instanceof IAEFluidStack fluidStack) {
+                    // 流体 → ItemFluidDrop 伪物品（供旧合成树使用）
+                    IAEItemStack drop = ItemFluidDrop.newAEStack(fluidStack);
+                    inItems.add(drop);
+                } else {
+                    inItems.add(null);
+                }
+            } else {
+                // 回退：当作普通物品
+                final ItemStack gs = stackFromNBT(ingredient);
+                if (!ingredient.isEmpty() && gs.isEmpty()) {
+                    throw new IllegalArgumentException("Invalid input at slot " + x);
+                }
+                if (gs.isEmpty()) {
+                    inItems.add(null);
+                    inGeneric.add(null);
+                } else {
+                    IAEItemStack aeItem = AEItemStackType.INSTANCE.getStorageChannel().createStack(gs);
+                    inItems.add(aeItem);
+                    inGeneric.add(aeItem);
+                }
+            }
         }
 
-        // 解析输出 - 关键修改：允许空输出列表
+        // ========== 解析输出 - 关键修改：允许空输出列表 ==========
         final NBTTagList outTag = encodedValue.getTagList("out", 10);
-        final List<IAEItemStack> out = new ArrayList<>();
         for (int x = 0; x < outTag.tagCount() && x < PROCESSING_OUTPUT_LIMIT; x++) {
             final NBTTagCompound resultItemTag = outTag.getCompoundTagAt(x);
-            final ItemStack gs = stackFromNBT(resultItemTag);
-
-            if (!resultItemTag.isEmpty() && gs.isEmpty()) {
-                throw new IllegalArgumentException("Invalid output at slot " + x);
+            if (resultItemTag.isEmpty()) {
+                continue;
             }
-            if (!gs.isEmpty()) {
-                out.add(AEApi.instance().storage()
-                        .getStorageChannel(IItemStorageChannel.class).createStack(gs));
+
+            // 尝试泛型反序列化（带 aeTypeId）
+            IAEStack<?> generic = IAEStack.fromNBTGeneric(resultItemTag);
+            if (generic != null) {
+                outGeneric.add(generic);
+                if (generic instanceof IAEItemStack itemStack) {
+                    outItems.add(itemStack);
+                } else if (generic instanceof IAEFluidStack fluidStack) {
+                    IAEItemStack drop = ItemFluidDrop.newAEStack(fluidStack);
+                    if (drop != null) {
+                        outItems.add(drop);
+                    }
+                }
+            } else {
+                // 回退：当作普通物品
+                final ItemStack gs = stackFromNBT(resultItemTag);
+                if (!resultItemTag.isEmpty() && gs.isEmpty()) {
+                    throw new IllegalArgumentException("Invalid output at slot " + x);
+                }
+                if (!gs.isEmpty()) {
+                    IAEItemStack aeItem = AEItemStackType.INSTANCE.getStorageChannel().createStack(gs);
+                    if (aeItem != null) {
+                        outItems.add(aeItem);
+                        outGeneric.add(aeItem);
+                    }
+                }
             }
         }
 
         // 输入不能为空（无输入的模板无意义）
-        if (in.isEmpty() || in.stream().allMatch(Objects::isNull)) {
+        if (inItems.isEmpty() || inItems.stream().allMatch(Objects::isNull)) {
             throw new IllegalStateException("Special pattern requires at least one input");
         }
 
@@ -100,20 +164,23 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         // 原逻辑: if (tmpOutputs.isEmpty() || tmpInputs.isEmpty()) throw ...
         // 新逻辑: 仅检查输入非空，输出允许为空
 
+        // ========== 物品类型数组初始化 ==========
+
         // 初始化输入数组（固定大小）
         this.inputs = new IAEItemStack[PROCESSING_INPUT_LIMIT];
-        for (int i = 0; i < Math.min(in.size(), PROCESSING_INPUT_LIMIT); i++) {
-            this.inputs[i] = in.get(i);
+        for (int i = 0; i < Math.min(inItems.size(), PROCESSING_INPUT_LIMIT); i++) {
+            this.inputs[i] = inItems.get(i);
         }
 
         // 初始化输出数组（动态大小）
-        this.outputs = out.toArray(new IAEItemStack[0]);
+        this.outputs = outItems.toArray(new IAEItemStack[0]);
 
-        // 压缩输入（合并相同物品）
+        // 压缩物品输入（合并相同物品）
         final Map<IAEItemStack, IAEItemStack> tmpInputs = new Object2ObjectOpenHashMap<>();
         for (final IAEItemStack io : this.inputs) {
-            if (io == null)
+            if (io == null) {
                 continue;
+            }
             tmpInputs.merge(io, io.copy(), (a, b) -> {
                 a.add(b);
                 return a;
@@ -121,17 +188,35 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         }
         this.condensedInputs = tmpInputs.values().toArray(new IAEItemStack[0]);
 
-        // 压缩输出（允许空）
+        // 压缩物品输出（允许空）
         final Map<IAEItemStack, IAEItemStack> tmpOutputs = new Object2ObjectOpenHashMap<>();
         for (final IAEItemStack io : this.outputs) {
-            if (io == null)
+            if (io == null) {
                 continue;
+            }
             tmpOutputs.merge(io, io.copy(), (a, b) -> {
                 a.add(b);
                 return a;
             });
         }
         this.condensedOutputs = tmpOutputs.values().toArray(new IAEItemStack[0]);
+
+        // ========== 泛型数组初始化 ==========
+
+        // 泛型输入数组（固定大小，保持槽位位置）
+        this.genericInputs = new IAEStack<?>[PROCESSING_INPUT_LIMIT];
+        for (int i = 0; i < Math.min(inGeneric.size(), PROCESSING_INPUT_LIMIT); i++) {
+            this.genericInputs[i] = inGeneric.get(i);
+        }
+
+        // 泛型输出数组
+        this.genericOutputs = outGeneric.toArray(new IAEStack<?>[0]);
+
+        // 压缩泛型输入
+        this.genericCondensedInputs = condenseGenericList(this.genericInputs);
+
+        // 压缩泛型输出
+        this.genericCondensedOutputs = condenseGenericList(this.genericOutputs);
     }
 
     // ===== 接口实现 =====
@@ -159,6 +244,28 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
     @Override
     public IAEItemStack[] getCondensedOutputs() {
         return condensedOutputs.clone();
+    }
+
+    // ========== 泛型主入口方法（支持物品+流体等多种类型） ==========
+
+    @Override
+    public IAEStack<?>[] getAEInputs() {
+        return this.genericInputs;
+    }
+
+    @Override
+    public IAEStack<?>[] getCondensedAEInputs() {
+        return this.genericCondensedInputs;
+    }
+
+    @Override
+    public IAEStack<?>[] getAEOutputs() {
+        return this.genericOutputs;
+    }
+
+    @Override
+    public IAEStack<?>[] getCondensedAEOutputs() {
+        return this.genericCondensedOutputs;
     }
 
     @Override
@@ -204,7 +311,24 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
      * 检查是否为空输出模板（合法空输出）
      */
     public boolean hasEmptyOutput() {
-        return outputs.length == 0 || Arrays.stream(outputs).allMatch(Objects::isNull);
+        return genericOutputs.length == 0 || Arrays.stream(genericOutputs).allMatch(Objects::isNull);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static IAEStack<?>[] condenseGenericList(IAEStack<?>[] items) {
+        final LinkedHashMap<IAEStack<?>, IAEStack<?>> tmp = new LinkedHashMap<>();
+        for (IAEStack<?> io : items) {
+            if (io == null) {
+                continue;
+            }
+            IAEStack g = tmp.get(io);
+            if (g == null) {
+                tmp.put(io, io.copy());
+            } else {
+                g.add(io);
+            }
+        }
+        return tmp.values().toArray(new IAEStack<?>[0]);
     }
 
     // ===== 比较与哈希 =====

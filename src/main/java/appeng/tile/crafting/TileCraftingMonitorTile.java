@@ -33,6 +33,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import appeng.api.AEApi;
 import appeng.api.implementations.tiles.IColorableTile;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AEColor;
 import appeng.util.item.AEItemStack;
 
@@ -44,7 +45,7 @@ public class TileCraftingMonitorTile extends TileCraftingTile implements IColora
     @SideOnly(Side.CLIENT)
     private boolean updateList;
 
-    private IAEItemStack dspPlay;
+    private IAEStack<?> dspPlay;
     private AEColor paintedColor = AEColor.TRANSPARENT;
 
     @Override
@@ -56,7 +57,7 @@ public class TileCraftingMonitorTile extends TileCraftingTile implements IColora
         final boolean hasItem = data.readBoolean();
 
         if (hasItem) {
-            this.dspPlay = AEItemStack.fromPacket(data);
+            this.dspPlay = IAEStack.fromPacketGeneric(data);
         } else {
             this.dspPlay = null;
         }
@@ -74,7 +75,7 @@ public class TileCraftingMonitorTile extends TileCraftingTile implements IColora
             data.writeBoolean(false);
         } else {
             data.writeBoolean(true);
-            this.dspPlay.writeToPacket(data);
+            IAEStack.writeToPacketGeneric(data, this.dspPlay);
         }
     }
 
@@ -103,7 +104,7 @@ public class TileCraftingMonitorTile extends TileCraftingTile implements IColora
         return true;
     }
 
-    public void setJob(final IAEItemStack is) {
+    public void setJob(final IAEStack<?> is) {
         if ((is == null) != (this.dspPlay == null)) {
             this.dspPlay = is == null ? null : is.copy();
             this.markForUpdate();
@@ -115,8 +116,8 @@ public class TileCraftingMonitorTile extends TileCraftingTile implements IColora
         }
     }
 
-    public IAEItemStack getJobProgress() {
-        return this.dspPlay; // AEItemStack.create( new ItemStack( Items.DIAMOND, 64 ) );
+    public IAEStack<?> getJobProgress() {
+        return this.dspPlay;
     }
 
     @Override

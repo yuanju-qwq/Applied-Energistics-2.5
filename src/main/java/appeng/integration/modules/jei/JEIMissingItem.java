@@ -1,4 +1,4 @@
-package appeng.integration.modules.jei;
+﻿package appeng.integration.modules.jei;
 
 import static mezz.jei.api.recipe.transfer.IRecipeTransferError.Type.USER_FACING;
 
@@ -23,15 +23,14 @@ import mezz.jei.gui.TooltipRenderer;
 import mezz.jei.gui.recipes.RecipeLayout;
 import mezz.jei.gui.recipes.RecipeTransferButton;
 
-import appeng.api.AEApi;
 import appeng.api.config.FuzzyMode;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.container.implementations.ContainerMEMonitorable;
 import appeng.helpers.IContainerCraftingPacket;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class JEIMissingItem implements IRecipeTransferError {
 
@@ -40,10 +39,9 @@ public class JEIMissingItem implements IRecipeTransferError {
     private final List<Integer> craftableSlots = new ArrayList<>();
     private final List<Integer> foundSlots = new ArrayList<>();
 
-    IItemList<IAEItemStack> available = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-            .createList();
+    IItemList<IAEItemStack> available = AEItemStackType.INSTANCE.createList();
 
-    IItemList<IAEItemStack> used = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList();
+    IItemList<IAEItemStack> used = AEItemStackType.INSTANCE.createList();
 
     JEIMissingItem(Container container, @Nonnull IRecipeLayout recipeLayout) {
         if (container instanceof ContainerMEMonitorable) {
@@ -55,8 +53,7 @@ public class JEIMissingItem implements IRecipeTransferError {
             this.errored = false;
             recipeLayout.getItemStacks().addTooltipCallback(new CraftableCallBack(container, available));
 
-            IItemList<IAEItemStack> used = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-                    .createList();
+            IItemList<IAEItemStack> used = AEItemStackType.INSTANCE.createList();
             for (IGuiIngredient<?> i : recipeLayout.getItemStacks().getGuiIngredients().values()) {
                 found = false;
                 if (i.isInput() && !i.getAllIngredients().isEmpty()) {
@@ -151,8 +148,7 @@ public class JEIMissingItem implements IRecipeTransferError {
             for (IGuiIngredient<?> i : recipeLayout.getItemStacks().getGuiIngredients().values()) {
                 found = false;
                 craftable = false;
-                IItemList<IAEItemStack> valid = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-                        .createList();
+                IItemList<IAEItemStack> valid = AEItemStackType.INSTANCE.createList();
                 if (i.isInput()) {
                     List<?> allIngredients = i.getAllIngredients();
                     for (Object allIngredient : allIngredients) {
@@ -255,8 +251,7 @@ public class JEIMissingItem implements IRecipeTransferError {
 
     IItemList<IAEItemStack> mergeInventories(IItemList<IAEItemStack> repo,
             ContainerMEMonitorable containerCraftingTerm) {
-        IItemList<IAEItemStack> itemList = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
-                .createList();
+        IItemList<IAEItemStack> itemList = AEItemStackType.INSTANCE.createList();
         for (IAEItemStack i : repo) {
             itemList.addStorage(i);
         }

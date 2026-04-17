@@ -31,6 +31,7 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
 import appeng.api.IAppEngApi;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 
 /**
  * Storage Cell Registry, used for specially implemented cells, if you just want to make a item act like a cell, or new
@@ -77,25 +78,34 @@ public interface ICellRegistry {
     ICellHandler getHandler(ItemStack is);
 
     /**
-     * get the handler, for the requested channel.
-     *
-     * @param channel requested channel
-     * @param is      ItemStack
-     * @return the handler registered for this channel.
+     * @deprecated 请使用 {@link #getGuiHandler(IAEStackType, ItemStack)} 代替。
      */
     @Nullable
+    @Deprecated
     <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(IStorageChannel<T> channel, ItemStack is);
 
     /**
-     * returns an ICellInventoryHandler for the provided item by querying all registered handlers.
-     *
-     * @param is   item with inventory handler
-     * @param host can be null. If provided, the host is responsible for persisting the cell content.
-     * @param chan the storage channel to request the handler for.
-     *
-     * @return new ICellInventoryHandler, or null if there isn't one.
+     * 通过 {@link IAEStackType} 获取 GUI handler。
      */
     @Nullable
+    default <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(IAEStackType<T> type, ItemStack is) {
+        return this.getGuiHandler(type.getStorageChannel(), is);
+    }
+
+    /**
+     * @deprecated 请使用 {@link #getCellInventory(ItemStack, ISaveProvider, IAEStackType)} 代替。
+     */
+    @Nullable
+    @Deprecated
     <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
             IStorageChannel<T> chan);
+
+    /**
+     * 通过 {@link IAEStackType} 获取 cell 的 inventory handler。
+     */
+    @Nullable
+    default <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
+            IAEStackType<T> type) {
+        return this.getCellInventory(is, host, type.getStorageChannel());
+    }
 }

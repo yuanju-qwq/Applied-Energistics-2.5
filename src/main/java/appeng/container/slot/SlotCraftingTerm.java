@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -35,13 +35,11 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.items.IItemHandler;
 
-import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageMonitorable;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.container.ContainerNull;
@@ -56,6 +54,7 @@ import appeng.util.inv.AdaptorItemHandler;
 import appeng.util.inv.WrapperCursorItemHandler;
 import appeng.util.inv.WrapperInvItemHandler;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class SlotCraftingTerm extends AppEngCraftingSlot {
 
@@ -107,7 +106,7 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
         }
 
         final IMEMonitor<IAEItemStack> inv = this.storage
-                .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
         final int howManyPerCraft = this.getStack().getCount();
         int maxTimesToCraft = 0;
 
@@ -196,7 +195,7 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
     }
 
     private ItemStack craftItem(final EntityPlayer p, final ItemStack request, final IMEMonitor<IAEItemStack> inv,
-            final IItemList all) {
+            final IItemList<IAEItemStack> all) {
         // update crafting matrix...
         ItemStack is = this.getStack();
 

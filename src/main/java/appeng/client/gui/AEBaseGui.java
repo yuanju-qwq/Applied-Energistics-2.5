@@ -85,6 +85,8 @@ import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.core.sync.packets.PacketSwapSlots;
 import appeng.fluids.client.render.FluidStackSizeRenderer;
 import appeng.fluids.container.slots.IMEFluidSlot;
+import appeng.fluids.items.ItemFluidDrop;
+import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.InventoryAction;
 import appeng.items.misc.ItemEncodedPattern;
 import appeng.util.Platform;
@@ -478,7 +480,21 @@ public abstract class AEBaseGui extends GuiContainer implements IMTModGuiContain
             }
         } else if (slot instanceof SlotFake) {
             final InventoryAction action;
-            action = mouseButton == 1 ? InventoryAction.SPLIT_OR_PLACE_SINGLE : InventoryAction.PICKUP_OR_SET_DOWN;
+            // Ctrl+点击：从流体容器中提取流体放入 SlotFake
+            if (isCtrlKeyDown()) {
+                if (isShiftKeyDown()) {
+                    // Ctrl+Shift+左键：提取所有流体（上限 Integer.MAX_VALUE mB）
+                    action = InventoryAction.PICKUP_ALL_FLUID_FROM_CONTAINER;
+                } else if (mouseButton == 1) {
+                    action = InventoryAction.PLACE_SINGLE_FLUID_FROM_CONTAINER;
+                } else {
+                    action = InventoryAction.PICKUP_FLUID_FROM_CONTAINER;
+                }
+            } else {
+                action = mouseButton == 1
+                        ? InventoryAction.SPLIT_OR_PLACE_SINGLE
+                        : InventoryAction.PICKUP_OR_SET_DOWN;
+            }
 
             if (this.drag_click.size() > 1) {
                 return;
@@ -861,6 +877,40 @@ public abstract class AEBaseGui extends GuiContainer implements IMTModGuiContain
                 this.fluidStackSizeRenderer.renderStackSize(this.fontRenderer, fs, s.xPos, s.yPos);
             } else if (!this.isPowered()) {
                 drawRect(s.xPos, s.yPos, 16 + s.xPos, 16 + s.yPos, 0x66111111);
+            }
+
+            return;
+        } else if (s instanceof SlotFake && !s.getStack().isEmpty()
+                && s.getStack().getItem() instanceof ItemFluidDrop) {
+            // SlotFake 中的 ItemFluidDrop：渲染为流体纹理 + 流体数量
+            final ItemStack stack = s.getStack();
+            final FluidStack fluidStack = ItemFluidDrop.getFluidStack(stack);
+
+            if (fluidStack != null) {
+                GlStateManager.disableLighting();
+                GlStateManager.disableBlend();
+                final Fluid fluid = fluidStack.getFluid();
+                Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
+                final TextureAtlasSprite sprite = Minecraft.getMinecraft().getTextureMapBlocks()
+                        .getAtlasSprite(fluid.getStill().toString());
+
+                float red = (fluid.getColor() >> 16 & 255) / 255.0F;
+                float green = (fluid.getColor() >> 8 & 255) / 255.0F;
+                float blue = (fluid.getColor() & 255) / 255.0F;
+                GlStateManager.color(red, green, blue);
+
+                this.drawTexturedModalRect(s.xPos, s.yPos, sprite, 16, 16);
+                GlStateManager.enableLighting();
+                GlStateManager.enableBlend();
+
+                // 使用流体数量渲染器显示 mB 数量
+                IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(fluidStack);
+                if (aeFluid != null) {
+                    aeFluid.setStackSize(stack.getCount());
+                    this.fluidStackSizeRenderer.renderStackSize(this.fontRenderer, aeFluid, s.xPos, s.yPos);
+                }
+            } else {
+                super.drawSlot(s);
             }
 
             return;

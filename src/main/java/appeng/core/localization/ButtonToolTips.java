@@ -183,7 +183,14 @@ public enum ButtonToolTips {
 
     FilterMode,
     FilterModeKeep,
-    FilterModeClear;
+    FilterModeClear,
+
+    DoubleStacks,
+    DoubleStacksDesc,
+
+    CombineMode,
+    CombineModeYes,
+    CombineModeNo;
 
     private final String root;
 

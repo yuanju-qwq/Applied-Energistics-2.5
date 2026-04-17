@@ -43,7 +43,8 @@ import appeng.util.prioritylist.PrecisePriorityList;
  */
 public class BasicCellInventoryHandler<T extends IAEStack<T>> extends MEInventoryHandler<T>
         implements ICellInventoryHandler<T> {
-    public BasicCellInventoryHandler(final IMEInventory c, final IStorageChannel<T> channel) {
+    @SuppressWarnings("unchecked")
+    public BasicCellInventoryHandler(final IMEInventory<T> c, final IStorageChannel<T> channel) {
         super(c, channel);
 
         final ICellInventory ci = this.getCellInv();

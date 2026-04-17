@@ -25,9 +25,10 @@ package appeng.api.storage;
 
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 
-public interface IMEMonitor<T extends IAEStack<T>> extends IMEInventoryHandler<T>, IBaseMonitor<T> {
+public interface IMEMonitor<T extends IAEStackBase> extends IMEInventoryHandler<T>, IBaseMonitor<T> {
 
     /**
      * This method is discouraged when accessing data via a IMEMonitor

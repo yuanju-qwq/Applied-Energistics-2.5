@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -56,7 +56,6 @@ import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.IStorageMonitorableAccessor;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
@@ -83,6 +82,7 @@ import appeng.util.inv.WrapperChainedItemHandler;
 import appeng.util.inv.WrapperFilteredItemHandler;
 import appeng.util.inv.filter.IAEItemFilter;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class TileMolecularAssembler extends AENetworkInvTile
         implements IUpgradeableHost, IConfigManagerHost, IGridTickable, ICraftingMachine, IPowerChannelState {
@@ -584,7 +584,7 @@ public class TileMolecularAssembler extends AENetworkInvTile
             IStorageMonitorable inventory = (IStorageMonitorable) capability;
             IAEItemStack toInsert = AEItemStack.fromItemStack(output);
             IMEMonitor<IAEItemStack> inv = inventory
-                    .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
             IAEItemStack remainder = inv.injectItems(toInsert, Actionable.SIMULATE, this.mySrc);
             if (remainder == null) {
                 inv.injectItems(toInsert, Actionable.MODULATE, this.mySrc);

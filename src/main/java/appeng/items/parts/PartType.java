@@ -211,6 +211,8 @@ public enum PartType {
             PartInterface.class),
     FLUID_INTERFACE(441, "fluid_interface", EnumSet.of(AEFeature.FLUID_INTERFACE),
             EnumSet.noneOf(IntegrationType.class), PartFluidInterface.class),
+    DUAL_INTERFACE(442, "dual_interface", EnumSet.of(AEFeature.INTERFACE),
+            EnumSet.noneOf(IntegrationType.class), PartDualInterface.class),
 
     P2P_TUNNEL_ME(460, "p2p_tunnel_me", EnumSet.of(AEFeature.P2P_TUNNEL, AEFeature.P2P_TUNNEL_ME),
             EnumSet.noneOf(IntegrationType.class), PartP2PTunnelME.class, GuiText.METunnel) {

@@ -150,8 +150,8 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
         final boolean substitute = details.canSubstitute();
 
         // 使用泛型方法获取输入/输出，以支持流体显示
-        final IAEStack<?>[] in = details.getGenericCondensedInputs();
-        final IAEStack<?>[] out = details.getGenericCondensedOutputs();
+        final IAEStack<?>[] in = details.getCondensedAEInputs();
+        final IAEStack<?>[] out = details.getCondensedAEOutputs();
 
         final String label = (isCrafting ? GuiText.Crafts.getLocal() : GuiText.Creates.getLocal()) + ": ";
         final String and = ' ' + GuiText.And.getLocal() + ' ';

@@ -17,7 +17,7 @@ import net.minecraft.inventory.Slot;
 import mezz.jei.api.gui.IAdvancedGuiHandler;
 import mezz.jei.api.gui.IGhostIngredientHandler;
 
-import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.client.ClientHelper;
 import appeng.client.gui.implementations.GuiCraftAmount;
 import appeng.client.gui.implementations.GuiCraftConfirm;
@@ -43,7 +43,7 @@ public class AEGuiHandler implements IAdvancedGuiHandler<AEBaseGui>, IGhostIngre
     @Nullable
     @Override
     public Object getIngredientUnderMouse(@Nonnull AEBaseGui guiContainer, int mouseX, int mouseY) {
-        List<IAEItemStack> visual;
+        List<IAEStack<?>> visual;
         int guiSlotIdx;
         Object result = null;
         if (guiContainer instanceof GuiCraftConfirm) {

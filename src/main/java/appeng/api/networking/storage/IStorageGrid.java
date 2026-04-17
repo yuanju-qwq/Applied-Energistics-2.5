@@ -31,6 +31,8 @@ import appeng.api.storage.ICellProvider;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
+import appeng.api.storage.data.IAEStackType;
 
 /**
  * Common base class for item / fluid storage caches.
@@ -47,9 +49,9 @@ public interface IStorageGrid extends IGridCache, IStorageMonitorable {
      *
      * @param input injected items
      */
-    void postAlterationOfStoredItems(IStorageChannel<?> chan, Iterable<? extends IAEStack<?>> input, IActionSource src);
+    void postAlterationOfStoredItems(IAEStackType<?> type, Iterable<? extends IAEStackBase> input, IActionSource src);
 
-    void postCraftablesChanges(IStorageChannel<?> chan, Iterable<? extends IAEStack<?>> input, IActionSource src);
+    void postCraftablesChanges(IAEStackType<?> type, Iterable<? extends IAEStackBase> input, IActionSource src);
 
     /**
      * Used to add a cell provider to the storage system

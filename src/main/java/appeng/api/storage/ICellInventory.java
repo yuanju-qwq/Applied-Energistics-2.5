@@ -28,6 +28,8 @@ import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.data.IAEStack;
+import appeng.items.contents.CellConfigLegacyWrapper;
+import appeng.tile.inventory.IAEStackInventory;
 
 public interface ICellInventory<T extends IAEStack<T>> extends IMEInventory<T> {
 
@@ -48,8 +50,20 @@ public interface ICellInventory<T extends IAEStack<T>> extends IMEInventory<T> {
 
     /**
      * @return access configured list
+     * @deprecated 请使用 {@link #getConfigAEInventory()} 代替。
      */
+    @Deprecated
     IItemHandler getConfigInventory();
+
+    /**
+     * 获取泛型版本的配置库存。
+     * 默认实现通过 {@link CellConfigLegacyWrapper} 包装旧版 {@link #getConfigInventory()}。
+     *
+     * @return 泛型配置库存
+     */
+    default IAEStackInventory getConfigAEInventory() {
+        return new CellConfigLegacyWrapper(this.getConfigInventory());
+    }
 
     /**
      * @return access installed upgrades.

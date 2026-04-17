@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -24,16 +24,15 @@ import com.google.common.collect.ImmutableList;
 
 import net.minecraft.item.ItemStack;
 
-import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.util.InventoryAdaptor;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public class IMEAdaptor extends InventoryAdaptor {
 
@@ -58,7 +57,7 @@ public class IMEAdaptor extends InventoryAdaptor {
 
     private IItemList<IAEItemStack> getList() {
         return this.target.getAvailableItems(
-                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList());
+                AEItemStackType.INSTANCE.createList());
     }
 
     @Override

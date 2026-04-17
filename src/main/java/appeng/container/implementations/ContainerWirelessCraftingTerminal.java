@@ -95,9 +95,8 @@ public class ContainerWirelessCraftingTerminal extends ContainerMEPortableTermin
     @Override
     public void saveChanges() {
         if (Platform.isServer()) {
-            NBTTagCompound tag = new NBTTagCompound();
+            NBTTagCompound tag = this.wirelessHelper.saveUpgradesToNBT();
             this.craftingGrid.writeToNBT(tag, "craftingGrid");
-            this.upgrades.writeToNBT(tag, "upgrades");
             this.wirelessTerminalGUIObject.saveChanges(tag);
         }
     }

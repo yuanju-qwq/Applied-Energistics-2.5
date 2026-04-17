@@ -46,9 +46,9 @@ import appeng.core.AppEng;
 import appeng.core.sync.packets.PacketPaintedEntity;
 import appeng.api.networking.crafting.ICraftingCallback;
 import appeng.api.networking.crafting.ICraftingJob;
-import appeng.crafting.CraftingJob;
 import appeng.crafting.v2.CraftingJobV2;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.me.Grid;
 import appeng.tile.AEBaseTile;
 import appeng.util.IWorldCallable;
@@ -256,12 +256,6 @@ public class TickHandler {
         }
     }
 
-    public void registerCraftingSimulation(final World world, final CraftingJob craftingJob) {
-        synchronized (this.craftingJobs) {
-            this.craftingJobs.put(world, craftingJob);
-        }
-    }
-
     /**
      * 注册 v2 合成计算任务并返回 Future。
      */
@@ -299,8 +293,8 @@ public class TickHandler {
         }
 
         @Override
-        @SuppressWarnings("rawtypes")
-        public void populatePlan(appeng.api.storage.data.IItemList plan) {
+        @SuppressWarnings("unchecked")
+        public void populatePlan(appeng.api.storage.data.IItemList<IAEStackBase> plan) {
             delegate.populatePlan(plan);
         }
 

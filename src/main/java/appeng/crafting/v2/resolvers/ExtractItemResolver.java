@@ -13,6 +13,7 @@ import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.crafting.CraftBranchFailure;
 import appeng.crafting.MECraftingInventory;
@@ -25,7 +26,7 @@ import appeng.util.item.AEItemStack;
 
 public class ExtractItemResolver implements CraftingRequestResolver {
 
-    public static class ExtractItemTask<StackType extends IAEStack<StackType>> extends CraftingTask {
+    public static class ExtractItemTask<StackType extends IAEStack> extends CraftingTask {
 
         public final ArrayList<IAEStack<?>> removedFromSystem = new ArrayList<>();
         public final ArrayList<IAEStack<?>> removedFromByproducts = new ArrayList<>();
@@ -81,7 +82,7 @@ public class ExtractItemResolver implements CraftingRequestResolver {
             if (exactMatching != null) {
                 final long requestSize = Math.min(request.remainingToProcess, exactMatching.getStackSize());
                 final StackType extracted = source
-                        .extractItems(exactMatching.copy().setStackSize(requestSize), Actionable.MODULATE);
+                        .extractItems((StackType) exactMatching.copy().setStackSize(requestSize), Actionable.MODULATE);
                 if (extracted != null && extracted.getStackSize() > 0) {
                     extracted.setCraftable(false);
                     request.fulfill(this, extracted, context);
@@ -100,7 +101,7 @@ public class ExtractItemResolver implements CraftingRequestResolver {
                 if (request.acceptableSubstituteFn.test(candidate)) {
                     final long requestSize = Math.min(request.remainingToProcess, candidate.getStackSize());
                     final StackType extracted = source
-                            .extractItems(candidate.copy().setStackSize(requestSize), Actionable.MODULATE);
+                            .extractItems((StackType) candidate.copy().setStackSize(requestSize), Actionable.MODULATE);
                     if (extracted == null || extracted.getStackSize() <= 0) {
                         continue;
                     }
@@ -155,8 +156,8 @@ public class ExtractItemResolver implements CraftingRequestResolver {
         }
 
         @Override
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        public void populatePlan(IItemList targetPlan) {
+        @SuppressWarnings("unchecked")
+        public void populatePlan(IItemList<IAEStackBase> targetPlan) {
             for (IAEStack<?> removed : removedFromSystem) {
                 targetPlan.add(removed.copy());
             }

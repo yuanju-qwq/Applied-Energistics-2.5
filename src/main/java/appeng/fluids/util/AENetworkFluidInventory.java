@@ -1,16 +1,15 @@
-package appeng.fluids.util;
+﻿package appeng.fluids.util;
 
 import java.util.function.Supplier;
 
 import net.minecraftforge.fluids.FluidStack;
 
-import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
+import appeng.fluids.util.AEFluidStackType;
 
 public class AENetworkFluidInventory extends AEFluidInventory {
 
@@ -33,7 +32,7 @@ public class AENetworkFluidInventory extends AEFluidInventory {
         if (storage != null) {
             int originAmt = fluid.amount;
             IMEInventory<IAEFluidStack> dest = storage
-                    .getInventory(AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class));
+                    .getInventory(AEFluidStackType.INSTANCE.getStorageChannel());
             IAEFluidStack overflow = dest.injectItems(AEFluidStack.fromFluidStack(fluid),
                     doFill ? Actionable.MODULATE : Actionable.SIMULATE, this.source);
             if (overflow != null && overflow.getStackSize() == originAmt) {

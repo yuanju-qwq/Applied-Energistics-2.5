@@ -1,4 +1,4 @@
-
+﻿
 /*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
@@ -20,11 +20,10 @@
 package appeng.client.me;
 
 
-import appeng.api.AEApi;
 import appeng.api.config.*;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.client.gui.widgets.IScrollSource;
@@ -50,8 +49,7 @@ public class ItemRepo {
     /**
      * 多类型存储列表：每种 IAEStackType 对应一个 IItemList。
      */
-    @SuppressWarnings("rawtypes")
-    private final Map<IAEStackType<?>, IItemList> lists = new IdentityHashMap<>();
+    private final Map<IAEStackType<?>, IItemList<?>> lists = new IdentityHashMap<>();
 
     /**
      * 视图列表：经过搜索、过滤、排序后的展示列表，包含所有类型的栈。
@@ -105,15 +103,15 @@ public class ItemRepo {
     /**
      * 更新一个 AE 栈（任意类型：物品、流体等）。
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void postUpdate(final IAEStack<?> is) {
         IAEStackType<?> type = is.getStackType();
-        IItemList list = this.lists.computeIfAbsent(type, t -> t.createList());
+        IItemList<IAEStackBase> list = (IItemList<IAEStackBase>) this.lists.computeIfAbsent(type, t -> t.createList());
 
-        final IAEStack st = list.findPrecise(is);
+        final IAEStack<?> st = (IAEStack<?>) list.findPrecise(is);
         if (st != null) {
             st.reset();
-            st.add(is);
+            ((IAEStack) st).add(is);
         } else {
             list.add(is);
         }
@@ -132,7 +130,7 @@ public class ItemRepo {
 
     @SuppressWarnings("unchecked")
     private <T extends IAEStack<T>> IItemList<T> getTypedList(T stack) {
-        return this.lists.get(stack.getStackType());
+        return (IItemList<T>) this.lists.get(stack.getStackType());
     }
 
     public void setViewCell(final ItemStack[] list) {
@@ -196,10 +194,9 @@ public class ItemRepo {
                     continue;
                 }
 
-                IItemList list = entry.getValue();
-                for (Object obj : list) {
-                    IAEStack<?> is = (IAEStack<?>) obj;
-                    addIAE(is, viewMode);
+                IItemList<?> list = entry.getValue();
+                for (IAEStackBase stackBase : (IItemList<IAEStackBase>) list) {
+                    addIAE((IAEStack<?>) stackBase, viewMode);
                 }
             }
 
@@ -535,7 +532,7 @@ public class ItemRepo {
                 return (IItemList<IAEItemStack>) list;
             }
         }
-        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList();
+        return AEItemStackType.INSTANCE.createList();
     }
 
     /**

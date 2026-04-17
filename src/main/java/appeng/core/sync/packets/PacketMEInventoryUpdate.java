@@ -148,11 +148,11 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
         final Container c = player.openContainer;
 
         if (c instanceof ContainerCraftConfirm) {
-            ((ContainerCraftConfirm) c).postUpdate(this.list, this.ref);
+            ((ContainerCraftConfirm) c).postGenericUpdate(this.genericList, this.ref);
         }
 
         if (c instanceof ContainerCraftingCPU) {
-            ((ContainerCraftingCPU) c).postUpdate(this.list, this.ref);
+            ((ContainerCraftingCPU) c).postGenericUpdate(this.genericList, this.ref);
         }
 
         if (c instanceof ContainerMEMonitorable) {

@@ -1,15 +1,9 @@
 package appeng.container.implementations;
 
-import static appeng.helpers.PatternHelper.PROCESSING_INPUT_LIMIT;
-import static appeng.helpers.PatternHelper.PROCESSING_OUTPUT_LIMIT;
-
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.storage.ITerminalHost;
-import appeng.container.slot.OptionalSlotFake;
-import appeng.container.slot.SlotFakeCraftingMatrix;
-import appeng.container.slot.SlotPatternOutputs;
 import appeng.container.slot.SlotRestrictedInput;
 
 public class ContainerExpandedProcessingPatternTerm extends ContainerPatternEncoder {
@@ -17,29 +11,10 @@ public class ContainerExpandedProcessingPatternTerm extends ContainerPatternEnco
     public ContainerExpandedProcessingPatternTerm(InventoryPlayer ip, ITerminalHost monitorable) {
         super(ip, monitorable, false);
 
-        this.craftingSlots = new SlotFakeCraftingMatrix[PROCESSING_INPUT_LIMIT];
-        this.outputSlots = new OptionalSlotFake[PROCESSING_OUTPUT_LIMIT];
+        // crafting/output 槽位现在由 GUI 侧的 VirtualMEPatternSlot 管理，
+        // 不再添加 SlotFakeCraftingMatrix / OptionalSlotFake 到 Minecraft Container。
 
         final IItemHandler patternInv = this.getPart().getInventoryByName("pattern");
-        final IItemHandler output = this.getPart().getInventoryByName("output");
-
-        this.crafting = this.getPart().getInventoryByName("crafting");
-
-        for (int y = 0; y < 4; y++) {
-            for (int x = 0; x < 4; x++) {
-                this.addSlotToContainer(this.craftingSlots[x + y * 4] = new SlotFakeCraftingMatrix(this.crafting,
-                        x + y * 4, 4 + x * 18, -85 + y * 18));
-            }
-        }
-
-        for (int y = 0; y < 3; y++) {
-            for (int x = 0; x < 2; x++) {
-                this.addSlotToContainer(this.outputSlots[x + y * 2] = new SlotPatternOutputs(output, this, x + y * 2,
-                        96 + x * 18, -76 + y * 18, 0, 0, 1));
-                this.outputSlots[x + y * 2].setRenderDisabled(false);
-                this.outputSlots[x + y * 2].setIIcon(-1);
-            }
-        }
 
         this.addSlotToContainer(
                 this.patternSlotIN = new SlotRestrictedInput(SlotRestrictedInput.PlacableItemType.BLANK_PATTERN,

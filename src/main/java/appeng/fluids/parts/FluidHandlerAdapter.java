@@ -24,7 +24,6 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
-import appeng.api.AEApi;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.config.Settings;
@@ -35,10 +34,10 @@ import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IItemList;
 import appeng.fluids.util.AEFluidStack;
+import appeng.fluids.util.AEFluidStackType;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.IGridProxyable;
 import appeng.me.storage.ITickingMonitor;
@@ -146,7 +145,7 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
 
     @Override
     public IStorageChannel<IAEFluidStack> getChannel() {
-        return AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class);
+        return AEFluidStackType.INSTANCE.getStorageChannel();
     }
 
     @Override
@@ -181,8 +180,7 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
     private static class InventoryCache {
         private final IFluidHandler fluidHandler;
         private final StorageFilter mode;
-        IItemList<IAEFluidStack> currentlyCached = AEApi.instance().storage()
-                .getStorageChannel(IFluidStorageChannel.class).createList();
+        IItemList<IAEFluidStack> currentlyCached = AEFluidStackType.INSTANCE.createList();
 
         public InventoryCache(IFluidHandler fluidHandler, StorageFilter mode) {
             this.mode = mode;
@@ -193,8 +191,7 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
             final List<IAEFluidStack> changes = new ArrayList<>();
             final IFluidTankProperties[] tankProperties = this.fluidHandler.getTankProperties();
 
-            IItemList<IAEFluidStack> currentlyOnStorage = AEApi.instance().storage()
-                    .getStorageChannel(IFluidStorageChannel.class).createList();
+            IItemList<IAEFluidStack> currentlyOnStorage = AEFluidStackType.INSTANCE.createList();
 
             for (IFluidTankProperties tankProperty : tankProperties) {
                 var contents = tankProperty.getContents();

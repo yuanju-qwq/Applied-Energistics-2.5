@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -49,7 +49,6 @@ import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEColor;
@@ -71,6 +70,7 @@ import appeng.me.helpers.PlayerSource;
 import appeng.tile.misc.TilePaint;
 import appeng.util.LookDirection;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStackType;
 
 public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<IAEItemStack> {
     private static final double INITIAL_CLOSEST_DISTANCE = 9999999.0D;
@@ -143,7 +143,7 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,
-                        AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                        AEItemStackType.INSTANCE.getStorageChannel());
 
         AEApi.instance().client().addCellInformation(cdi, lines);
     }
@@ -163,11 +163,11 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
                     .registries()
                     .cell()
                     .getCellInventory(p.getHeldItem(hand), null,
-                            AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                            AEItemStackType.INSTANCE.getStorageChannel());
             if (inv != null) {
                 final IItemList<IAEItemStack> itemList = inv
                         .getAvailableItems(
-                                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createList());
+                                AEItemStackType.INSTANCE.createList());
                 IAEItemStack req = itemList.getFirstItem();
                 if (req instanceof IAEItemStack) {
                     shots = Math.min(shots, (int) req.getStackSize());
@@ -437,6 +437,6 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
 
     @Override
     public IStorageChannel<IAEItemStack> getChannel() {
-        return AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class);
+        return AEItemStackType.INSTANCE.getStorageChannel();
     }
 }

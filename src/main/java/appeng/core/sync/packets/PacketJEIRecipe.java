@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -40,7 +40,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.items.IItemHandler;
 
-import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.config.SecurityPermissions;
@@ -51,7 +50,6 @@ import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.container.implementations.ContainerPatternEncoder;
 import appeng.core.sync.AppEngPacket;
@@ -64,6 +62,7 @@ import appeng.util.inv.AdaptorItemHandler;
 import appeng.util.inv.WrapperInvItemHandler;
 import appeng.util.item.AEItemStack;
 import appeng.util.prioritylist.IPartitionList;
+import appeng.util.item.AEItemStackType;
 
 public class PacketJEIRecipe extends AppEngPacket {
 
@@ -149,7 +148,7 @@ public class PacketJEIRecipe extends AppEngPacket {
 
         if (inv != null && this.recipe != null && security != null) {
             final IMEMonitor<IAEItemStack> storage = inv
-                    .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
             final IPartitionList<IAEItemStack> filter = ItemViewCell.createFilter(cct.getViewCells());
 
             for (int x = 0; x < craftMatrix.getSlots(); x++) {
@@ -201,8 +200,7 @@ public class PacketJEIRecipe extends AppEngPacket {
                                         if (request.getItem().isDamageable()
                                                 || Platform.isGTDamageableItem(request.getItem())) {
                                             Collection<IAEItemStack> outList = inv
-                                                    .getInventory(AEApi.instance().storage()
-                                                            .getStorageChannel(IItemStorageChannel.class))
+                                                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel())
                                                     .getStorageList().findFuzzy(request, FuzzyMode.IGNORE_ALL);
                                             for (IAEItemStack is : outList) {
                                                 if (is.getStackSize() == 0) {

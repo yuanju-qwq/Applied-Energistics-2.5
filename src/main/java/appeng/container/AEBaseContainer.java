@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -33,6 +33,8 @@ import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.*;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 
@@ -50,8 +52,9 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.parts.IPart;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.channels.IItemStorageChannel;
+import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.client.me.SlotME;
 import appeng.container.guisync.GuiSync;
 import appeng.container.guisync.SyncData;
@@ -63,6 +66,7 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.core.sync.packets.PacketTargetItemStack;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.fluids.items.ItemFluidDrop;
 import appeng.helpers.ICustomNameObject;
 import appeng.helpers.InventoryAction;
 import appeng.me.helpers.PlayerSource;
@@ -71,6 +75,7 @@ import appeng.util.Platform;
 import appeng.util.inv.AdaptorItemHandler;
 import appeng.util.inv.WrapperCursorItemHandler;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 public abstract class AEBaseContainer extends Container {
     private final InventoryPlayer invPlayer;
@@ -527,6 +532,7 @@ public abstract class AEBaseContainer extends Container {
 
                 switch (action) {
                     case PICKUP_OR_SET_DOWN:
+                        // 左键：直接放入物品本身（保持原有行为）
                         if (hand.isEmpty()) {
                             s.putStack(ItemStack.EMPTY);
                         } else {
@@ -569,6 +575,52 @@ public abstract class AEBaseContainer extends Container {
                             is = hand.copy();
                             is.setCount(1);
                             s.putStack(is);
+                        }
+                        break;
+                    case PICKUP_FLUID_FROM_CONTAINER:
+                        // Ctrl+左键：从流体容器提取流体放入 SlotFake
+                        if (hand.isEmpty()) {
+                            s.putStack(ItemStack.EMPTY);
+                        } else {
+                            ItemStack fluidDrop = tryConvertToFluidDrop(hand);
+                            s.putStack(fluidDrop);
+                        }
+                        break;
+                    case PLACE_SINGLE_FLUID_FROM_CONTAINER:
+                        // Ctrl+右键：从流体容器提取流体，以 1000 mB 为单位放入/增减
+                        if (!hand.isEmpty()) {
+                            ItemStack fluidItem = tryConvertToFluidDrop(hand);
+                            ItemStack existing = s.getStack();
+                            if (!existing.isEmpty() && existing.isItemEqual(fluidItem)) {
+                                existing.grow(1000);
+                                s.putStack(existing);
+                            } else {
+                                fluidItem.setCount(1000);
+                                s.putStack(fluidItem);
+                            }
+                        } else {
+                            ItemStack existing = s.getStack();
+                            if (!existing.isEmpty() && existing.getItem() instanceof ItemFluidDrop) {
+                                int newCount = existing.getCount() - 1000;
+                                if (newCount <= 0) {
+                                    s.putStack(ItemStack.EMPTY);
+                                } else {
+                                    existing.setCount(newCount);
+                                    s.putStack(existing);
+                                }
+                            }
+                        }
+                        break;
+                    case PICKUP_ALL_FLUID_FROM_CONTAINER:
+                        // Ctrl+Shift+左键：提取流体，数量设为 Integer.MAX_VALUE
+                        if (hand.isEmpty()) {
+                            s.putStack(ItemStack.EMPTY);
+                        } else {
+                            ItemStack maxFluid = tryConvertToFluidDrop(hand);
+                            if (maxFluid.getItem() instanceof ItemFluidDrop) {
+                                maxFluid.setCount(Integer.MAX_VALUE);
+                            }
+                            s.putStack(maxFluid);
                         }
                         break;
                     case HALVE:
@@ -649,7 +701,7 @@ public abstract class AEBaseContainer extends Container {
                 final ItemStack isg = player.inventory.getItemStack();
 
                 if (!isg.isEmpty() && releaseQty > 0) {
-                    IAEItemStack ais = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
+                    IAEItemStack ais = AEItemStackType.INSTANCE.getStorageChannel()
                             .createStack(isg);
                     ais.setStackSize(1);
                     final IAEItemStack extracted = ais.copy();
@@ -728,7 +780,7 @@ public abstract class AEBaseContainer extends Container {
                         this.updateHeld(player);
                     }
                 } else {
-                    IAEItemStack ais = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
+                    IAEItemStack ais = AEItemStackType.INSTANCE.getStorageChannel()
                             .createStack(player.inventory.getItemStack());
                     ais = Platform.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
                             this.getActionSource());
@@ -768,7 +820,7 @@ public abstract class AEBaseContainer extends Container {
                         this.updateHeld(player);
                     }
                 } else {
-                    IAEItemStack ais = AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class)
+                    IAEItemStack ais = AEItemStackType.INSTANCE.getStorageChannel()
                             .createStack(player.inventory.getItemStack());
                     ais.setStackSize(1);
                     ais = Platform.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
@@ -865,7 +917,7 @@ public abstract class AEBaseContainer extends Container {
             return input;
         }
         final IAEItemStack ais = Platform.poweredInsert(this.getPowerSource(), this.getCellInventory(),
-                AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class).createStack(input),
+                AEItemStackType.INSTANCE.getStorageChannel().createStack(input),
                 this.getActionSource());
         if (ais == null) {
             return ItemStack.EMPTY;
@@ -1093,5 +1145,67 @@ public abstract class AEBaseContainer extends Container {
 
     public void setPowerSource(final IEnergySource powerSrc) {
         this.powerSrc = powerSrc;
+    }
+
+    /**
+     * 尝试将流体容器（桶等）转换为 ItemFluidDrop。
+     * 如果物品不是流体容器，则返回原物品的副本。
+     */
+    protected static ItemStack tryConvertToFluidDrop(ItemStack hand) {
+        if (hand.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        FluidStack fluid = FluidUtil.getFluidContained(hand);
+        if (fluid != null && fluid.amount > 0) {
+            ItemStack fluidDrop = ItemFluidDrop.newStack(fluid);
+            if (!fluidDrop.isEmpty()) {
+                return fluidDrop;
+            }
+        }
+        return hand.copy();
+    }
+
+    // ---- 虚拟槽位同步机制（服务端 → 客户端）----
+
+    private boolean needsFullVirtualSync = true;
+
+    /**
+     * 在服务端 detectAndSendChanges 中调用，将 {@link appeng.tile.inventory.IAEStackInventory}
+     * 的变更增量推送到所有已连接的客户端。
+     * <p>
+     * 首次调用时会进行全量同步；后续只同步发生变更的槽位。
+     *
+     * @param invName           库存名称标识
+     * @param inventory         服务端的 IAEStackInventory
+     * @param clientSlotsStacks 与客户端同步的快照数组（用于增量比较）
+     */
+    protected void updateVirtualSlots(StorageName invName,
+            appeng.tile.inventory.IAEStackInventory inventory,
+            IAEStack<?>[] clientSlotsStacks) {
+        var list = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<IAEStack<?>>();
+        for (int i = 0; i < inventory.getSizeInventory(); ++i) {
+            IAEStack<?> aes = inventory.getAEStackInSlot(i);
+            IAEStack<?> aesClient = clientSlotsStacks[i];
+
+            if (needsFullVirtualSync || !Platform.isStacksIdentical(aes, aesClient)) {
+                list.put(i, aes);
+                clientSlotsStacks[i] = aes != null ? aes.copy() : null;
+            }
+        }
+        needsFullVirtualSync = false;
+
+        if (!list.isEmpty()) {
+            for (final IContainerListener listener : this.listeners) {
+                if (listener instanceof EntityPlayerMP) {
+                    final EntityPlayerMP emp = (EntityPlayerMP) listener;
+                    try {
+                        NetworkHandler.instance()
+                                .sendTo(new appeng.core.sync.packets.PacketVirtualSlot(invName, list), emp);
+                    } catch (final Exception e) {
+                        AELog.debug(e);
+                    }
+                }
+            }
+        }
     }
 }

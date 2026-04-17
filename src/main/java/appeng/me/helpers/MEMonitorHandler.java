@@ -35,6 +35,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 
 /**
@@ -56,9 +57,15 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
         this.cachedList = t.getChannel().createList();
     }
 
-    public MEMonitorHandler(final IMEInventoryHandler<T> t, final IStorageChannel<T> chan) {
+    public MEMonitorHandler(final IMEInventoryHandler<T> t, final IAEStackType<T> type) {
         this.internalHandler = t;
-        this.cachedList = chan.createList();
+        this.cachedList = type.createList();
+    }
+
+    /** @deprecated 请使用 {@link #MEMonitorHandler(IMEInventoryHandler, IAEStackType)} 代替 */
+    @Deprecated
+    public MEMonitorHandler(final IMEInventoryHandler<T> t, final IStorageChannel<T> chan) {
+        this(t, chan.getStackType());
     }
 
     @Override

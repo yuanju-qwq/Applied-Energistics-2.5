@@ -105,6 +105,7 @@ import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEColor;
 import appeng.api.util.AEPartLocation;
@@ -1189,30 +1190,80 @@ public class Platform {
         return input;
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     public static void postChanges(final IStorageGrid gs, final ItemStack removed, final ItemStack added,
             final IActionSource src) {
         for (final IStorageChannel<?> chan : AEApi.instance().storage().storageChannels()) {
-            final IItemList<?> myChanges = chan.createList();
+            final IItemList<? extends IAEStack<?>> myChanges;
 
             if (!removed.isEmpty()) {
-                final IMEInventory myInv = AEApi.instance().registries().cell().getCellInventory(removed, null, chan);
+                final IMEInventory<?> myInv = AEApi.instance().registries().cell().getCellInventory(removed, null, chan);
                 if (myInv != null) {
-                    myInv.getAvailableItems(myChanges);
-                    for (final IAEStack is : myChanges) {
+                    myChanges = getAvailableItems(myInv);
+                    for (final IAEStack<?> is : myChanges) {
                         is.setStackSize(-is.getStackSize());
                     }
+                } else {
+                    myChanges = chan.createList();
                 }
+            } else {
+                myChanges = chan.createList();
             }
             if (!added.isEmpty()) {
-                final IMEInventory myInv = AEApi.instance().registries().cell().getCellInventory(added, null, chan);
+                final IMEInventory<?> myInv = AEApi.instance().registries().cell().getCellInventory(added, null, chan);
                 if (myInv != null) {
-                    myInv.getAvailableItems(myChanges);
+                    getAvailableItemsInto(myInv, myChanges);
                 }
-
             }
-            gs.postAlterationOfStoredItems(chan, myChanges, src);
+            gs.postAlterationOfStoredItems(chan.getStackType(), myChanges, src);
         }
+    }
+
+    /**
+     * 通配符捕获辅助方法：将 IMEInventory<?> 的可用物品填充到已有列表中。
+     */
+    @SuppressWarnings("unchecked")
+    private static void getAvailableItemsInto(final IMEInventory<?> inv, final IItemList<?> out) {
+        ((IMEInventory) inv).getAvailableItems(out);
+    }
+
+    /**
+     * 通配符捕获辅助方法：安全地从 IMEInventory<?> 获取可用物品列表。
+     * 通过泛型捕获桥接 IMEInventory<?> 的通配符类型，避免 raw type cast。
+     */
+    @SuppressWarnings("unchecked")
+    public static IItemList<? extends IAEStack<?>> getAvailableItems(final IMEInventory<?> inv) {
+        return getAvailableItemsHelper((IMEInventory) inv);
+    }
+
+    private static <T extends IAEStack<T>> IItemList<T> getAvailableItemsHelper(final IMEInventory<T> inv) {
+        return inv.getAvailableItems(inv.getChannel().createList());
+    }
+
+    /**
+     * 通配符捕获辅助方法：安全地向 IMEInventory<?> 注入物品。
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static IAEStack<?> injectItems(final IMEInventory<?> inv, final IAEStack<?> input,
+            final Actionable mode, final IActionSource src) {
+        return (IAEStack<?>) ((IMEInventory) inv).injectItems(input, mode, src);
+    }
+
+    /**
+     * 通配符捕获辅助方法：安全地从 IMEInventory<?> 提取物品。
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static IAEStack<?> extractItems(final IMEInventory<?> inv, final IAEStack<?> request,
+            final Actionable mode, final IActionSource src) {
+        return (IAEStack<?>) ((IMEInventory) inv).extractItems(request, mode, src);
+    }
+
+    /**
+     * 通配符捕获辅助方法：poweredInsert 支持通配符类型。
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static IAEStack<?> poweredInsertWildcard(final IEnergySource energy, final IMEInventory<?> inv,
+            final IAEStack<?> input, final IActionSource src) {
+        return (IAEStack<?>) poweredInsert(energy, (IMEInventory) inv, (IAEStack) input, src);
     }
 
     public static <T extends IAEStack<T>> void postListChanges(final IItemList<T> before, final IItemList<T> after,
@@ -1592,6 +1643,16 @@ public class Platform {
     }
 
     /**
+     * 比较两个泛型 IAEStack 是否完全相同（包括类型、内容和数量）。
+     */
+    public static boolean isStacksIdentical(IAEStack<?> a, IAEStack<?> b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        if (a.equals(b)) return a.getStackSize() == b.getStackSize();
+        return false;
+    }
+
+    /**
      * 将泛型 IAEStack 写入 ByteBuf（带类型前缀）。
      */
     public static void writeStackByte(IAEStack<?> stack, ByteBuf buffer) {
@@ -1626,15 +1687,14 @@ public class Platform {
     /**
      * 将 IItemList 中所有栈写入 NBTTagList。
      */
-    @SuppressWarnings("rawtypes")
-    public static NBTTagList writeAEStackListNBT(final IItemList myList) {
+    @SuppressWarnings("unchecked")
+    public static NBTTagList writeAEStackListNBT(final IItemList<?> myList) {
         final NBTTagList out = new NBTTagList();
-        for (final Object stack : myList) {
-            if (stack instanceof IAEStack) {
-                final NBTTagCompound tag = new NBTTagCompound();
-                writeStackNBT((IAEStack<?>) stack, tag);
-                out.appendTag(tag);
-            }
+        for (final IAEStackBase stackBase : (IItemList<IAEStackBase>) myList) {
+            final IAEStack<?> stack = (IAEStack<?>) stackBase;
+            final NBTTagCompound tag = new NBTTagCompound();
+            writeStackNBT(stack, tag);
+            out.appendTag(tag);
         }
         return out;
     }
@@ -1642,8 +1702,8 @@ public class Platform {
     /**
      * 从 NBTTagList 读取泛型栈列表到指定的 IItemList。
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public static void readAEStackListNBT(final IItemList myList, final NBTTagList tagList) {
+    @SuppressWarnings("unchecked")
+    public static void readAEStackListNBT(final IItemList<IAEStackBase> myList, final NBTTagList tagList) {
         for (int i = 0; i < tagList.tagCount(); i++) {
             final NBTTagCompound tag = tagList.getCompoundTagAt(i);
             final IAEStack<?> stack = IAEStack.fromNBTGeneric(tag);

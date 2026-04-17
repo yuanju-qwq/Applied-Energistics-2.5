@@ -15,6 +15,7 @@ import appeng.api.networking.crafting.ICraftingCPU;
 import appeng.api.networking.crafting.ICraftingJob;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.core.AELog;
 import appeng.crafting.MECraftingInventory;
@@ -28,7 +29,7 @@ import io.netty.buffer.ByteBuf;
  *
  * @param <StackType> 顶层请求的栈类型
  */
-public class CraftingJobV2<StackType extends IAEStack<StackType>> implements ICraftingJob<StackType>,
+public class CraftingJobV2<StackType extends IAEStack> implements ICraftingJob<StackType>,
         ITreeSerializable {
 
     private final StackType output;
@@ -114,8 +115,8 @@ public class CraftingJobV2<StackType extends IAEStack<StackType>> implements ICr
     }
 
     @Override
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public void populatePlan(IItemList plan) {
+    @SuppressWarnings("unchecked")
+    public void populatePlan(IItemList<IAEStackBase> plan) {
         if (topRequest == null) {
             return;
         }

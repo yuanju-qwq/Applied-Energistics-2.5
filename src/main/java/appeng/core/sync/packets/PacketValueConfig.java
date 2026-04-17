@@ -33,6 +33,7 @@ import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
 
+import appeng.api.AEApi;
 import appeng.api.config.FuzzyMode;
 import appeng.api.config.Settings;
 import appeng.api.util.IConfigManager;
@@ -42,10 +43,14 @@ import appeng.client.gui.implementations.GuiOreDictStorageBus;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.*;
 import appeng.core.sync.AppEngPacket;
+import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.INetworkInfo;
 import appeng.fluids.container.ContainerFluidLevelEmitter;
 import appeng.fluids.container.ContainerFluidStorageBus;
 import appeng.helpers.IMouseWheelItem;
+import appeng.items.tools.powered.ToolWirelessUniversalTerminal;
+import appeng.items.tools.powered.WirelessTerminalMode;
+import appeng.util.Platform;
 
 public class PacketValueConfig extends AppEngPacket {
 
@@ -203,6 +208,32 @@ public class PacketValueConfig extends AppEngPacket {
                     cdt.maximizeCount();
                 } else if (this.Name.equals("PatternTerminal.Substitute")) {
                     cdt.setSubstitute(this.Value.equals("1"));
+                } else if (this.Name.equals("PatternTerminal.beSubstitute")) {
+                    cdt.setBeSubstitute(this.Value.equals("1"));
+                } else if (this.Name.equals("PatternTerminal.Invert")) {
+                    cdt.setInverted(this.Value.equals("1"));
+                } else if (this.Name.equals("PatternTerminal.Combine")) {
+                    cdt.setCombine(this.Value.equals("1"));
+                } else if (this.Name.equals("PatternTerminal.ActivePage")) {
+                    cdt.setActivePage(Integer.parseInt(this.Value));
+                } else if (this.Name.equals("PatternTerminal.PlacePattern")) {
+                    // Value 格式: "interfaceId,slot"
+                    final String[] parts = this.Value.split(",");
+                    if (parts.length == 2) {
+                        final long interfaceId = Long.parseLong(parts[0]);
+                        final int slot = Integer.parseInt(parts[1]);
+                        cdt.placePattern(interfaceId, slot);
+                    }
+                } else if (this.Name.equals("PatternTerminal.Double")) {
+                    cdt.doubleStacks(Integer.parseInt(this.Value));
+                } else if (this.Name.equals("InterfaceTerminal.Double")) {
+                    // Value 格式: "val,interfaceId"
+                    final String[] parts = this.Value.split(",");
+                    if (parts.length == 2) {
+                        final int val = Integer.parseInt(parts[0]);
+                        final long interfaceId = Long.parseLong(parts[1]);
+                        cdt.doubleInterfacePatterns(val, interfaceId);
+                    }
                 }
             }
         } else if (this.Name.startsWith("StorageBus.")) {
@@ -245,6 +276,24 @@ public class PacketValueConfig extends AppEngPacket {
                 }
             } else if (this.Name.equals("CellWorkbench.Fuzzy")) {
                 ccw.setFuzzy(FuzzyMode.valueOf(this.Value));
+            }
+        } else if (this.Name.equals("UniversalTerminal.SwitchMode")) {
+            // 通用无线终端模式切换
+            ItemStack mainHand = player.getHeldItem(EnumHand.MAIN_HAND);
+            ItemStack offHand = player.getHeldItem(EnumHand.OFF_HAND);
+            ItemStack wutStack = null;
+            if (mainHand.getItem() instanceof ToolWirelessUniversalTerminal) {
+                wutStack = mainHand;
+            } else if (offHand.getItem() instanceof ToolWirelessUniversalTerminal) {
+                wutStack = offHand;
+            }
+            if (wutStack != null) {
+                WirelessTerminalMode targetMode = WirelessTerminalMode.fromId(Byte.parseByte(this.Value));
+                if (ToolWirelessUniversalTerminal.hasMode(wutStack, targetMode)) {
+                    ToolWirelessUniversalTerminal.setMode(wutStack, targetMode);
+                    // 重新打开 GUI
+                    AEApi.instance().registries().wireless().openWirelessTerminalGui(wutStack, player.world, player);
+                }
             }
         } else if (c instanceof ContainerNetworkTool) {
             if (this.Name.equals("NetworkTool") && this.Value.equals("Toggle")) {

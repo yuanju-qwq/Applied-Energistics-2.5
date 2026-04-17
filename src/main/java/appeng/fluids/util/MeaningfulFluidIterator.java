@@ -23,7 +23,7 @@ import java.util.NoSuchElementException;
 
 import appeng.api.storage.data.IAEStack;
 
-public class MeaningfulFluidIterator<T extends IAEStack> implements Iterator<T> {
+public class MeaningfulFluidIterator<T extends IAEStack<T>> implements Iterator<T> {
 
     private final Iterator<T> parent;
     private T next;

@@ -1,7 +1,6 @@
 package appeng.tile.storage;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -11,9 +10,10 @@ import appeng.api.AEApi;
 import appeng.api.storage.ICellHandler;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
+import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.me.storage.DriveWatcher;
 import appeng.tile.inventory.AppEngCellInventory;
 
@@ -22,11 +22,11 @@ public class DriveCellManager {
     private final AppEngCellInventory inv;
     private final ICellHandler[] handlersBySlot;
     private final DriveWatcher<IAEItemStack>[] invBySlot;
-    private final Map<IStorageChannel<? extends IAEStack<?>>, List<IMEInventoryHandler>> inventoryHandlers;
+    private final Map<IAEStackType<?>, List<IMEInventoryHandler<?>>> inventoryHandlers;
 
     public DriveCellManager(TileDrive drive, AppEngCellInventory inv,
             ICellHandler[] handlersBySlot, DriveWatcher<IAEItemStack>[] invBySlot,
-            Map<IStorageChannel<? extends IAEStack<?>>, List<IMEInventoryHandler>> inventoryHandlers) {
+            Map<IAEStackType<?>, List<IMEInventoryHandler<?>>> inventoryHandlers) {
         this.drive = drive;
         this.inv = inv;
         this.handlersBySlot = handlersBySlot;
@@ -36,21 +36,21 @@ public class DriveCellManager {
 
     public void updateState(boolean isCached) {
         if (!isCached) {
-            final Collection<IStorageChannel<? extends IAEStack<?>>> storageChannels = AEApi.instance().storage()
-                    .storageChannels();
-            storageChannels.forEach(channel -> this.inventoryHandlers.put(channel, new ArrayList<>(10)));
+            AEStackTypeRegistry.getAllTypes()
+                    .forEach(type -> this.inventoryHandlers.put(type, new ArrayList<>(10)));
 
             double power = 2.0;
 
             for (int x = 0; x < this.inv.getSlots(); x++) {
-                processCellSlot(x, storageChannels, power);
+                processCellSlot(x, power);
             }
 
             drive.getProxy().setIdlePowerUsage(power);
         }
     }
 
-    private void processCellSlot(int slot, Collection<IStorageChannel<? extends IAEStack<?>>> channels, double power) {
+    @SuppressWarnings("unchecked")
+    private void processCellSlot(int slot, double power) {
         final ItemStack is = this.inv.getStackInSlot(slot);
         this.invBySlot[slot] = null;
         this.handlersBySlot[slot] = null;
@@ -59,18 +59,18 @@ public class DriveCellManager {
             this.handlersBySlot[slot] = AEApi.instance().registries().cell().getHandler(is);
 
             if (this.handlersBySlot[slot] != null) {
-                for (IStorageChannel<? extends IAEStack<?>> channel : channels) {
-                    ICellInventoryHandler cell = this.handlersBySlot[slot].getCellInventory(is, drive, channel);
+                for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
+                    ICellInventoryHandler<?> cell = this.handlersBySlot[slot].getCellInventory(is, drive, type);
 
                     if (cell != null) {
                         this.inv.setHandler(slot, cell);
                         power += this.handlersBySlot[slot].cellIdleDrain(is, cell);
 
-                        final DriveWatcher<IAEItemStack> ih = new DriveWatcher(cell, is,
+                        final DriveWatcher ih = new DriveWatcher(cell, is,
                                 this.handlersBySlot[slot], drive);
                         ih.setPriority(drive.getPriority());
                         this.invBySlot[slot] = ih;
-                        this.inventoryHandlers.get(channel).add(ih);
+                        this.inventoryHandlers.get(type).add(ih);
                         break;
                     }
                 }

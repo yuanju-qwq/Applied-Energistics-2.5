@@ -39,6 +39,7 @@ import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 
 public interface IStorageHelper {
 
@@ -82,7 +83,7 @@ public interface IStorageHelper {
      * This is mainly used as helper to let storage grids construct their internal storage for each type.
      */
     @Nonnull
-    Collection<IStorageChannel<? extends IAEStack<?>>> storageChannels();
+    Collection<IStorageChannel<? extends IAEStackBase>> storageChannels();
 
     /**
      * load a crafting link from nbt data.

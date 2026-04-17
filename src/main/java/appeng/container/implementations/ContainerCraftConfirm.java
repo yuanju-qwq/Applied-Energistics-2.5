@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -46,8 +46,9 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.ITerminalHost;
-import appeng.api.storage.channels.IItemStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.client.gui.implementations.GuiCraftConfirm;
 import appeng.container.AEBaseContainer;
@@ -57,6 +58,7 @@ import appeng.core.AELog;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
+import appeng.crafting.MECraftingInventory;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.me.helpers.PlayerSource;
 import appeng.parts.reporting.PartCraftingTerminal;
@@ -68,9 +70,7 @@ import appeng.util.Platform;
 public class ContainerCraftConfirm extends AEBaseContainer {
 
     private final ArrayList<CraftingCPURecord> cpus = new ArrayList<>();
-    @SuppressWarnings("rawtypes")
     private Future<ICraftingJob> job;
-    @SuppressWarnings("rawtypes")
     private ICraftingJob result;
     @GuiSync(0)
     public long bytesUsed;
@@ -195,88 +195,50 @@ public class ContainerCraftConfirm extends AEBaseContainer {
                     final PacketMEInventoryUpdate b = new PacketMEInventoryUpdate((byte) 1);
                     final PacketMEInventoryUpdate c = this.result.isSimulation() ? new PacketMEInventoryUpdate((byte) 2)
                             : null;
-                    final PacketMEInventoryUpdate d = new PacketMEInventoryUpdate((byte) 3);
-                    final PacketMEInventoryUpdate e = new PacketMEInventoryUpdate((byte) 4);
 
-                    final IItemList<IAEItemStack> plan = AEApi.instance().storage()
-                            .getStorageChannel(IItemStorageChannel.class).createList();
+                    // 使用泛型多类型列表来存储合成计划（支持物品+流体）
+                    final IItemList<IAEStackBase> plan = new appeng.util.item.IAEStackList();
                     this.result.populatePlan(plan);
 
                     this.setUsedBytes(this.result.getByteTotal());
 
-                    Map<IAEItemStack, Long> craftCounts = new HashMap<>();
-                    for (final IAEItemStack item : plan) {
-                        try {
-                            IAEItemStack keyItem = item.copy().reset();
-                            long count = this.result.getTotalCraftsForPrimaryOutput(keyItem);
-                            if (count > 0) {
-                                craftCounts.put(keyItem, count);
+                    final MECraftingInventory storageAtBeginning = this.result.getStorageAtBeginning();
 
-                                IAEItemStack countStack = keyItem.copy();
-                                countStack.setStackSize(count);
-                                d.appendItem(countStack);
-                            }
-                        } catch (IllegalArgumentException ex) {
-                            AELog.debug("Invalid item for craft count: " + item, ex);
-                        }
-                    }
+                    for (final Object obj : plan) {
+                        if (!(obj instanceof IAEStack<?> plannedItem)) continue;
 
-                    final IStorageGrid sg = grid.getCache(IStorageGrid.class);
-                    final IMEMonitor<IAEItemStack> items = sg
-                            .getInventory(AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
+                        IAEStack<?> toExtract = plannedItem.copy();
+                        toExtract.reset();
+                        toExtract.setStackSize(plannedItem.getStackSize());
 
-                    for (final IAEItemStack out : plan) {
-                        final long requested = out.getStackSize();
+                        final IAEStack<?> toCraft = plannedItem.copy();
+                        toCraft.reset();
+                        toCraft.setStackSize(plannedItem.getCountRequestable());
+                        toCraft.setCountRequestableCrafts(plannedItem.getCountRequestableCrafts());
 
-                        IAEItemStack o = out.copy();
-                        o.reset();
-                        o.setStackSize(requested);
-
-                        IAEItemStack totalAvailable = items.getStorageList().findPrecise(out);
-                        long maxAvailable = totalAvailable != null ? totalAvailable.getStackSize() : 0;
-
-                        IAEItemStack simulatedExtract = items.extractItems(o, Actionable.SIMULATE,
-                                this.getActionSource());
-                        long available = simulatedExtract != null ? simulatedExtract.getStackSize() : 0;
-
-                        if (available > 0) {
-                            a.appendItem(simulatedExtract);
-                        }
-
-                        final IAEItemStack p = out.copy();
-                        p.reset();
-                        p.setStackSize(out.getCountRequestable());
-                        if (p.getStackSize() > 0) {
-                            b.appendItem(p);
-                        }
-
-                        IAEItemStack m = null;
+                        IAEStack<?> missing = null;
                         if (c != null && this.result.isSimulation()) {
-                            m = o.copy();
-                            o = simulatedExtract != null ? simulatedExtract : o.copy().setStackSize(0);
-                            m.setStackSize(m.getStackSize() - o.getStackSize());
-                            if (m.getStackSize() > 0) {
-                                c.appendItem(m);
+                            missing = toExtract.copy();
+                            toExtract = storageAtBeginning.extractItems(toExtract, Actionable.SIMULATE);
+
+                            if (toExtract == null) {
+                                toExtract = missing.copy();
+                                toExtract.setStackSize(0);
                             }
+
+                            missing.setStackSize(missing.getStackSize() - toExtract.getStackSize());
                         }
 
-                        if (maxAvailable <= 0) {
-                            continue;
-                        }
-                        if (requested > maxAvailable) {
-                            continue;
+                        if (toExtract.getStackSize() > 0) {
+                            a.appendStack(toExtract);
                         }
 
-                        double ratio = 0.0;
-                        if (requested > 0) {
-                            ratio = (double) available / maxAvailable;
-                            ratio = Math.round(ratio * 10000.0) / 10000.0;
+                        if (toCraft.getStackSize() > 0) {
+                            b.appendStack(toCraft);
                         }
 
-                        if (ratio <= 1.0 && out.getCountRequestable() == 0) {
-                            IAEItemStack ratioStack = out.copy();
-                            ratioStack.setStackSize((long) (ratio * 10000));
-                            e.appendItem(ratioStack);
+                        if (c != null && missing != null && missing.getStackSize() > 0) {
+                            c.appendStack(missing);
                         }
                     }
 
@@ -286,8 +248,6 @@ public class ContainerCraftConfirm extends AEBaseContainer {
                             NetworkHandler.instance().sendTo(b, (EntityPlayerMP) g);
                             if (c != null)
                                 NetworkHandler.instance().sendTo(c, (EntityPlayerMP) g);
-                            NetworkHandler.instance().sendTo(d, (EntityPlayerMP) g);
-                            NetworkHandler.instance().sendTo(e, (EntityPlayerMP) g);
                         }
                     }
                 } catch (final IOException e) {
@@ -485,6 +445,13 @@ public class ContainerCraftConfirm extends AEBaseContainer {
 
     public void postUpdate(final List<IAEItemStack> list, final byte ref) {
         this.guiCraftConfirm.postUpdate(list, ref);
+    }
+
+    /**
+     * 泛型版本：接收包含物品和流体的合成计划更新。
+     */
+    public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
+        this.guiCraftConfirm.postGenericUpdate(list, ref);
     }
 
     public void setGui(GuiCraftConfirm guiCraftConfirm) {

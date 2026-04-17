@@ -154,7 +154,6 @@ dependencies {
     implementation rfg.deobf("curse.maven:mixin-booter-419286:4835295")
     implementation rfg.deobf(files("libs/gregtech-gtqt-1.12.2-2.9.0-190.jar"))
     compileOnly rfg.deobf(files("libs/BestQuesting-0.0.5.jar"))
-    implementation rfg.deobf(files("libs/ae2fc-2.7.10-unofficial.jar"))
 
     api("com.cleanroommc:groovyscript:1.2.0-hotfix1") { transitive = false }
     api("com.cleanroommc:modularui:3.0.7") { transitive = false }

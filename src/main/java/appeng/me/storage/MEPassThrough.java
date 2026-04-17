@@ -25,16 +25,23 @@ import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 
 public class MEPassThrough<T extends IAEStack<T>> implements IMEInventoryHandler<T> {
 
-    private final IStorageChannel wrappedChannel;
+    private final IAEStackType<T> wrappedType;
     private IMEInventory<T> internal;
 
-    public MEPassThrough(final IMEInventory<T> i, final IStorageChannel channel) {
-        this.wrappedChannel = channel;
+    public MEPassThrough(final IMEInventory<T> i, final IAEStackType<T> type) {
+        this.wrappedType = type;
         this.setInternal(i);
+    }
+
+    /** @deprecated 请使用 {@link #MEPassThrough(IMEInventory, IAEStackType)} 代替 */
+    @Deprecated
+    public MEPassThrough(final IMEInventory<T> i, final IStorageChannel<T> channel) {
+        this(i, channel.getStackType());
     }
 
     public IMEInventory<T> getInternal() {
@@ -56,13 +63,18 @@ public class MEPassThrough<T extends IAEStack<T>> implements IMEInventoryHandler
     }
 
     @Override
-    public IItemList<T> getAvailableItems(final IItemList out) {
+    public IItemList<T> getAvailableItems(final IItemList<T> out) {
         return this.internal.getAvailableItems(out);
     }
 
     @Override
-    public IStorageChannel getChannel() {
-        return this.internal.getChannel();
+    public IStorageChannel<T> getChannel() {
+        return this.wrappedType.getStorageChannel();
+    }
+
+    @Override
+    public IAEStackType<?> getStackType() {
+        return this.wrappedType;
     }
 
     @Override
@@ -95,7 +107,7 @@ public class MEPassThrough<T extends IAEStack<T>> implements IMEInventoryHandler
         return true;
     }
 
-    IStorageChannel getWrappedChannel() {
-        return this.wrappedChannel;
+    IAEStackType<T> getWrappedType() {
+        return this.wrappedType;
     }
 }

@@ -28,6 +28,7 @@ import java.util.concurrent.Future;
 import appeng.api.config.CraftingMode;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.crafting.MECraftingInventory;
 
@@ -36,7 +37,7 @@ import appeng.crafting.MECraftingInventory;
  *
  * @param <StackType> 该合成任务的输出栈类型
  */
-public interface ICraftingJob<StackType extends IAEStack<StackType>> {
+public interface ICraftingJob<StackType extends IAEStack> {
 
     /**
      * @return if this job is a simulation, simulations cannot be submitted and only represent 1 possible future
@@ -55,8 +56,7 @@ public interface ICraftingJob<StackType extends IAEStack<StackType>> {
      *
      * @param plan plan
      */
-    @SuppressWarnings("rawtypes")
-    void populatePlan(IItemList plan);
+    void populatePlan(IItemList<IAEStackBase> plan);
 
     /**
      * @return the final output of the job.

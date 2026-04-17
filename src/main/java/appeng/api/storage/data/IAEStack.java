@@ -37,7 +37,7 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.storage.IStorageChannel;
 import appeng.core.AELog;
 
-public interface IAEStack<T extends IAEStack<T>> {
+public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
 
     /**
      * add two stacks together
@@ -46,58 +46,28 @@ public interface IAEStack<T extends IAEStack<T>> {
      */
     void add(T is);
 
-    /**
-     * number of items in the stack.
-     *
-     * @return basically ItemStack.stackSize
-     */
+    @Override
     long getStackSize();
 
-    /**
-     * changes the number of items in the stack.
-     *
-     * @param stackSize , ItemStack.stackSize = N
-     */
+    @Override
     T setStackSize(long stackSize);
 
-    /**
-     * Same as getStackSize, but for requestable items. ( LP )
-     *
-     * @return basically itemStack.stackSize but for requestable items.
-     */
+    @Override
     long getCountRequestable();
 
-    /**
-     * Same as setStackSize, but for requestable items. ( LP )
-     *
-     * @return basically itemStack.stackSize = N but for setStackSize items.
-     */
+    @Override
     T setCountRequestable(long countRequestable);
 
-    /**
-     * true, if the item can be crafted.
-     *
-     * @return true, if it can be crafted.
-     */
+    @Override
     boolean isCraftable();
 
-    /**
-     * change weather the item can be crafted.
-     *
-     * @param isCraftable can item be crafted
-     */
+    @Override
     T setCraftable(boolean isCraftable);
 
-    /**
-     * clears, requestable, craftable, and stack sizes.
-     */
+    @Override
     T reset();
 
-    /**
-     * returns true, if the item can be crafted, requested, or extracted.
-     *
-     * @return isThisRecordMeaningful
-     */
+    @Override
     boolean isMeaningful();
 
     /**
@@ -108,80 +78,38 @@ public interface IAEStack<T extends IAEStack<T>> {
      */
     boolean isSameType(T other);
 
-    /**
-     * 判断给定对象是否与此栈代表同一种物品/流体（忽略数量）。
-     * 支持 ItemStack、FluidStack 及 IAEStack 等。
-     *
-     * @param obj 比较对象
-     * @return 如果同种则为 true
-     */
+    @Override
     boolean isSameType(Object obj);
 
-    /**
-     * @return 此栈的本地化显示名称
-     */
+    @Override
     String getDisplayName();
 
-    /**
-     * @return 每单位的数量（物品=1，流体=1000 mB）
-     */
+    @Override
     default int getAmountPerUnit() {
         return getStackType().getAmountPerUnit();
     }
 
-    /**
-     * 设置可请求的合成次数。默认实现不做任何事情。
-     */
+    @Override
+    @SuppressWarnings("unchecked")
     default T setCountRequestableCrafts(long countRequestableCrafts) {
         return (T) this;
     }
 
-    /**
-     * Adds more to the stack size...
-     *
-     * @param i additional stack size
-     */
+    @Override
     void incStackSize(long i);
 
-    /**
-     * removes some from the stack size.
-     */
+    @Override
     void decStackSize(long i);
 
-    /**
-     * adds items to the requestable
-     *
-     * @param i increased amount of requested items
-     */
+    @Override
     void incCountRequestable(long i);
 
-    /**
-     * removes items from the requestable
-     *
-     * @param i decreased amount of requested items
-     */
+    @Override
     void decCountRequestable(long i);
 
-    /**
-     * write to a NBTTagCompound.
-     *
-     * @param i to be written data
-     */
+    @Override
     void writeToNBT(NBTTagCompound i);
 
-    /**
-     * Compare stacks using precise logic.
-     *
-     * a IAEItemStack to another AEItemStack or a ItemStack.
-     *
-     * or
-     *
-     * IAEFluidStack, FluidStack
-     *
-     * @param obj compared object
-     *
-     * @return true if they are the same.
-     */
     @Override
     boolean equals(Object obj);
 
@@ -195,20 +123,10 @@ public interface IAEStack<T extends IAEStack<T>> {
      */
     boolean fuzzyComparison(T other, FuzzyMode mode);
 
-    /**
-     * Slower for disk saving, but smaller/more efficient for packets.
-     *
-     * @param data to be written data
-     *
-     * @throws IOException
-     */
+    @Override
     void writeToPacket(ByteBuf data) throws IOException;
 
-    /**
-     * Clone the Item / Fluid Stack
-     *
-     * @return a new Stack, which is copied from the original.
-     */
+    @Override
     T copy();
 
     /**
@@ -218,14 +136,10 @@ public interface IAEStack<T extends IAEStack<T>> {
      */
     T empty();
 
-    /**
-     * @return true if the stack is a {@link IAEItemStack}
-     */
+    @Override
     boolean isItem();
 
-    /**
-     * @return true if the stack is a {@link IAEFluidStack}
-     */
+    @Override
     boolean isFluid();
 
     /**
@@ -233,17 +147,18 @@ public interface IAEStack<T extends IAEStack<T>> {
      */
     IStorageChannel<T> getChannel();
 
-    /**
-     * Returns itemstack for display and similar purposes. Always has a count of 1.
-     *
-     * @return itemstack
-     */
+    @Override
     ItemStack asItemStackRepresentation();
 
     /**
      * @return 此栈对应的 {@link IAEStackType} 实例
      */
     IAEStackType<T> getStackType();
+
+    @Override
+    default IAEStackType<?> getStackTypeBase() {
+        return getStackType();
+    }
 
     /**
      * 将栈（含类型标识）写入 NBT。

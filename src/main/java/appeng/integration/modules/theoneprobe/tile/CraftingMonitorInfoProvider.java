@@ -28,7 +28,7 @@ import mcjty.theoneprobe.api.IProbeHitData;
 import mcjty.theoneprobe.api.IProbeInfo;
 import mcjty.theoneprobe.api.ProbeMode;
 
-import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.integration.modules.theoneprobe.TheOneProbeText;
 import appeng.tile.AEBaseTile;
 import appeng.tile.crafting.TileCraftingMonitorTile;
@@ -40,7 +40,7 @@ public class CraftingMonitorInfoProvider implements ITileProbInfoProvider {
             IBlockState blockState, IProbeHitData data) {
         if (tile instanceof TileCraftingMonitorTile) {
             final TileCraftingMonitorTile monitor = (TileCraftingMonitorTile) tile;
-            final IAEItemStack displayStack = monitor.getJobProgress();
+            final IAEStack<?> displayStack = monitor.getJobProgress();
 
             if (displayStack != null) {
                 // TODO: check if OK

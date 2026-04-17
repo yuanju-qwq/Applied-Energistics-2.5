@@ -26,6 +26,8 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.*;
+import appeng.api.storage.data.IAEStackType;
+import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.container.implementations.ContainerStorageBus;
@@ -37,6 +39,8 @@ import appeng.core.sync.packets.PacketConfigButton;
 import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.parts.misc.PartStorageBus;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.util.item.AEItemStackType;
 
 public class GuiStorageBus extends GuiUpgradeable {
 
@@ -45,10 +49,19 @@ public class GuiStorageBus extends GuiUpgradeable {
     private GuiTabButton priority;
     private GuiImgButton partition;
     private GuiImgButton clear;
+    private VirtualMEPhantomSlot[] configSlots;
+    private final ContainerStorageBus containerStorageBus;
 
     public GuiStorageBus(final InventoryPlayer inventoryPlayer, final PartStorageBus te) {
         super(new ContainerStorageBus(inventoryPlayer, te));
+        this.containerStorageBus = (ContainerStorageBus) this.inventorySlots;
         this.ySize = 251;
+    }
+
+    @Override
+    public void initGui() {
+        super.initGui();
+        this.initVirtualSlots();
     }
 
     @Override
@@ -76,6 +89,8 @@ public class GuiStorageBus extends GuiUpgradeable {
     public void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.StorageBus.getLocal()), 8, 6, 4210752);
         this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
+
+        this.updateVirtualSlotVisibility();
 
         if (this.fuzzyMode != null) {
             this.fuzzyMode.set(this.cvb.getFuzzyMode());
@@ -117,5 +132,46 @@ public class GuiStorageBus extends GuiUpgradeable {
         } catch (final IOException e) {
             AELog.debug(e);
         }
+    }
+
+    // ---- 虚拟槽位初始化 ----
+
+    private void initVirtualSlots() {
+        this.guiSlots.clear();
+        this.configSlots = new VirtualMEPhantomSlot[63];
+        final IAEStackInventory inputInv = this.containerStorageBus.getConfig();
+        final int xo = 8;
+        final int yo = 29;
+
+        for (int y = 0; y < 7; y++) {
+            for (int x = 0; x < 9; x++) {
+                final int slotIdx = x + y * 9;
+                VirtualMEPhantomSlot slot = new VirtualMEPhantomSlot(
+                        slotIdx,
+                        xo + x * 18,
+                        yo + y * 18,
+                        inputInv,
+                        slotIdx,
+                        this::acceptType);
+                this.configSlots[slotIdx] = slot;
+                this.guiSlots.add(slot);
+            }
+        }
+
+        this.updateVirtualSlotVisibility();
+    }
+
+    private void updateVirtualSlotVisibility() {
+        final int capacity = this.bc.getInstalledUpgrades(
+                appeng.api.config.Upgrades.CAPACITY);
+
+        for (VirtualMEPhantomSlot slot : this.configSlots) {
+            slot.setHidden(slot.getSlotIndex() >= (18 + (9 * capacity)));
+        }
+    }
+
+    private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
+        // 当前只接受物品类型，未来可扩展为支持流体等
+        return type == AEItemStackType.INSTANCE;
     }
 }

@@ -1,4 +1,4 @@
-package appeng.fluids.parts;
+﻿package appeng.fluids.parts;
 
 import java.util.Random;
 
@@ -14,7 +14,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 
-import appeng.api.AEApi;
 import appeng.api.config.RedstoneMode;
 import appeng.api.config.Settings;
 import appeng.api.networking.events.MENetworkChannelsChanged;
@@ -29,9 +28,9 @@ import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.channels.IFluidStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
@@ -40,6 +39,7 @@ import appeng.core.AppEng;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.IConfigurableFluidInventory;
 import appeng.fluids.util.AEFluidInventory;
+import appeng.fluids.util.AEFluidStackType;
 import appeng.fluids.util.IAEFluidInventory;
 import appeng.fluids.util.IAEFluidTank;
 import appeng.items.parts.PartModels;
@@ -111,8 +111,8 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
 
     @Override
     public void onStackChange(IItemList<?> o, IAEStack<?> fullStack, IAEStack<?> diffStack, IActionSource src,
-            IStorageChannel<?> chan) {
-        if (chan == AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class)
+            IAEStackType<?> type) {
+        if (type == AEFluidStackType.INSTANCE
                 && fullStack.equals(this.config.getFluidInSlot(0))) {
             this.lastReportedValue = fullStack.getStackSize();
             this.updateState();
@@ -175,8 +175,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     @Override
     public void onListUpdate() {
         try {
-            final IStorageChannel<IAEFluidStack> channel = AEApi.instance().storage()
-                    .getStorageChannel(IFluidStorageChannel.class);
+            final IStorageChannel<IAEFluidStack> channel = AEFluidStackType.INSTANCE.getStorageChannel();
             final IMEMonitor<IAEFluidStack> inventory = this.getProxy().getStorage().getInventory(channel);
 
             this.updateReportingValue(inventory);
@@ -197,7 +196,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     }
 
     private void configureWatchers() {
-        final IFluidStorageChannel channel = AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class);
+        final IStorageChannel<IAEFluidStack> channel = AEFluidStackType.INSTANCE.getStorageChannel();
 
         if (this.stackWatcher != null) {
             this.stackWatcher.reset();

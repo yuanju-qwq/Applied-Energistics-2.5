@@ -26,6 +26,8 @@ package appeng.api.storage;
 import java.util.List;
 
 import appeng.api.networking.IGridNodeService;
+import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 
 /**
  * Allows you to provide cells via non IGridHosts directly to the storage system, drives, and similar features should go
@@ -34,14 +36,22 @@ import appeng.api.networking.IGridNodeService;
 public interface ICellProvider extends IGridNodeService {
 
     /**
-     * Inventory of the tile for use with ME, should always return an valid list, never NULL.
-     *
-     * You must return the correct Handler for the correct channel, if your handler returns a IAEItemStack handler, for
-     * a Fluid Channel stuffs going to explode, same with the reverse.
-     *
-     * @return a valid list of handlers, NEVER NULL
+     * @deprecated 请使用 {@link #getCellArray(IAEStackType)} 代替。
      */
-    List<IMEInventoryHandler> getCellArray(IStorageChannel<?> channel);
+    @Deprecated
+    <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(IStorageChannel<T> channel);
+
+    /**
+     * 通过 {@link IAEStackType} 获取存储 cell 列表。
+     * <p>
+     * 必须返回对应类型的正确 handler，不能返回 null。
+     *
+     * @param type 栈类型
+     * @return 有效的 handler 列表，不能为 null
+     */
+    default <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(IAEStackType<T> type) {
+        return this.getCellArray(type.getStorageChannel());
+    }
 
     /**
      * the storage's priority.

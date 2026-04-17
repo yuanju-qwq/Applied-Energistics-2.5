@@ -40,6 +40,9 @@ import appeng.container.ContainerOpenContext;
 import appeng.container.implementations.ContainerCraftAmount;
 import appeng.container.implementations.ContainerInterfaceConfigurationTerminal;
 import appeng.container.implementations.ContainerInterfaceConfigurationTerminal.ConfigTracker;
+import appeng.container.implementations.ContainerPatternValueAmount;
+import appeng.container.implementations.ContainerPatternValueName;
+import appeng.container.interfaces.IInventorySlotAware;
 import appeng.container.slot.IJEITargetSlot;
 import appeng.container.slot.SlotFake;
 import appeng.core.AELog;
@@ -180,6 +183,60 @@ public class PacketInventoryAction extends AppEngPacket {
                         }
 
                         cca.detectAndSendChanges();
+                    }
+                }
+            } else if (this.action == InventoryAction.SET_PATTERN_VALUE) {
+                // 中键点击样板槽位 → 打开数值输入界面
+                final ContainerOpenContext context = baseContainer.getOpenContext();
+                if (context != null) {
+                    final TileEntity te = context.getTile();
+                    if (te != null) {
+                        Platform.openGUI(sender, te, context.getSide(),
+                                GuiBridge.GUI_PATTERN_VALUE_AMOUNT);
+                    } else {
+                        final Object target = baseContainer.getTarget();
+                        if (target instanceof IInventorySlotAware) {
+                            IInventorySlotAware i = (IInventorySlotAware) target;
+                            Platform.openGUI(sender, i.getInventorySlot(),
+                                    GuiBridge.GUI_PATTERN_VALUE_AMOUNT, i.isBaubleSlot());
+                        }
+                    }
+                    if (sender.openContainer instanceof ContainerPatternValueAmount) {
+                        final ContainerPatternValueAmount cpv =
+                                (ContainerPatternValueAmount) sender.openContainer;
+                        if (baseContainer.getTargetStack() != null) {
+                            cpv.setValueIndex(this.slot);
+                            cpv.getPatternValue()
+                                    .putStack(baseContainer.getTargetStack().asItemStackRepresentation());
+                        }
+                        cpv.detectAndSendChanges();
+                    }
+                }
+            } else if (this.action == InventoryAction.SET_PATTERN_NAME) {
+                // Ctrl+中键点击样板槽位 → 打开名称设置界面
+                final ContainerOpenContext context = baseContainer.getOpenContext();
+                if (context != null) {
+                    final TileEntity te = context.getTile();
+                    if (te != null) {
+                        Platform.openGUI(sender, te, context.getSide(),
+                                GuiBridge.GUI_PATTERN_VALUE_NAME);
+                    } else {
+                        final Object target = baseContainer.getTarget();
+                        if (target instanceof IInventorySlotAware) {
+                            IInventorySlotAware i = (IInventorySlotAware) target;
+                            Platform.openGUI(sender, i.getInventorySlot(),
+                                    GuiBridge.GUI_PATTERN_VALUE_NAME, i.isBaubleSlot());
+                        }
+                    }
+                    if (sender.openContainer instanceof ContainerPatternValueName) {
+                        final ContainerPatternValueName cpn =
+                                (ContainerPatternValueName) sender.openContainer;
+                        if (baseContainer.getTargetStack() != null) {
+                            cpn.setValueIndex(this.slot);
+                            cpn.getPatternValue()
+                                    .putStack(baseContainer.getTargetStack().asItemStackRepresentation());
+                        }
+                        cpn.detectAndSendChanges();
                     }
                 }
             } else if (this.action == InventoryAction.PLACE_JEI_GHOST_ITEM) {

@@ -26,8 +26,9 @@ package appeng.api.storage;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 
-public interface IMEMonitorHandlerReceiver<T extends IAEStack<T>> {
+public interface IMEMonitorHandlerReceiver<T extends IAEStackBase> {
 
     /**
      * return true if this object should remain as a listener.

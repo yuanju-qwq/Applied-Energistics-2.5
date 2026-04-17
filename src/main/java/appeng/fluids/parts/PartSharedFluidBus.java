@@ -30,13 +30,13 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 
-import appeng.api.AEApi;
 import appeng.api.config.RedstoneMode;
 import appeng.api.config.Upgrades;
 import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.parts.IPartCollisionHelper;
-import appeng.api.storage.channels.IFluidStorageChannel;
+import appeng.api.storage.IStorageChannel;
+import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.util.AECableType;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.IConfigurableFluidInventory;
@@ -45,6 +45,7 @@ import appeng.fluids.util.IAEFluidTank;
 import appeng.me.GridAccessException;
 import appeng.parts.automation.PartUpgradeable;
 import appeng.util.Platform;
+import appeng.fluids.util.AEFluidStackType;
 
 /**
  * @author BrockWS
@@ -160,8 +161,8 @@ public abstract class PartSharedFluidBus extends PartUpgradeable implements IGri
         return null;
     }
 
-    protected IFluidStorageChannel getChannel() {
-        return AEApi.instance().storage().getStorageChannel(IFluidStorageChannel.class);
+    protected IStorageChannel<IAEFluidStack> getChannel() {
+        return AEFluidStackType.INSTANCE.getStorageChannel();
     }
 
     @Override
