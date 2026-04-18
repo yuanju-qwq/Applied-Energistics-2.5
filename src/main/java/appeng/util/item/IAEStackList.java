@@ -43,7 +43,7 @@ import appeng.api.storage.data.IItemList;
  * 不同类型的 {@link IItemList} 无法在同一集合中精确持有泛型参数，
  * 因此使用通配符 {@code IItemList<?>} 存储，通过 capture helper 方法桥接类型安全调用。
  */
-public final class IAEStackList implements IItemList<IAEStackBase> {
+public final class IAEStackList implements IItemList<IAEStackBase>, IMixedStackList {
 
     private final Map<IAEStackType<?>, IItemList<?>> lists = new IdentityHashMap<>();
 
@@ -68,11 +68,8 @@ public final class IAEStackList implements IItemList<IAEStackBase> {
         return (T) stack;
     }
 
-    @Override
-    public void add(final IAEStackBase option) {
-        if (option != null) {
-            addHelper(this.lists.get(option.getStackTypeBase()), option);
-        }
+    private void addInternal(final IAEStackBase option) {
+        addHelper(this.lists.get(option.getStackTypeBase()), option);
     }
 
     @SuppressWarnings("unchecked")
@@ -81,29 +78,65 @@ public final class IAEStackList implements IItemList<IAEStackBase> {
     }
 
     @Override
-    public IAEStackBase findPrecise(final IAEStackBase stack) {
-        if (stack != null) {
-            return findPreciseHelper(this.lists.get(stack.getStackTypeBase()), stack);
+    public void add(final IAEStackBase option) {
+        if (option != null) {
+            addInternal(option);
         }
-        return null;
+    }
+
+    @Override
+    public void add(final IAEStack<?> option) {
+        if (option != null) {
+            addInternal(option);
+        }
+    }
+
+    @Override
+    public IAEStackBase findPrecise(final IAEStackBase stack) {
+        return stack == null ? null : this.findPreciseInternal(stack);
+    }
+
+    @Override
+    public IAEStack<?> findPrecise(final IAEStack<?> stack) {
+        return stack == null ? null : this.findPreciseInternal(stack);
+    }
+
+    private IAEStack<?> findPreciseInternal(final IAEStackBase stack) {
+        return findPreciseHelper(this.lists.get(stack.getStackTypeBase()), stack);
     }
 
     @SuppressWarnings("unchecked")
-    private static <T extends IAEStack<T>> IAEStackBase findPreciseHelper(IItemList<?> list, IAEStackBase stack) {
-        return (IAEStackBase) ((IItemList<T>) list).findPrecise((T) stack);
+    private static <T extends IAEStack<T>> IAEStack<?> findPreciseHelper(final IItemList<?> list,
+            final IAEStackBase stack) {
+        return (IAEStack<?>) ((IItemList<T>) list).findPrecise((T) stack);
     }
 
     @Override
     public Collection<IAEStackBase> findFuzzy(final IAEStackBase filter, final FuzzyMode fuzzy) {
-        if (filter != null) {
-            return findFuzzyHelper(this.lists.get(filter.getStackTypeBase()), filter, fuzzy);
-        }
-        return null;
+        return filter == null ? null : this.findFuzzyBase(filter, fuzzy);
+    }
+
+    @Override
+    public Collection<IAEStack<?>> findFuzzy(final IAEStack<?> filter, final FuzzyMode fuzzy) {
+        return filter == null ? null : this.findFuzzyTyped(filter, fuzzy);
     }
 
     @SuppressWarnings("unchecked")
-    private static <T extends IAEStack<T>> Collection<IAEStackBase> findFuzzyHelper(IItemList<?> list, IAEStackBase filter, FuzzyMode fuzzy) {
-        return (Collection<IAEStackBase>) (Collection<?>) ((IItemList<T>) list).findFuzzy((T) filter, fuzzy);
+    private Collection<IAEStackBase> findFuzzyBase(final IAEStackBase filter, final FuzzyMode fuzzy) {
+        return (Collection<IAEStackBase>) (Collection<?>) findFuzzyHelper(this.lists.get(filter.getStackTypeBase()),
+                filter, fuzzy);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Collection<IAEStack<?>> findFuzzyTyped(final IAEStack<?> filter, final FuzzyMode fuzzy) {
+        return (Collection<IAEStack<?>>) (Collection<?>) findFuzzyHelper(this.lists.get(filter.getStackTypeBase()),
+                filter, fuzzy);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends IAEStack<T>> Collection<T> findFuzzyHelper(final IItemList<?> list,
+            final IAEStackBase filter, final FuzzyMode fuzzy) {
+        return ((IItemList<T>) list).findFuzzy((T) filter, fuzzy);
     }
 
     @Override
@@ -114,11 +147,8 @@ public final class IAEStackList implements IItemList<IAEStackBase> {
         return true;
     }
 
-    @Override
-    public void addStorage(final IAEStackBase option) {
-        if (option != null) {
-            addStorageHelper(this.lists.get(option.getStackTypeBase()), option);
-        }
+    private void addStorageInternal(final IAEStackBase option) {
+        addStorageHelper(this.lists.get(option.getStackTypeBase()), option);
     }
 
     @SuppressWarnings("unchecked")
@@ -127,10 +157,21 @@ public final class IAEStackList implements IItemList<IAEStackBase> {
     }
 
     @Override
-    public void addCrafting(final IAEStackBase option) {
+    public void addStorage(final IAEStackBase option) {
         if (option != null) {
-            addCraftingHelper(this.lists.get(option.getStackTypeBase()), option);
+            addStorageInternal(option);
         }
+    }
+
+    @Override
+    public void addStorage(final IAEStack<?> option) {
+        if (option != null) {
+            addStorageInternal(option);
+        }
+    }
+
+    private void addCraftingInternal(final IAEStackBase option) {
+        addCraftingHelper(this.lists.get(option.getStackTypeBase()), option);
     }
 
     @SuppressWarnings("unchecked")
@@ -139,10 +180,21 @@ public final class IAEStackList implements IItemList<IAEStackBase> {
     }
 
     @Override
-    public void addRequestable(final IAEStackBase option) {
+    public void addCrafting(final IAEStackBase option) {
         if (option != null) {
-            addRequestablelHelper(this.lists.get(option.getStackTypeBase()), option);
+            addCraftingInternal(option);
         }
+    }
+
+    @Override
+    public void addCrafting(final IAEStack<?> option) {
+        if (option != null) {
+            addCraftingInternal(option);
+        }
+    }
+
+    private void addRequestableInternal(final IAEStackBase option) {
+        addRequestablelHelper(this.lists.get(option.getStackTypeBase()), option);
     }
 
     @SuppressWarnings("unchecked")
@@ -151,9 +203,28 @@ public final class IAEStackList implements IItemList<IAEStackBase> {
     }
 
     @Override
+    public void addRequestable(final IAEStackBase option) {
+        if (option != null) {
+            addRequestableInternal(option);
+        }
+    }
+
+    @Override
+    public void addRequestable(final IAEStack<?> option) {
+        if (option != null) {
+            addRequestableInternal(option);
+        }
+    }
+
+    @Override
     public IAEStackBase getFirstItem() {
+        return this.getFirstMixedItem();
+    }
+
+    @Override
+    public IAEStack<?> getFirstMixedItem() {
         for (final IAEStackBase stack : this) {
-            return stack;
+            return castStack(stack);
         }
         return null;
     }

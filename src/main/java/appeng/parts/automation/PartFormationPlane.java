@@ -209,8 +209,8 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
                     || i instanceof IPlantable || i instanceof ItemSkull || i instanceof ItemFirework
                     || i instanceof IPartItem || i == Item
                             .getItemFromBlock(Blocks.REEDS))) {
-                final EntityPlayer player = Platform.getPlayer((WorldServer) w);
-                Platform.configurePlayer(player, side, this.getTile());
+                final EntityPlayer player = appeng.util.WorldHelper.getPlayer((WorldServer) w);
+                appeng.util.WorldHelper.configurePlayer(player, side, this.getTile());
                 EnumHand hand = player.getActiveHand();
                 player.setHeldItem(hand, is);
 

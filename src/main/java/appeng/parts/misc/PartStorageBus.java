@@ -1,4 +1,4 @@
-﻿﻿﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -158,7 +158,7 @@ public class PartStorageBus extends PartUpgradeable
     }
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum settingName, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
         if (settingName.name().equals("ACCESS")) {
             this.accessChanged = true;
         }
@@ -198,7 +198,7 @@ public class PartStorageBus extends PartUpgradeable
         return super.getInventoryByName(name);
     }
 
-    // ---- IIAEStackInventory 实现 ----
+    // ---- IIAEStackInventory 瀹炵幇 ----
 
     @Override
     public void saveAEStackInv() {
@@ -384,7 +384,7 @@ public class PartStorageBus extends PartUpgradeable
             if (out != null) {
                 after = out.getAvailableItems(after);
             }
-            Platform.postListChanges(before, after, this, this.mySrc);
+            appeng.util.StorageHelper.postListChanges(before, after, this, this.mySrc);
         }
     }
 

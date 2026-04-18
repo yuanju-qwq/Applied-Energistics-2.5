@@ -49,7 +49,7 @@ import appeng.util.item.AEItemStack;
 import appeng.util.item.OreListMultiMap;
 
 /**
- * 合成操作的上下文状态包：ME 网格、请求者、库存模型等。
+ * 鍚堟垚鎿嶄綔鐨勪笂涓嬫枃鐘舵€佸寘锛歁E 缃戞牸銆佽姹傝€呫€佸簱瀛樻ā鍨嬬瓑銆?
  */
 public final class CraftingContext {
 
@@ -59,17 +59,17 @@ public final class CraftingContext {
     public IActionSource actionSource;
 
     /**
-     * AE 系统物品列表的工作副本，用于模拟合成请求解析时的变化。
-     * 只能提取，注入请使用 {@link CraftingContext#byproductsInventory}。
+     * AE 绯荤粺鐗╁搧鍒楄〃鐨勫伐浣滃壇鏈紝鐢ㄤ簬妯℃嫙鍚堟垚璇锋眰瑙ｆ瀽鏃剁殑鍙樺寲銆?
+     * 鍙兘鎻愬彇锛屾敞鍏ヨ浣跨敤 {@link CraftingContext#byproductsInventory}銆?
      */
     public final MECraftingInventory itemModel;
     /**
-     * 一个初始为空的库存，用于保存所有合成副产品输出。
-     * 在从 {@link CraftingContext#itemModel} 提取之前先从这里提取。
+     * 涓€涓垵濮嬩负绌虹殑搴撳瓨锛岀敤浜庝繚瀛樻墍鏈夊悎鎴愬壇浜у搧杈撳嚭銆?
+     * 鍦ㄤ粠 {@link CraftingContext#itemModel} 鎻愬彇涔嬪墠鍏堜粠杩欓噷鎻愬彇銆?
      */
     public final MECraftingInventory byproductsInventory;
     /**
-     * 合成请求开始时物品存在状态的缓存，不要修改
+     * 鍚堟垚璇锋眰寮€濮嬫椂鐗╁搧瀛樺湪鐘舵€佺殑缂撳瓨锛屼笉瑕佷慨鏀?
      */
     public final MECraftingInventory availableCache;
 
@@ -79,7 +79,7 @@ public final class CraftingContext {
 
         public final CraftingRequest request;
         /**
-         * 按优先级排序
+         * 鎸変紭鍏堢骇鎺掑簭
          */
         public final ArrayList<CraftingTask> resolvers = new ArrayList<>(4);
         private boolean isRemainingResolversAllSimulated = true;
@@ -127,7 +127,7 @@ public final class CraftingContext {
         this.craftingGrid = meGrid.getCache(ICraftingGrid.class);
         this.actionSource = actionSource;
         final IStorageGrid sg = meGrid.getCache(IStorageGrid.class);
-        // 使用 IStorageMonitorable 构造函数，读取所有类型（物品+流体）的库存
+        // 浣跨敤 IStorageMonitorable 鏋勯€犲嚱鏁帮紝璇诲彇鎵€鏈夌被鍨嬶紙鐗╁搧+娴佷綋锛夌殑搴撳瓨
         this.itemModel = new MECraftingInventory(sg, true, false, true);
         this.byproductsInventory = new MECraftingInventory();
         this.availableCache = new MECraftingInventory(sg, false, false, false);
@@ -135,7 +135,7 @@ public final class CraftingContext {
     }
 
     /**
-     * 可用于插件的自定义缓存
+     * 鍙敤浜庢彃浠剁殑鑷畾涔夌紦瀛?
      */
     public <T> T getUserCache(Class<T> cacheType, Supplier<T> constructor) {
         T instance = userCaches.getInstance(cacheType);
@@ -202,7 +202,7 @@ public final class CraftingContext {
     }
 
     /**
-     * @return 配方是否有复杂行为（在合成网格中留下物品），需要逐一模拟
+     * @return 閰嶆柟鏄惁鏈夊鏉傝涓猴紙鍦ㄥ悎鎴愮綉鏍间腑鐣欎笅鐗╁搧锛夛紝闇€瑕侀€愪竴妯℃嫙
      */
     public boolean isPatternComplex(@Nonnull ICraftingPatternDetails pattern) {
         if (!pattern.isCraftable()) {
@@ -214,7 +214,7 @@ public final class CraftingContext {
         }
 
         final IAEStack<?>[] inputs = pattern.getAEInputs();
-        // 只有物品类型的合成台配方才可能有复杂行为
+        // 鍙湁鐗╁搧绫诲瀷鐨勫悎鎴愬彴閰嶆柟鎵嶅彲鑳芥湁澶嶆潅琛屼负
         boolean allItems = true;
         for (IAEStack<?> s : inputs) {
             if (s != null && !(s instanceof IAEItemStack)) {
@@ -239,10 +239,10 @@ public final class CraftingContext {
     }
 
     /**
-     * 模拟用合成台做 1 次合成。
+     * 妯℃嫙鐢ㄥ悎鎴愬彴鍋?1 娆″悎鎴愩€?
      *
-     * @param inputSlots 3x3 合成矩阵内容
-     * @return 合成后 3x3 矩阵中剩余的物品
+     * @param inputSlots 3x3 鍚堟垚鐭╅樀鍐呭
+     * @return 鍚堟垚鍚?3x3 鐭╅樀涓墿浣欑殑鐗╁搧
      */
     public IAEItemStack[] simulateComplexCrafting(IAEItemStack[] inputSlots, ICraftingPatternDetails pattern) {
         if (inputSlots.length > 9) {
@@ -255,7 +255,7 @@ public final class CraftingContext {
         }
         if (world instanceof WorldServer) {
             FMLCommonHandler.instance().firePlayerCraftingEvent(
-                    Platform.getPlayer((WorldServer) world),
+                    appeng.util.WorldHelper.getPlayer((WorldServer) world),
                     pattern.getOutput(simulatedWorkbench, world),
                     simulatedWorkbench);
         }
@@ -286,9 +286,9 @@ public final class CraftingContext {
     }
 
     /**
-     * 执行一个工作单元。
+     * 鎵ц涓€涓伐浣滃崟鍏冦€?
      *
-     * @return 是否需要更多工作
+     * @return 鏄惁闇€瑕佹洿澶氬伐浣?
      */
     public CraftingTask.State doWork() {
         if (tasksToProcess.isEmpty()) {
@@ -358,7 +358,7 @@ public final class CraftingContext {
     }
 
     /**
-     * @return 是否有任务被添加
+     * @return 鏄惁鏈変换鍔¤娣诲姞
      */
     private boolean queueNextTaskOf(RequestInProcessing request, boolean addResolverTask) {
         if (request.request.remainingToProcess <= 0 || request.resolvers.isEmpty()) {
@@ -377,7 +377,7 @@ public final class CraftingContext {
     }
 
     /**
-     * 在某个 resolver 计算完成后检查是否需要为同一个请求继续解析的内部任务。
+     * 鍦ㄦ煇涓?resolver 璁＄畻瀹屾垚鍚庢鏌ユ槸鍚﹂渶瑕佷负鍚屼竴涓姹傜户缁В鏋愮殑鍐呴儴浠诲姟銆?
      */
     private final class CheckOtherResolversTask extends CraftingTask {
 

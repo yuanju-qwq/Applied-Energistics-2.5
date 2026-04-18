@@ -137,7 +137,7 @@ public class IAEStackInventory {
             try {
                 if (this.inv[x] != null) {
                     final NBTTagCompound c = new NBTTagCompound();
-                    Platform.writeStackNBT(this.inv[x], c);
+                    appeng.util.AEStackSerialization.writeStackNBT(this.inv[x], c);
                     target.setTag("#" + x, c);
                 }
             } catch (final Exception ignored) {

@@ -126,6 +126,10 @@ public interface IAEStackBase {
      *
      * @return this
      */
+    default long getCountRequestableCrafts() {
+        return 0;
+    }
+
     IAEStackBase setCountRequestableCrafts(long countRequestableCrafts);
 
     /**

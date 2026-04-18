@@ -45,6 +45,10 @@ public interface IAEItemStack extends IAEStack<IAEItemStack> {
      */
     ItemStack createItemStack();
 
+    default ItemStack getItemStack() {
+        return createItemStack();
+    }
+
     /**
      * is there NBT Data for this item?
      *

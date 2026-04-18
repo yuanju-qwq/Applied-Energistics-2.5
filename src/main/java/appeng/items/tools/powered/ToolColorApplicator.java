@@ -138,7 +138,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
                 paintBall = ItemStack.EMPTY;
             }
 
-            if (!Platform.hasPermissions(new DimensionalCoord(w, pos), p)) {
+            if (!appeng.util.WorldHelper.hasPermissions(new DimensionalCoord(w, pos), p)) {
                 return EnumActionResult.FAIL;
             }
 
@@ -350,7 +350,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
     }
 
     private void setColor(final ItemStack is, final ItemStack newColor) {
-        final NBTTagCompound data = Platform.openNbtData(is);
+        final NBTTagCompound data = appeng.util.ItemStackNbtHelper.openNbtData(is);
         if (newColor.isEmpty()) {
             data.removeTag("color");
         } else {
@@ -516,7 +516,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
 
     @Override
     public FuzzyMode getFuzzyMode(final ItemStack is) {
-        final String fz = Platform.openNbtData(is).getString("FuzzyMode");
+        final String fz = appeng.util.ItemStackNbtHelper.openNbtData(is).getString("FuzzyMode");
         try {
             return FuzzyMode.valueOf(fz);
         } catch (final Throwable t) {
@@ -526,7 +526,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
 
     @Override
     public void setFuzzyMode(final ItemStack is, final FuzzyMode fzMode) {
-        Platform.openNbtData(is).setString("FuzzyMode", fzMode.name());
+        appeng.util.ItemStackNbtHelper.openNbtData(is).setString("FuzzyMode", fzMode.name());
     }
 
     @Override

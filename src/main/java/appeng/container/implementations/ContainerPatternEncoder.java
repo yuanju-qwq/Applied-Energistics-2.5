@@ -183,15 +183,23 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                 this.craftSlot.xPos = -9000;
             }
 
-            for (int y = 0; y < 3; y++) {
-                this.outputSlots[y].xPos = this.outputSlots[y].getX();
+            if (this.outputSlots != null) {
+                for (int y = 0; y < Math.min(3, this.outputSlots.length); y++) {
+                    if (this.outputSlots[y] != null) {
+                        this.outputSlots[y].xPos = this.outputSlots[y].getX();
+                    }
+                }
             }
         } else {
             if (craftSlot != null) {
                 this.craftSlot.xPos = this.craftSlot.getX();
             }
-            for (int y = 0; y < 3; y++) {
-                this.outputSlots[y].xPos = -9000;
+            if (this.outputSlots != null) {
+                for (int y = 0; y < Math.min(3, this.outputSlots.length); y++) {
+                    if (this.outputSlots[y] != null) {
+                        this.outputSlots[y].xPos = -9000;
+                    }
+                }
             }
         }
     }
@@ -766,7 +774,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                 return;
             }
 
-            final IAEItemStack extracted = Platform.poweredExtraction(this.getPowerSource(), this.getCellInventory(),
+            final IAEItemStack extracted = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.getCellInventory(),
                     out, this.getActionSource());
             final EntityPlayer p = this.getPlayerInv().player;
 

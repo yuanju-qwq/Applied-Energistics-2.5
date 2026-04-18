@@ -27,6 +27,7 @@ import appeng.api.implementations.items.IStorageCell;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ISaveProvider;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.util.Platform;
 
@@ -79,7 +80,7 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
         }
 
         this.container = container;
-        this.tagCompound = Platform.openNbtData(o);
+        this.tagCompound = appeng.util.ItemStackNbtHelper.openNbtData(o);
         this.storedItemTypes = this.tagCompound.getShort(ITEM_TYPE_TAG);
         this.storedItemCount = this.tagCompound.getLong(ITEM_COUNT_TAG);
         this.cellItems = null;
@@ -186,6 +187,9 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
      * @return true when successfully loaded
      */
     protected abstract boolean loadCellItem(NBTTagCompound compoundTag, long stackSize);
+
+    @Override
+    public abstract IAEStackType<T> getStackType();
 
     @Override
     public IItemList<T> getAvailableItems(final IItemList<T> out) {

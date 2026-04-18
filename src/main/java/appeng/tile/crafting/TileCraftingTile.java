@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -269,7 +269,7 @@ public class TileCraftingTile extends AENetworkTile implements IAEMultiBlock<Cra
                     final BlockPos pos = places.poll();
                     places.add(pos);
 
-                    Platform.spawnDrops(this.world, pos, Collections.singletonList(g.createItemStack()));
+                    appeng.util.WorldHelper.spawnDrops(this.world, pos, Collections.singletonList(g.createItemStack()));
                 }
             }
 

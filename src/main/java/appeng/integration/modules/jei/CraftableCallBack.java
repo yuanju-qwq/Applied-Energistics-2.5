@@ -1,4 +1,4 @@
-﻿package appeng.integration.modules.jei;
+package appeng.integration.modules.jei;
 
 import java.util.Collection;
 import java.util.List;

@@ -37,6 +37,7 @@ import appeng.api.storage.data.IItemList;
 import appeng.me.helpers.BaseActionSource;
 import appeng.me.storage.ITickingMonitor;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 import appeng.util.item.ItemList;
 
 class CondenserItemInventory implements IMEMonitor<IAEItemStack>, ITickingMonitor {

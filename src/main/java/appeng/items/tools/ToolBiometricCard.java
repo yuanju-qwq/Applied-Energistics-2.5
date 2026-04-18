@@ -93,7 +93,7 @@ public class ToolBiometricCard extends AEBaseItem implements IBiometricCard {
 
     @Override
     public void setProfile(final ItemStack itemStack, final GameProfile profile) {
-        final NBTTagCompound tag = Platform.openNbtData(itemStack);
+        final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(itemStack);
 
         if (profile != null) {
             final NBTTagCompound pNBT = new NBTTagCompound();
@@ -106,7 +106,7 @@ public class ToolBiometricCard extends AEBaseItem implements IBiometricCard {
 
     @Override
     public GameProfile getProfile(final ItemStack is) {
-        final NBTTagCompound tag = Platform.openNbtData(is);
+        final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(is);
         if (tag.hasKey("profile")) {
             return NBTUtil.readGameProfileFromNBT(tag.getCompoundTag("profile"));
         }
@@ -115,7 +115,7 @@ public class ToolBiometricCard extends AEBaseItem implements IBiometricCard {
 
     @Override
     public EnumSet<SecurityPermissions> getPermissions(final ItemStack is) {
-        final NBTTagCompound tag = Platform.openNbtData(is);
+        final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(is);
         final EnumSet<SecurityPermissions> result = EnumSet.noneOf(SecurityPermissions.class);
 
         for (final SecurityPermissions sp : SecurityPermissions.values()) {
@@ -129,13 +129,13 @@ public class ToolBiometricCard extends AEBaseItem implements IBiometricCard {
 
     @Override
     public boolean hasPermission(final ItemStack is, final SecurityPermissions permission) {
-        final NBTTagCompound tag = Platform.openNbtData(is);
+        final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(is);
         return tag.getBoolean(permission.name());
     }
 
     @Override
     public void removePermission(final ItemStack itemStack, final SecurityPermissions permission) {
-        final NBTTagCompound tag = Platform.openNbtData(itemStack);
+        final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(itemStack);
         if (tag.hasKey(permission.name())) {
             tag.removeTag(permission.name());
         }
@@ -143,7 +143,7 @@ public class ToolBiometricCard extends AEBaseItem implements IBiometricCard {
 
     @Override
     public void addPermission(final ItemStack itemStack, final SecurityPermissions permission) {
-        final NBTTagCompound tag = Platform.openNbtData(itemStack);
+        final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(itemStack);
         tag.setBoolean(permission.name(), true);
     }
 

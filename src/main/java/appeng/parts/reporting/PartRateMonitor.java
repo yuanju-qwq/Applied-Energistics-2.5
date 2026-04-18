@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2024, AlgorithmX2, All rights reserved.
  *
@@ -206,11 +206,11 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
             return true;
         }
 
-        if (!this.getProxy().isActive() || !Platform.hasPermissions(this.getLocation(), player)) {
+        if (!this.getProxy().isActive() || !appeng.util.WorldHelper.hasPermissions(this.getLocation(), player)) {
             return false;
         }
 
-        // 更新快照（关键：利用玩家交互触发时间检查）
+        // 鏇存柊蹇収锛堝叧閿細鍒╃敤鐜╁浜や簰瑙﹀彂鏃堕棿妫€鏌ワ級
         this.updateSnapshots();
 
         final ItemStack held = player.getHeldItem(hand);
@@ -247,14 +247,14 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
             return true;
         }
 
-        if (!this.getProxy().isActive() || !Platform.hasPermissions(this.getLocation(), player)) {
+        if (!this.getProxy().isActive() || !appeng.util.WorldHelper.hasPermissions(this.getLocation(), player)) {
             return false;
         }
 
-        // 更新快照（确保切换时数据最新）
+        // 鏇存柊蹇収锛堢‘淇濆垏鎹㈡椂鏁版嵁鏈€鏂帮級
         this.updateSnapshots();
 
-        // 切换时间单位（移除锁定逻辑）
+        // 鍒囨崲鏃堕棿鍗曚綅锛堢Щ闄ら攣瀹氶€昏緫锛?
         this.timeUnit = this.timeUnit.next();
 
         this.getHost().markForUpdate();
@@ -262,7 +262,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     }
 
     /**
-     * 清空配置并重置快照
+     * 娓呯┖閰嶇疆骞堕噸缃揩鐓?
      */
     private void clearConfiguration() {
         this.configuredItem = null;
@@ -272,7 +272,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     }
 
     /**
-     * 重置所有快照为当前数量和时间
+     * 閲嶇疆鎵€鏈夊揩鐓т负褰撳墠鏁伴噺鍜屾椂闂?
      */
     private void resetSnapshots() {
         final long now = this.getWorldTime();
@@ -285,7 +285,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     }
 
     /**
-     * 根据世界时间更新快照（核心逻辑：无 tick 依赖）
+     * 鏍规嵁涓栫晫鏃堕棿鏇存柊蹇収锛堟牳蹇冮€昏緫锛氭棤 tick 渚濊禆锛?
      */
     private void updateSnapshots() {
         final long now = this.getWorldTime();
@@ -293,7 +293,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
         final boolean minuteElapsed = now - this.lastMinuteTime >= TICKS_PER_MINUTE;
         final boolean hourElapsed = now - this.lastHourTime >= TICKS_PER_HOUR;
 
-        // 仅当时间阈值达到时更新对应快照
+        // 浠呭綋鏃堕棿闃堝€艰揪鍒版椂鏇存柊瀵瑰簲蹇収
         if (secondElapsed) {
             this.lastSecondAmount = this.currentAmount;
             this.lastSecondTime = now;
@@ -327,7 +327,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     }
 
     /**
-     * 更新当前库存数量
+     * 鏇存柊褰撳墠搴撳瓨鏁伴噺
      */
     private void updateCurrentAmount() {
         try {
@@ -460,7 +460,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
 
     @Override
     public IPartModel getStaticModels() {
-        // 统一模型，不区分时间单位
+        // 缁熶竴妯″瀷锛屼笉鍖哄垎鏃堕棿鍗曚綅
         if (!this.isActive()) {
             return MODELS_OFF;
         } else if (!this.isPowered()) {

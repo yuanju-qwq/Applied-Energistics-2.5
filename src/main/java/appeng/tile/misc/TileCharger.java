@@ -154,7 +154,7 @@ public class TileCharger extends AENetworkPowerTile implements ICrankable, IGrid
     }
 
     public void activate(final EntityPlayer player) {
-        if (!Platform.hasPermissions(new DimensionalCoord(this), player)) {
+        if (!appeng.util.WorldHelper.hasPermissions(new DimensionalCoord(this), player)) {
             return;
         }
 
@@ -177,7 +177,7 @@ public class TileCharger extends AENetworkPowerTile implements ICrankable, IGrid
             final List<ItemStack> drops = new ArrayList<>();
             drops.add(myItem);
             this.inv.setStackInSlot(0, ItemStack.EMPTY);
-            Platform.spawnDrops(this.world, this.pos.offset(this.getForward()), drops);
+            appeng.util.WorldHelper.spawnDrops(this.world, this.pos.offset(this.getForward()), drops);
         }
     }
 

@@ -24,8 +24,8 @@ import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
 
 /**
- * 泛型版本的 CellConfig，基于 {@link IAEStackInventory} 存储 {@link appeng.api.storage.data.IAEStack}。
- * 可以存储物品、流体等任意类型的 AE 栈作为过滤配置。
+ * 娉涘瀷鐗堟湰鐨?CellConfig锛屽熀浜?{@link IAEStackInventory} 瀛樺偍 {@link appeng.api.storage.data.IAEStack}銆?
+ * 鍙互瀛樺偍鐗╁搧銆佹祦浣撶瓑浠绘剰绫诲瀷鐨?AE 鏍堜綔涓鸿繃婊ら厤缃€?
  */
 public class CellAEConfig extends IAEStackInventory {
 
@@ -34,11 +34,11 @@ public class CellAEConfig extends IAEStackInventory {
     public CellAEConfig(final ItemStack is) {
         super(null, 63);
         this.is = is;
-        this.readFromNBT(Platform.openNbtData(is), "list");
+        this.readFromNBT(appeng.util.ItemStackNbtHelper.openNbtData(is), "list");
     }
 
     @Override
     public void markDirty() {
-        this.writeToNBT(Platform.openNbtData(this.is), "list");
+        this.writeToNBT(appeng.util.ItemStackNbtHelper.openNbtData(this.is), "list");
     }
 }

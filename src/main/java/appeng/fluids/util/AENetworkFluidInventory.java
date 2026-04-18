@@ -1,4 +1,4 @@
-﻿package appeng.fluids.util;
+package appeng.fluids.util;
 
 import java.util.function.Supplier;
 

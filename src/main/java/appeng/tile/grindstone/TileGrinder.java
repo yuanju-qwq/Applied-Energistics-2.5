@@ -153,7 +153,7 @@ public class TileGrinder extends AEBaseInvTile implements ICrankable {
             final List<ItemStack> out = new ArrayList<>();
             out.add(notAdded);
 
-            Platform.spawnDrops(this.world, this.pos.offset(this.getForward()), out);
+            appeng.util.WorldHelper.spawnDrops(this.world, this.pos.offset(this.getForward()), out);
         }
     }
 

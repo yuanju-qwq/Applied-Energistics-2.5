@@ -78,11 +78,11 @@ public class ExtractItemResolver implements CraftingRequestResolver {
 
         @SuppressWarnings("unchecked")
         private void extractExact(CraftingContext context, MECraftingInventory source, List<IAEStack<?>> removedList) {
-            StackType exactMatching = source.extractItems((StackType) request.stack, Actionable.SIMULATE);
+            StackType exactMatching = (StackType) source.extractAny(request.stack, Actionable.SIMULATE);
             if (exactMatching != null) {
                 final long requestSize = Math.min(request.remainingToProcess, exactMatching.getStackSize());
-                final StackType extracted = source
-                        .extractItems((StackType) exactMatching.copy().setStackSize(requestSize), Actionable.MODULATE);
+                final StackType extracted = (StackType) source
+                        .extractAny(exactMatching.copy().setStackSize(requestSize), Actionable.MODULATE);
                 if (extracted != null && extracted.getStackSize() > 0) {
                     extracted.setCraftable(false);
                     request.fulfill(this, extracted, context);
@@ -93,15 +93,16 @@ public class ExtractItemResolver implements CraftingRequestResolver {
 
         @SuppressWarnings("unchecked")
         private void extractFuzzy(CraftingContext context, MECraftingInventory source, List<IAEStack<?>> removedList) {
-            Collection<StackType> fuzzyMatching = source.findFuzzy((StackType) request.stack, FuzzyMode.IGNORE_ALL);
+            Collection<StackType> fuzzyMatching = (Collection<StackType>) (Collection<?>) source.findFuzzyAny(
+                    request.stack, FuzzyMode.IGNORE_ALL);
             for (final StackType candidate : fuzzyMatching) {
                 if (candidate == null) {
                     continue;
                 }
                 if (request.acceptableSubstituteFn.test(candidate)) {
                     final long requestSize = Math.min(request.remainingToProcess, candidate.getStackSize());
-                    final StackType extracted = source
-                            .extractItems((StackType) candidate.copy().setStackSize(requestSize), Actionable.MODULATE);
+                    final StackType extracted = (StackType) source
+                            .extractAny(candidate.copy().setStackSize(requestSize), Actionable.MODULATE);
                     if (extracted == null || extracted.getStackSize() <= 0) {
                         continue;
                     }
@@ -169,7 +170,7 @@ public class ExtractItemResolver implements CraftingRequestResolver {
                 MECraftingInventory craftingInv) {
             for (IAEStack stack : removedFromSystem) {
                 if (stack.getStackSize() > 0) {
-                    IAEStack<?> extracted = craftingInv.extractItems(stack, Actionable.MODULATE);
+                    IAEStack<?> extracted = craftingInv.extractAny(stack, Actionable.MODULATE);
                     if (extracted == null || extracted.getStackSize() != stack.getStackSize()) {
                         final IAEItemStack missing = stack instanceof IAEItemStack itemStack
                                 ? itemStack

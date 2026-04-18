@@ -50,11 +50,11 @@ public class WrenchClickHook {
                     return;
                 }
 
-                if (!Platform.hasPermissions(new DimensionalCoord(world, pos), player)) {
+                if (!appeng.util.WorldHelper.hasPermissions(new DimensionalCoord(world, pos), player)) {
                     return;
                 }
 
-                final LookDirection dir = Platform.getPlayerRay(player, player.getEyeHeight());
+                final LookDirection dir = appeng.util.PlayerLookHelper.getPlayerRay(player, player.getEyeHeight());
                 final RayTraceResult mop = block.collisionRayTrace(world.getBlockState(pos), world, pos, dir.getA(),
                         dir.getB());
                 if (mop != null) {
@@ -74,7 +74,7 @@ public class WrenchClickHook {
                     if (sp.facade != null) {
                         is.add(sp.facade.getItemStack());
                         host.getFacadeContainer().removeFacade(host, sp.side);
-                        Platform.notifyBlocksOfNeighbors(world, pos);
+                        appeng.util.WorldHelper.notifyBlocksOfNeighbors(world, pos);
                     }
 
                     if (host.isEmpty()) {
@@ -82,7 +82,7 @@ public class WrenchClickHook {
                     }
 
                     if (!is.isEmpty()) {
-                        Platform.spawnDrops(world, pos, is);
+                        appeng.util.WorldHelper.spawnDrops(world, pos, is);
                     }
                 } else {
                     player.swingArm(hand);

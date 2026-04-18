@@ -119,12 +119,12 @@ public class AEBaseItemBlockChargeable extends AEBaseItemBlock implements IAEIte
     }
 
     private double getInternal(final ItemStack is) {
-        final NBTTagCompound nbt = Platform.openNbtData(is);
+        final NBTTagCompound nbt = appeng.util.ItemStackNbtHelper.openNbtData(is);
         return nbt.getDouble("internalCurrentPower");
     }
 
     private void setInternal(final ItemStack is, final double amt) {
-        final NBTTagCompound nbt = Platform.openNbtData(is);
+        final NBTTagCompound nbt = appeng.util.ItemStackNbtHelper.openNbtData(is);
         nbt.setDouble("internalCurrentPower", amt);
     }
 }

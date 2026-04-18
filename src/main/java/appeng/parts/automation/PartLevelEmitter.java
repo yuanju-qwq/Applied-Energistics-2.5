@@ -1,4 +1,4 @@
-﻿﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -144,8 +144,8 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
             this.getHost().markForUpdate();
             final TileEntity te = this.getHost().getTile();
             this.prevState = isOn;
-            Platform.notifyBlocksOfNeighbors(te.getWorld(), te.getPos());
-            Platform.notifyBlocksOfNeighbors(te.getWorld(), te.getPos().offset(this.getSide().getFacing()));
+            appeng.util.WorldHelper.notifyBlocksOfNeighbors(te.getWorld(), te.getPos());
+            appeng.util.WorldHelper.notifyBlocksOfNeighbors(te.getWorld(), te.getPos().offset(this.getSide().getFacing()));
         }
     }
 
@@ -407,7 +407,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     }
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum settingName, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
         this.configureWatchers();
     }
 
@@ -455,7 +455,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
         return super.getInventoryByName(name);
     }
 
-    // ---- IIAEStackInventory 实现 ----
+    // ---- IIAEStackInventory 鐎圭偟骞?----
 
     @Override
     public void saveAEStackInv() {

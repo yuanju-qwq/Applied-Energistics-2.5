@@ -80,7 +80,7 @@ public class BlockQuartzGrowthAccelerator extends AEBaseTileBlock implements IOr
 
             final EnumFacing up = cga.getUp();
             final EnumFacing forward = cga.getForward();
-            final EnumFacing west = Platform.crossProduct(forward, up);
+            final EnumFacing west = appeng.util.OrientationHelper.crossProduct(forward, up);
 
             double rx = 0.5 + pos.getX();
             double ry = 0.5 + pos.getY();

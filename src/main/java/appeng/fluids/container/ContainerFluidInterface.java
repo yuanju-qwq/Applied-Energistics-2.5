@@ -77,7 +77,7 @@ public class ContainerFluidInterface extends ContainerFluidConfigurable implemen
     }
 
     @Override
-    public void updateSetting(IConfigManager manager, Enum settingName, Enum newValue) {
+    public void updateSetting(IConfigManager manager, Enum<?> settingName, Enum<?> newValue) {
         if (this.getGui() != null) {
             this.getGui().updateSetting(manager, settingName, newValue);
         }

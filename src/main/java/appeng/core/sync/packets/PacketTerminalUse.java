@@ -15,6 +15,7 @@ import appeng.api.features.ILocatable;
 import appeng.api.features.IWirelessTermHandler;
 import appeng.core.localization.PlayerMessages;
 import appeng.core.sync.AppEngPacket;
+import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.INetworkInfo;
 import appeng.items.tools.powered.Terminal;
 import appeng.util.Platform;
@@ -84,7 +85,9 @@ public class PacketTerminalUse extends AppEngPacket {
         }
 
         if (handler.hasPower(player, 0.5, itemStack)) {
-            Platform.openGUI(player, slotIdx, terminal.getBridge(), isBauble);
+            if (handler.getGuiHandler(itemStack) instanceof GuiBridge guiBridge) {
+                Platform.openGUI(player, slotIdx, guiBridge, isBauble);
+            }
         } else {
             player.sendMessage(PlayerMessages.DeviceNotPowered.get());
         }

@@ -126,7 +126,7 @@ public abstract class AbstractPartTerminal extends AbstractPartDisplay
     }
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum settingName, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
 
     }
 

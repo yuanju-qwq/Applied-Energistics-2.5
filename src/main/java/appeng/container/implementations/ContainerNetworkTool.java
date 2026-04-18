@@ -53,7 +53,7 @@ public class ContainerNetworkTool extends AEBaseContainer {
     }
 
     public void toggleFacadeMode() {
-        final NBTTagCompound data = Platform.openNbtData(this.toolInv.getItemStack());
+        final NBTTagCompound data = appeng.util.ItemStackNbtHelper.openNbtData(this.toolInv.getItemStack());
         data.setBoolean("hideFacades", !data.getBoolean("hideFacades"));
         this.detectAndSendChanges();
     }
@@ -76,7 +76,7 @@ public class ContainerNetworkTool extends AEBaseContainer {
         }
 
         if (this.isValidContainer()) {
-            final NBTTagCompound data = Platform.openNbtData(currentItem);
+            final NBTTagCompound data = appeng.util.ItemStackNbtHelper.openNbtData(currentItem);
             this.setFacadeMode(data.getBoolean("hideFacades"));
         }
 

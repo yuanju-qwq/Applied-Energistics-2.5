@@ -19,6 +19,8 @@
 package appeng.core.sync;
 
 import java.lang.reflect.Constructor;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -142,7 +144,7 @@ public enum GuiBridge implements IGuiHandler {
     GUI_FLUID_INTERFACE(ContainerFluidInterface.class, IFluidInterfaceHost.class, GuiHostType.WORLD,
             SecurityPermissions.BUILD),
 
-    // 二合一接口（物品面 + 流体面）
+    // 浜屽悎涓€鎺ュ彛锛堢墿鍝侀潰 + 娴佷綋闈級
     GUI_DUAL_ITEM_INTERFACE(ContainerDualItemInterface.class, IInterfaceHost.class, GuiHostType.WORLD,
             SecurityPermissions.BUILD),
 
@@ -183,7 +185,7 @@ public enum GuiBridge implements IGuiHandler {
     GUI_EXPANDED_PROCESSING_PATTERN_TERMINAL(ContainerExpandedProcessingPatternTerm.class,
             PartExpandedProcessingPatternTerminal.class, GuiHostType.WORLD, SecurityPermissions.CRAFT),
 
-    @Deprecated // 流体终端已集成到通用终端，此枚举保留向后兼容
+    @Deprecated // 娴佷綋缁堢宸查泦鎴愬埌閫氱敤缁堢锛屾鏋氫妇淇濈暀鍚戝悗鍏煎
     GUI_FLUID_TERMINAL(ContainerMEMonitorable.class, ITerminalHost.class, GuiHostType.WORLD, SecurityPermissions.BUILD),
 
     // extends (Container/Gui) + Bus
@@ -233,6 +235,8 @@ public enum GuiBridge implements IGuiHandler {
     private GuiHostType type;
     private SecurityPermissions requiredPermission;
     private GuiWrapper.IExternalGui externalGui = null;
+    private final Map<Class<?>, Constructor<?>> containerConstructors = new ConcurrentHashMap<>();
+    private final Map<Class<?>, Constructor<?>> guiConstructors = new ConcurrentHashMap<>();
 
     GuiBridge() {
         this.tileClass = null;
@@ -367,19 +371,8 @@ public enum GuiBridge implements IGuiHandler {
 
     public Object ConstructContainer(final InventoryPlayer inventory, final AEPartLocation side, final Object tE) {
         try {
-            final Constructor[] c = this.containerClass.getConstructors();
-            if (c.length == 0) {
-                throw new AppEngException("Invalid Gui Class");
-            }
-
-            final Constructor target = this.findConstructor(c, inventory, tE);
-
-            if (target == null) {
-                throw new IllegalStateException(
-                        "Cannot find " + this.containerClass.getName() + "( " + this.typeName(inventory) + ", " + this
-                                .typeName(tE) + " )");
-            }
-
+            final Constructor target = this.resolveConstructor(this.containerClass, this.containerConstructors, inventory,
+                    tE);
             return target.newInstance(inventory, tE);
         } catch (final Throwable t) {
             throw new IllegalStateException(t);
@@ -449,23 +442,29 @@ public enum GuiBridge implements IGuiHandler {
 
     public Object ConstructGui(final InventoryPlayer inventory, final AEPartLocation side, final Object tE) {
         try {
-            final Constructor[] c = this.guiClass.getConstructors();
-            if (c.length == 0) {
-                throw new AppEngException("Invalid Gui Class");
-            }
-
-            final Constructor target = this.findConstructor(c, inventory, tE);
-
-            if (target == null) {
-                throw new IllegalStateException(
-                        "Cannot find " + this.containerClass.getName() + "( " + this.typeName(inventory) + ", " + this
-                                .typeName(tE) + " )");
-            }
-
+            final Constructor target = this.resolveConstructor(this.guiClass, this.guiConstructors, inventory, tE);
             return target.newInstance(inventory, tE);
         } catch (final Throwable t) {
             throw new IllegalStateException(t);
         }
+    }
+
+    private Constructor<?> resolveConstructor(final Class targetClass, final Map<Class<?>, Constructor<?>> cache,
+            final InventoryPlayer inventory, final Object targetObject) throws AppEngException {
+        final Constructor[] constructors = targetClass.getConstructors();
+        if (constructors.length == 0) {
+            throw new AppEngException("Invalid Gui Class");
+        }
+
+        return cache.computeIfAbsent(targetObject.getClass(), ignored -> {
+            final Constructor constructor = this.findConstructor(constructors, inventory, targetObject);
+            if (constructor == null) {
+                throw new IllegalStateException(
+                        "Cannot find " + targetClass.getName() + "( " + this.typeName(inventory) + ", "
+                                + this.typeName(targetObject) + " )");
+            }
+            return constructor;
+        });
     }
 
     public boolean hasPermissions(final TileEntity te, final int x, final int y, final int z, final AEPartLocation side,
@@ -473,7 +472,7 @@ public enum GuiBridge implements IGuiHandler {
         final World w = player.getEntityWorld();
         final BlockPos pos = new BlockPos(x, y, z);
 
-        if (Platform.hasPermissions(te != null ? new DimensionalCoord(te) : new DimensionalCoord(player.world, pos),
+        if (appeng.util.WorldHelper.hasPermissions(te != null ? new DimensionalCoord(te) : new DimensionalCoord(player.world, pos),
                 player)) {
             if (this.type.isItem()) {
                 final ItemStack it = player.inventory.getCurrentItem();

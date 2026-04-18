@@ -47,7 +47,7 @@ public abstract class PartUpgradeable extends PartBasicState implements IAEAppEn
     }
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum settingName, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
 
     }
 

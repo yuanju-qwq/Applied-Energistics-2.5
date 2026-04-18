@@ -72,7 +72,7 @@ public abstract class PartSharedItemBus extends PartUpgradeable implements IGrid
     }
 
     @Override
-    public void updateSetting(IConfigManager manager, Enum settingName, Enum newValue) {
+    public void updateSetting(IConfigManager manager, Enum<?> settingName, Enum<?> newValue) {
         super.updateSetting(manager, settingName, newValue);
 
         this.updateRedstoneState();
@@ -132,7 +132,7 @@ public abstract class PartSharedItemBus extends PartUpgradeable implements IGrid
         try {
             this.getProxy().getTick().alertDevice(this.getProxy().getNode());
         } catch (final GridAccessException e) {
-            // Ciallo～(∠・ω< )⌒★
+            // Ciallo锝?鈭犮兓蠅< )鈱掆槄
         }
     }
 

@@ -62,8 +62,8 @@ import appeng.util.inv.IInventoryDestination;
 import appeng.util.inv.InvOperation;
 
 /**
- * 二合一接口方块 TileEntity。
- * 同时拥有物品接口和流体接口的功能，共享一个频道。
+ * 浜屽悎涓€鎺ュ彛鏂瑰潡 TileEntity銆?
+ * 鍚屾椂鎷ユ湁鐗╁搧鎺ュ彛鍜屾祦浣撴帴鍙ｇ殑鍔熻兘锛屽叡浜竴涓閬撱€?
  */
 public class TileDualInterface extends AENetworkInvTile
         implements IGridTickable, IInventoryDestination, IInterfaceHost, IFluidInterfaceHost, IConfigurableFluidInventory, IPriorityHost {
@@ -99,7 +99,7 @@ public class TileDualInterface extends AENetworkInvTile
             newForward = facing.getOpposite();
             this.omniDirectional = false;
         } else {
-            newForward = Platform.rotateAround(this.getForward(), facing);
+            newForward = appeng.util.OrientationHelper.rotateAround(this.getForward(), facing);
         }
 
         if (this.omniDirectional) {

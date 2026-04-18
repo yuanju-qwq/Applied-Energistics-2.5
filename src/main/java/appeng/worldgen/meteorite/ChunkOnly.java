@@ -87,7 +87,7 @@ public class ChunkOnly extends StandardWorld {
     @Override
     public void done() {
         if (this.verticalBits != 0) {
-            Platform.sendChunk(this.target, this.verticalBits);
+            appeng.util.WorldHelper.sendChunk(this.target, this.verticalBits);
         }
     }
 

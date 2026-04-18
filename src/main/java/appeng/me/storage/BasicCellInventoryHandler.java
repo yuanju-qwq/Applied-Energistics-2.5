@@ -44,7 +44,7 @@ import appeng.util.prioritylist.PrecisePriorityList;
  */
 public class BasicCellInventoryHandler<T extends IAEStack<T>> extends MEInventoryHandler<T>
         implements ICellInventoryHandler<T> {
-    /** @deprecated 请使用 {@link #BasicCellInventoryHandler(IMEInventory, IAEStackType)} 代替 */
+    /** @deprecated 璇蜂娇鐢?{@link #BasicCellInventoryHandler(IMEInventory, IAEStackType)} 浠ｆ浛 */
     @Deprecated
     @SuppressWarnings("unchecked")
     public BasicCellInventoryHandler(final IMEInventory<T> c, final IStorageChannel<T> channel) {
@@ -141,7 +141,7 @@ public class BasicCellInventoryHandler<T extends IAEStack<T>> extends MEInventor
     }
 
     NBTTagCompound openNbtData() {
-        return Platform.openNbtData(this.getCellInv().getItemStack());
+        return appeng.util.ItemStackNbtHelper.openNbtData(this.getCellInv().getItemStack());
     }
 
     @Override

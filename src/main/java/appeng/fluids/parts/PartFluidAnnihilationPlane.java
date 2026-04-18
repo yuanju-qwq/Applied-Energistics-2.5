@@ -1,4 +1,4 @@
-﻿package appeng.fluids.parts;
+package appeng.fluids.parts;
 
 import java.util.List;
 
@@ -257,7 +257,7 @@ public class PartFluidAnnihilationPlane extends PartBasicState implements IGridT
 
             if (modulate) {
                 final IEnergyGrid energy = this.getProxy().getEnergy();
-                return Platform.poweredInsert(energy, inv, stack, this.mySrc) == null;
+                return appeng.util.StorageHelper.poweredInsert(energy, inv, stack, this.mySrc) == null;
             } else {
                 final float requiredPower = stack.getStackSize() / Math.min(1.0f, stack.getChannel().transferFactor());
                 final IEnergyGrid energy = this.getProxy().getEnergy();

@@ -35,12 +35,12 @@ public class GuiImgButton extends GuiButton implements ITooltip {
     private static final Pattern COMPILE = Pattern.compile("%s");
     private static final Pattern PATTERN_NEW_LINE = Pattern.compile("\\n", Pattern.LITERAL);
     private static Map<EnumPair, ButtonAppearance> appearances;
-    private final Enum buttonSetting;
+    private final Enum<?> buttonSetting;
     private boolean halfSize = false;
     private String fillVar;
-    private Enum currentValue;
+    private Enum<?> currentValue;
 
-    public GuiImgButton(final int x, final int y, final Enum idx, final Enum val) {
+    public GuiImgButton(final int x, final int y, final Enum<?> idx, final Enum<?> val) {
         super(0, 0, 16, "");
 
         this.buttonSetting = idx;
@@ -261,7 +261,7 @@ public class GuiImgButton extends GuiButton implements ITooltip {
         }
     }
 
-    private void registerApp(final int iconIndex, final Settings setting, final Enum val, final ButtonToolTips title,
+    private void registerApp(final int iconIndex, final Settings setting, final Enum<?> val, final ButtonToolTips title,
             final Object hint) {
         final ButtonAppearance a = new ButtonAppearance();
         a.displayName = title.getUnlocalized();
@@ -345,7 +345,7 @@ public class GuiImgButton extends GuiButton implements ITooltip {
         return (Settings) this.buttonSetting;
     }
 
-    public Enum getCurrentValue() {
+    public Enum<?> getCurrentValue() {
         return this.currentValue;
     }
 
@@ -421,7 +421,7 @@ public class GuiImgButton extends GuiButton implements ITooltip {
         return this.visible;
     }
 
-    public void set(final Enum e) {
+    public void set(final Enum<?> e) {
         if (this.currentValue != e) {
             this.currentValue = e;
         }
@@ -445,10 +445,10 @@ public class GuiImgButton extends GuiButton implements ITooltip {
 
     public static final class EnumPair {
 
-        final Enum setting;
-        final Enum value;
+        final Enum<?> setting;
+        final Enum<?> value;
 
-        EnumPair(final Enum a, final Enum b) {
+        EnumPair(final Enum<?> a, final Enum<?> b) {
             this.setting = a;
             this.value = b;
         }

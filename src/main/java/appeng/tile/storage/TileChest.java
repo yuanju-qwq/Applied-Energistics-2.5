@@ -413,7 +413,7 @@ public class TileChest extends AENetworkPowerTile
             try {
                 if (this.getProxy().isActive()) {
                     final IStorageGrid gs = this.getProxy().getStorage();
-                    Platform.postChanges(gs, removed, added, this.mySrc);
+                    appeng.util.StorageHelper.postChanges(gs, removed, added, this.mySrc);
                 }
                 this.getProxy().getGrid().postEvent(new MENetworkCellArrayUpdate());
             } catch (final GridAccessException ignored) {
@@ -421,7 +421,7 @@ public class TileChest extends AENetworkPowerTile
 
             // update the neighbors
             if (this.world != null) {
-                Platform.notifyBlocksOfNeighbors(this.world, this.pos);
+                appeng.util.WorldHelper.notifyBlocksOfNeighbors(this.world, this.pos);
                 this.markForUpdate();
             }
         }
@@ -444,7 +444,7 @@ public class TileChest extends AENetworkPowerTile
             this.updateHandler();
 
             if (this.cellHandler != null && this.cellHandler.getChannel() == AEItemStackType.INSTANCE.getStorageChannel()) {
-                final IAEItemStack returns = Platform.poweredInsert(this, this.cellHandler,
+                final IAEItemStack returns = appeng.util.StorageHelper.poweredInsert(this, this.cellHandler,
                         AEItemStack.fromItemStack(this.inputInventory.getStackInSlot(0)), this.mySrc);
 
                 if (returns == null) {
@@ -505,7 +505,7 @@ public class TileChest extends AENetworkPowerTile
     }
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum settingName, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
 
     }
 
@@ -711,7 +711,7 @@ public class TileChest extends AENetworkPowerTile
             TileChest.this.updateHandler();
             if (TileChest.this.cellHandler != null && TileChest.this.cellHandler
                     .getChannel() == AEFluidStackType.INSTANCE.getStorageChannel()) {
-                final IAEFluidStack results = Platform.poweredInsert(TileChest.this, TileChest.this.cellHandler,
+                final IAEFluidStack results = appeng.util.StorageHelper.poweredInsert(TileChest.this, TileChest.this.cellHandler,
                         AEFluidStack.fromFluidStack(resource),
                         TileChest.this.mySrc, doFill ? Actionable.MODULATE : Actionable.SIMULATE);
 

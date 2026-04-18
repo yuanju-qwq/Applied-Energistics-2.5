@@ -159,7 +159,7 @@ public class GuiCellWorkbench extends GuiUpgradeable {
                 final boolean backwards = Mouse.isButtonDown(1);
 
                 FuzzyMode fz = (FuzzyMode) this.fuzzyMode.getCurrentValue();
-                fz = Platform.rotateEnum(fz, backwards, Settings.FUZZY_MODE.getPossibleValues());
+                fz = appeng.util.EnumCycler.rotateEnum(fz, backwards, Settings.FUZZY_MODE.getPossibleValues());
 
                 NetworkHandler.instance().sendToServer(new PacketValueConfig("CellWorkbench.Fuzzy", fz.name()));
             } else {

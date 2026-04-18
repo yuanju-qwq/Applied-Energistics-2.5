@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -102,22 +102,22 @@ import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
 /**
- * 无线二合一接口终端的GUI
+ * 閺冪姷鍤庢禍灞芥値娑撯偓閹恒儱褰涚紒鍫㈩伂閻ㄥ嚕UI
  *
- * 直接继承 AEBaseGui，不再继承 GuiInterfaceTerminal。
- * 参考 AE2Things 的 GuiBaseInterfaceWireless + GuiWirelessDualInterfaceTerminal 的架构：
- * - 中间：接口列表面板 + 玩家背包（从 GuiInterfaceTerminal 移植的逻辑）
- * - 左侧：ME物品网格（显示AE网络中的物品，带搜索框和滚动条）
- * - 右侧：样板编写区域（与主GUI部分重叠，xSize=240）
+ * 閻╁瓨甯寸紒褎澹?AEBaseGui閿涘奔绗夐崘宥囨埛閹?GuiInterfaceTerminal閵?
+ * 閸欏倽鈧?AE2Things 閻?GuiBaseInterfaceWireless + GuiWirelessDualInterfaceTerminal 閻ㄥ嫭鐏﹂弸鍕剁窗
+ * - 娑擃參妫块敍姘复閸欙絽鍨悰銊╂桨閺?+ 閻溾晛顔嶉懗灞藉瘶閿涘牅绮?GuiInterfaceTerminal 缁夌粯顦查惃鍕偓鏄忕帆閿?
+ * - 瀹革缚鏅堕敍姝丒閻椻晛鎼х純鎴炵壐閿涘牊妯夌粈绡圗缂冩垹绮舵稉顓犳畱閻椻晛鎼ч敍灞界敨閹兼粎鍌ㄥ鍡楁嫲濠婃艾濮╅弶鈽呯礆
+ * - 閸欏厖鏅堕敍姘壉閺夎法绱崘娆忓隘閸╃噦绱欐稉搴濆瘜GUI闁劌鍨庨柌宥呭綌閿涘瘓Size=240閿?
  *
- * 采用 AE2Things 的特殊面板布局：xSize = 240，样板面板从 guiLeft+209 开始绘制，
- * 与主 GUI 有 31px 的重叠区域。
+ * 闁插洨鏁?AE2Things 閻ㄥ嫮澹掑▓濠囨桨閺夊灝绔风仦鈧敍姝篠ize = 240閿涘本鐗遍弶鍧楁桨閺夊じ绮?guiLeft+209 瀵偓婵绮崚璁圭礉
+ * 娑撳簼瀵?GUI 閺?31px 閻ㄥ嫰鍣搁崣鐘插隘閸╃喆鈧?
  */
 public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         implements ContainerWirelessDualInterfaceTerminal.IMEInventoryUpdateReceiver,
         ISortSource, IConfigManagerHost {
 
-    // ========== 贴图资源 ==========
+    // ========== 鐠愭潙娴樼挧鍕爱 ==========
     private static final ResourceLocation ITEMS_TEXTURE = new ResourceLocation("appliedenergistics2",
             "textures/gui/widget/items.png");
     private static final ResourceLocation PATTERN_TEXTURE = new ResourceLocation("appliedenergistics2",
@@ -125,81 +125,81 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
     private static final ResourceLocation PATTERN3_TEXTURE = new ResourceLocation("appliedenergistics2",
             "textures/gui/widget/pattern3.png");
 
-    // ========== 接口终端布局常量（从 GuiInterfaceTerminal 移植） ==========
+    // ========== 閹恒儱褰涚紒鍫㈩伂鐢啫鐪敮鎼佸櫤閿涘牅绮?GuiInterfaceTerminal 缁夌粯顦查敍?==========
 
-    /** 接口列表标题等的 X 偏移 */
+    /** 閹恒儱褰涢崚妤勩€冮弽鍥暯缁涘娈?X 閸嬪繒些 */
     private static final int OFFSET_X = 21;
-    /** 接口终端主体的固定宽度 */
+    /** 閹恒儱褰涚紒鍫㈩伂娑撹缍嬮惃鍕祼鐎规艾顔旀惔?*/
     private static final int MAIN_GUI_WIDTH = 208;
-    /** 接口终端头部高度 + 底部背包高度的固定值 */
+    /** 閹恒儱褰涚紒鍫㈩伂婢舵挳鍎存妯哄 + 鎼存洟鍎撮懗灞藉瘶妤傛ê瀹抽惃鍕祼鐎规艾鈧?*/
     private static final int MAGIC_HEIGHT_NUMBER = 52 + 99;
     private static final String MOLECULAR_ASSEMBLER = "tile.appliedenergistics2.molecular_assembler";
 
-    // ========== 样板编写面板常量（匹配 AE2Things pattern.png/pattern3.png 贴图） ==========
+    // ========== 閺嶉攱婢樼紓鏍у晸闂堛垺婢樼敮鎼佸櫤閿涘牆灏柊?AE2Things pattern.png/pattern3.png 鐠愭潙娴橀敍?==========
 
     /**
-     * 样板面板在主 GUI 内的起始X偏移（相对 guiLeft）
-     * 参考 AE2Things: drawTexturedModalRect(offsetX + 209, ...)
+     * 閺嶉攱婢橀棃銏℃緲閸︺劋瀵?GUI 閸愬懐娈戠挧宄邦潗X閸嬪繒些閿涘牏娴夌€?guiLeft閿?
+     * 閸欏倽鈧?AE2Things: drawTexturedModalRect(offsetX + 209, ...)
      */
     private static final int PATTERN_PANEL_X_OFFSET = 209;
 
     /**
-     * 样板面板上半部分尺寸（合成/处理网格区域）
-     * 对应贴图 pattern3.png (0,0)→133×93 或 pattern.png (0,93)→133×93
+     * 閺嶉攱婢橀棃銏℃緲娑撳﹤宕愰柈銊ュ瀻鐏忓搫顕敍鍫濇値閹?婢跺嫮鎮婄純鎴炵壐閸栧搫鐓欓敍?
+     * 鐎电懓绨茬拹鏉戞禈 pattern3.png (0,0)閳?33鑴?3 閹?pattern.png (0,93)閳?33鑴?3
      */
     private static final int PATTERN_PANEL_WIDTH = 133;
     private static final int PATTERN_PANEL_UPPER_HEIGHT = 93;
 
     /**
-     * 样板面板下半部分尺寸（样板IN/OUT槽区域）
-     * 对应贴图 pattern.png (133,0)→40×77
+     * 閺嶉攱婢橀棃銏℃緲娑撳宕愰柈銊ュ瀻鐏忓搫顕敍鍫熺壉閺夌竸N/OUT濡茶棄灏崺鐕傜礆
+     * 鐎电懓绨茬拹鏉戞禈 pattern.png (133,0)閳?0鑴?7
      */
     private static final int PATTERN_PANEL_LOWER_WIDTH = 40;
     private static final int PATTERN_PANEL_LOWER_HEIGHT = 77;
 
     /**
-     * 样板面板总高度
+     * 閺嶉攱婢橀棃銏℃緲閹鐝惔?
      */
     private static final int PATTERN_PANEL_HEIGHT = PATTERN_PANEL_UPPER_HEIGHT + PATTERN_PANEL_LOWER_HEIGHT;
 
-    // ===== 合成网格在上半贴图中的位置（相对于面板左上角） =====
-    /** 合成网格起始X/Y偏移（相对面板左上角，对齐贴图中的3×3网格第一个槽位左上角） */
+    // ===== 閸氬牊鍨氱純鎴炵壐閸︺劋绗傞崡濠呭垱閸ュ彞鑵戦惃鍕秴缂冾噯绱欓惄绋款嚠娴滃酣娼伴弶鍨箯娑撳﹨顫楅敍?=====
+    /** 閸氬牊鍨氱純鎴炵壐鐠у嘲顫怷/Y閸嬪繒些閿涘牏娴夌€靛綊娼伴弶鍨箯娑撳﹨顫楅敍灞筋嚠姒绘劘鍒涢崶鍙ヨ厬閻?鑴?缂冩垶鐗哥粭顑跨娑擃亝蝎娴ｅ秴涔忔稉濠咁潡閿?*/
     private static final int GRID_OFFSET_X = 15;
     private static final int GRID_OFFSET_Y = 18;
 
-    // ===== 输出槽在上半贴图中的位置 =====
+    // ===== 鏉堟挸鍤Σ钘夋躬娑撳﹤宕愮拹鏉戞禈娑擃厾娈戞担宥囩枂 =====
     /**
-     * 输出槽物品渲染位置（相对面板左上角）
-     * 合成模式大槽 (26×26) 边框在贴图 (103, 32)，物品居中 +5
-     * 处理模式 3 个标准槽 (18×18) 与合成模式输出对齐
+     * 鏉堟挸鍤Σ鐣屽⒖閸濅焦瑕嗛弻鎾茬秴缂冾噯绱欓惄绋款嚠闂堛垺婢樺锔跨瑐鐟欐帪绱?
+     * 閸氬牊鍨氬Ο鈥崇础婢堆勑?(26鑴?6) 鏉堣顢嬮崷銊ㄥ垱閸?(103, 32)閿涘瞼澧块崫浣哥湷娑?+5
+     * 婢跺嫮鎮婂Ο鈥崇础 3 娑擃亝鐖ｉ崙鍡樞?(18鑴?8) 娑撳骸鎮庨幋鎰佸蹇氱翻閸戝搫顕?
      */
     private static final int OUTPUT_OFFSET_X = 108;
     private static final int OUTPUT_OFFSET_Y = 18;
 
-    // ===== 样板IN/OUT在下半贴图中的位置（相对面板左上角） =====
-    /** 空白样板输入槽物品渲染位置（18×18 标准槽，边框在底部贴图 (9,5)，物品 +1） */
+    // ===== 閺嶉攱婢業N/OUT閸︺劋绗呴崡濠呭垱閸ュ彞鑵戦惃鍕秴缂冾噯绱欓惄绋款嚠闂堛垺婢樺锔跨瑐鐟欐帪绱?=====
+    /** 缁岃櫣娅ч弽閿嬫緲鏉堟挸鍙嗗Σ鐣屽⒖閸濅焦瑕嗛弻鎾茬秴缂冾噯绱?8鑴?8 閺嶅洤鍣Σ鏂ょ礉鏉堣顢嬮崷銊ョ俺闁劏鍒涢崶?(9,5)閿涘瞼澧块崫?+1閿?*/
     private static final int PATTERN_IN_OFFSET_X = 10;
     private static final int PATTERN_IN_OFFSET_Y = PATTERN_PANEL_UPPER_HEIGHT + 6;
 
-    /** 编码样板输出槽物品渲染位置（24×24 大槽，边框在底部贴图 (7,45)，物品居中 +4） */
+    /** 缂傛牜鐖滈弽閿嬫緲鏉堟挸鍤Σ鐣屽⒖閸濅焦瑕嗛弻鎾茬秴缂冾噯绱?4鑴?4 婢堆勑敍宀冪珶濡楀棗婀惔鏇㈠劥鐠愭潙娴?(7,45)閿涘瞼澧块崫浣哥湷娑?+4閿?*/
     private static final int PATTERN_OUT_OFFSET_X = 11;
     private static final int PATTERN_OUT_OFFSET_Y = PATTERN_PANEL_UPPER_HEIGHT + 49;
 
-    // ========== ME物品面板常量（参考 AE2Things: 4x4 网格, 101宽度, 96高度, 左下角对齐） ==========
-    /** ME物品面板的宽度（与 AE2Things 的 101 一致） */
+    // ========== ME閻椻晛鎼ч棃銏℃緲鐢悂鍣洪敍鍫濆棘閼?AE2Things: 4x4 缂冩垶鐗? 101鐎硅棄瀹? 96妤傛ê瀹? 瀹革缚绗呯憴鎺戭嚠姒绘劧绱?==========
+    /** ME閻椻晛鎼ч棃銏℃緲閻ㄥ嫬顔旀惔锔肩礄娑?AE2Things 閻?101 娑撯偓閼疯揪绱?*/
     private static final int ITEM_PANEL_WIDTH = 101;
-    /** ME物品面板每列显示的行数 */
+    /** ME閻椻晛鎼ч棃銏℃緲濮ｅ繐鍨弰鍓с仛閻ㄥ嫯顢戦弫?*/
     private static final int ITEM_PANEL_ROWS = 4;
-    /** ME物品面板每行显示的列数 */
+    /** ME閻椻晛鎼ч棃銏℃緲濮ｅ繗顢戦弰鍓с仛閻ㄥ嫬鍨弫?*/
     private static final int ITEM_PANEL_COLS = 4;
-    /** ME物品面板内网格相对面板左上角的X偏移 */
+    /** ME閻椻晛鎼ч棃銏℃緲閸愬懐缍夐弽鑲╂祲鐎靛綊娼伴弶鍨箯娑撳﹨顫楅惃鍒嬮崑蹇曅?*/
     private static final int ITEM_GRID_OFFSET_X = 5;
-    /** ME物品面板内网格相对面板左上角的Y偏移（搜索框下方） */
+    /** ME閻椻晛鎼ч棃銏℃緲閸愬懐缍夐弽鑲╂祲鐎靛綊娼伴弶鍨箯娑撳﹨顫楅惃鍒岄崑蹇曅╅敍鍫熸偝缁便垺顢嬫稉瀣煙閿?*/
     private static final int ITEM_GRID_OFFSET_Y = 18;
-    /** ME物品面板总高度（与 AE2Things 的 96 一致） */
+    /** ME閻椻晛鎼ч棃銏℃緲閹鐝惔锔肩礄娑?AE2Things 閻?96 娑撯偓閼疯揪绱?*/
     private static final int ITEM_PANEL_HEIGHT = 96;
 
-    // ========== 接口终端数据（从 GuiInterfaceTerminal 移植） ==========
+    // ========== 閹恒儱褰涚紒鍫㈩伂閺佺増宓侀敍鍫滅矤 GuiInterfaceTerminal 缁夌粯顦查敍?==========
 
     // To make JEI look nicer. Otherwise, the buttons will make JEI in a strange place.
     private final int jeiOffset = Platform.isJEIEnabled() ? 24 : 0;
@@ -218,12 +218,12 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
     private final Map<String, Set<Object>> cachedSearches = new WeakHashMap<>();
     private final Map<ClientDCInternalInv, Integer> dimHashMap = new HashMap<>();
 
-    /** 接口终端的搜索框 */
+    /** 閹恒儱褰涚紒鍫㈩伂閻ㄥ嫭鎮崇槐銏☆攱 */
     private final MEGuiTooltipTextField searchFieldOutputs;
     private final MEGuiTooltipTextField searchFieldInputs;
     private final MEGuiTooltipTextField searchFieldNames;
 
-    /** 接口终端的功能按钮 */
+    /** 閹恒儱褰涚紒鍫㈩伂閻ㄥ嫬濮涢懗鑺ュ瘻闁?*/
     private final GuiImgButton guiButtonHideFull;
     private final GuiImgButton guiButtonAssemblersOnly;
     private final GuiImgButton guiButtonBrokenRecipes;
@@ -235,13 +235,13 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
     private boolean onlyShowWithSpace = false;
     private boolean onlyMolecularAssemblers = false;
     private boolean onlyBrokenRecipes = false;
-    /** 接口列表的可见行数 */
+    /** 閹恒儱褰涢崚妤勩€冮惃鍕讲鐟欎浇顢戦弫?*/
     private int rows = 6;
 
-    // ========== ME物品面板搜索框记忆文本 ==========
+    // ========== ME閻椻晛鎼ч棃銏℃緲閹兼粎鍌ㄥ鍡氼唶韫囧棙鏋冮張?==========
     private static String memoryText = "";
 
-    // ========== 样板面板按钮 ==========
+    // ========== 閺嶉攱婢橀棃銏℃緲閹稿鎸?==========
     private GuiTabButton tabCraftButton;
     private GuiTabButton tabProcessButton;
     private GuiImgButton substitutionsEnabledBtn;
@@ -254,7 +254,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
     private GuiImgButton encodeBtn;
     private GuiImgButton clearBtn;
 
-    // ========== 数量调整按钮（处理模式下显示，与 GuiPatternTerm 一致） ==========
+    // ========== 閺佷即鍣虹拫鍐╂殻閹稿鎸抽敍鍫濐槱閻炲棙膩瀵繋绗呴弰鍓с仛閿涘奔绗?GuiPatternTerm 娑撯偓閼疯揪绱?==========
     private GuiImgButton x2Btn;
     private GuiImgButton x3Btn;
     private GuiImgButton plusOneBtn;
@@ -264,34 +264,34 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
     private GuiImgButton doubleBtn;
     private UniversalTerminalButtons universalButtons;
 
-    // ========== Crafting Status 按钮 ==========
+    // ========== Crafting Status 閹稿鎸?==========
     private GuiTabButton craftingStatusBtn;
 
-    // ========== ME物品面板排序/过滤按钮（参考 GuiMEMonitorable） ==========
+    // ========== ME閻椻晛鎼ч棃銏℃緲閹烘帒绨?鏉╁洦鎶ら幐澶愭尦閿涘牆寮懓?GuiMEMonitorable閿?==========
     private GuiImgButton SortByBox;
     private GuiImgButton SortDirBox;
     private GuiImgButton ViewBox;
     private GuiImgButton searchBoxSettings;
 
-    // ========== ME物品面板数据 ==========
+    // ========== ME閻椻晛鎼ч棃銏℃緲閺佺増宓?==========
     private final ItemRepo itemRepo;
     private final GuiScrollbar itemPanelScrollbar;
     private MEGuiTextField itemSearchField;
 
-    // ========== 处理模式输出槽翻页滚动条 ==========
+    // ========== 婢跺嫮鎮婂Ο鈥崇础鏉堟挸鍤Σ鐣岀倳妞ゅ灚绮撮崝銊︽蒋 ==========
     private final GuiScrollbar processingScrollBar;
 
     private final IConfigManager configSrc;
     private final WirelessTerminalGuiObject wirelessGuiObject;
 
-    // ========== PlacePattern（编码后自动放入接口） ==========
-    /** 当编码按钮按下时 Alt 被按住，设置为 true，下一帧 tick 时尝试放置 */
+    // ========== PlacePattern閿涘牏绱惍浣告倵閼奉亜濮╅弨鎯у弳閹恒儱褰涢敍?==========
+    /** 瑜版挾绱惍浣瑰瘻闁筋喗瀵滄稉瀣 Alt 鐞氼偅瀵滄担蹇ョ礉鐠佸墽鐤嗘稉?true閿涘奔绗呮稉鈧敮?tick 閺冭泛鐨剧拠鏇熸杹缂?*/
     private boolean pendingPlacePattern = false;
 
-    // ========== 面板拖拽状态 ==========
-    /** 左侧ME物品面板的拖拽状态 */
+    // ========== 闂堛垺婢橀幏鏍ㄥ閻樿埖鈧?==========
+    /** 瀹革缚鏅禡E閻椻晛鎼ч棃銏℃緲閻ㄥ嫭瀚嬮幏鐣屽Ц閹?*/
     private PanelDragState itemPanelDragState;
-    /** 右侧样板面板的拖拽状态 */
+    /** 閸欏厖鏅堕弽閿嬫緲闂堛垺婢橀惃鍕珛閹风晫濮搁幀?*/
     private PanelDragState patternPanelDragState;
 
     public GuiWirelessDualInterfaceTerminal(final InventoryPlayer inventoryPlayer,
@@ -299,45 +299,45 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         super(new ContainerWirelessDualInterfaceTerminal(inventoryPlayer, te));
         this.wirelessGuiObject = te;
 
-        // xSize = 240，与 AE2Things 一致，使样板面板可以与主 GUI 重叠
+        // xSize = 240閿涘奔绗?AE2Things 娑撯偓閼疯揪绱濇担鎸庣壉閺夊潡娼伴弶鍨讲娴犮儰绗屾稉?GUI 闁插秴褰?
         this.xSize = 240;
         this.ySize = 255;
 
-        // 接口终端滚动条
+        // 閹恒儱褰涚紒鍫㈩伂濠婃艾濮╅弶?
         final GuiScrollbar scrollbar = new GuiScrollbar();
         this.setScrollBar(scrollbar);
 
-        // 接口终端搜索框（从 GuiInterfaceTerminal 移植）
+        // 閹恒儱褰涚紒鍫㈩伂閹兼粎鍌ㄥ鍡礄娴?GuiInterfaceTerminal 缁夌粯顦查敍?
         searchFieldInputs = createInterfaceTextField(86, 12, ButtonToolTips.SearchFieldInputs.getLocal());
         searchFieldOutputs = createInterfaceTextField(86, 12, ButtonToolTips.SearchFieldOutputs.getLocal());
         searchFieldNames = createInterfaceTextField(71, 12, ButtonToolTips.SearchFieldNames.getLocal());
 
-        // 接口终端功能按钮
+        // 閹恒儱褰涚紒鍫㈩伂閸旂喕鍏橀幐澶愭尦
         guiButtonAssemblersOnly = new GuiImgButton(0, 0, Settings.ACTIONS, null);
         guiButtonHideFull = new GuiImgButton(0, 0, Settings.ACTIONS, null);
         guiButtonBrokenRecipes = new GuiImgButton(0, 0, Settings.ACTIONS, null);
         terminalStyleBox = new GuiImgButton(0, 0, Settings.TERMINAL_STYLE, null);
 
-        // 从 Container 获取配置管理器用于排序/视图设置
+        // 娴?Container 閼惧嘲褰囬柊宥囩枂缁狅紕鎮婇崳銊ф暏娴滃孩甯撴惔?鐟欏棗娴樼拋鍓х枂
         this.configSrc = ((IConfigurableObject) this.inventorySlots).getConfigManager();
 
-        // 初始化左侧 ME 物品面板的滚动条和 ItemRepo
+        // 閸掓繂顫愰崠鏍т箯娓?ME 閻椻晛鎼ч棃銏℃緲閻ㄥ嫭绮撮崝銊︽蒋閸?ItemRepo
         this.itemPanelScrollbar = new GuiScrollbar();
         this.itemRepo = new ItemRepo(this.itemPanelScrollbar, this);
         this.itemRepo.setRowSize(ITEM_PANEL_COLS);
 
-        // 初始化处理模式输出槽翻页滚动条
+        // 閸掓繂顫愰崠鏍ь槱閻炲棙膩瀵繗绶崙鐑樞紙濠氥€夊姘З閺?
         this.processingScrollBar = new GuiScrollbar();
 
-        // 初始化面板拖拽状态
+        // 閸掓繂顫愰崠鏍桨閺夋寧瀚嬮幏鐣屽Ц閹?
         this.initDragStates();
 
-        // 注册自身为 ME 库存更新接收者
+        // 濞夈劌鍞介懛顏囬煩娑?ME 鎼存挸鐡ㄩ弴瀛樻煀閹恒儲鏁归懓?
         getDualContainer().setMeGui(this);
     }
 
     /**
-     * 创建接口终端搜索框（文本变更时刷新接口列表）
+     * 閸掓稑缂撻幒銉ュ經缂佸牏顏幖婊呭偍濡楀棴绱欓弬鍥ㄦ拱閸欐ɑ娲块弮璺哄煕閺傜増甯撮崣锝呭灙鐞涱煉绱?
      */
     private MEGuiTooltipTextField createInterfaceTextField(final int width, final int height, final String tooltip) {
         MEGuiTooltipTextField textField = new MEGuiTooltipTextField(width, height, tooltip) {
@@ -357,10 +357,10 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         return (ContainerWirelessDualInterfaceTerminal) this.inventorySlots;
     }
 
-    // ========== IMEInventoryUpdateReceiver 接口实现 ==========
+    // ========== IMEInventoryUpdateReceiver 閹恒儱褰涚€圭偟骞?==========
 
     /**
-     * 接收来自服务端的 ME 网络库存更新，转发到 ItemRepo
+     * 閹恒儲鏁归弶銉ㄥ殰閺堝秴濮熺粩顖滄畱 ME 缂冩垹绮舵惔鎾崇摠閺囧瓨鏌婇敍宀冩祮閸欐垵鍩?ItemRepo
      */
     @Override
     public void postUpdate(final List<IAEStack<?>> list) {
@@ -371,61 +371,61 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         this.updateItemPanelScrollbar();
     }
 
-    // ========== 面板坐标计算辅助方法 ==========
+    // ========== 闂堛垺婢橀崸鎰垼鐠侊紕鐣绘潏鍛И閺傝纭?==========
 
     /**
-     * 获取样板面板的起始X坐标（相对于guiLeft）
-     * 使用 AE2Things 的布局：面板从 guiLeft + 209 开始
+     * 閼惧嘲褰囬弽閿嬫緲闂堛垺婢橀惃鍕崳婵獋閸ф劖鐖ｉ敍鍫㈡祲鐎甸€涚艾guiLeft閿?
+     * 娴ｈ法鏁?AE2Things 閻ㄥ嫬绔风仦鈧敍姘舵桨閺夊じ绮?guiLeft + 209 瀵偓婵?
      */
     private int getPatternPanelX() {
         return PATTERN_PANEL_X_OFFSET + this.patternPanelDragState.getDragOffsetX();
     }
 
     /**
-     * 获取样板面板的起始Y坐标偏移（相对于guiTop）
+     * 閼惧嘲褰囬弽閿嬫緲闂堛垺婢橀惃鍕崳婵獌閸ф劖鐖ｉ崑蹇曅╅敍鍫㈡祲鐎甸€涚艾guiTop閿?
      */
     private int getPatternPanelY() {
         return this.patternPanelDragState.getDragOffsetY();
     }
 
     /**
-     * 获取ME物品面板的绝对X坐标（屏幕坐标）
-     * 参考 AE2Things: absX = guiLeft - 101
+     * 閼惧嘲褰嘙E閻椻晛鎼ч棃銏℃緲閻ㄥ嫮绮风€电瓩閸ф劖鐖ｉ敍鍫濈潌楠炴洖娼楅弽鍥风礆
+     * 閸欏倽鈧?AE2Things: absX = guiLeft - 101
      */
     private int getItemPanelAbsX() {
         return this.guiLeft - ITEM_PANEL_WIDTH + this.itemPanelDragState.getDragOffsetX();
     }
 
     /**
-     * 获取ME物品面板的绝对Y坐标（屏幕坐标）
-     * 参考 AE2Things: absY = guiTop + ySize - 96（左下角对齐）
+     * 閼惧嘲褰嘙E閻椻晛鎼ч棃銏℃緲閻ㄥ嫮绮风€电瓬閸ф劖鐖ｉ敍鍫濈潌楠炴洖娼楅弽鍥风礆
+     * 閸欏倽鈧?AE2Things: absY = guiTop + ySize - 96閿涘牆涔忔稉瀣潡鐎靛綊缍堥敍?
      */
     private int getItemPanelAbsY() {
         return this.guiTop + this.ySize - ITEM_PANEL_HEIGHT + this.itemPanelDragState.getDragOffsetY();
     }
 
     /**
-     * 获取ME物品面板的起始X坐标（相对于guiLeft，用于虚拟槽位定位）
+     * 閼惧嘲褰嘙E閻椻晛鎼ч棃銏℃緲閻ㄥ嫯鎹ｆ慨濯傞崸鎰垼閿涘牏娴夌€甸€涚艾guiLeft閿涘瞼鏁ゆ禍搴ゆ珓閹风喐蝎娴ｅ秴鐣炬担宥忕礆
      */
     private int getItemPanelRelX() {
         return -ITEM_PANEL_WIDTH + this.itemPanelDragState.getDragOffsetX();
     }
 
     /**
-     * 获取ME物品面板的起始Y坐标（相对于guiTop，用于虚拟槽位定位）
+     * 閼惧嘲褰嘙E閻椻晛鎼ч棃銏℃緲閻ㄥ嫯鎹ｆ慨濯冮崸鎰垼閿涘牏娴夌€甸€涚艾guiTop閿涘瞼鏁ゆ禍搴ゆ珓閹风喐蝎娴ｅ秴鐣炬担宥忕礆
      */
     private int getItemPanelRelY() {
         return this.ySize - ITEM_PANEL_HEIGHT + this.itemPanelDragState.getDragOffsetY();
     }
 
-    // ========== 接口终端滚动条设置 ==========
+    // ========== 閹恒儱褰涚紒鍫㈩伂濠婃艾濮╅弶陇顔曠純?==========
 
     private void setInterfaceScrollBar() {
         this.getScrollBar().setTop(52).setLeft(189).setHeight(this.rows * 18 - 2);
         this.getScrollBar().setRange(0, this.lines.size() - 1, 1);
     }
 
-    // ========== ME物品面板滚动条更新 ==========
+    // ========== ME閻椻晛鎼ч棃銏℃緲濠婃艾濮╅弶鈩冩纯閺?==========
 
     private void updateItemPanelScrollbar() {
         this.itemPanelScrollbar.setRange(0,
@@ -433,13 +433,13 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                 Math.max(1, ITEM_PANEL_ROWS / 6));
     }
 
-    // ========== 槽位重定位 ==========
+    // ========== 濡叉垝缍呴柌宥呯暰娴?==========
 
     /**
-     * 重定位所有槽位。
-     * 样板编写相关槽位使用 AE2Things 的公式：ySize + getY() - viewHeight - 78 - 4
-     * 其中 viewHeight = rows * 18（接口列表可见区域高度）
-     * 玩家背包和其他标准槽位使用：ySize + getY() - 78 - 7
+     * 闁插秴鐣炬担宥嗗閺堝蝎娴ｅ秲鈧?
+     * 閺嶉攱婢樼紓鏍у晸閻╃鍙уΣ鎴掔秴娴ｈ法鏁?AE2Things 閻ㄥ嫬鍙曞蹇ョ窗ySize + getY() - viewHeight - 78 - 4
+     * 閸忔湹鑵?viewHeight = rows * 18閿涘牊甯撮崣锝呭灙鐞涖劌褰茬憴浣稿隘閸╃喖鐝惔锔肩礆
+     * 閻溾晛顔嶉懗灞藉瘶閸滃苯鍙炬禒鏍ㄧ垼閸戝棙蝎娴ｅ秳濞囬悽顭掔窗ySize + getY() - 78 - 7
      */
     private void repositionSlots() {
         final int panelX = getPatternPanelX();
@@ -449,24 +449,24 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         for (final Object obj : this.inventorySlots.inventorySlots) {
             if (obj instanceof AppEngSlot slot) {
                 if (slot instanceof SlotFakeCraftingMatrix) {
-                    // 3x3合成网格槽位
+                    // 3x3閸氬牊鍨氱純鎴炵壐濡叉垝缍?
                     final int craftIdx = slot.getSlotIndex();
                     final int gridX = craftIdx % 3;
                     final int gridY = craftIdx / 3;
                     slot.xPos = panelX + GRID_OFFSET_X + gridX * 18;
                     slot.yPos = panelY + GRID_OFFSET_Y + gridY * 18;
                 } else if (slot instanceof SlotPatternTerm) {
-                    // 样板编码输出槽（合成模式下的大结果槽 26×26）
-                    // 物品渲染位置 = 大槽边框(103,32) + 居中偏移(5,5)
+                    // 閺嶉攱婢樼紓鏍垳鏉堟挸鍤Σ鏂ょ礄閸氬牊鍨氬Ο鈥崇础娑撳娈戞径褏绮ㄩ弸婊勑?26鑴?6閿?
+                    // 閻椻晛鎼у〒鍙夌厠娴ｅ秶鐤?= 婢堆勑潏瑙勵攱(103,32) + 鐏炲懍鑵戦崑蹇曅?5,5)
                     slot.xPos = panelX + OUTPUT_OFFSET_X;
                     slot.yPos = panelY + 37;
                 } else if (slot instanceof SlotPatternOutputs) {
-                    // 处理模式的输出槽（3个标准 18×18 槽位）
+                    // 婢跺嫮鎮婂Ο鈥崇础閻ㄥ嫯绶崙鐑樞敍?娑擃亝鐖ｉ崙?18鑴?8 濡叉垝缍呴敍?
                     final int outIdx = slot.getSlotIndex();
                     slot.xPos = panelX + OUTPUT_OFFSET_X;
                     slot.yPos = panelY + OUTPUT_OFFSET_Y + outIdx * 18;
                 } else if (slot instanceof SlotRestrictedInput restrictedSlot) {
-                    // 区分空白样板输入槽和编码样板输出槽
+                    // 閸栧搫鍨庣粚铏规閺嶉攱婢樻潏鎾冲弳濡茶棄鎷扮紓鏍垳閺嶉攱婢樻潏鎾冲毉濡?
                     if (restrictedSlot.getPlaceableItemType()
                             == SlotRestrictedInput.PlacableItemType.BLANK_PATTERN) {
                         slot.xPos = panelX + PATTERN_IN_OFFSET_X;
@@ -476,12 +476,12 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                         slot.xPos = panelX + PATTERN_OUT_OFFSET_X;
                         slot.yPos = panelY + PATTERN_OUT_OFFSET_Y;
                     } else {
-                        // 其他 SlotRestrictedInput（如无线终端升级槽），使用标准逻辑
+                        // 閸忔湹绮?SlotRestrictedInput閿涘牆顩ч弮鐘靛殠缂佸牏顏崡鍥╅獓濡叉枻绱氶敍灞煎▏閻劍鐖ｉ崙鍡涒偓鏄忕帆
                         slot.yPos = this.ySize + slot.getY() - 78 - 7;
                         slot.xPos = slot.getX() + 14;
                     }
                 } else {
-                    // 玩家背包槽位和其他标准槽位
+                    // 閻溾晛顔嶉懗灞藉瘶濡叉垝缍呴崪灞藉従娴犳牗鐖ｉ崙鍡樞担?
                     slot.yPos = this.ySize + slot.getY() - 78 - 7;
                     slot.xPos = slot.getX() + 14;
                 }
@@ -489,13 +489,13 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         }
     }
 
-    // ========== GUI 初始化 ==========
+    // ========== GUI 閸掓繂顫愰崠?==========
 
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
 
-        // ===== 计算接口列表行数（与 GuiInterfaceTerminal 逻辑一致） =====
+        // ===== 鐠侊紕鐣婚幒銉ュ經閸掓銆冪悰灞炬殶閿涘牅绗?GuiInterfaceTerminal 闁槒绶稉鈧懛杈剧礆 =====
         final int jeiSearchOffset = Platform.isJEICenterSearchBarEnabled() ? 40 : 0;
         final int maxScreenRows = (int) Math.floor(
                 (double) (this.height - MAGIC_HEIGHT_NUMBER - jeiSearchOffset) / 18);
@@ -519,12 +519,12 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
 
         super.initGui();
 
-        // ===== 计算 ySize 和 guiTop =====
+        // ===== 鐠侊紕鐣?ySize 閸?guiTop =====
         this.ySize = MAGIC_HEIGHT_NUMBER + this.rows * 18;
         final int unusedSpace = this.height - this.ySize;
         this.guiTop = (int) Math.floor(unusedSpace / (unusedSpace < 0 ? 3.8f : 2.0f));
 
-        // ===== 接口终端搜索框定位 =====
+        // ===== 閹恒儱褰涚紒鍫㈩伂閹兼粎鍌ㄥ鍡楃暰娴?=====
         searchFieldInputs.x = guiLeft + 32;
         searchFieldInputs.y = guiTop + 25;
         searchFieldOutputs.x = guiLeft + 32;
@@ -534,7 +534,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
 
         searchFieldNames.setFocused(true);
 
-        // ===== 接口终端功能按钮定位 =====
+        // ===== 閹恒儱褰涚紒鍫㈩伂閸旂喕鍏橀幐澶愭尦鐎规矮缍?=====
         terminalStyleBox.x = guiLeft - 18;
         terminalStyleBox.y = guiTop + 8 + this.jeiOffset;
         guiButtonBrokenRecipes.x = guiLeft - 18;
@@ -544,32 +544,32 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         guiButtonAssemblersOnly.x = guiLeft - 18;
         guiButtonAssemblersOnly.y = guiButtonHideFull.y + 20;
 
-        // ===== 接口终端滚动条 =====
+        // ===== 閹恒儱褰涚紒鍫㈩伂濠婃艾濮╅弶?=====
         this.setInterfaceScrollBar();
         this.repositionSlots();
 
-        // ===== Crafting Status 按钮（主界面右上角） =====
+        // ===== Crafting Status 閹稿鎸抽敍鍫滃瘜閻ｅ矂娼伴崣鍏呯瑐鐟欐帪绱?=====
         this.craftingStatusBtn = new GuiTabButton(this.guiLeft + 170, this.guiTop - 4,
                 2 + 11 * 16, GuiText.CraftingStatus.getLocal(), this.itemRender);
         this.craftingStatusBtn.setHideEdge(13);
         this.buttonList.add(this.craftingStatusBtn);
 
-        // ===== 样板面板按钮（位置匹配 AE2Things 的 PatternPanel） =====
+        // ===== 閺嶉攱婢橀棃銏℃緲閹稿鎸抽敍鍫滅秴缂冾喖灏柊?AE2Things 閻?PatternPanel閿?=====
         final int panelScreenX = this.guiLeft + getPatternPanelX();
         final int panelScreenY = this.guiTop + getPatternPanelY();
 
-        // 编码按钮（面板内 (11, 118)，在下半区域，与 AE2Things 一致）
+        // 缂傛牜鐖滈幐澶愭尦閿涘牓娼伴弶鍨敶 (11, 118)閿涘苯婀稉瀣磹閸栧搫鐓欓敍灞肩瑢 AE2Things 娑撯偓閼疯揪绱?
         this.encodeBtn = new GuiImgButton(panelScreenX + 11, panelScreenY + 118,
                 Settings.ACTIONS, ActionItems.ENCODE);
         this.buttonList.add(this.encodeBtn);
 
-        // 清除按钮（半尺寸，面板内 (87, 10)，上半区域右侧）
+        // 濞撳懘娅庨幐澶愭尦閿涘牆宕愮亸鍝勵嚟閿涘矂娼伴弶鍨敶 (87, 10)閿涘奔绗傞崡濠傚隘閸╃喎褰告笟褝绱?
         this.clearBtn = new GuiImgButton(panelScreenX + 87, panelScreenY + 10,
                 Settings.ACTIONS, ActionItems.CLOSE);
         this.clearBtn.setHalfSize(true);
         this.buttonList.add(this.clearBtn);
 
-        // 合成/处理模式切换标签（面板内 (39, 93)，上下交界处）
+        // 閸氬牊鍨?婢跺嫮鎮婂Ο鈥崇础閸掑洦宕查弽鍥╊劮閿涘牓娼伴弶鍨敶 (39, 93)閿涘奔绗傛稉瀣╂唉閻ｅ苯顦╅敍?
         this.tabCraftButton = new GuiTabButton(panelScreenX + 39, panelScreenY + 93,
                 new ItemStack(Blocks.CRAFTING_TABLE),
                 GuiText.CraftingPattern.getLocal(), this.itemRender);
@@ -580,7 +580,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                 GuiText.ProcessingPattern.getLocal(), this.itemRender);
         this.buttonList.add(this.tabProcessButton);
 
-        // 替代品开关按钮（面板内 (97, 10)，上半区域右侧，半尺寸）
+        // 閺囧じ鍞崫浣哥磻閸忚櫕瀵滈柦顕嗙礄闂堛垺婢橀崘?(97, 10)閿涘奔绗傞崡濠傚隘閸╃喎褰告笟褝绱濋崡濠傛槀鐎甸潻绱?
         this.substitutionsEnabledBtn = new GuiImgButton(panelScreenX + 97, panelScreenY + 10,
                 Settings.ACTIONS, ItemSubstitution.ENABLED);
         this.substitutionsEnabledBtn.setHalfSize(true);
@@ -591,7 +591,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         this.substitutionsDisabledBtn.setHalfSize(true);
         this.buttonList.add(this.substitutionsDisabledBtn);
 
-        // 绝对替换按钮（面板内 (87, 20)，替代品下方，半尺寸）
+        // 缂佹繂顕弴鎸庡床閹稿鎸抽敍鍫ユ桨閺夊灝鍞?(87, 20)閿涘本娴涙禒锝呮惂娑撳鏌熼敍灞藉磹鐏忓搫顕敍?
         this.beSubstitutionsEnabledBtn = new GuiImgButton(panelScreenX + 87, panelScreenY + 20,
                 Settings.ACTIONS, ItemSubstitution.ENABLED);
         this.beSubstitutionsEnabledBtn.setHalfSize(true);
@@ -602,13 +602,13 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         this.beSubstitutionsDisabledBtn.setHalfSize(true);
         this.buttonList.add(this.beSubstitutionsDisabledBtn);
 
-        // 反转按钮（面板内 (97, 20)，半尺寸，处理模式下可见）
+        // 閸欏秷娴嗛幐澶愭尦閿涘牓娼伴弶鍨敶 (97, 20)閿涘苯宕愮亸鍝勵嚟閿涘苯顦╅悶鍡樐佸蹇庣瑓閸欘垵顫嗛敍?
         this.invertBtn = new GuiImgButton(panelScreenX + 97, panelScreenY + 20,
                 Settings.ACTIONS, ActionItems.CLOSE);
         this.invertBtn.setHalfSize(true);
         this.buttonList.add(this.invertBtn);
 
-        // 合并模式按钮（面板内 (87, 30)，半尺寸，处理模式下可见）
+        // 閸氬牆鑻熷Ο鈥崇础閹稿鎸抽敍鍫ユ桨閺夊灝鍞?(87, 30)閿涘苯宕愮亸鍝勵嚟閿涘苯顦╅悶鍡樐佸蹇庣瑓閸欘垵顫嗛敍?
         this.combineEnabledBtn = new GuiImgButton(panelScreenX + 87, panelScreenY + 30,
                 Settings.ACTIONS, CombineMode.ENABLED);
         this.combineEnabledBtn.setHalfSize(true);
@@ -619,7 +619,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         this.combineDisabledBtn.setHalfSize(true);
         this.buttonList.add(this.combineDisabledBtn);
 
-        // ===== 数量调整按钮（处理模式下显示，放在输出槽右侧） =====
+        // ===== 閺佷即鍣虹拫鍐╂殻閹稿鎸抽敍鍫濐槱閻炲棙膩瀵繋绗呴弰鍓с仛閿涘本鏂侀崷銊ㄧ翻閸戠儤蝎閸欏厖鏅堕敍?=====
         final int adjBtnX1 = panelScreenX + OUTPUT_OFFSET_X + 22;
         final int adjBtnX2 = panelScreenX + OUTPUT_OFFSET_X + 12;
 
@@ -653,19 +653,19 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         this.minusOneBtn.setHalfSize(true);
         this.buttonList.add(this.minusOneBtn);
 
-        // 翻倍/减半按钮（左键×2/×8，右键÷2/÷8）
+        // 缂堣鈧?閸戝繐宕愰幐澶愭尦閿涘牆涔忛柨顔?/鑴?閿涘苯褰搁柨顔?/姊?閿?
         this.doubleBtn = new GuiImgButton(adjBtnX2, panelScreenY + 36,
                 Settings.ACTIONS, ActionItems.DOUBLE_STACKS);
         this.doubleBtn.setHalfSize(true);
         this.buttonList.add(this.doubleBtn);
 
-        // ===== ME物品面板 =====
+        // ===== ME閻椻晛鎼ч棃銏℃緲 =====
         final int itemAbsX = getItemPanelAbsX();
         final int itemAbsY = getItemPanelAbsY();
         final int itemRelX = getItemPanelRelX();
         final int itemRelY = getItemPanelRelY();
 
-        // ME物品面板排序/过滤按钮
+        // ME閻椻晛鎼ч棃銏℃緲閹烘帒绨?鏉╁洦鎶ら幐澶愭尦
         int sortBtnOffset = itemAbsY + 18;
 
         this.SortByBox = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.SORT_BY,
@@ -687,7 +687,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                 AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE));
         this.buttonList.add(this.searchBoxSettings);
 
-        // ME物品搜索框
+        // ME閻椻晛鎼ч幖婊呭偍濡?
         this.itemSearchField = new MEGuiTextField(this.fontRenderer,
                 itemAbsX + 3, itemAbsY + 4, 72, 12);
         this.itemSearchField.setEnableBackgroundDrawing(false);
@@ -695,7 +695,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         this.itemSearchField.setTextColor(0xFFFFFF);
         this.itemSearchField.setVisible(true);
 
-        // SearchBoxMode 逻辑
+        // SearchBoxMode 闁槒绶?
         final Enum searchModeSetting = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
         final boolean isJEIEnabled = SearchBoxMode.JEI_AUTOSEARCH == searchModeSetting
                 || SearchBoxMode.JEI_MANUAL_SEARCH == searchModeSetting;
@@ -709,10 +709,10 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             this.itemRepo.setSearchString(memoryText);
         }
 
-        // 移除旧的虚拟 ME 槽位
+        // 缁夊娅庨弮褏娈戦搹姘珯 ME 濡叉垝缍?
         this.guiSlots.removeIf(s -> s instanceof VirtualMEMonitorableSlot);
 
-        // 创建 4x4 虚拟 ME 槽位
+        // 閸掓稑缂?4x4 閾忔碍瀚?ME 濡叉垝缍?
         for (int row = 0; row < ITEM_PANEL_ROWS; row++) {
             for (int col = 0; col < ITEM_PANEL_COLS; col++) {
                 final int slotIdx = col + row * ITEM_PANEL_COLS;
@@ -723,13 +723,13 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             }
         }
 
-        // 设置ME物品面板滚动条位置
+        // 鐠佸墽鐤哅E閻椻晛鎼ч棃銏℃緲濠婃艾濮╅弶鈥茬秴缂?
         this.itemPanelScrollbar.setLeft(itemRelX + ITEM_PANEL_WIDTH - 14)
                 .setTop(itemRelY + ITEM_GRID_OFFSET_Y)
                 .setHeight(ITEM_PANEL_ROWS * 18 - 2);
         this.updateItemPanelScrollbar();
 
-        // ===== 处理模式输出槽翻页滚动条（位于输出槽右侧） =====
+        // ===== 婢跺嫮鎮婂Ο鈥崇础鏉堟挸鍤Σ鐣岀倳妞ゅ灚绮撮崝銊︽蒋閿涘牅缍呮禍搴ょ翻閸戠儤蝎閸欏厖鏅堕敍?=====
         final int panelRelX = getPatternPanelX();
         final int panelRelY = getPatternPanelY();
         this.processingScrollBar.setLeft(panelRelX + OUTPUT_OFFSET_X + 18)
@@ -740,46 +740,46 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
 
         this.itemRepo.setPower(true);
 
-        // 通用无线终端切换按钮
+        // 闁氨鏁ら弮鐘靛殠缂佸牏顏崚鍥ㄥ床閹稿鎸?
         this.universalButtons = new UniversalTerminalButtons(
                 ((appeng.container.AEBaseContainer) this.inventorySlots).getPlayerInv());
         this.universalButtons.initButtons(this.guiLeft, this.guiTop, this.buttonList, 500, this.itemRender);
     }
 
-    // ========== JEI 排除区域（防止 JEI 面板遮挡侧面板） ==========
+    // ========== JEI 閹烘帡娅庨崠鍝勭厵閿涘牓妲诲?JEI 闂堛垺婢橀柆顔藉皡娓氀囨桨閺夊尅绱?==========
 
     @Override
     public List<Rectangle> getJEIExclusionArea() {
         List<Rectangle> area = new ArrayList<>();
-        // 左侧按钮排除区域
+        // 瀹革缚鏅堕幐澶愭尦閹烘帡娅庨崠鍝勭厵
         area.add(new Rectangle(this.guiLeft - 18, this.guiTop + 24 + 24, 18, 18));
-        // 右侧样板面板排除区域
+        // 閸欏厖鏅堕弽閿嬫緲闂堛垺婢橀幒鎺楁珟閸栧搫鐓?
         final int panelScreenX = this.guiLeft + getPatternPanelX();
         final int panelScreenY = this.guiTop + getPatternPanelY();
         area.add(new Rectangle(panelScreenX, panelScreenY, PATTERN_PANEL_WIDTH, PATTERN_PANEL_HEIGHT));
-        // 左侧ME物品面板排除区域
+        // 瀹革缚鏅禡E閻椻晛鎼ч棃銏℃緲閹烘帡娅庨崠鍝勭厵
         area.add(new Rectangle(getItemPanelAbsX(), getItemPanelAbsY(), ITEM_PANEL_WIDTH, ITEM_PANEL_HEIGHT));
         return area;
     }
 
-    // ========== 按钮处理 ==========
+    // ========== 閹稿鎸虫径鍕倞 ==========
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
-        // 通用无线终端切换按钮
+        // 闁氨鏁ら弮鐘靛殠缂佸牏顏崚鍥ㄥ床閹稿鎸?
         if (this.universalButtons != null && this.universalButtons.handleButtonClick(btn)) {
             return;
         }
 
         final ContainerWirelessDualInterfaceTerminal ct = getDualContainer();
 
-        // Crafting Status 按钮
+        // Crafting Status 閹稿鎸?
         if (btn == this.craftingStatusBtn) {
             NetworkHandler.instance().sendToServer(new PacketSwitchGuis(GuiBridge.GUI_CRAFTING_STATUS));
             return;
         }
 
-        // ===== 接口终端的高亮按钮 =====
+        // ===== 閹恒儱褰涚紒鍫㈩伂閻ㄥ嫰鐝禍顔藉瘻闁?=====
         if (guiButtonHashMap.containsKey(btn)) {
             BlockPos blockPos = blockPosHashMap.get(guiButtonHashMap.get(this.selectedButton));
             BlockPos blockPos2 = mc.player.getPosition();
@@ -805,7 +805,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             return;
         }
 
-        // ===== 接口终端的翻倍/减半按钮 =====
+        // ===== 閹恒儱褰涚紒鍫㈩伂閻ㄥ嫮鐐曢崐?閸戝繐宕愰幐澶愭尦 =====
         if (doubleButtonHashMap.containsKey(btn)) {
             final ClientDCInternalInv inv = doubleButtonHashMap.get(btn);
             final boolean backwards = Mouse.isButtonDown(1);
@@ -822,7 +822,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             return;
         }
 
-        // ===== 接口终端的筛选按钮 =====
+        // ===== 閹恒儱褰涚紒鍫㈩伂閻ㄥ嫮鐡柅澶嬪瘻闁?=====
         if (btn == guiButtonHideFull) {
             onlyShowWithSpace = !onlyShowWithSpace;
             this.refreshList();
@@ -839,22 +839,24 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             return;
         }
 
-        // ===== 终端样式按钮 =====
+        // ===== 缂佸牏顏弽宄扮础閹稿鎸?=====
         if (btn == this.terminalStyleBox) {
             final Enum<?> cv = terminalStyleBox.getCurrentValue();
             final boolean backwards = Mouse.isButtonDown(1);
-            final Enum<?> next = Platform.rotateEnum(cv, backwards, terminalStyleBox.getSetting().getPossibleValues());
+            final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
+                    terminalStyleBox.getSetting().getPossibleValues());
             AEConfig.instance().getConfigManager().putSetting(terminalStyleBox.getSetting(), next);
             terminalStyleBox.set(next);
             this.reinitialize();
             return;
         }
 
-        // ===== ME 物品面板排序/过滤按钮 =====
+        // ===== ME 閻椻晛鎼ч棃銏℃緲閹烘帒绨?鏉╁洦鎶ら幐澶愭尦 =====
         if (btn instanceof GuiImgButton iBtn && iBtn.getSetting() != Settings.ACTIONS) {
             final boolean backwards = Mouse.isButtonDown(1);
             final Enum cv = iBtn.getCurrentValue();
-            final Enum next = Platform.rotateEnum(cv, backwards, iBtn.getSetting().getPossibleValues());
+            final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
+                    iBtn.getSetting().getPossibleValues());
 
             if (btn == this.searchBoxSettings) {
                 AEConfig.instance().getConfigManager().putSetting(iBtn.getSetting(), next);
@@ -875,7 +877,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             return;
         }
 
-        // ===== 样板面板按钮 =====
+        // ===== 閺嶉攱婢橀棃銏℃緲閹稿鎸?=====
         try {
             if (btn == this.tabCraftButton || btn == this.tabProcessButton) {
                 NetworkHandler.instance().sendToServer(new PacketValueConfig("PatternTerminal.CraftMode",
@@ -884,7 +886,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                 final int value = (isCtrlKeyDown() ? 1 : 0) << 1 | (isShiftKeyDown() ? 1 : 0);
                 NetworkHandler.instance()
                         .sendToServer(new PacketValueConfig("PatternTerminal.Encode", String.valueOf(value)));
-                // Alt + 编码：编码完成后自动放入接口
+                // Alt + 缂傛牜鐖滈敍姘辩椽閻礁鐣幋鎰倵閼奉亜濮╅弨鎯у弳閹恒儱褰?
                 if (value == 0 && isAltKeyDown()) {
                     this.pendingPlacePattern = true;
                 }
@@ -935,12 +937,12 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         }
     }
 
-    // ========== 键盘输入处理 ==========
+    // ========== 闁款喚娲忔潏鎾冲弳婢跺嫮鎮?==========
 
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
         if (!this.checkHotbarKeys(key)) {
-            // TAB 键处理
+            // TAB 闁款喖顦╅悶?
             if (key == Keyboard.KEY_TAB) {
                 this.searchFieldNames.setSuggestionToText();
             }
@@ -950,7 +952,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                 }
             }
 
-            // 空格作为第一个字符时禁止（所有搜索框）
+            // 缁岀儤鐗告担婊€璐熺粭顑跨娑擃亜鐡х粭锔芥缁備焦顒涢敍鍫熷閺堝鎮崇槐銏☆攱閿?
             if (character == ' ') {
                 if ((this.searchFieldInputs.getText().isEmpty() && this.searchFieldInputs.isFocused())
                         || (this.searchFieldOutputs.getText().isEmpty() && this.searchFieldOutputs.isFocused())
@@ -961,7 +963,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                 }
             }
 
-            // ME 搜索框处理键盘输入
+            // ME 閹兼粎鍌ㄥ鍡楊槱閻炲棝鏁惄妯跨翻閸?
             if (this.itemSearchField != null && this.itemSearchField.isFocused()
                     && this.itemSearchField.textboxKeyTyped(character, key)) {
                 final String searchText = this.itemSearchField.getText();
@@ -977,7 +979,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                 return;
             }
 
-            // 接口终端搜索框处理键盘输入
+            // 閹恒儱褰涚紒鍫㈩伂閹兼粎鍌ㄥ鍡楊槱閻炲棝鏁惄妯跨翻閸?
             if (this.searchFieldInputs.textboxKeyTyped(character, key)
                     || this.searchFieldOutputs.textboxKeyTyped(character, key)
                     || this.searchFieldNames.textboxKeyTyped(character, key)) {
@@ -989,9 +991,9 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
     }
 
     /**
-     * TAB 焦点切换逻辑，将 ME 物品搜索框加入循环。
-     * 焦点循环顺序：Inputs → Outputs → Names → ME物品搜索 → Inputs...
-     * Shift 反向：Inputs → ME物品搜索 → Names → Outputs → Inputs...
+     * TAB 閻掞妇鍋ｉ崚鍥ㄥ床闁槒绶敍灞界殺 ME 閻椻晛鎼ч幖婊呭偍濡楀棗濮為崗銉ユ儕閻滎垬鈧?
+     * 閻掞妇鍋ｅ顏嗗箚妞ゅ搫绨敍娆糿puts 閳?Outputs 閳?Names 閳?ME閻椻晛鎼ч幖婊呭偍 閳?Inputs...
+     * Shift 閸欏秴鎮滈敍娆糿puts 閳?ME閻椻晛鎼ч幖婊呭偍 閳?Names 閳?Outputs 閳?Inputs...
      */
     private boolean handleTab() {
         if (this.itemSearchField != null && this.itemSearchField.isFocused()) {
@@ -1039,11 +1041,11 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         return false;
     }
 
-    // ========== 滚轮事件处理 ==========
+    // ========== 濠婃俺鐤嗘禍瀣╂婢跺嫮鎮?==========
 
     @Override
     protected void mouseWheelEvent(final int x, final int y, final int wheel) {
-        // 检查鼠标是否在左侧ME物品面板区域内
+        // 濡偓閺屻儵绱堕弽鍥ㄦЦ閸氾箑婀锔挎櫠ME閻椻晛鎼ч棃銏℃緲閸栧搫鐓欓崘?
         final int panelX = getItemPanelAbsX();
         final int panelY = getItemPanelAbsY();
 
@@ -1054,7 +1056,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             return;
         }
 
-        // 检查鼠标是否在右侧样板面板区域内（处理模式下翻页滚动）
+        // 濡偓閺屻儵绱堕弽鍥ㄦЦ閸氾箑婀崣鍏呮櫠閺嶉攱婢橀棃銏℃緲閸栧搫鐓欓崘鍜冪礄婢跺嫮鎮婂Ο鈥崇础娑撳鐐曟い鍨泊閸旑煉绱?
         if (!getDualContainer().isCraftingMode()) {
             final int patPanelAbsX = this.guiLeft + getPatternPanelX();
             final int patPanelAbsY = this.guiTop + getPatternPanelY();
@@ -1066,11 +1068,11 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             }
         }
 
-        // 其他区域交由父类处理（接口终端滚动条）
+        // 閸忔湹绮崠鍝勭厵娴溿倗鏁遍悥鍓佽婢跺嫮鎮婇敍鍫熷复閸欙絿绮撶粩顖涚泊閸斻劍娼敍?
         super.mouseWheelEvent(x, y, wheel);
     }
 
-    // ========== GUI 关闭 ==========
+    // ========== GUI 閸忔娊妫?==========
 
     @Override
     public void onGuiClosed() {
@@ -1087,13 +1089,13 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         }
     }
 
-    // ========== Tick 更新（PlacePattern 自动放置逻辑） ==========
+    // ========== Tick 閺囧瓨鏌婇敍鍦acePattern 閼奉亜濮╅弨鍓х枂闁槒绶敍?==========
 
     @Override
     public void updateScreen() {
         super.updateScreen();
 
-        // PlacePattern: 编码完成后自动将样板放入高亮接口的空闲槽位
+        // PlacePattern: 缂傛牜鐖滅€瑰本鍨氶崥搴ゅ殰閸斻劌鐨㈤弽閿嬫緲閺€鎯у弳妤傛ü瀵掗幒銉ュ經閻ㄥ嫮鈹栭梻鍙壭担?
         if (this.pendingPlacePattern) {
             this.pendingPlacePattern = false;
             final ContainerWirelessDualInterfaceTerminal ct = getDualContainer();
@@ -1104,8 +1106,8 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
     }
 
     /**
-     * 尝试将编码输出的样板放入当前可见接口列表中第一个有空闲槽位的接口。
-     * 遍历当前可见的 lines 列表，找到第一个 ClientDCInternalInv 有空槽的条目。
+     * 鐏忔繆鐦亸鍡欑椽閻浇绶崙铏规畱閺嶉攱婢橀弨鎯у弳瑜版挸澧犻崣顖濐潌閹恒儱褰涢崚妤勩€冩稉顓狀儑娑撯偓娑擃亝婀佺粚娲＝濡叉垝缍呴惃鍕复閸欙絻鈧?
+     * 闁秴宸昏ぐ鎾冲閸欘垵顫嗛惃?lines 閸掓銆冮敍灞惧閸掓壆顑囨稉鈧稉?ClientDCInternalInv 閺堝鈹栧Σ鐣屾畱閺夛紕娲伴妴?
      */
     private void tryPlacePatternToHighlightedInterface() {
         for (final ClientDCInternalInv inv : this.byId.values()) {
@@ -1115,7 +1117,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
 
             for (int i = 0; i < maxSlots; i++) {
                 if (inv.getInventory().getStackInSlot(i).isEmpty()) {
-                    // 找到空闲槽位，发送 PlacePattern 请求
+                    // 閹垫儳鍩岀粚娲＝濡叉垝缍呴敍灞藉絺闁?PlacePattern 鐠囬攱鐪?
                     try {
                         NetworkHandler.instance().sendToServer(new PacketValueConfig(
                                 "PatternTerminal.PlacePattern",
@@ -1130,7 +1132,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
     }
 
     /**
-     * 发送 ActivePage 更新到服务端
+     * 閸欐垿鈧?ActivePage 閺囧瓨鏌婇崚鐗堟箛閸旓紕顏?
      */
     private void sendActivePageUpdate() {
         final int newPage = this.processingScrollBar.getCurrentScroll();
@@ -1142,22 +1144,22 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         }
     }
 
-    // ========== 绘制背景 ==========
+    // ========== 缂佹ê鍩楅懗灞炬珯 ==========
 
     @Override
     public void drawBG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        // ===== 绘制接口终端主体背景（使用 208px 宽度的贴图） =====
+        // ===== 缂佹ê鍩楅幒銉ュ經缂佸牏顏稉璁崇秼閼冲本娅欓敍鍫滃▏閻?208px 鐎硅棄瀹抽惃鍕垱閸ユ拝绱?=====
         this.bindTexture("guis/newinterfaceterminal.png");
 
-        // 顶部
+        // 妞ゅ爼鍎?
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, MAIN_GUI_WIDTH, 53);
 
-        // 接口列表行
+        // 閹恒儱褰涢崚妤勩€冪悰?
         for (int x = 0; x < this.rows; x++) {
             this.drawTexturedModalRect(offsetX, offsetY + 53 + x * 18, 0, 52, MAIN_GUI_WIDTH, 18);
         }
 
-        // 接口列表中的槽位背景
+        // 閹恒儱褰涢崚妤勩€冩稉顓犳畱濡叉垝缍呴懗灞炬珯
         int offset = 51;
         final int ex = this.getScrollBar().getCurrentScroll();
         int linesDraw = 0;
@@ -1187,42 +1189,42 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             }
         }
 
-        // 底部（玩家背包区域）
+        // 鎼存洟鍎撮敍鍫㈠负鐎规儼鍎楅崠鍛隘閸╃噦绱?
         this.drawTexturedModalRect(offsetX, offsetY + 50 + this.rows * 18, 0, 158, MAIN_GUI_WIDTH, 99);
 
-        // 接口终端搜索框
+        // 閹恒儱褰涚紒鍫㈩伂閹兼粎鍌ㄥ?
         this.searchFieldInputs.drawTextBox();
         this.searchFieldOutputs.drawTextBox();
         this.searchFieldNames.drawTextBox();
 
-        // ===== 绘制无线终端升级槽背景 =====
+        // ===== 缂佹ê鍩楅弮鐘靛殠缂佸牏顏崡鍥╅獓濡插€熷剹閺?=====
         this.bindTexture("guis/wirelessupgrades.png");
         Gui.drawModalRectWithCustomSizedTexture(offsetX + 198, offsetY + 127, 0, 0, 32, 32, 32, 32);
 
-        // ===== 绘制右侧样板编写面板背景 =====
+        // ===== 缂佹ê鍩楅崣鍏呮櫠閺嶉攱婢樼紓鏍у晸闂堛垺婢橀懗灞炬珯 =====
         drawPatternPanelBG(offsetX, offsetY);
 
-        // ===== 绘制左侧ME物品面板背景 =====
+        // ===== 缂佹ê鍩楀锔挎櫠ME閻椻晛鎼ч棃銏℃緲閼冲本娅?=====
         drawItemPanelBG(offsetX, offsetY);
 
-        // 绘制左侧ME物品面板滚动条
+        // 缂佹ê鍩楀锔挎櫠ME閻椻晛鎼ч棃銏℃緲濠婃艾濮╅弶?
         GlStateManager.pushMatrix();
         GlStateManager.translate(offsetX, offsetY, 0);
         this.itemPanelScrollbar.draw(this);
-        // 处理模式下绘制输出槽翻页滚动条
+        // 婢跺嫮鎮婂Ο鈥崇础娑撳绮崚鎯扮翻閸戠儤蝎缂堝銆夊姘З閺?
         if (!getDualContainer().isCraftingMode()) {
             this.processingScrollBar.draw(this);
         }
         GlStateManager.popMatrix();
 
-        // ME物品搜索框
+        // ME閻椻晛鎼ч幖婊呭偍濡?
         if (this.itemSearchField != null) {
             this.itemSearchField.drawTextBox();
         }
     }
 
     /**
-     * 绘制右侧样板编写面板的背景（使用 AE2Things 的 pattern.png/pattern3.png 贴图）
+     * 缂佹ê鍩楅崣鍏呮櫠閺嶉攱婢樼紓鏍у晸闂堛垺婢橀惃鍕剹閺咁垽绱欐担璺ㄦ暏 AE2Things 閻?pattern.png/pattern3.png 鐠愭潙娴橀敍?
      */
     private void drawPatternPanelBG(int offsetX, int offsetY) {
         final int panelX = offsetX + getPatternPanelX();
@@ -1231,7 +1233,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
 
         GlStateManager.color(1, 1, 1, 1);
 
-        // 上半部分：合成模式使用 pattern3.png，处理模式使用 pattern.png
+        // 娑撳﹤宕愰柈銊ュ瀻閿涙艾鎮庨幋鎰佸蹇庡▏閻?pattern3.png閿涘苯顦╅悶鍡樐佸蹇庡▏閻?pattern.png
         if (ct.isCraftingMode()) {
             this.mc.getTextureManager().bindTexture(PATTERN3_TEXTURE);
             this.drawTexturedModalRect(panelX, panelY, 0, 0,
@@ -1242,14 +1244,14 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                     PATTERN_PANEL_WIDTH, PATTERN_PANEL_UPPER_HEIGHT);
         }
 
-        // 下半部分（样板 IN/OUT 槽区域）
+        // 娑撳宕愰柈銊ュ瀻閿涘牊鐗遍弶?IN/OUT 濡茶棄灏崺鐕傜礆
         this.mc.getTextureManager().bindTexture(PATTERN_TEXTURE);
         this.drawTexturedModalRect(panelX, panelY + PATTERN_PANEL_UPPER_HEIGHT,
                 133, 0, PATTERN_PANEL_LOWER_WIDTH, PATTERN_PANEL_LOWER_HEIGHT);
     }
 
     /**
-     * 绘制左侧ME物品面板的背景（左下角对齐）
+     * 缂佹ê鍩楀锔挎櫠ME閻椻晛鎼ч棃銏℃緲閻ㄥ嫯鍎楅弲顖ょ礄瀹革缚绗呯憴鎺戭嚠姒绘劧绱?
      */
     private void drawItemPanelBG(int offsetX, int offsetY) {
         final int panelX = getItemPanelAbsX();
@@ -1260,11 +1262,11 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         this.drawTexturedModalRect(panelX, panelY, 0, 0, ITEM_PANEL_WIDTH, ITEM_PANEL_HEIGHT);
     }
 
-    // ========== 绘制前景 ==========
+    // ========== 缂佹ê鍩楅崜宥嗘珯 ==========
 
     @Override
     public void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        // ===== 接口终端前景（标题和匹配高亮） =====
+        // ===== 閹恒儱褰涚紒鍫㈩伂閸撳秵娅欓敍鍫熺垼妫版ê鎷伴崠褰掑帳妤傛ü瀵掗敍?=====
         this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.WirelessTerminal.getLocal()),
                 OFFSET_X + 2, 6, 4210752);
         this.fontRenderer.drawString(GuiText.inventory.getLocal(), OFFSET_X + 2, this.ySize - 96, 4210752);
@@ -1311,7 +1313,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             }
         }
 
-        // ===== 样板面板前景（标题和按钮可见性） =====
+        // ===== 閺嶉攱婢橀棃銏℃緲閸撳秵娅欓敍鍫熺垼妫版ê鎷伴幐澶愭尦閸欘垵顫嗛幀褝绱?=====
         final ContainerWirelessDualInterfaceTerminal ct = getDualContainer();
         final int panelX = getPatternPanelX();
         final int panelY = getPatternPanelY();
@@ -1319,7 +1321,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         this.fontRenderer.drawString(GuiText.PatternEncoding.getLocal(), panelX + 4,
                 panelY + 4, 4210752);
 
-        // 按钮可见性逻辑
+        // 閹稿鎸抽崣顖濐潌閹団偓鏄忕帆
         if (ct.isCraftingMode()) {
             this.tabCraftButton.visible = true;
             this.tabProcessButton.visible = false;
@@ -1361,7 +1363,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        // ===== 接口终端 drawScreen 逻辑（动态创建按钮和 SlotDisconnected） =====
+        // ===== 閹恒儱褰涚紒鍫㈩伂 drawScreen 闁槒绶敍鍫濆З閹礁鍨卞鐑樺瘻闁筋喖鎷?SlotDisconnected閿?=====
         buttonList.clear();
         guiButtonHashMap.clear();
         doubleButtonHashMap.clear();
@@ -1380,7 +1382,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         buttonList.add(guiButtonBrokenRecipes);
         buttonList.add(terminalStyleBox);
 
-        // 重新添加二合一终端专有按钮
+        // 闁插秵鏌婂ǎ璇插娴滃苯鎮庢稉鈧紒鍫㈩伂娑撴挻婀侀幐澶愭尦
         if (this.craftingStatusBtn != null) {
             buttonList.add(this.craftingStatusBtn);
         }
@@ -1451,7 +1453,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             buttonList.add(this.searchBoxSettings);
         }
 
-        // 动态生成接口列表的按钮和 SlotDisconnected
+        // 閸斻劍鈧胶鏁撻幋鎰复閸欙絽鍨悰銊ф畱閹稿鎸抽崪?SlotDisconnected
         int offset = 51;
         final int currentScroll = this.getScrollBar().getCurrentScroll();
         int linesDraw = 0;
@@ -1465,7 +1467,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                 guiButtonHashMap.put(guiButton, inv);
                 this.buttonList.add(guiButton);
 
-                // 每个接口的翻倍/减半按钮（半尺寸，位于高亮按钮下方）
+                // 濮ｅ繋閲滈幒銉ュ經閻ㄥ嫮鐐曢崐?閸戝繐宕愰幐澶愭尦閿涘牆宕愮亸鍝勵嚟閿涘奔缍呮禍搴ㄧ彯娴滎喗瀵滈柦顔荤瑓閺傜櫢绱?
                 GuiImgButton interfaceDoubleBtn = new GuiImgButton(guiLeft + 8, guiTop + offset + 10,
                         Settings.ACTIONS, ActionItems.DOUBLE_STACKS);
                 interfaceDoubleBtn.setHalfSize(true);
@@ -1502,25 +1504,25 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         drawTooltip(searchFieldNames, mouseX, mouseY);
     }
 
-    // ========== 鼠标事件处理 ==========
+    // ========== 姒х姵鐖ｆ禍瀣╂婢跺嫮鎮?==========
 
-    // ========== 中键点击样板槽位 → SET_PATTERN_VALUE ==========
+    // ========== 娑擃參鏁悙鐟板毊閺嶉攱婢樺Σ鎴掔秴 閳?SET_PATTERN_VALUE ==========
 
     @Override
     protected void handleMouseClick(final Slot slot, final int slotIdx, final int mouseButton,
             final ClickType clickType) {
-        // 中键点击样板编码槽位（SlotFakeCraftingMatrix / OptionalSlotFake）
+        // 娑擃參鏁悙鐟板毊閺嶉攱婢樼紓鏍垳濡叉垝缍呴敍鍦玪otFakeCraftingMatrix / OptionalSlotFake閿?
         if (clickType == ClickType.CLONE && slot instanceof SlotFake && slot.getHasStack()) {
             final IAEItemStack stack = AEItemStack.fromItemStack(slot.getStack());
             if (stack != null) {
                 ((AEBaseContainer) this.inventorySlots).setTargetStack(stack);
                 if (isCtrlKeyDown()) {
-                    // Ctrl+中键 → 打开名称设置界面
+                    // Ctrl+娑擃參鏁?閳?閹垫挸绱戦崥宥囆炵拋鍓х枂閻ｅ矂娼?
                     final PacketInventoryAction p = new PacketInventoryAction(
                             InventoryAction.SET_PATTERN_NAME, slot.slotNumber, 0);
                     NetworkHandler.instance().sendToServer(p);
                 } else {
-                    // 中键 → 打开数值设置界面
+                    // 娑擃參鏁?閳?閹垫挸绱戦弫鏉库偓鑹邦啎缂冾喚鏅棃?
                     final PacketInventoryAction p = new PacketInventoryAction(
                             InventoryAction.SET_PATTERN_VALUE, slot.slotNumber, 0);
                     NetworkHandler.instance().sendToServer(p);
@@ -1533,7 +1535,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
-        // 中键拖拽面板
+        // 娑擃參鏁幏鏍ㄥ闂堛垺婢?
         if (btn == 2) {
             for (PanelDragState dragState : getAllDragStates()) {
                 if (dragState.isInDragArea(xCoord, yCoord)) {
@@ -1543,7 +1545,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             }
         }
 
-        // ME物品搜索框
+        // ME閻椻晛鎼ч幖婊呭偍濡?
         if (this.itemSearchField != null) {
             this.itemSearchField.mouseClicked(xCoord, yCoord, btn);
             if (btn == 1 && this.isMouseOverSearchField(xCoord, yCoord)) {
@@ -1554,7 +1556,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
             }
         }
 
-        // 接口终端搜索框
+        // 閹恒儱褰涚紒鍫㈩伂閹兼粎鍌ㄥ?
         this.searchFieldInputs.mouseClicked(xCoord, yCoord, btn);
         this.searchFieldOutputs.mouseClicked(xCoord, yCoord, btn);
         this.searchFieldNames.mouseClicked(xCoord, yCoord, btn);
@@ -1585,10 +1587,10 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         super.mouseReleased(mouseX, mouseY, state);
     }
 
-    // ========== 接口终端数据更新（从 GuiInterfaceTerminal 移植） ==========
+    // ========== 閹恒儱褰涚紒鍫㈩伂閺佺増宓侀弴瀛樻煀閿涘牅绮?GuiInterfaceTerminal 缁夌粯顦查敍?==========
 
     /**
-     * 接收来自服务端的接口终端 NBT 更新
+     * 閹恒儲鏁归弶銉ㄥ殰閺堝秴濮熺粩顖滄畱閹恒儱褰涚紒鍫㈩伂 NBT 閺囧瓨鏌?
      */
     public void postUpdate(final NBTTagCompound in) {
         if (in.getBoolean("clear")) {
@@ -1645,7 +1647,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
     }
 
     /**
-     * 刷新接口列表（从 GuiInterfaceTerminal 移植）
+     * 閸掗攱鏌婇幒銉ュ經閸掓銆冮敍鍫滅矤 GuiInterfaceTerminal 缁夌粯顦查敍?
      */
     private void refreshList() {
         this.byName.clear();
@@ -1910,7 +1912,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         return o;
     }
 
-    // ========== 辅助方法 ==========
+    // ========== 鏉堝懎濮弬瑙勭《 ==========
 
     private boolean isMouseOverSearchField(int mouseX, int mouseY) {
         final int itemAbsX = getItemPanelAbsX();
@@ -1925,7 +1927,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
     }
 
     private void initDragStates() {
-        // ME物品面板：拖拽区域为搜索框所在的顶部区域
+        // ME閻椻晛鎼ч棃銏℃緲閿涙碍瀚嬮幏钘夊隘閸╃喍璐熼幖婊呭偍濡楀棙澧嶉崷銊ф畱妞ゅ爼鍎撮崠鍝勭厵
         this.itemPanelDragState = new PanelDragState((mouseX, mouseY) -> {
             final int absX = getItemPanelAbsX();
             final int absY = getItemPanelAbsY();
@@ -1933,7 +1935,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                     && mouseY >= absY && mouseY < absY + ITEM_GRID_OFFSET_Y;
         });
 
-        // 样板面板：拖拽区域为底部按钮区域
+        // 閺嶉攱婢橀棃銏℃緲閿涙碍瀚嬮幏钘夊隘閸╃喍璐熸惔鏇㈠劥閹稿鎸抽崠鍝勭厵
         this.patternPanelDragState = new PanelDragState((mouseX, mouseY) -> {
             final int absX = this.guiLeft + getPatternPanelX();
             final int absY = this.guiTop + getPatternPanelY();
@@ -1947,7 +1949,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         return Arrays.asList(this.itemPanelDragState, this.patternPanelDragState);
     }
 
-    // ========== ISortSource 接口实现 ==========
+    // ========== ISortSource 閹恒儱褰涚€圭偟骞?==========
 
     @Override
     public Enum getSortBy() {
@@ -1964,10 +1966,10 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         return this.configSrc.getSetting(Settings.VIEW_MODE);
     }
 
-    // ========== IConfigManagerHost 接口实现 ==========
+    // ========== IConfigManagerHost 閹恒儱褰涚€圭偟骞?==========
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum settingName, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
         if (this.SortByBox != null) {
             this.SortByBox.set(this.configSrc.getSetting(Settings.SORT_BY));
         }
@@ -1980,52 +1982,52 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         this.itemRepo.updateView();
     }
 
-    // ========== 外部 API：JEI Recipe Transfer 调用 ==========
+    // ========== 婢舵牠鍎?API閿涙EI Recipe Transfer 鐠嬪啰鏁?==========
 
     /**
-     * 设置 Names 搜索框的建议文本（灰色提示文字）。
-     * 由 RecipeTransferHandler 在 JEI 填入配方后调用。
-     * 用户按 TAB 可将建议文本确认为正式搜索文本。
+     * 鐠佸墽鐤?Names 閹兼粎鍌ㄥ鍡欐畱瀵ら缚顔呴弬鍥ㄦ拱閿涘牏浼嗛懝鍙夊絹缁€鐑樻瀮鐎涙绱氶妴?
+     * 閻?RecipeTransferHandler 閸?JEI 婵夘偄鍙嗛柊宥嗘煙閸氬氦鐨熼悽銊ｂ偓?
+     * 閻劍鍩涢幐?TAB 閸欘垰鐨㈠楦款唴閺傚洦婀扮涵顔款吇娑撶儤顒滃蹇旀偝缁便垺鏋冮張顑锯偓?
      *
-     * @param suggestion 建议文本（通常是配方输出物品的显示名称）
+     * @param suggestion 瀵ら缚顔呴弬鍥ㄦ拱閿涘牓鈧艾鐖堕弰顖炲帳閺傜绶崙铏瑰⒖閸濅胶娈戦弰鍓с仛閸氬秶袨閿?
      */
     public void setSearchFieldSuggestion(final String suggestion) {
         this.searchFieldNames.setSuggestion(suggestion);
     }
 
     /**
-     * 直接设置 Names 搜索框的文本。
+     * 閻╁瓨甯寸拋鍓х枂 Names 閹兼粎鍌ㄥ鍡欐畱閺傚洦婀伴妴?
      *
-     * @param text 搜索文本
+     * @param text 閹兼粎鍌ㄩ弬鍥ㄦ拱
      */
     public void setSearchFieldText(final String text) {
         this.searchFieldNames.setText(text);
     }
 
-    // ========== 面板拖拽状态封装类 ==========
+    // ========== 闂堛垺婢橀幏鏍ㄥ閻樿埖鈧礁鐨濈憗鍛 ==========
 
     /**
-     * 封装单个面板的拖拽状态和行为。
-     * 包括拖拽偏移量、拖拽过程中的起始坐标，以及拖拽区域检测逻辑。
+     * 鐏忎浇顥婇崡鏇氶嚋闂堛垺婢橀惃鍕珛閹风晫濮搁幀浣告嫲鐞涘奔璐熼妴?
+     * 閸栧懏瀚幏鏍ㄥ閸嬪繒些闁插繈鈧焦瀚嬮幏鍊熺箖缁嬪鑵戦惃鍕崳婵娼楅弽鍥风礉娴犮儱寮烽幏鏍ㄥ閸栧搫鐓欏Λ鈧ù瀣偓鏄忕帆閵?
      */
     private static class PanelDragState {
 
-        /** 当前拖拽偏移量 */
+        /** 瑜版挸澧犻幏鏍ㄥ閸嬪繒些闁?*/
         private int dragOffsetX = 0;
         private int dragOffsetY = 0;
 
-        /** 是否正在拖拽 */
+        /** 閺勵垰鎯佸锝呮躬閹锋牗瀚?*/
         private boolean dragging = false;
 
-        /** 拖拽起始时的鼠标坐标 */
+        /** 閹锋牗瀚跨挧宄邦潗閺冨墎娈戞Η鐘崇垼閸ф劖鐖?*/
         private int dragStartMouseX;
         private int dragStartMouseY;
 
-        /** 拖拽起始时的偏移量 */
+        /** 閹锋牗瀚跨挧宄邦潗閺冨墎娈戦崑蹇曅╅柌?*/
         private int dragStartOffsetX;
         private int dragStartOffsetY;
 
-        /** 拖拽区域检测器 */
+        /** 閹锋牗瀚块崠鍝勭厵濡偓濞村娅?*/
         private final BiPredicate<Integer, Integer> dragAreaChecker;
 
         PanelDragState(BiPredicate<Integer, Integer> dragAreaChecker) {
@@ -2033,14 +2035,14 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         }
 
         /**
-         * 检查指定坐标是否在拖拽区域内
+         * 濡偓閺屻儲瀵氱€规艾娼楅弽鍥ㄦЦ閸氾箑婀幏鏍ㄥ閸栧搫鐓欓崘?
          */
         boolean isInDragArea(int mouseX, int mouseY) {
             return dragAreaChecker.test(mouseX, mouseY);
         }
 
         /**
-         * 开始拖拽
+         * 瀵偓婵瀚嬮幏?
          */
         void startDrag(int mouseX, int mouseY) {
             this.dragging = true;
@@ -2051,7 +2053,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         }
 
         /**
-         * 更新拖拽偏移
+         * 閺囧瓨鏌婇幏鏍ㄥ閸嬪繒些
          */
         void updateDrag(int mouseX, int mouseY) {
             this.dragOffsetX = this.dragStartOffsetX + (mouseX - this.dragStartMouseX);
@@ -2059,7 +2061,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         }
 
         /**
-         * 结束拖拽
+         * 缂佹挻娼幏鏍ㄥ
          */
         void endDrag() {
             this.dragging = false;

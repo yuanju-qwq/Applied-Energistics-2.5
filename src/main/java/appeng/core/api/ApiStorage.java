@@ -110,13 +110,13 @@ public class ApiStorage implements IStorageHelper {
     @Override
     public <T extends IAEStack<T>> T poweredInsert(IEnergySource energy, IMEInventory<T> inv, T input,
             IActionSource src, Actionable mode) {
-        return Platform.poweredInsert(energy, inv, input, src, mode);
+        return appeng.util.StorageHelper.poweredInsert(energy, inv, input, src, mode);
     }
 
     @Override
     public <T extends IAEStack<T>> T poweredExtraction(IEnergySource energy, IMEInventory<T> inv, T request,
             IActionSource src, Actionable mode) {
-        return Platform.poweredExtraction(energy, inv, request, src, mode);
+        return appeng.util.StorageHelper.poweredExtraction(energy, inv, request, src, mode);
     }
 
     @Override
@@ -126,7 +126,7 @@ public class ApiStorage implements IStorageHelper {
         Preconditions.checkNotNull(addedCell);
         Preconditions.checkNotNull(src);
 
-        Platform.postChanges(gs, removedCell, addedCell, src);
+        appeng.util.StorageHelper.postChanges(gs, removedCell, addedCell, src);
     }
 
     private static final class ItemStorageChannel implements IItemStorageChannel {

@@ -52,7 +52,7 @@ public class ToolQuartzWrench extends AEBaseItem implements IAEWrench, IToolHamm
     public EnumActionResult onItemUseFirst(final EntityPlayer player, final World world, final BlockPos pos,
             final EnumFacing side, final float hitX, final float hitY, final float hitZ, final EnumHand hand) {
         final Block b = world.getBlockState(pos).getBlock();
-        if (b != null && !player.isSneaking() && Platform.hasPermissions(new DimensionalCoord(world, pos), player)) {
+        if (b != null && !player.isSneaking() && appeng.util.WorldHelper.hasPermissions(new DimensionalCoord(world, pos), player)) {
             if (Platform.isClient()) {
                 // TODO 1.10-R - if we return FAIL on client, action will not be sent to server. Fix that in all
                 // Block#onItemUseFirst overrides.

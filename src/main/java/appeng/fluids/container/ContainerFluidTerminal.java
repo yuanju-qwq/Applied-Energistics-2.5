@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2018, AlgorithmX2, All rights reserved.
  *
@@ -212,7 +212,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
     }
 
     @Override
-    public void updateSetting(IConfigManager manager, Enum settingName, Enum newValue) {
+    public void updateSetting(IConfigManager manager, Enum<?> settingName, Enum<?> newValue) {
         if (this.getGui() != null) {
             this.getGui().updateSetting(manager, settingName, newValue);
         }
@@ -311,7 +311,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 }
 
                 // Check if we can push into the system
-                final IAEFluidStack notStorable = Platform.poweredInsert(this.getPowerSource(), this.monitor,
+                final IAEFluidStack notStorable = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.monitor,
                         AEFluidStack.fromFluidStack(extract), this.getActionSource(), Actionable.SIMULATE);
 
                 if (notStorable != null && notStorable.getStackSize() > 0) {
@@ -329,7 +329,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 final FluidStack drained = fh.drain(extract, true);
                 extract.amount = drained.amount;
 
-                final IAEFluidStack notInserted = Platform.poweredInsert(this.getPowerSource(), this.monitor,
+                final IAEFluidStack notInserted = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.monitor,
                         AEFluidStack.fromFluidStack(extract), this.getActionSource());
 
                 if (notInserted != null && notInserted.getStackSize() > 0) {
@@ -382,7 +382,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 fh = FluidUtil.getFluidHandler(copiedFluidContainer);
 
                 // Check if we can pull out of the system
-                final IAEFluidStack canPull = Platform.poweredExtraction(this.getPowerSource(), this.monitor,
+                final IAEFluidStack canPull = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.monitor,
                         stack.setStackSize(amountAllowed), this.getActionSource(), Actionable.SIMULATE);
                 if (canPull == null || canPull.getStackSize() < 1) {
                     return;
@@ -395,7 +395,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 }
 
                 // Now actually pull out of the system
-                final IAEFluidStack pulled = Platform.poweredExtraction(this.getPowerSource(), this.monitor,
+                final IAEFluidStack pulled = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.monitor,
                         stack.setStackSize(canFill), this.getActionSource());
                 if (pulled == null || pulled.getStackSize() < 1) {
                     // Something went wrong
@@ -436,7 +436,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 }
 
                 // Check if we can push into the system
-                final IAEFluidStack notStorable = Platform.poweredInsert(this.getPowerSource(), this.monitor,
+                final IAEFluidStack notStorable = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.monitor,
                         AEFluidStack.fromFluidStack(extract), this.getActionSource(), Actionable.SIMULATE);
 
                 if (notStorable != null && notStorable.getStackSize() > 0) {
@@ -454,7 +454,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 final FluidStack drained = fh.drain(extract, true);
                 extract.amount = drained.amount;
 
-                final IAEFluidStack notInserted = Platform.poweredInsert(this.getPowerSource(), this.monitor,
+                final IAEFluidStack notInserted = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.monitor,
                         AEFluidStack.fromFluidStack(extract), this.getActionSource());
 
                 if (notInserted != null && notInserted.getStackSize() > 0) {

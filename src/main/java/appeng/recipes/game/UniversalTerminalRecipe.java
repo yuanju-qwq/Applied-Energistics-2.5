@@ -38,20 +38,20 @@ import appeng.items.tools.powered.WirelessTerminalMode;
 import appeng.util.Platform;
 
 /**
- * 通用无线终端合成配方。
+ * 閫氱敤鏃犵嚎缁堢鍚堟垚閰嶆柟銆?
  * <p>
- * 支持两种合成模式：
+ * 鏀寔涓ょ鍚堟垚妯″紡锛?
  * <ul>
- *   <li>新建合成：将多种无线终端放在工作台中，合成出一个预装对应模式的通用终端</li>
- *   <li>追加合成：将一个通用终端 + 其他无线终端放在一起，追加模式到已有通用终端</li>
+ *   <li>鏂板缓鍚堟垚锛氬皢澶氱鏃犵嚎缁堢鏀惧湪宸ヤ綔鍙颁腑锛屽悎鎴愬嚭涓€涓瑁呭搴旀ā寮忕殑閫氱敤缁堢</li>
+ *   <li>杩藉姞鍚堟垚锛氬皢涓€涓€氱敤缁堢 + 鍏朵粬鏃犵嚎缁堢鏀惧湪涓€璧凤紝杩藉姞妯″紡鍒板凡鏈夐€氱敤缁堢</li>
  * </ul>
- * 至少需要提供 2 种不同的终端（或 1 个通用终端 + 1 种新终端）。
- * 输出的通用终端将保留输入通用终端或无线终端中最高的电量。
+ * 鑷冲皯闇€瑕佹彁渚?2 绉嶄笉鍚岀殑缁堢锛堟垨 1 涓€氱敤缁堢 + 1 绉嶆柊缁堢锛夈€?
+ * 杈撳嚭鐨勯€氱敤缁堢灏嗕繚鐣欒緭鍏ラ€氱敤缁堢鎴栨棤绾跨粓绔腑鏈€楂樼殑鐢甸噺銆?
  */
 public final class UniversalTerminalRecipe extends net.minecraftforge.registries.IForgeRegistryEntry.Impl<IRecipe>
         implements IRecipe {
 
-    /** 无线终端 IItemDefinition → WirelessTerminalMode 的映射 */
+    /** 鏃犵嚎缁堢 IItemDefinition 鈫?WirelessTerminalMode 鐨勬槧灏?*/
     private final Map<IItemDefinition, WirelessTerminalMode> terminalModeMap = new HashMap<>();
 
     public UniversalTerminalRecipe() {
@@ -89,14 +89,14 @@ public final class UniversalTerminalRecipe extends net.minecraftforge.registries
             }
             itemCount++;
 
-            // 检查是否是通用终端
+            // 妫€鏌ユ槸鍚︽槸閫氱敤缁堢
             if (AEApi.instance().definitions().items().wirelessUniversalTerminal().isSameAs(stack)) {
                 if (!existingUniversal.isEmpty()) {
-                    // 不允许两个通用终端
+                    // 涓嶅厑璁镐袱涓€氱敤缁堢
                     return ItemStack.EMPTY;
                 }
                 existingUniversal = stack;
-                // 继承已有模式
+                // 缁ф壙宸叉湁妯″紡
                 int[] existingModes = ToolWirelessUniversalTerminal.getInstalledModes(stack);
                 for (int m : existingModes) {
                     WirelessTerminalMode mode = WirelessTerminalMode.fromId((byte) m);
@@ -104,7 +104,7 @@ public final class UniversalTerminalRecipe extends net.minecraftforge.registries
                         modes.add(mode);
                     }
                 }
-                // 记录电量
+                // 璁板綍鐢甸噺
                 NBTTagCompound tag = stack.getTagCompound();
                 if (tag != null && tag.hasKey("internalCurrentPower")) {
                     maxPower = Math.max(maxPower, tag.getDouble("internalCurrentPower"));
@@ -112,7 +112,7 @@ public final class UniversalTerminalRecipe extends net.minecraftforge.registries
                 continue;
             }
 
-            // 检查是否是已知的无线终端
+            // 妫€鏌ユ槸鍚︽槸宸茬煡鐨勬棤绾跨粓绔?
             boolean matched = false;
             for (Map.Entry<IItemDefinition, WirelessTerminalMode> entry : terminalModeMap.entrySet()) {
                 if (entry.getKey().isSameAs(stack)) {
@@ -120,7 +120,7 @@ public final class UniversalTerminalRecipe extends net.minecraftforge.registries
                     if (!modes.contains(mode)) {
                         modes.add(mode);
                     }
-                    // 记录电量
+                    // 璁板綍鐢甸噺
                     NBTTagCompound tag = stack.getTagCompound();
                     if (tag != null && tag.hasKey("internalCurrentPower")) {
                         maxPower = Math.max(maxPower, tag.getDouble("internalCurrentPower"));
@@ -131,36 +131,36 @@ public final class UniversalTerminalRecipe extends net.minecraftforge.registries
             }
 
             if (!matched) {
-                // 未知物品，配方不匹配
+                // 鏈煡鐗╁搧锛岄厤鏂逛笉鍖归厤
                 return ItemStack.EMPTY;
             }
         }
 
-        // 至少需要2个物品且至少2种模式（新建时），或1个通用终端+至少1个新终端（追加时）
+        // 鑷冲皯闇€瑕?涓墿鍝佷笖鑷冲皯2绉嶆ā寮忥紙鏂板缓鏃讹級锛屾垨1涓€氱敤缁堢+鑷冲皯1涓柊缁堢锛堣拷鍔犳椂锛?
         if (itemCount < 2 || modes.size() < 2) {
             return ItemStack.EMPTY;
         }
 
-        // 构建输出
+        // 鏋勫缓杈撳嚭
         ItemStack result = AEApi.instance().definitions().items().wirelessUniversalTerminal()
                 .maybeStack(1).orElse(ItemStack.EMPTY);
         if (result.isEmpty()) {
             return ItemStack.EMPTY;
         }
 
-        NBTTagCompound tag = Platform.openNbtData(result);
+        NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(result);
 
-        // 写入模式列表
+        // 鍐欏叆妯″紡鍒楄〃
         int[] modeIds = new int[modes.size()];
         for (int i = 0; i < modes.size(); i++) {
             modeIds[i] = modes.get(i).getId();
         }
         tag.setIntArray("modes", modeIds);
 
-        // 默认模式为第一个
+        // 榛樿妯″紡涓虹涓€涓?
         tag.setByte("mode", modes.get(0).getId());
 
-        // 保留最高电量
+        // 淇濈暀鏈€楂樼數閲?
         if (maxPower > 0) {
             tag.setDouble("internalCurrentPower", maxPower);
         }

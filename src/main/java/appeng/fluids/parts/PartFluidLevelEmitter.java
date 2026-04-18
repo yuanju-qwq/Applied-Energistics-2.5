@@ -1,4 +1,4 @@
-﻿package appeng.fluids.parts;
+package appeng.fluids.parts;
 
 import java.util.Random;
 
@@ -99,7 +99,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     }
 
     @Override
-    public void updateSetting(IConfigManager manager, Enum settingName, Enum newValue) {
+    public void updateSetting(IConfigManager manager, Enum<?> settingName, Enum<?> newValue) {
         this.configureWatchers();
     }
 
@@ -190,8 +190,8 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
             this.getHost().markForUpdate();
             final TileEntity te = this.getHost().getTile();
             this.prevState = isOn;
-            Platform.notifyBlocksOfNeighbors(te.getWorld(), te.getPos());
-            Platform.notifyBlocksOfNeighbors(te.getWorld(), te.getPos().offset(this.getSide().getFacing()));
+            appeng.util.WorldHelper.notifyBlocksOfNeighbors(te.getWorld(), te.getPos());
+            appeng.util.WorldHelper.notifyBlocksOfNeighbors(te.getWorld(), te.getPos().offset(this.getSide().getFacing()));
         }
     }
 

@@ -158,7 +158,7 @@ public class ItemSpatialStorageCell extends AEBaseItem implements ISpatialStorag
     }
 
     private void setStorageCell(final ItemStack is, int id, BlockPos size) {
-        final NBTTagCompound c = Platform.openNbtData(is);
+        final NBTTagCompound c = appeng.util.ItemStackNbtHelper.openNbtData(is);
 
         c.setInteger(NBT_CELL_ID_KEY, id);
         c.setInteger(NBT_SIZE_X_KEY, size.getX());

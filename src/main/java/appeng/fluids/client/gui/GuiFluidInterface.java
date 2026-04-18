@@ -121,7 +121,7 @@ public class GuiFluidInterface extends GuiUpgradeable implements IConfigManagerH
     }
 
     @Override
-    public void updateSetting(IConfigManager manager, Enum settingName, Enum newValue) {
+    public void updateSetting(IConfigManager manager, Enum<?> settingName, Enum<?> newValue) {
 
     }
 }

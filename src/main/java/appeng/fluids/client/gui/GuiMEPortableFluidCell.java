@@ -199,7 +199,8 @@ public class GuiMEPortableFluidCell extends AEBaseMEGui implements ISortSource, 
 
             if (iBtn.getSetting() != Settings.ACTIONS) {
                 final Enum cv = iBtn.getCurrentValue();
-                final Enum next = Platform.rotateEnum(cv, backwards, iBtn.getSetting().getPossibleValues());
+                final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
+                        iBtn.getSetting().getPossibleValues());
 
                 try {
                     NetworkHandler.instance()
@@ -301,7 +302,7 @@ public class GuiMEPortableFluidCell extends AEBaseMEGui implements ISortSource, 
     }
 
     @Override
-    public void updateSetting(IConfigManager manager, Enum settingName, Enum newValue) {
+    public void updateSetting(IConfigManager manager, Enum<?> settingName, Enum<?> newValue) {
         if (this.sortByBox != null) {
             this.sortByBox.set(this.configSrc.getSetting(Settings.SORT_BY));
         }

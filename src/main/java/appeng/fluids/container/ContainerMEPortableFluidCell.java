@@ -1,4 +1,4 @@
-﻿package appeng.fluids.container;
+package appeng.fluids.container;
 
 import java.io.IOException;
 import java.nio.BufferOverflowException;
@@ -71,7 +71,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
 
     private final IConfigManager clientCM;
     private final IMEMonitor<IAEFluidStack> monitor;
-    private final IItemList<IAEFluidStack> fluids = appeng.api.AEFluidStackType.INSTANCE.createList();
+    private final IItemList<IAEFluidStack> fluids = AEFluidStackType.INSTANCE.createList();
     @GuiSync(99)
     public boolean hasPower = false;
     private final ITerminalHost terminal;
@@ -106,7 +106,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
         if (Platform.isServer()) {
             this.serverCM = terminal.getConfigManager();
             this.monitor = terminal
-                    .getInventory(appeng.api.AEFluidStackType.INSTANCE.getStorageChannel());
+                    .getInventory(AEFluidStackType.INSTANCE.getStorageChannel());
 
             if (this.monitor != null) {
                 this.monitor.addListener(this, null);
@@ -144,7 +144,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
             this.wirelessHelper.tickWirelessStatus(this);
 
             if (this.monitor != this.terminal
-                    .getInventory(appeng.api.AEFluidStackType.INSTANCE.getStorageChannel())) {
+                    .getInventory(AEFluidStackType.INSTANCE.getStorageChannel())) {
                 this.setValidContainer(false);
             }
 
@@ -231,7 +231,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 }
 
                 // Check if we can push into the system
-                final IAEFluidStack notStorable = Platform.poweredInsert(this.getPowerSource(), this.monitor,
+                final IAEFluidStack notStorable = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.monitor,
                         AEFluidStack.fromFluidStack(extract), this.getActionSource(), Actionable.SIMULATE);
 
                 if (notStorable != null && notStorable.getStackSize() > 0) {
@@ -249,7 +249,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 final FluidStack drained = fh.drain(extract, true);
                 extract.amount = drained.amount;
 
-                final IAEFluidStack notInserted = Platform.poweredInsert(this.getPowerSource(), this.monitor,
+                final IAEFluidStack notInserted = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.monitor,
                         AEFluidStack.fromFluidStack(extract), this.getActionSource());
 
                 if (notInserted != null && notInserted.getStackSize() > 0) {
@@ -302,7 +302,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 fh = FluidUtil.getFluidHandler(copiedFluidContainer);
 
                 // Check if we can pull out of the system
-                final IAEFluidStack canPull = Platform.poweredExtraction(this.getPowerSource(), this.monitor,
+                final IAEFluidStack canPull = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.monitor,
                         stack.setStackSize(amountAllowed), this.getActionSource(), Actionable.SIMULATE);
                 if (canPull == null || canPull.getStackSize() < 1) {
                     return;
@@ -315,7 +315,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 }
 
                 // Now actually pull out of the system
-                final IAEFluidStack pulled = Platform.poweredExtraction(this.getPowerSource(), this.monitor,
+                final IAEFluidStack pulled = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.monitor,
                         stack.setStackSize(canFill), this.getActionSource());
                 if (pulled == null || pulled.getStackSize() < 1) {
                     // Something went wrong
@@ -356,7 +356,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 }
 
                 // Check if we can push into the system
-                final IAEFluidStack notStorable = Platform.poweredInsert(this.getPowerSource(), this.monitor,
+                final IAEFluidStack notStorable = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.monitor,
                         AEFluidStack.fromFluidStack(extract), this.getActionSource(), Actionable.SIMULATE);
 
                 if (notStorable != null && notStorable.getStackSize() > 0) {
@@ -374,7 +374,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 final FluidStack drained = fh.drain(extract, true);
                 extract.amount = drained.amount;
 
-                final IAEFluidStack notInserted = Platform.poweredInsert(this.getPowerSource(), this.monitor,
+                final IAEFluidStack notInserted = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.monitor,
                         AEFluidStack.fromFluidStack(extract), this.getActionSource());
 
                 if (notInserted != null && notInserted.getStackSize() > 0) {
@@ -465,7 +465,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
     }
 
     @Override
-    public void updateSetting(IConfigManager manager, Enum settingName, Enum newValue) {
+    public void updateSetting(IConfigManager manager, Enum<?> settingName, Enum<?> newValue) {
         if (this.getGui() != null) {
             this.getGui().updateSetting(manager, settingName, newValue);
         }

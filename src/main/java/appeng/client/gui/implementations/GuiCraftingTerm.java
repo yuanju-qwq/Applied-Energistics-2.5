@@ -44,7 +44,7 @@ public class GuiCraftingTerm extends GuiMEMonitorable {
     }
 
     @Override
-    protected void actionPerformed(final GuiButton btn) {
+    protected void actionPerformed(final GuiButton btn) throws java.io.IOException {
         super.actionPerformed(btn);
 
         if (this.clearBtn == btn) {

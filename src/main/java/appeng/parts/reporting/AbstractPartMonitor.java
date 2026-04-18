@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -173,7 +173,7 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
             return false;
         }
 
-        if (!Platform.hasPermissions(this.getLocation(), player)) {
+        if (!appeng.util.WorldHelper.hasPermissions(this.getLocation(), player)) {
             return false;
         }
 
@@ -219,7 +219,7 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
             return false;
         }
 
-        if (!Platform.hasPermissions(this.getLocation(), player)) {
+        if (!appeng.util.WorldHelper.hasPermissions(this.getLocation(), player)) {
             return false;
         }
 

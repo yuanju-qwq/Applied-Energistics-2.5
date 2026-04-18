@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -113,7 +113,7 @@ public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implement
     @Override
     public IConfigManager getConfigManager() {
         final ConfigManager out = new ConfigManager((manager, settingName, newValue) -> {
-            final NBTTagCompound data = Platform.openNbtData(PortableCellViewer.this.target);
+            final NBTTagCompound data = appeng.util.ItemStackNbtHelper.openNbtData(PortableCellViewer.this.target);
             manager.writeToNBT(data);
         });
 
@@ -121,7 +121,7 @@ public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implement
         out.registerSetting(Settings.VIEW_MODE, ViewItems.ALL);
         out.registerSetting(Settings.SORT_DIRECTION, SortDir.ASCENDING);
 
-        out.readFromNBT(Platform.openNbtData(this.target).copy());
+        out.readFromNBT(appeng.util.ItemStackNbtHelper.openNbtData(this.target).copy());
         return out;
     }
 }

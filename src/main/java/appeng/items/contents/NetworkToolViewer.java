@@ -43,13 +43,13 @@ public class NetworkToolViewer implements INetworkTool, IAEAppEngInventory {
         this.inv.setFilter(new NetworkToolInventoryFilter());
         if (is.hasTagCompound()) // prevent crash when opening network status screen.
         {
-            this.inv.readFromNBT(Platform.openNbtData(is), "inv");
+            this.inv.readFromNBT(appeng.util.ItemStackNbtHelper.openNbtData(is), "inv");
         }
     }
 
     @Override
     public void saveChanges() {
-        this.inv.writeToNBT(Platform.openNbtData(this.is), "inv");
+        this.inv.writeToNBT(appeng.util.ItemStackNbtHelper.openNbtData(this.is), "inv");
     }
 
     @Override

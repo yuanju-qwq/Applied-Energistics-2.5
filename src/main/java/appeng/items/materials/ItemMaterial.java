@@ -95,12 +95,12 @@ public final class ItemMaterial extends AEBaseItem implements IStorageComponent,
         }
 
         if (mt == MaterialType.NAME_PRESS) {
-            final NBTTagCompound c = Platform.openNbtData(stack);
+            final NBTTagCompound c = appeng.util.ItemStackNbtHelper.openNbtData(stack);
             lines.add(c.getString("InscribeName"));
         }
 
         if (mt == MaterialType.CARD_MAGNET) {
-            final NBTTagCompound c = Platform.openNbtData(stack);
+            final NBTTagCompound c = appeng.util.ItemStackNbtHelper.openNbtData(stack);
             if (!c.hasKey("enabled") || c.getBoolean("enabled")) {
                 lines.add(I18n.translateToLocal("gui.tooltips.appliedenergistics2.Enable"));
             } else {
@@ -355,7 +355,7 @@ public final class ItemMaterial extends AEBaseItem implements IStorageComponent,
 
     @Override
     public FuzzyMode getFuzzyMode(final ItemStack is) {
-        final String fz = Platform.openNbtData(is).getString("FuzzyMode");
+        final String fz = appeng.util.ItemStackNbtHelper.openNbtData(is).getString("FuzzyMode");
         try {
             return FuzzyMode.valueOf(fz);
         } catch (final Throwable t) {
@@ -365,7 +365,7 @@ public final class ItemMaterial extends AEBaseItem implements IStorageComponent,
 
     @Override
     public void setFuzzyMode(final ItemStack is, final FuzzyMode fzMode) {
-        Platform.openNbtData(is).setString("FuzzyMode", fzMode.name());
+        appeng.util.ItemStackNbtHelper.openNbtData(is).setString("FuzzyMode", fzMode.name());
     }
 
     private static class SlightlyBetterSort implements Comparator<String> {

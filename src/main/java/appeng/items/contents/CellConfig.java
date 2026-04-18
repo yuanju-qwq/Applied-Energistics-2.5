@@ -30,11 +30,11 @@ public class CellConfig extends AppEngInternalInventory {
     public CellConfig(final ItemStack is) {
         super(null, 63);
         this.is = is;
-        this.readFromNBT(Platform.openNbtData(is), "list");
+        this.readFromNBT(appeng.util.ItemStackNbtHelper.openNbtData(is), "list");
     }
 
     @Override
     protected void onContentsChanged(int slot) {
-        this.writeToNBT(Platform.openNbtData(this.is), "list");
+        this.writeToNBT(appeng.util.ItemStackNbtHelper.openNbtData(this.is), "list");
     }
 }

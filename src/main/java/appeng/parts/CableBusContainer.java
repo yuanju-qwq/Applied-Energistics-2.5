@@ -393,7 +393,7 @@ public class CableBusContainer extends CableBusStorage implements AEMultiTile, I
 
             if (!facades.isEmpty()) {
                 final TileEntity te = this.tcb.getTile();
-                Platform.spawnDrops(te.getWorld(), te.getPos(), facades);
+                appeng.util.WorldHelper.spawnDrops(te.getWorld(), te.getPos(), facades);
             }
         }
 

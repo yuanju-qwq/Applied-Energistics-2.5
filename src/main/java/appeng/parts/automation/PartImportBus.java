@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -191,7 +191,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
         if (!newItems.isEmpty()) {
             final IAEItemStack aeStack = AEItemStackType.INSTANCE.getStorageChannel()
                     .createStack(newItems);
-            final IAEItemStack failed = Platform.poweredInsert(energy, inv, aeStack, this.source);
+            final IAEItemStack failed = appeng.util.StorageHelper.poweredInsert(energy, inv, aeStack, this.source);
 
             if (failed != null) {
                 // try unpowered insert, better be a bit lenient then void items

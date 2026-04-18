@@ -38,8 +38,6 @@ import appeng.api.config.SortOrder;
 import appeng.api.config.ViewItems;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEColor;
 import appeng.client.gui.AEBaseGui;
 import appeng.client.gui.widgets.GuiScrollbar;
@@ -52,6 +50,7 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.util.Platform;
 import appeng.util.ReadableNumberConverter;
+import appeng.util.item.IMixedStackList;
 import appeng.util.item.IAEStackList;
 
 public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
@@ -88,9 +87,9 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
 
     private final ContainerCraftingCPU craftingCpu;
 
-    private IItemList<IAEStackBase> storage = new IAEStackList();
-    private IItemList<IAEStackBase> active = new IAEStackList();
-    private IItemList<IAEStackBase> pending = new IAEStackList();
+    private IMixedStackList storage = new IAEStackList();
+    private IMixedStackList active = new IAEStackList();
+    private IMixedStackList pending = new IAEStackList();
 
     private List<IAEStack<?>> visual = new ArrayList<>();
 
@@ -252,12 +251,9 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
                 GlStateManager.pushMatrix();
                 GlStateManager.scale(0.5, 0.5, 0.5);
 
-                @SuppressWarnings("unchecked")
-                final IAEStack<?> stored = (IAEStack<?>) this.storage.findPrecise(refStack);
-                @SuppressWarnings("unchecked")
-                final IAEStack<?> activeStack = (IAEStack<?>) this.active.findPrecise(refStack);
-                @SuppressWarnings("unchecked")
-                final IAEStack<?> pendingStack = (IAEStack<?>) this.pending.findPrecise(refStack);
+                final IAEStack<?> stored = this.storage.findPrecise(refStack);
+                final IAEStack<?> activeStack = this.active.findPrecise(refStack);
+                final IAEStack<?> pendingStack = this.pending.findPrecise(refStack);
 
                 int lines = 0;
 
@@ -385,7 +381,6 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
     /**
      * 泛型版本：接收包含物品和流体的合成状态更新。
      */
-    @SuppressWarnings("unchecked")
     public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
         switch (ref) {
             case 0:
@@ -421,9 +416,8 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
         this.setScrollBar();
     }
 
-    @SuppressWarnings("unchecked")
-    private void handleInput(final IItemList<IAEStackBase> s, final IAEStack<?> l) {
-        IAEStack<?> a = (IAEStack<?>) s.findPrecise(l);
+    private void handleInput(final IMixedStackList s, final IAEStack<?> l) {
+        IAEStack<?> a = s.findPrecise(l);
 
         if (l.getStackSize() <= 0) {
             if (a != null) {
@@ -432,7 +426,7 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
         } else {
             if (a == null) {
                 s.add(l.copy());
-                a = (IAEStack<?>) s.findPrecise(l);
+                a = s.findPrecise(l);
             }
 
             if (a != null) {
@@ -441,11 +435,10 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private long getTotal(final IAEStack<?> is) {
-        final IAEStack<?> a = (IAEStack<?>) this.storage.findPrecise(is);
-        final IAEStack<?> b = (IAEStack<?>) this.active.findPrecise(is);
-        final IAEStack<?> c = (IAEStack<?>) this.pending.findPrecise(is);
+        final IAEStack<?> a = this.storage.findPrecise(is);
+        final IAEStack<?> b = this.active.findPrecise(is);
+        final IAEStack<?> c = this.pending.findPrecise(is);
 
         long total = 0;
 

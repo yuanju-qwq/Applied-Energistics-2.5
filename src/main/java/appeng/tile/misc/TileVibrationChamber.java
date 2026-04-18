@@ -235,7 +235,7 @@ public class TileVibrationChamber extends AENetworkInvTile implements IGridTicka
             this.markForUpdate();
 
             if (this.hasWorld()) {
-                Platform.notifyBlocksOfNeighbors(this.world, this.pos);
+                appeng.util.WorldHelper.notifyBlocksOfNeighbors(this.world, this.pos);
             }
         }
     }

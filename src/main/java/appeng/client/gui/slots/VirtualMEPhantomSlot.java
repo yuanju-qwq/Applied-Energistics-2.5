@@ -18,8 +18,6 @@
 
 package appeng.client.gui.slots;
 
-import static appeng.util.item.AEItemStackType.ITEM_STACK_TYPE;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +33,7 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketVirtualSlot;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.AEItemStackType;
 
 /**
  * 虚拟 ME 幽灵槽位，用于在 GUI 中显示和交互泛型 {@link IAEStack}（物品、流体等）。
@@ -130,10 +129,10 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
             }
         }
 
-        final boolean acceptItem = acceptTypes.contains(ITEM_STACK_TYPE);
+        final boolean acceptItem = acceptTypes.contains(AEItemStackType.INSTANCE);
         boolean acceptExtra = false;
         for (IAEStackType<?> type : acceptTypes) {
-            if (type != ITEM_STACK_TYPE) {
+            if (type != AEItemStackType.INSTANCE) {
                 acceptExtra = true;
                 break;
             }

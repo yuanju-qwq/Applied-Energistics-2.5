@@ -127,7 +127,7 @@ public abstract class AEBaseBlock extends Block {
         if (collisionHandler != null) {
             if (Platform.isClient()) {
                 final EntityPlayer player = Minecraft.getMinecraft().player;
-                final LookDirection ld = Platform.getPlayerRay(player, Platform.getEyeOffset(player));
+                final LookDirection ld = appeng.util.PlayerLookHelper.getPlayerRay(player, appeng.util.WorldHelper.getEyeOffset(player));
 
                 final Iterable<AxisAlignedBB> bbs = collisionHandler.getSelectedBoundingBoxesFromPool(w, pos,
                         Minecraft.getMinecraft().player, true);
@@ -269,8 +269,8 @@ public abstract class AEBaseBlock extends Block {
                 EnumFacing up = rotatable.getUp();
 
                 for (int rs = 0; rs < 4; rs++) {
-                    forward = Platform.rotateAround(forward, axis);
-                    up = Platform.rotateAround(up, axis);
+                    forward = appeng.util.OrientationHelper.rotateAround(forward, axis);
+                    up = appeng.util.OrientationHelper.rotateAround(up, axis);
 
                     if (this.isValidOrientation(w, pos, forward, up)) {
                         rotatable.setOrientation(forward, up);

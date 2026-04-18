@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -396,7 +396,8 @@ public class GuiInterfaceTerminal extends AEBaseGui {
             if (iBtn.getSetting() != Settings.ACTIONS) {
                 final Enum<?> cv = iBtn.getCurrentValue();
                 final boolean backwards = Mouse.isButtonDown(1);
-                final Enum<?> next = Platform.rotateEnum(cv, backwards, iBtn.getSetting().getPossibleValues());
+                final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
+                        iBtn.getSetting().getPossibleValues());
 
                 if (btn == this.terminalStyleBox) {
                     AEConfig.instance().getConfigManager().putSetting(iBtn.getSetting(), next);

@@ -56,7 +56,7 @@ public class BlockEnergyCell extends AEBaseTileBlock {
         super.getSubBlocks(tabs, itemStacks);
 
         final ItemStack charged = new ItemStack(this, 1);
-        final NBTTagCompound tag = Platform.openNbtData(charged);
+        final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(charged);
         tag.setDouble("internalCurrentPower", this.getMaxPower());
         tag.setDouble("internalMaxPower", this.getMaxPower());
 

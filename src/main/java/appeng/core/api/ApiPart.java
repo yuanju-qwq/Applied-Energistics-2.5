@@ -101,7 +101,7 @@ public class ApiPart implements IPartHelper {
 
     @Override
     public boolean canPlacePartHost(World w, BlockPos pos, @Nullable EntityPlayer p) {
-        if (p != null && !Platform.hasPermissions(w, pos, p)) {
+        if (p != null && !appeng.util.WorldHelper.hasPermissions(w, pos, p)) {
             return false;
         }
 

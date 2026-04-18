@@ -1,4 +1,4 @@
-﻿
+
 /*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
@@ -34,6 +34,7 @@ import appeng.integration.modules.bogosorter.InventoryBogoSortModule;
 import appeng.items.storage.ItemViewCell;
 import appeng.util.ItemSorters;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStackType;
 import appeng.util.prioritylist.IPartitionList;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
@@ -69,10 +70,10 @@ public class ItemRepo {
     private IPartitionList<IAEItemStack> myPartitionList;
     private boolean hasPower;
 
-    private Enum lastView;
-    private Enum lastSearchMode;
-    private Enum lastSortBy;
-    private Enum lastSortDir;
+    private Enum<?> lastView;
+    private Enum<?> lastSearchMode;
+    private Enum<?> lastSortBy;
+    private Enum<?> lastSortDir;
     private String lastSearch = "";
 
     private boolean resort = true;
@@ -141,14 +142,14 @@ public class ItemRepo {
     @SuppressWarnings("unchecked")
     public void updateView() {
 
-        final Enum viewMode = this.sortSrc.getSortDisplay();
+        final Enum<?> viewMode = this.sortSrc.getSortDisplay();
 
         if (lastView != viewMode) {
             resort = true;
             lastView = viewMode;
         }
 
-        final Enum searchMode = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
+        final Enum<?> searchMode = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
         if (lastSearchMode != searchMode) {
             resort = true;
             lastSearchMode = searchMode;
@@ -163,8 +164,8 @@ public class ItemRepo {
             lastSearch = searchString;
         }
 
-        final Enum sortBy = this.sortSrc.getSortBy();
-        final Enum sortDir = this.sortSrc.getSortDir();
+        final Enum<?> sortBy = this.sortSrc.getSortBy();
+        final Enum<?> sortDir = this.sortSrc.getSortDir();
 
         if (lastSortBy != sortBy) {
             resort = true;
@@ -209,7 +210,7 @@ public class ItemRepo {
     /**
      * 获取支持多类型的排序比较器。
      */
-    private static Comparator<IAEStack<?>> getGenericComparator(Enum sortBy) {
+    private static Comparator<IAEStack<?>> getGenericComparator(final Enum<?> sortBy) {
         return (a, b) -> {
             // 不同类型之间：物品优先于流体
             if (a.getStackType() != b.getStackType()) {
@@ -230,7 +231,7 @@ public class ItemRepo {
         };
     }
 
-    private static Comparator<IAEItemStack> getItemComparator(Enum sortBy) {
+    private static Comparator<IAEItemStack> getItemComparator(final Enum<?> sortBy) {
         Comparator<IAEItemStack> c;
 
         if (sortBy == SortOrder.MOD) {
@@ -250,7 +251,7 @@ public class ItemRepo {
     }
 
     @SuppressWarnings("unchecked")
-    private void addIAE(IAEStack<?> is, Enum viewMode) {
+    private void addIAE(final IAEStack<?> is, final Enum<?> viewMode) {
 
         final boolean needsZeroCopy = viewMode == ViewItems.CRAFTABLE;
 

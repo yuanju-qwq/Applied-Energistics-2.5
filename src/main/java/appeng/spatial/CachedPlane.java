@@ -324,7 +324,7 @@ public class CachedPlane {
                     WorldData.instance().compassData().service().updateArea(this.getWorld(), c.x << 4, y, c.z << 4);
                 }
 
-                Platform.sendChunk(c, this.verticalBits);
+                appeng.util.WorldHelper.sendChunk(c, this.verticalBits);
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -322,7 +322,7 @@ public class PartAnnihilationPlane extends PartBasicState implements IGridTickab
         try {
             final IStorageGrid storage = this.getProxy().getStorage();
             final IEnergyGrid energy = this.getProxy().getEnergy();
-            final IAEItemStack overflow = Platform.poweredInsert(energy,
+            final IAEItemStack overflow = appeng.util.StorageHelper.poweredInsert(energy,
                     storage.getInventory(AEItemStackType.INSTANCE.getStorageChannel()),
                     itemToStore, this.mySrc);
 
@@ -453,7 +453,7 @@ public class PartAnnihilationPlane extends PartBasicState implements IGridTickab
 
         return !ignoreMaterials && !ignoreBlocks && hardness >= 0f && !w.isAirBlock(pos) && w.isBlockLoaded(pos)
                 && w.canMineBlockBody(
-                        Platform.getPlayer(w),
+                        appeng.util.WorldHelper.getPlayer(w),
                         pos);
     }
 
@@ -476,7 +476,7 @@ public class PartAnnihilationPlane extends PartBasicState implements IGridTickab
             }
             return out;
         } else {
-            final ItemStack[] out = Platform.getBlockDrops(w, pos, enchantments.getOrDefault(Enchantments.FORTUNE, 0));
+            final ItemStack[] out = appeng.util.WorldHelper.getBlockDrops(w, pos, enchantments.getOrDefault(Enchantments.FORTUNE, 0));
             return Lists.newArrayList(out);
         }
     }

@@ -48,6 +48,7 @@ import appeng.util.Platform;
 import appeng.util.helpers.ItemHandlerUtil;
 import appeng.util.inv.WrapperSupplierItemHandler;
 import appeng.util.iterators.NullIterator;
+import appeng.util.item.AEItemStackType;
 
 public class ContainerCellWorkbench extends ContainerUpgradeable {
     private final TileCellWorkbench workBench;
@@ -70,7 +71,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable {
 
     public void nextWorkBenchCopyMode() {
         this.workBench.getConfigManager().putSetting(Settings.COPY_MODE,
-                Platform.nextEnum(this.getWorkBenchCopyMode()));
+                appeng.util.EnumCycler.nextEnum(this.getWorkBenchCopyMode()));
     }
 
     private CopyMode getWorkBenchCopyMode() {
@@ -205,7 +206,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable {
 
         Iterator<IAEStack<?>> i = new NullIterator<>();
         if (cellInv != null) {
-            final IItemList<? extends IAEStack<?>> list = Platform.getAvailableItems(cellInv);
+        final IItemList<? extends IAEStack<?>> list = appeng.util.StorageHelper.getAvailableItems(cellInv);
             i = (Iterator<IAEStack<?>>) (Iterator<?>) list.iterator();
         }
 

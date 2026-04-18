@@ -15,7 +15,8 @@ import appeng.api.config.Settings;
 import appeng.core.localization.GuiText;
 
 public class GuiImgLabel extends GuiLabel implements ITooltip {
-    public GuiImgLabel(FontRenderer fontRendererObj, final int x, final int y, final Enum idx, final Enum val) {
+    public GuiImgLabel(FontRenderer fontRendererObj, final int x, final int y, final Enum<?> idx,
+            final Enum<?> val) {
         super(fontRendererObj, 0, x, y, 16, 16, 0);
         this.currentValue = val;
         this.labelSetting = idx;
@@ -35,8 +36,8 @@ public class GuiImgLabel extends GuiLabel implements ITooltip {
         }
     }
 
-    private final Enum labelSetting;
-    private Enum currentValue;
+    private final Enum<?> labelSetting;
+    private Enum<?> currentValue;
     private static Map<GuiImgButton.EnumPair, LabelAppearance> appearances;
     private final FontRenderer fontRenderer;
 
@@ -80,7 +81,7 @@ public class GuiImgLabel extends GuiLabel implements ITooltip {
         return -1;
     }
 
-    private void registerApp(final int iconIndex, final Settings setting, final Enum val, final GuiText label,
+    private void registerApp(final int iconIndex, final Settings setting, final Enum<?> val, final GuiText label,
             final Object hint, int color) {
         final LabelAppearance a = new LabelAppearance();
         if (hint != null) {
@@ -110,7 +111,7 @@ public class GuiImgLabel extends GuiLabel implements ITooltip {
         return null;
     }
 
-    public void set(final Enum e) {
+    public void set(final Enum<?> e) {
         if (this.currentValue != e) {
             this.currentValue = e;
         }

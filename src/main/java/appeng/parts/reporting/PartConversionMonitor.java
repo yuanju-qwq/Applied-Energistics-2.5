@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -90,7 +90,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
             return false;
         }
 
-        if (!Platform.hasPermissions(this.getLocation(), player)) {
+        if (!appeng.util.WorldHelper.hasPermissions(this.getLocation(), player)) {
             return false;
         }
 
@@ -145,7 +145,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
             return false;
         }
 
-        if (!Platform.hasPermissions(this.getLocation(), player)) {
+        if (!appeng.util.WorldHelper.hasPermissions(this.getLocation(), player)) {
             return false;
         }
 
@@ -168,7 +168,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
             return false;
         }
 
-        if (!Platform.hasPermissions(this.getLocation(), player)) {
+        if (!appeng.util.WorldHelper.hasPermissions(this.getLocation(), player)) {
             return false;
         }
 
@@ -197,7 +197,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
                             final ItemStack canExtract = inv.extractItem(x, targetStack.getCount(), true);
                             if (!canExtract.isEmpty()) {
                                 input.setStackSize(canExtract.getCount());
-                                final IAEItemStack failedToInsert = Platform.poweredInsert(energy, cell, input,
+                                final IAEItemStack failedToInsert = appeng.util.StorageHelper.poweredInsert(energy, cell, input,
                                         new PlayerSource(player, this));
                                 inv.extractItem(x,
                                         failedToInsert == null ? canExtract.getCount()
@@ -209,7 +209,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
                 }
             } else {
                 final IAEItemStack input = AEItemStack.fromItemStack(player.getHeldItem(hand));
-                final IAEItemStack failedToInsert = Platform.poweredInsert(energy, cell, input,
+                final IAEItemStack failedToInsert = appeng.util.StorageHelper.poweredInsert(energy, cell, input,
                         new PlayerSource(player, this));
                 player.setHeldItem(hand, failedToInsert == null ? ItemStack.EMPTY : failedToInsert.createItemStack());
             }
@@ -236,7 +236,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
 
                 input.setStackSize(count);
 
-                final IAEItemStack retrieved = Platform.poweredExtraction(energy, cell, input,
+                final IAEItemStack retrieved = appeng.util.StorageHelper.poweredExtraction(energy, cell, input,
                         new PlayerSource(player, this));
                 if (retrieved != null) {
                     ItemStack newItems = retrieved.createItemStack();
@@ -245,7 +245,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
                     if (!newItems.isEmpty()) {
                         final TileEntity te = this.getTile();
                         final List<ItemStack> list = Collections.singletonList(newItems);
-                        Platform.spawnDrops(player.world, te.getPos().offset(this.getSide().getFacing()), list);
+                        appeng.util.WorldHelper.spawnDrops(player.world, te.getPos().offset(this.getSide().getFacing()), list);
                     }
 
                     if (player.openContainer != null) {
@@ -284,7 +284,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
                     .getStorage()
                     .getInventory(
                             AEFluidStackType.INSTANCE.getStorageChannel());
-            final IAEFluidStack notStorable = Platform.poweredInsert(energy, cell, AEFluidStack.fromFluidStack(extract),
+            final IAEFluidStack notStorable = appeng.util.StorageHelper.poweredInsert(energy, cell, AEFluidStack.fromFluidStack(extract),
                     new PlayerSource(player, this), Actionable.SIMULATE);
 
             if (notStorable != null && notStorable.getStackSize() > 0) {
@@ -302,7 +302,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
             final FluidStack drained = fh.drain(extract, true);
             extract.amount = drained.amount;
 
-            final IAEFluidStack notInserted = Platform.poweredInsert(energy, cell, AEFluidStack.fromFluidStack(extract),
+            final IAEFluidStack notInserted = appeng.util.StorageHelper.poweredInsert(energy, cell, AEFluidStack.fromFluidStack(extract),
                     new PlayerSource(player, this));
 
             if (notInserted != null && notInserted.getStackSize() > 0) {
@@ -343,7 +343,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
                     .getStorage()
                     .getInventory(
                             AEFluidStackType.INSTANCE.getStorageChannel());
-            final IAEFluidStack canPull = Platform.poweredExtraction(energy, cell, stack,
+            final IAEFluidStack canPull = appeng.util.StorageHelper.poweredExtraction(energy, cell, stack,
                     new PlayerSource(player, this), Actionable.SIMULATE);
             if (canPull == null || canPull.getStackSize() < 1) {
                 return;
@@ -357,7 +357,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
 
             // Now actually pull out of the system
             stack.setStackSize(canFill);
-            final IAEFluidStack pulled = Platform.poweredExtraction(energy, cell, stack,
+            final IAEFluidStack pulled = appeng.util.StorageHelper.poweredExtraction(energy, cell, stack,
                     new PlayerSource(player, this));
             if (pulled == null || pulled.getStackSize() < 1) {
                 // Something went wrong

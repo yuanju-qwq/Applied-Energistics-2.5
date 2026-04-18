@@ -45,7 +45,7 @@ public final class ConfigManager implements IConfigManager {
     }
 
     @Override
-    public void registerSetting(final Settings settingName, final Enum defaultValue) {
+    public void registerSetting(final Settings settingName, final Enum<?> defaultValue) {
         this.settings.put(settingName, defaultValue);
     }
 
@@ -61,7 +61,7 @@ public final class ConfigManager implements IConfigManager {
     }
 
     @Override
-    public Enum<?> putSetting(final Settings settingName, final Enum newValue) {
+    public Enum<?> putSetting(final Settings settingName, final Enum<?> newValue) {
         final Enum<?> oldValue = this.getSetting(settingName);
         this.settings.put(settingName, newValue);
         this.oldSettings.put(settingName, oldValue);

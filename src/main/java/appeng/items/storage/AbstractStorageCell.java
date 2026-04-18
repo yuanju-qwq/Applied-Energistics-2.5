@@ -128,7 +128,7 @@ public abstract class AbstractStorageCell<T extends IAEStack<T>> extends AEBaseI
 
     @Override
     public FuzzyMode getFuzzyMode(final ItemStack is) {
-        final String fz = Platform.openNbtData(is).getString("FuzzyMode");
+        final String fz = appeng.util.ItemStackNbtHelper.openNbtData(is).getString("FuzzyMode");
         try {
             return FuzzyMode.valueOf(fz);
         } catch (final Throwable t) {
@@ -138,7 +138,7 @@ public abstract class AbstractStorageCell<T extends IAEStack<T>> extends AEBaseI
 
     @Override
     public void setFuzzyMode(final ItemStack is, final FuzzyMode fzMode) {
-        Platform.openNbtData(is).setString("FuzzyMode", fzMode.name());
+        appeng.util.ItemStackNbtHelper.openNbtData(is).setString("FuzzyMode", fzMode.name());
     }
 
     @Override
@@ -158,7 +158,7 @@ public abstract class AbstractStorageCell<T extends IAEStack<T>> extends AEBaseI
                     this.getChannel());
             if (inv != null && playerInventory.getCurrentItem() == stack) {
                 final InventoryAdaptor ia = InventoryAdaptor.getAdaptor(player);
-                final IItemList<? extends IAEStack<?>> list = Platform.getAvailableItems(inv);
+        final IItemList<? extends IAEStack<?>> list = appeng.util.StorageHelper.getAvailableItems(inv);
                 if (list.isEmpty() && ia != null) {
                     playerInventory.setInventorySlotContents(playerInventory.currentItem, ItemStack.EMPTY);
 

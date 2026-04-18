@@ -50,7 +50,7 @@ public class AEGuiHandler implements IAdvancedGuiHandler<AEBaseGui>, IGhostIngre
             guiSlotIdx = getSlotidx(guiContainer, mouseX, mouseY, ((GuiCraftConfirm) guiContainer).getDisplayedRows());
             visual = ((GuiCraftConfirm) guiContainer).getVisual();
             if (guiSlotIdx < visual.size() && guiSlotIdx != -1) {
-                result = visual.get(guiSlotIdx).getDefinition();
+                result = visual.get(guiSlotIdx).asItemStackRepresentation();
             } else {
                 return null;
             }
@@ -60,7 +60,7 @@ public class AEGuiHandler implements IAdvancedGuiHandler<AEBaseGui>, IGhostIngre
             guiSlotIdx = getSlotidx(guiContainer, mouseX, mouseY, ((GuiCraftingCPU) guiContainer).getDisplayedRows());
             visual = ((GuiCraftingCPU) guiContainer).getVisual();
             if (guiSlotIdx < visual.size() && guiSlotIdx != -1) {
-                result = visual.get(guiSlotIdx).getDefinition();
+                result = visual.get(guiSlotIdx).asItemStackRepresentation();
             } else {
                 return null;
             }

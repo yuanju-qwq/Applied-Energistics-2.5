@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -173,7 +173,7 @@ public class PacketJEIRecipe extends AppEngPacket {
                     if (newItem != currentItem && security.hasPermission(player, SecurityPermissions.INJECT)) {
                         final IAEItemStack in = AEItemStack.fromItemStack(currentItem);
                         final IAEItemStack out = cct.useRealItems()
-                                ? Platform.poweredInsert(energy, storage, in, cct.getActionSource())
+                                ? appeng.util.StorageHelper.poweredInsert(energy, storage, in, cct.getActionSource())
                                 : null;
                         if (out != null) {
                             currentItem = out.createItemStack();
@@ -195,7 +195,7 @@ public class PacketJEIRecipe extends AppEngPacket {
                                 IAEItemStack out;
 
                                 if (cct.useRealItems()) {
-                                    out = Platform.poweredExtraction(energy, storage, request, cct.getActionSource());
+                                    out = appeng.util.StorageHelper.poweredExtraction(energy, storage, request, cct.getActionSource());
                                     if (out == null) {
                                         if (request.getItem().isDamageable()
                                                 || Platform.isGTDamageableItem(request.getItem())) {
@@ -212,7 +212,7 @@ public class PacketJEIRecipe extends AppEngPacket {
                                                         continue;
                                                     }
                                                 }
-                                                out = Platform.poweredExtraction(energy, storage,
+                                                out = appeng.util.StorageHelper.poweredExtraction(energy, storage,
                                                         is.copy().setStackSize(1), cct.getActionSource());
                                                 if (out != null) {
                                                     break;

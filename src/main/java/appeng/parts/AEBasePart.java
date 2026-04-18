@@ -114,7 +114,7 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
             final List<ItemStack> items = new ArrayList<>();
             items.add(this.is.copy());
             this.host.removePart(this.side, false);
-            Platform.spawnDrops(this.tile.getWorld(), this.tile.getPos(), items);
+            appeng.util.WorldHelper.spawnDrops(this.tile.getWorld(), this.tile.getPos(), items);
             this.is.setCount(0);
         }
     }
@@ -341,7 +341,7 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
             }
         }
 
-        // IAEStackInventory 路径（支持泛型栈配置的部件，如改造后的 PartStorageBus / PartLevelEmitter）
+        // IAEStackInventory 璺緞锛堟敮鎸佹硾鍨嬫爤閰嶇疆鐨勯儴浠讹紝濡傛敼閫犲悗鐨?PartStorageBus / PartLevelEmitter锛?
         if (this instanceof IIAEStackInventory iiaeStackInventory) {
             IAEStackInventory aeInv = iiaeStackInventory.getAEInventoryByName(StorageName.CONFIG);
             if (aeInv != null) {
@@ -411,7 +411,7 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
             }
         }
 
-        // IAEStackInventory 路径（支持泛型栈配置的部件）
+        // IAEStackInventory 璺緞锛堟敮鎸佹硾鍨嬫爤閰嶇疆鐨勯儴浠讹級
         if (this instanceof IIAEStackInventory iiaeStackInventory) {
             IAEStackInventory aeInv = iiaeStackInventory.getAEInventoryByName(StorageName.CONFIG);
             if (aeInv != null) {
@@ -547,4 +547,8 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
     public ItemStack getItemStack() {
         return this.is;
     }
+
+    protected void uploadSettingsFromStackTag(final NBTTagCompound compound) {}
+
+    protected void downloadSettingsToStackTag(final NBTTagCompound output) {}
 }

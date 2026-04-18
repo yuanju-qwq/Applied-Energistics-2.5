@@ -50,7 +50,7 @@ public class GuiSecurityStation extends GuiMEMonitorable {
     }
 
     @Override
-    protected void actionPerformed(final net.minecraft.client.gui.GuiButton btn) {
+    protected void actionPerformed(final net.minecraft.client.gui.GuiButton btn) throws IOException {
         super.actionPerformed(btn);
 
         SecurityPermissions toggleSetting = null;

@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -285,12 +285,12 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
             for (int x = 0; x < waitingList.tagCount(); x++) {
                 final NBTTagCompound c = waitingList.getCompoundTagAt(x);
                 if (c != null) {
-                    // 尝试使用新的泛型反序列化
+                    // 鐏忔繆鐦担璺ㄦ暏閺傛壆娈戝▔娑樼€烽崣宥呯碍閸掓瀵?
                     IAEStack<?> stack = IAEStack.fromNBTGeneric(c);
                     if (stack != null) {
                         this.addToSendList(stack);
                     } else {
-                        // 向后兼容：旧的 ItemStack 格式
+                        // 閸氭垵鎮楅崗鐓庮啇閿涙碍妫惃?ItemStack 閺嶇厧绱?
                         final ItemStack is = stackFromNBT(c);
                         this.addToSendList(is);
                     }
@@ -380,7 +380,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
     }
 
     /**
-     * 向后兼容：接受 ItemStack 参数的 addToSendList。
+     * 閸氭垵鎮楅崗鐓庮啇閿涙碍甯撮崣?ItemStack 閸欏倹鏆熼惃?addToSendList閵?
      */
     private void addToSendList(final ItemStack is) {
         if (is.isEmpty()) {
@@ -394,7 +394,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
             return;
         }
 
-        // 检查物品是否为流体容器（如桶），若是则转换为 IAEFluidStack 推送
+        // 濡偓閺屻儳澧块崫浣规Ц閸氾缚璐熷ù浣风秼鐎圭懓娅掗敍鍫濐洤濡楄绱氶敍宀冨閺勵垰鍨潪顒佸床娑?IAEFluidStack 閹恒劑鈧?
         final IAEStack<?> converted = tryConvertToFluidStack(is);
 
         if (this.waitingToSendFacing == null) {
@@ -404,9 +404,9 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
         this.waitingToSendFacing.computeIfAbsent(f, k -> new ArrayList<>());
 
         if (converted instanceof IAEFluidStack) {
-            // 流体容器转换成功，使用流体适配器推送
-            // 但 waitingToSendFacing 仍使用 List<ItemStack>
-            // 所以流体需要直接放入 waitingToSend 泛型列表
+            // 濞翠椒缍嬬€圭懓娅掓潪顒佸床閹存劕濮涢敍灞煎▏閻劍绁︽担鎾烩偓鍌炲帳閸ｃ劍甯归柅?
+            // 娴?waitingToSendFacing 娴犲秳濞囬悽?List<ItemStack>
+            // 閹碘偓娴犮儲绁︽担鎾绘付鐟曚胶娲块幒銉︽杹閸?waitingToSend 濞夋稑鐎烽崚妤勩€?
             if (this.waitingToSend == null) {
                 this.waitingToSend = new ArrayList<>();
             }
@@ -423,10 +423,10 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
     }
 
     /**
-     * 尝试将 ItemStack 转换为 IAEFluidStack。
+     * 鐏忔繆鐦亸?ItemStack 鏉烆剚宕叉稉?IAEFluidStack閵?
      * <p>
-     * 优先检查 ItemFluidDrop（流体伪物品），其次检查流体容器（如桶）。
-     * 否则返回 null，表示应作为物品处理。
+     * 娴兼ê鍘涘Λ鈧弻?ItemFluidDrop閿涘牊绁︽担鎾插悏閻椻晛鎼ч敍澶涚礉閸忚埖顐煎Λ鈧弻銉︾ウ娴ｆ挸顔愰崳顭掔礄婵″倹銆婇敍澶堚偓?
+     * 閸氾箑鍨潻鏂挎礀 null閿涘矁銆冪粈鍝勭安娴ｆ粈璐熼悧鈺佹惂婢跺嫮鎮婇妴?
      */
     @Nullable
     private static IAEStack<?> tryConvertToFluidStack(final ItemStack is) {
@@ -434,7 +434,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
             return null;
         }
 
-        // 检查是否为 ItemFluidDrop（流体伪物品）
+        // 濡偓閺屻儲妲搁崥锔胯礋 ItemFluidDrop閿涘牊绁︽担鎾插悏閻椻晛鎼ч敍?
         if (appeng.fluids.items.ItemFluidDrop.isFluidDrop(is)) {
             net.minecraftforge.fluids.FluidStack fs = appeng.fluids.items.ItemFluidDrop.getFluidStack(is);
             if (fs != null) {
@@ -442,7 +442,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
             }
         }
 
-        // 检查物品是否为流体容器（如桶）
+        // 濡偓閺屻儳澧块崫浣规Ц閸氾缚璐熷ù浣风秼鐎圭懓娅掗敍鍫濐洤濡楄绱?
         net.minecraftforge.fluids.capability.IFluidHandlerItem fluidHandler =
                 net.minecraftforge.fluids.FluidUtil.getFluidHandler(is.copy());
         if (fluidHandler != null) {
@@ -605,7 +605,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
 
         final TileEntity te = this.iHost.getTileEntity();
         if (te != null && te.getWorld() != null) {
-            Platform.notifyBlocksOfNeighbors(te.getWorld(), te.getPos());
+            appeng.util.WorldHelper.notifyBlocksOfNeighbors(te.getWorld(), te.getPos());
         }
     }
 
@@ -659,7 +659,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
         if (dropList.size() > 0) {
             World world = this.getLocation().getWorld();
             BlockPos blockPos = this.getLocation().getPos();
-            Platform.spawnDrops(world, blockPos, dropList);
+            appeng.util.WorldHelper.spawnDrops(world, blockPos, dropList);
         }
 
         this.gridProxy.setIdlePowerUsage(Math.pow(4, (this.getInstalledUpgrades(Upgrades.PATTERN_EXPANSION))));
@@ -900,7 +900,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                     throw new GridAccessException();
                 }
 
-                toStore = Platform.poweredInsert(src, this.destination, toStore, this.interfaceRequestSource);
+                toStore = appeng.util.StorageHelper.poweredInsert(src, this.destination, toStore, this.interfaceRequestSource);
 
                 if (toStore != null) {
                     diff -= toStore.getStackSize();
@@ -935,7 +935,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                         .getInventory(AEItemStackType.INSTANCE.getStorageChannel())
                         .getStorageList().findPrecise(itemStack);
                 if (storedStack != null) {
-                    final IAEItemStack acquired = Platform.poweredExtraction(src, this.destination, itemStack,
+                    final IAEItemStack acquired = appeng.util.StorageHelper.poweredExtraction(src, this.destination, itemStack,
                             this.interfaceRequestSource);
                     if (acquired != null) {
                         changed = true;
@@ -1051,7 +1051,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
     }
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum settingName, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
         if (this.getInstalledUpgrades(Upgrades.CRAFTING) == 0) {
             this.cancelCrafting();
         }
@@ -1166,7 +1166,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
 
                             this.visitedFaces.clear();
 
-                            // 对于流体 Pattern，使用泛型输入
+                            // 鐎甸€涚艾濞翠椒缍?Pattern閿涘奔濞囬悽銊︾【閸ㄥ绶崗?
                             final IAEStack<?>[] genericInputs = patternDetails.getCondensedAEInputs();
                             boolean hasFluidInputs = false;
                             for (IAEStack<?> gi : genericInputs) {
@@ -1245,7 +1245,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                 if (this.acceptsItems(ad, table)) {
                     this.visitedFaces.clear();
 
-                    // 对于流体 Pattern，使用泛型输入来推送（支持流体栈）
+                    // 鐎甸€涚艾濞翠椒缍?Pattern閿涘奔濞囬悽銊︾【閸ㄥ绶崗銉︽降閹恒劑鈧緤绱欓弨顖涘瘮濞翠椒缍嬮弽鍫礆
                     final IAEStack<?>[] genericInputs = patternDetails.getCondensedAEInputs();
                     boolean hasFluidInputs = false;
                     for (IAEStack<?> gi : genericInputs) {
@@ -1256,14 +1256,14 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                     }
 
                     if (hasFluidInputs) {
-                        // 流体 Pattern：从泛型输入推送
+                        // 濞翠椒缍?Pattern閿涙矮绮犲▔娑樼€锋潏鎾冲弳閹恒劑鈧?
                         for (IAEStack<?> gi : genericInputs) {
                             if (gi != null) {
                                 this.addToSendList(gi.copy());
                             }
                         }
                     } else {
-                        // 普通 Pattern：从 InventoryCrafting 推送
+                        // 閺咁噣鈧?Pattern閿涙矮绮?InventoryCrafting 閹恒劑鈧?
                         for (int x = 0; x < table.getSizeInventory(); x++) {
                             final ItemStack is = table.getStackInSlot(x);
                             if (!is.isEmpty()) {
@@ -1466,7 +1466,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                         drops.add(is);
                     }
                 }
-                // 流体类型的 IAEStack 无法作为掉落物，忽略
+                // 濞翠椒缍嬬猾璇茬€烽惃?IAEStack 閺冪姵纭舵担婊€璐熼幒澶庢儰閻椻晪绱濊箛鐣屾殣
             }
         }
 
@@ -1585,7 +1585,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                 ItemStack what = new ItemStack(directedBlock, 1, directedBlock.getMetaFromState(directedBlockState));
 
                 if (Platform.GTLoaded && directedBlock instanceof BlockMachine) {
-                    MetaTileEntity metaTileEntity = Platform.getMetaTileEntity(directedTile.getWorld(),
+                    MetaTileEntity metaTileEntity = appeng.util.WorldHelper.getMetaTileEntity(directedTile.getWorld(),
                             directedTile.getPos());
                     if (metaTileEntity != null) {
                         if (metaTileEntity instanceof MetaTileEntityMultiblockPart part) {

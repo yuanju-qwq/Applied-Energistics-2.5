@@ -146,8 +146,9 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
     }
 
     @Override
-    public IAEStackType<?> getStackType() {
-        return this.internal.getStackType();
+    @SuppressWarnings("unchecked")
+    public IAEStackType<T> getStackType() {
+        return (IAEStackType<T>) this.internal.getStackType();
     }
 
     @Override

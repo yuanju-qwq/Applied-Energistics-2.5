@@ -132,7 +132,7 @@ public class ToolEntropyManipulator extends AEBasePoweredItem implements IBlockT
         }
 
         if (r.getDrops() != null) {
-            Platform.spawnDrops(w, pos, r.getDrops());
+            appeng.util.WorldHelper.spawnDrops(w, pos, r.getDrops());
         }
     }
 
@@ -160,7 +160,7 @@ public class ToolEntropyManipulator extends AEBasePoweredItem implements IBlockT
         }
 
         if (r.getDrops() != null) {
-            Platform.spawnDrops(w, pos, r.getDrops());
+            appeng.util.WorldHelper.spawnDrops(w, pos, r.getDrops());
         }
     }
 
@@ -194,7 +194,7 @@ public class ToolEntropyManipulator extends AEBasePoweredItem implements IBlockT
             if (target.typeOfHit == RayTraceResult.Type.BLOCK) {
                 final IBlockState state = w.getBlockState(target.getBlockPos());
                 if (state.getMaterial() == Material.LAVA || state.getMaterial() == Material.WATER) {
-                    if (Platform.hasPermissions(new DimensionalCoord(w, target.getBlockPos()), p)) {
+                    if (appeng.util.WorldHelper.hasPermissions(new DimensionalCoord(w, target.getBlockPos()), p)) {
                         this.onItemUse(p, w, target.getBlockPos(), hand, EnumFacing.UP, 0.0F, 0.0F, 0.0F);
                     }
                 }
@@ -246,7 +246,7 @@ public class ToolEntropyManipulator extends AEBasePoweredItem implements IBlockT
                     return EnumActionResult.SUCCESS;
                 }
 
-                final ItemStack[] stack = Platform.getBlockDrops(w, pos);
+                final ItemStack[] stack = appeng.util.WorldHelper.getBlockDrops(w, pos);
                 final List<ItemStack> out = new ArrayList<>();
                 boolean hasFurnaceable = false;
                 boolean canFurnaceable = true;
@@ -285,7 +285,7 @@ public class ToolEntropyManipulator extends AEBasePoweredItem implements IBlockT
                     }
 
                     if (or.getDrops() != null) {
-                        Platform.spawnDrops(w, pos, or.getDrops());
+                        appeng.util.WorldHelper.spawnDrops(w, pos, or.getDrops());
                     }
 
                     return EnumActionResult.SUCCESS;

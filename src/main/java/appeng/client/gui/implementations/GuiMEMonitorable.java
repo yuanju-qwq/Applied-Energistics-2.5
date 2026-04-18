@@ -109,9 +109,9 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
     private int currentMouseY = 0;
     private boolean delayedUpdate;
 
-    // 类型过滤按钮（每种 IAEStackType 一个）
+    // 缁鐎锋潻鍥ㄦ姢閹稿鎸抽敍鍫熺槨缁?IAEStackType 娑撯偓娑擃亷绱?
     private final List<TypeToggleButton> typeToggleButtons = new ArrayList<>();
-    // 记录各类型是否启用
+    // 鐠佹澘缍嶉崥鍕閸ㄥ妲搁崥锕€鎯庨悽?
     private final Map<IAEStackType<?>, Boolean> enabledTypes = new HashMap<>();
 
     // To make JEI look nicer. Otherwise, the buttons will make JEI in a strange place.
@@ -189,12 +189,12 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
     }
 
     @Override
-    protected void actionPerformed(final GuiButton btn) {
+    protected void actionPerformed(final GuiButton btn) throws java.io.IOException {
         if (btn == this.craftingStatusBtn) {
             NetworkHandler.instance().sendToServer(new PacketSwitchGuis(GuiBridge.GUI_CRAFTING_STATUS));
         }
 
-        // 处理类型过滤按钮点击
+        // 婢跺嫮鎮婄猾璇茬€锋潻鍥ㄦ姢閹稿鎸抽悙鐟板毊
         if (btn instanceof TypeToggleButton typeBtn) {
             typeBtn.setTypeEnabled(!typeBtn.isTypeEnabled());
             this.enabledTypes.put(typeBtn.getStackType(), typeBtn.isTypeEnabled());
@@ -209,7 +209,8 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
 
             if (iBtn.getSetting() != Settings.ACTIONS) {
                 final Enum cv = iBtn.getCurrentValue();
-                final Enum next = Platform.rotateEnum(cv, backwards, iBtn.getSetting().getPossibleValues());
+                final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
+                        iBtn.getSetting().getPossibleValues());
 
                 if (btn == this.terminalStyleBox) {
                     AEConfig.instance().getConfigManager().putSetting(iBtn.getSetting(), next);
@@ -273,7 +274,7 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
 
         super.initGui();
 
-        // 创建 VirtualMEMonitorableSlot 实例并添加到 guiSlots 列表
+        // 閸掓稑缂?VirtualMEMonitorableSlot 鐎圭偘绶ラ獮鑸靛潑閸旂姴鍩?guiSlots 閸掓銆?
         this.guiSlots.removeIf(s -> s instanceof VirtualMEMonitorableSlot);
         for (int y = 0; y < this.rows; y++) {
             for (int x = 0; x < this.perRow; x++) {
@@ -331,7 +332,7 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
             offset += 20;
         }
 
-        // 类型过滤按钮（只有注册了多种类型时才显示）
+        // 缁鐎锋潻鍥ㄦ姢閹稿鎸抽敍鍫濆涧閺堝鏁為崘灞肩啊婢舵氨顫掔猾璇茬€烽弮鑸靛閺勫墽銇氶敍?
         this.typeToggleButtons.clear();
         if (AEStackTypeRegistry.getAllTypes().size() > 1) {
             int typeButtonX = this.guiLeft - 18;
@@ -541,7 +542,7 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
                     this.currentMouseY);
             final boolean wasSearchFieldFocused = this.searchField.isFocused();
 
-            // 搜索框焦点优先级处理
+            // 閹兼粎鍌ㄥ鍡欏妽閻愰€涚喘閸忓牏楠囨径鍕倞
             final SearchBoxFocusPriority focusPriority = (SearchBoxFocusPriority) AEConfig.instance()
                     .getConfigManager().getSetting(Settings.SEARCH_BOX_FOCUS_PRIORITY);
 
@@ -610,7 +611,7 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
     }
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum settingName, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
         if (this.SortByBox != null) {
             this.SortByBox.set(this.configSrc.getSetting(Settings.SORT_BY));
         }
@@ -643,7 +644,7 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
     }
 
     /**
-     * @return 某种类型在终端中是否处于启用显示状态
+     * @return 閺屾劗顫掔猾璇茬€烽崷銊х矒缁旑垯鑵戦弰顖氭儊婢跺嫪绨崥顖滄暏閺勫墽銇氶悩鑸碘偓?
      */
     public boolean isTypeEnabled(IAEStackType<?> type) {
         return this.enabledTypes.getOrDefault(type, true);
@@ -651,7 +652,7 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
 
     @Override
     protected void mouseWheelEvent(final int x, final int y, final int wheel) {
-        // 先检查是否悬浮在 VirtualMEMonitorableSlot 上
+        // 閸忓牊顥呴弻銉︽Ц閸氾附鍋撳ù顔兼躬 VirtualMEMonitorableSlot 娑?
         for (final GuiCustomSlot slot : this.guiSlots) {
             if (slot instanceof VirtualMEMonitorableSlot virtualSlot) {
                 if (this.isPointInRegion(slot.xPos(), slot.yPos(),

@@ -25,6 +25,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 
 class CondenserVoidInventory<T extends IAEStack<T>> implements IMEMonitor<T> {
@@ -67,6 +68,11 @@ class CondenserVoidInventory<T extends IAEStack<T>> implements IMEMonitor<T> {
     @Override
     public IStorageChannel<T> getChannel() {
         return this.channel;
+    }
+
+    @Override
+    public IAEStackType<T> getStackType() {
+        return this.channel.getStackType();
     }
 
     @Override

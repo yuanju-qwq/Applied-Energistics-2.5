@@ -22,6 +22,7 @@ import static appeng.helpers.ItemStackHelper.stackToNBT;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +31,6 @@ import javax.annotation.Nullable;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
-import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -46,8 +46,6 @@ import appeng.container.implementations.ContainerCraftingTerm;
 import appeng.container.implementations.ContainerPatternEncoder;
 import appeng.container.implementations.ContainerWirelessCraftingTerminal;
 import appeng.container.implementations.ContainerWirelessDualInterfaceTerminal;
-import appeng.container.slot.SlotCraftingMatrix;
-import appeng.container.slot.SlotFakeCraftingMatrix;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketJEIRecipe;
@@ -121,14 +119,15 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             }
         }
 
-        Map<Integer, ? extends IGuiIngredient<ItemStack>> ingredients = recipeLayout.getItemStacks()
-                .getGuiIngredients();
+        final List<Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>>> ingredients = new ArrayList<>(
+                recipeLayout.getItemStacks().getGuiIngredients().entrySet());
+        ingredients.sort(Comparator.comparingInt(Map.Entry::getKey));
 
         final NBTTagCompound recipe = new NBTTagCompound();
         final NBTTagList outputs = new NBTTagList();
 
         int slotIndex = 0;
-        for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> ingredientEntry : ingredients.entrySet()) {
+        for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> ingredientEntry : ingredients) {
             IGuiIngredient<ItemStack> ingredient = ingredientEntry.getValue();
             if (!ingredient.isInput()) {
                 ItemStack output = ingredient.getDisplayedIngredient();
@@ -139,41 +138,31 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
                 continue;
             }
 
-            for (final Slot slot : container.inventorySlots) {
-                if (slot instanceof SlotCraftingMatrix || slot instanceof SlotFakeCraftingMatrix) {
-                    if (slot.getSlotIndex() == slotIndex) {
-                        final NBTTagList tags = new NBTTagList();
-                        final List<ItemStack> list = new ArrayList<>();
-                        final ItemStack displayed = ingredient.getDisplayedIngredient();
+            final NBTTagList tags = new NBTTagList();
+            final List<ItemStack> list = new ArrayList<>();
+            final ItemStack displayed = ingredient.getDisplayedIngredient();
 
-                        // prefer currently displayed item
-                        if (displayed != null && !displayed.isEmpty()) {
-                            list.add(displayed);
-                        }
+            if (displayed != null && !displayed.isEmpty()) {
+                list.add(displayed);
+            }
 
-                        // prefer pure crystals.
-                        for (ItemStack stack : ingredient.getAllIngredients()) {
-                            if (stack == null) {
-                                continue;
-                            }
-                            if (Platform.isRecipePrioritized(stack)) {
-                                list.add(0, stack);
-                            } else {
-                                list.add(stack);
-                            }
-                        }
-
-                        for (final ItemStack is : list) {
-                            final NBTTagCompound tag = stackToNBT(is);
-                            tags.appendTag(tag);
-                        }
-
-                        recipe.setTag("#" + slot.getSlotIndex(), tags);
-                        break;
-                    }
+            for (ItemStack stack : ingredient.getAllIngredients()) {
+                if (stack == null) {
+                    continue;
+                }
+                if (Platform.isRecipePrioritized(stack)) {
+                    list.add(0, stack);
+                } else {
+                    list.add(stack);
                 }
             }
 
+            for (final ItemStack is : list) {
+                final NBTTagCompound tag = stackToNBT(is);
+                tags.appendTag(tag);
+            }
+
+            recipe.setTag("#" + slotIndex, tags);
             slotIndex++;
         }
 

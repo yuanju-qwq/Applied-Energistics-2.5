@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -56,7 +56,7 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
             if ((currentViewCell.getItem() instanceof ItemViewCell)) {
                 final ItemViewCell viewCellItem = (ItemViewCell) currentViewCell.getItem();
 
-                // 跳过已禁用的 ViewCell
+                // 璺宠繃宸茬鐢ㄧ殑 ViewCell
                 if (!viewCellItem.getViewMode(currentViewCell)) {
                     continue;
                 }
@@ -127,7 +127,7 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
 
     @Override
     public FuzzyMode getFuzzyMode(final ItemStack is) {
-        final String fz = Platform.openNbtData(is).getString("FuzzyMode");
+        final String fz = appeng.util.ItemStackNbtHelper.openNbtData(is).getString("FuzzyMode");
         try {
             return FuzzyMode.valueOf(fz);
         } catch (final Throwable t) {
@@ -137,23 +137,23 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
 
     @Override
     public void setFuzzyMode(final ItemStack is, final FuzzyMode fzMode) {
-        Platform.openNbtData(is).setString("FuzzyMode", fzMode.name());
+        appeng.util.ItemStackNbtHelper.openNbtData(is).setString("FuzzyMode", fzMode.name());
     }
 
     /**
-     * 切换 ViewCell 的启用/禁用状态。
-     * 禁用时，此 ViewCell 的过滤规则不生效。
+     * 鍒囨崲 ViewCell 鐨勫惎鐢?绂佺敤鐘舵€併€?
+     * 绂佺敤鏃讹紝姝?ViewCell 鐨勮繃婊よ鍒欎笉鐢熸晥銆?
      */
     public void toggleViewMode(final ItemStack is) {
-        Platform.openNbtData(is).setBoolean("ViewMode", !getViewMode(is));
+        appeng.util.ItemStackNbtHelper.openNbtData(is).setBoolean("ViewMode", !getViewMode(is));
     }
 
     /**
-     * @return ViewCell 是否处于启用状态（默认 true）
+     * @return ViewCell 鏄惁澶勪簬鍚敤鐘舵€侊紙榛樿 true锛?
      */
     public boolean getViewMode(final ItemStack is) {
-        if (Platform.openNbtData(is).hasKey("ViewMode")) {
-            return Platform.openNbtData(is).getBoolean("ViewMode");
+        if (appeng.util.ItemStackNbtHelper.openNbtData(is).hasKey("ViewMode")) {
+            return appeng.util.ItemStackNbtHelper.openNbtData(is).getBoolean("ViewMode");
         }
         return true;
     }

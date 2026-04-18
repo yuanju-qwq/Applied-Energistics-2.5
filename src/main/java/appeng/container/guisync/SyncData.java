@@ -73,7 +73,7 @@ public class SyncData {
                         (EntityPlayerMP) o);
             }
         } else if (this.field.getType().isEnum()) {
-            o.sendWindowProperty(this.source, this.channel, ((Enum) val).ordinal());
+            o.sendWindowProperty(this.source, this.channel, ((Enum<?>) val).ordinal());
         } else if (val instanceof Long || val.getClass() == long.class) {
             if (o instanceof EntityPlayerMP) {
                 NetworkHandler.instance().sendTo(new PacketProgressBar(this.channel, (Long) val), (EntityPlayerMP) o);
@@ -115,8 +115,8 @@ public class SyncData {
     private void updateValue(final Object oldValue, final long val) {
         try {
             if (this.field.getType().isEnum()) {
-                final EnumSet<? extends Enum> valList = EnumSet.allOf((Class<? extends Enum>) this.field.getType());
-                for (final Enum e : valList) {
+                final EnumSet<?> valList = EnumSet.allOf(this.field.getType().asSubclass(Enum.class));
+                for (final Enum<?> e : valList) {
                     if (e.ordinal() == val) {
                         this.field.set(this.source, e);
                         break;

@@ -318,7 +318,7 @@ public abstract class PartP2PTunnel<T extends PartP2PTunnel> extends PartBasicSt
                     this.getProxy().getP2P().updateFreq(this, newFreq);
                     this.onTunnelNetworkChange();
                 }
-                Platform.notifyBlocksOfNeighbors(this.getTile().getWorld(), this.getTile().getPos());
+                appeng.util.WorldHelper.notifyBlocksOfNeighbors(this.getTile().getWorld(), this.getTile().getPos());
             } catch (final GridAccessException e) {
                 // :P
             }

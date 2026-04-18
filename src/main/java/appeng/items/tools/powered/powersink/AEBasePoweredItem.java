@@ -77,7 +77,7 @@ public abstract class AEBasePoweredItem extends AEBaseItem implements IAEItemPow
         super.getCheckedSubItems(creativeTab, itemStacks);
 
         final ItemStack charged = new ItemStack(this, 1);
-        final NBTTagCompound tag = Platform.openNbtData(charged);
+        final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(charged);
         tag.setDouble(CURRENT_POWER_NBT_KEY, this.getAEMaxPower(charged));
         tag.setDouble(MAX_POWER_NBT_KEY, this.getAEMaxPower(charged));
 
@@ -112,7 +112,7 @@ public abstract class AEBasePoweredItem extends AEBaseItem implements IAEItemPow
         final double overflow = amount - required;
 
         if (mode == Actionable.MODULATE) {
-            final NBTTagCompound data = Platform.openNbtData(is);
+            final NBTTagCompound data = appeng.util.ItemStackNbtHelper.openNbtData(is);
             final double toAdd = Math.min(amount, required);
 
             data.setDouble(CURRENT_POWER_NBT_KEY, currentStorage + toAdd);
@@ -127,7 +127,7 @@ public abstract class AEBasePoweredItem extends AEBaseItem implements IAEItemPow
         final double fulfillable = Math.min(amount, currentStorage);
 
         if (mode == Actionable.MODULATE) {
-            final NBTTagCompound data = Platform.openNbtData(is);
+            final NBTTagCompound data = appeng.util.ItemStackNbtHelper.openNbtData(is);
 
             data.setDouble(CURRENT_POWER_NBT_KEY, currentStorage - fulfillable);
         }
@@ -142,7 +142,7 @@ public abstract class AEBasePoweredItem extends AEBaseItem implements IAEItemPow
 
     @Override
     public double getAECurrentPower(final ItemStack is) {
-        final NBTTagCompound data = Platform.openNbtData(is);
+        final NBTTagCompound data = appeng.util.ItemStackNbtHelper.openNbtData(is);
 
         return data.getDouble(CURRENT_POWER_NBT_KEY);
     }

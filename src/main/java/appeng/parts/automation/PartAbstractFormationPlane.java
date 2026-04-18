@@ -46,7 +46,7 @@ public abstract class PartAbstractFormationPlane<T extends IAEStack<T>> extends 
     }
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum settingName, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
         this.updateHandler();
         this.getHost().markForSave();
     }

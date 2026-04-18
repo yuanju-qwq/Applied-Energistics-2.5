@@ -1,4 +1,4 @@
-﻿package appeng.tile.inventory;
+package appeng.tile.inventory;
 
 import java.util.function.Supplier;
 

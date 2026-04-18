@@ -78,7 +78,7 @@ public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T
             this.monitor.addListener(this, this.monitor);
         }
 
-        Platform.postListChanges(before, after, this, this.getChangeSource());
+            appeng.util.StorageHelper.postListChanges(before, after, this, this.getChangeSource());
     }
 
     @Override

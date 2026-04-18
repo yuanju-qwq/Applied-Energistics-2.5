@@ -191,7 +191,7 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
                             return new ActionResult<>(EnumActionResult.SUCCESS, p.getHeldItem(hand));
                         }
 
-                        final LookDirection dir = Platform.getPlayerRay(p, p.getEyeHeight());
+                        final LookDirection dir = appeng.util.PlayerLookHelper.getPlayerRay(p, p.getEyeHeight());
 
                         final Vec3d Vec3d = dir.getA();
                         final Vec3d Vec3d1 = dir.getB();
@@ -271,7 +271,7 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
                 final EnumFacing side = pos.sideHit;
                 final BlockPos hitPos = pos.getBlockPos().offset(side);
 
-                if (!Platform.hasPermissions(new DimensionalCoord(w, hitPos), p)) {
+                if (!appeng.util.WorldHelper.hasPermissions(new DimensionalCoord(w, hitPos), p)) {
                     return;
                 }
 
@@ -352,7 +352,7 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
                         final float hardness = bs.getBlockHardness(w, pos.getBlockPos()) * 9.0f;
                         if (hardness >= 0.0) {
                             if (penetration > hardness
-                                    && Platform.hasPermissions(new DimensionalCoord(w, pos.getBlockPos()), p)) {
+                                    && appeng.util.WorldHelper.hasPermissions(new DimensionalCoord(w, pos.getBlockPos()), p)) {
                                 hasDestroyed = true;
                                 penetration -= hardness;
                                 penetration *= 0.60;
@@ -382,7 +382,7 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
 
     @Override
     public FuzzyMode getFuzzyMode(final ItemStack is) {
-        final String fz = Platform.openNbtData(is).getString("FuzzyMode");
+        final String fz = appeng.util.ItemStackNbtHelper.openNbtData(is).getString("FuzzyMode");
         try {
             return FuzzyMode.valueOf(fz);
         } catch (final Throwable t) {
@@ -392,7 +392,7 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
 
     @Override
     public void setFuzzyMode(final ItemStack is, final FuzzyMode fzMode) {
-        Platform.openNbtData(is).setString("FuzzyMode", fzMode.name());
+        appeng.util.ItemStackNbtHelper.openNbtData(is).setString("FuzzyMode", fzMode.name());
     }
 
     @Override

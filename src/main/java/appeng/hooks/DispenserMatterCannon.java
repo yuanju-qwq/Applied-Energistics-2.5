@@ -51,8 +51,8 @@ public final class DispenserMatterCannon extends BehaviorDefaultDispenseItem {
 
             final World w = dispenser.getWorld();
             if (w instanceof WorldServer) {
-                final EntityPlayer p = Platform.getPlayer((WorldServer) w);
-                Platform.configurePlayer(p, dir, dispenser.getBlockTileEntity());
+                final EntityPlayer p = appeng.util.WorldHelper.getPlayer((WorldServer) w);
+                appeng.util.WorldHelper.configurePlayer(p, dir, dispenser.getBlockTileEntity());
 
                 p.posX += dir.xOffset;
                 p.posY += dir.yOffset;

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -92,13 +92,13 @@ public class ContainerMEMonitorable extends AEBaseContainer
     public final IItemList<IAEItemStack> items = AEItemStackType.INSTANCE.createList();
 
     /**
-     * 多类型 Monitor 映射：每种已注册的 IAEStackType 对应一个 IMEMonitor。
-     * 物品和流体（以及未来扩展的其他类型）都在同一个终端中监控。
+     * 澶氱被鍨?Monitor 鏄犲皠锛氭瘡绉嶅凡娉ㄥ唽鐨?IAEStackType 瀵瑰簲涓€涓?IMEMonitor銆?
+     * 鐗╁搧鍜屾祦浣擄紙浠ュ強鏈潵鎵╁睍鐨勫叾浠栫被鍨嬶級閮藉湪鍚屼竴涓粓绔腑鐩戞帶銆?
      */
     private final Map<IAEStackType<?>, IMEMonitor<?>> monitors = new IdentityHashMap<>();
 
     /**
-     * 多类型更新队列：服务端收到变化通知后，按类型暂存待发送的变更。
+     * 澶氱被鍨嬫洿鏂伴槦鍒楋細鏈嶅姟绔敹鍒板彉鍖栭€氱煡鍚庯紝鎸夌被鍨嬫殏瀛樺緟鍙戦€佺殑鍙樻洿銆?
      */
     private final Map<IAEStackType<?>, Set<IAEStack<?>>> updateQueue = new IdentityHashMap<>();
 
@@ -114,13 +114,13 @@ public class ContainerMEMonitorable extends AEBaseContainer
     protected int jeiOffset = Platform.isModLoaded("jei") ? 24 : 0;
 
     /**
-     * 当 onListUpdate 触发时标记为 true，下次 detectAndSendChanges 时发送全量。
+     * 褰?onListUpdate 瑙﹀彂鏃舵爣璁颁负 true锛屼笅娆?detectAndSendChanges 鏃跺彂閫佸叏閲忋€?
      */
     private boolean needListUpdate = false;
 
-    // 服务端 Pins 处理器
+    // 鏈嶅姟绔?Pins 澶勭悊鍣?
     private PinsHandler serverPinsHandler;
-    // 标记是否需要在下次 detectAndSendChanges 时发送初始 Pins 数据
+    // 鏍囪鏄惁闇€瑕佸湪涓嬫 detectAndSendChanges 鏃跺彂閫佸垵濮?Pins 鏁版嵁
     private boolean needsInitialPinsSync = true;
 
     public ContainerMEMonitorable(final InventoryPlayer ip, final ITerminalHost monitorable) {
@@ -147,7 +147,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
         if (Platform.isServer()) {
             this.serverCM = monitorable.getConfigManager();
 
-            // 遍历所有已注册的 IAEStackType，获取对应的 IMEMonitor 并注册监听
+            // 閬嶅巻鎵€鏈夊凡娉ㄥ唽鐨?IAEStackType锛岃幏鍙栧搴旂殑 IMEMonitor 骞舵敞鍐岀洃鍚?
             boolean hasAnyMonitor = false;
             for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
                 IMEMonitor<?> mon = monitorable.getInventory(type);
@@ -160,7 +160,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
             }
 
             if (hasAnyMonitor) {
-                // 使用物品 monitor 作为 cell inventory（向后兼容）
+                // 浣跨敤鐗╁搧 monitor 浣滀负 cell inventory锛堝悜鍚庡吋瀹癸級
                 IMEMonitor<?> itemMon = this.monitors.get(
                         AEStackTypeRegistry.getType("item"));
                 if (itemMon != null) {
@@ -197,7 +197,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
             }
         }
 
-        // 初始化服务端 Pins 处理器
+        // 鍒濆鍖栨湇鍔＄ Pins 澶勭悊鍣?
         if (Platform.isServer() && ip.player != null) {
             final net.minecraft.world.storage.MapStorage storage = ip.player.getEntityWorld()
                     .getMapStorage();
@@ -278,7 +278,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     @SuppressWarnings("unchecked")
     public void detectAndSendChanges() {
         if (Platform.isServer()) {
-            // 验证所有 monitor 仍然有效
+            // 楠岃瘉鎵€鏈?monitor 浠嶇劧鏈夋晥
             for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
                 IMEMonitor<?> current = this.host.getInventory(type);
                 IMEMonitor<?> stored = this.monitors.get(type);
@@ -308,7 +308,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
             }
 
             if (this.needListUpdate) {
-                // 全量重发所有类型的库存
+                // 鍏ㄩ噺閲嶅彂鎵€鏈夌被鍨嬬殑搴撳瓨
                 this.needListUpdate = false;
                 for (final Object c : this.listeners) {
                     if (c instanceof EntityPlayerMP player) {
@@ -316,7 +316,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
                     }
                 }
             } else {
-                // 增量发送变更
+                // 澧為噺鍙戦€佸彉鏇?
                 try {
                     final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
@@ -356,7 +356,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
 
             this.updatePowerStatus();
 
-            // 同步 Pins 数据到客户端
+            // 鍚屾 Pins 鏁版嵁鍒板鎴风
             if (this.serverPinsHandler != null
                     && (this.needsInitialPinsSync || this.serverPinsHandler.isDirty())) {
                 this.needsInitialPinsSync = false;
@@ -494,7 +494,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum settingName, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
         if (this.getGui() != null) {
             this.getGui().updateSetting(manager, settingName, newValue);
         }
@@ -543,8 +543,8 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * 客户端接收到多类型 PacketMEInventoryUpdate 时调用。
-     * 将更新分发到 GUI 的 ItemRepo。
+     * 瀹㈡埛绔帴鏀跺埌澶氱被鍨?PacketMEInventoryUpdate 鏃惰皟鐢ㄣ€?
+     * 灏嗘洿鏂板垎鍙戝埌 GUI 鐨?ItemRepo銆?
      */
     @SuppressWarnings("unchecked")
     public void postUpdate(final List<IAEStack<?>> list) {
@@ -566,7 +566,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * @return 物品类型的 Monitor（向后兼容）
+     * @return 鐗╁搧绫诲瀷鐨?Monitor锛堝悜鍚庡吋瀹癸級
      */
     @SuppressWarnings("unchecked")
     public IMEMonitor<IAEItemStack> getItemMonitor() {
@@ -578,7 +578,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * @return 多类型 Monitor 映射
+     * @return 澶氱被鍨?Monitor 鏄犲皠
      */
     public Map<IAEStackType<?>, IMEMonitor<?>> getMonitors() {
         return this.monitors;
@@ -592,7 +592,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     private PinSectionOrder clientPinSectionOrder = PinSectionOrder.PLAYER_FIRST;
 
     /**
-     * 客户端接收到 Pins 更新包时调用。
+     * 瀹㈡埛绔帴鏀跺埌 Pins 鏇存柊鍖呮椂璋冪敤銆?
      */
     public void postPinsUpdate(PinList pinList, PinsRows maxPlayerPinRows,
             PinsRows maxCraftingPinRows, PinSectionOrder sectionOrder) {
@@ -619,17 +619,17 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * @return 服务端 Pins 处理器（仅服务端有值）
+     * @return 鏈嶅姟绔?Pins 澶勭悊鍣紙浠呮湇鍔＄鏈夊€硷級
      */
     public IPinsHandler getServerPinsHandler() {
         return this.serverPinsHandler;
     }
 
     /**
-     * 处理来自客户端的 Pin 操作请求。
+     * 澶勭悊鏉ヨ嚜瀹㈡埛绔殑 Pin 鎿嶄綔璇锋眰銆?
      *
-     * @param action Pin 操作类型
-     * @param stack  相关的栈（可为 null）
+     * @param action Pin 鎿嶄綔绫诲瀷
+     * @param stack  鐩稿叧鐨勬爤锛堝彲涓?null锛?
      */
     public void handlePinAction(appeng.helpers.InventoryAction action, IAEStack<?> stack) {
         if (this.serverPinsHandler == null || stack == null) {

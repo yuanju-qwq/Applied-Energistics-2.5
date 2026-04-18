@@ -67,6 +67,11 @@ public interface IAEStackType<T extends IAEStack<T>> {
     @Nullable
     T loadStackFromNBT(@Nonnull NBTTagCompound tag);
 
+    @Nullable
+    default T createFromNBT(@Nonnull NBTTagCompound tag) {
+        return loadStackFromNBT(tag);
+    }
+
     /**
      * 从网络包加载一个栈实例。
      */
@@ -116,6 +121,11 @@ public interface IAEStackType<T extends IAEStack<T>> {
      */
     @Nullable
     T createStack(@Nonnull Object input);
+
+    @Nullable
+    default T convertStackFromItem(@Nonnull ItemStack input) {
+        return createStack(input);
+    }
 
     /**
      * @return 在聊天/Tooltip 中用于该类型的颜色

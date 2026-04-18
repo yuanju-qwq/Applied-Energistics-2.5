@@ -1,4 +1,4 @@
-﻿package appeng.integration.modules.jei;
+package appeng.integration.modules.jei;
 
 import static mezz.jei.api.recipe.transfer.IRecipeTransferError.Type.USER_FACING;
 

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -53,6 +53,7 @@ import appeng.parts.reporting.PartExpandedProcessingPatternTerminal;
 import appeng.parts.reporting.PartPatternTerminal;
 import appeng.parts.reporting.PartTerminal;
 import appeng.util.Platform;
+import appeng.util.item.IMixedStackList;
 import appeng.util.item.IAEStackList;
 
 public class GuiCraftConfirm extends AEBaseGui {
@@ -61,9 +62,9 @@ public class GuiCraftConfirm extends AEBaseGui {
 
     private final int rows = 5;
 
-    private final IItemList<IAEStackBase> storage = new IAEStackList();
-    private final IItemList<IAEStackBase> pending = new IAEStackList();
-    private final IItemList<IAEStackBase> missing = new IAEStackList();
+    private final IMixedStackList storage = new IAEStackList();
+    private final IMixedStackList pending = new IAEStackList();
+    private final IMixedStackList missing = new IAEStackList();
 
     private final List<IAEStack<?>> visual = new ArrayList<>();
 
@@ -238,12 +239,9 @@ public class GuiCraftConfirm extends AEBaseGui {
                 GlStateManager.pushMatrix();
                 GlStateManager.scale(0.5, 0.5, 0.5);
 
-                @SuppressWarnings("unchecked")
-                final IAEStack<?> stored = (IAEStack<?>) this.storage.findPrecise(refStack);
-                @SuppressWarnings("unchecked")
-                final IAEStack<?> pendingStack = (IAEStack<?>) this.pending.findPrecise(refStack);
-                @SuppressWarnings("unchecked")
-                final IAEStack<?> missingStack = (IAEStack<?>) this.missing.findPrecise(refStack);
+                final IAEStack<?> stored = this.storage.findPrecise(refStack);
+                final IAEStack<?> pendingStack = this.pending.findPrecise(refStack);
+                final IAEStack<?> missingStack = this.missing.findPrecise(refStack);
 
                 int lines = 0;
 
@@ -416,7 +414,6 @@ public class GuiCraftConfirm extends AEBaseGui {
     /**
      * 泛型版本：接收包含物品和流体的合成计划更新。
      */
-    @SuppressWarnings("unchecked")
     public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
         switch (ref) {
             case 0:
@@ -452,9 +449,8 @@ public class GuiCraftConfirm extends AEBaseGui {
         this.setScrollBar();
     }
 
-    @SuppressWarnings("unchecked")
-    private void handleInput(final IItemList<IAEStackBase> s, final IAEStack<?> l) {
-        IAEStack<?> a = (IAEStack<?>) s.findPrecise(l);
+    private void handleInput(final IMixedStackList s, final IAEStack<?> l) {
+        IAEStack<?> a = s.findPrecise(l);
 
         if (l.getStackSize() <= 0) {
             if (a != null) {
@@ -463,7 +459,7 @@ public class GuiCraftConfirm extends AEBaseGui {
         } else {
             if (a == null) {
                 s.add(l.copy());
-                a = (IAEStack<?>) s.findPrecise(l);
+                a = s.findPrecise(l);
             }
 
             if (a != null) {
@@ -473,11 +469,10 @@ public class GuiCraftConfirm extends AEBaseGui {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private long getTotal(final IAEStack<?> is) {
-        final IAEStack<?> a = (IAEStack<?>) this.storage.findPrecise(is);
-        final IAEStack<?> c = (IAEStack<?>) this.pending.findPrecise(is);
-        final IAEStack<?> m = (IAEStack<?>) this.missing.findPrecise(is);
+        final IAEStack<?> a = this.storage.findPrecise(is);
+        final IAEStack<?> c = this.pending.findPrecise(is);
+        final IAEStack<?> m = this.missing.findPrecise(is);
 
         long total = 0;
 

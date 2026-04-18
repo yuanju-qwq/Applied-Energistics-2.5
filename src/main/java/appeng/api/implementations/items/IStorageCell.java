@@ -109,7 +109,9 @@ public interface IStorageCell<T extends IAEStack<T>> extends ICellWorkbenchItem 
      */
     @Deprecated
     @Nonnull
-    IStorageChannel<T> getChannel();
+    default IStorageChannel<T> getChannel() {
+        return getStackType().getStorageChannel();
+    }
 
     /**
      * @return 此 cell 对应的 {@link IAEStackType}

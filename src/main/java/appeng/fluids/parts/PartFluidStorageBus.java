@@ -158,7 +158,7 @@ public class PartFluidStorageBus extends PartUpgradeable implements IGridTickabl
     }
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum settingName, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
         if (settingName.name().equals("ACCESS")) {
             this.accessChanged = true;
         }
@@ -371,7 +371,7 @@ public class PartFluidStorageBus extends PartUpgradeable implements IGridTickabl
             if (out != null) {
                 after = out.getAvailableItems(after);
             }
-            Platform.postListChanges(before, after, this, this.source);
+            appeng.util.StorageHelper.postListChanges(before, after, this, this.source);
         }
     }
 

@@ -144,6 +144,7 @@ repositories {
 }
 
 dependencies {
+    def localGregTechJar = file("../GregTech/build/libs/gregtech-gtqt-1.12.2-1.9.0.jar")
 
     compileOnlyApi 'org.jetbrains:annotations:24.1.0'
     annotationProcessor 'org.jetbrains:annotations:24.1.0'
@@ -152,7 +153,7 @@ dependencies {
 
     // Mods always in-game
     implementation rfg.deobf("curse.maven:mixin-booter-419286:4835295")
-    implementation rfg.deobf(files("libs/gregtech-gtqt-1.12.2-2.9.0-190.jar"))
+    implementation rfg.deobf(files(localGregTechJar.exists() ? localGregTechJar : "libs/gregtech-gtqt-1.12.2-1.9.0.jar"))
     compileOnly rfg.deobf(files("libs/BestQuesting-0.0.5.jar"))
 
     api("com.cleanroommc:groovyscript:1.2.0-hotfix1") { transitive = false }

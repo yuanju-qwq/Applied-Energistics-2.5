@@ -92,7 +92,7 @@ public class ToolWirelessTerminal extends AEBasePoweredItem implements IWireless
         super.addCheckedInformation(stack, world, lines, advancedTooltips);
 
         if (stack.hasTagCompound()) {
-            final NBTTagCompound tag = Platform.openNbtData(stack);
+            final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(stack);
             if (tag != null) {
                 final String encKey = tag.getString("encryptionKey");
 
@@ -125,7 +125,7 @@ public class ToolWirelessTerminal extends AEBasePoweredItem implements IWireless
     @Override
     public IConfigManager getConfigManager(final ItemStack target) {
         final ConfigManager out = new ConfigManager((manager, settingName, newValue) -> {
-            final NBTTagCompound data = Platform.openNbtData(target);
+            final NBTTagCompound data = appeng.util.ItemStackNbtHelper.openNbtData(target);
             manager.writeToNBT(data);
         });
 
@@ -133,19 +133,19 @@ public class ToolWirelessTerminal extends AEBasePoweredItem implements IWireless
         out.registerSetting(Settings.VIEW_MODE, ViewItems.ALL);
         out.registerSetting(Settings.SORT_DIRECTION, SortDir.ASCENDING);
 
-        out.readFromNBT(Platform.openNbtData(target).copy());
+        out.readFromNBT(appeng.util.ItemStackNbtHelper.openNbtData(target).copy());
         return out;
     }
 
     @Override
     public String getEncryptionKey(final ItemStack item) {
-        final NBTTagCompound tag = Platform.openNbtData(item);
+        final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(item);
         return tag.getString("encryptionKey");
     }
 
     @Override
     public void setEncryptionKey(final ItemStack item, final String encKey, final String name) {
-        final NBTTagCompound tag = Platform.openNbtData(item);
+        final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(item);
         tag.setString("encryptionKey", encKey);
         tag.setString("name", name);
     }
@@ -190,7 +190,7 @@ public class ToolWirelessTerminal extends AEBasePoweredItem implements IWireless
             }
             magnetTick = 0;
             if (!entityIn.isSneaking()) {
-                NBTTagCompound upgradeNBT = Platform.openNbtData(stack).getCompoundTag("upgrades");
+                NBTTagCompound upgradeNBT = appeng.util.ItemStackNbtHelper.openNbtData(stack).getCompoundTag("upgrades");
                 ItemStackHandler siu = new ItemStackHandler(0);
                 siu.deserializeNBT(upgradeNBT);
                 for (int s = 0; s < siu.getSlots(); s++) {

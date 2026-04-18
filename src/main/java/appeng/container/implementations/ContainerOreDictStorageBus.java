@@ -1,4 +1,4 @@
-﻿package appeng.container.implementations;
+package appeng.container.implementations;
 
 import java.io.IOException;
 import java.util.HashSet;

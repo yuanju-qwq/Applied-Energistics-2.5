@@ -120,7 +120,7 @@ public class ToolNetworkTool extends AEBaseItem implements IGuiItem, IAEWrench, 
     public boolean serverSideToolLogic(final ItemStack is, final EntityPlayer p, final EnumHand hand, final World w,
             final BlockPos pos, final EnumFacing side, final float hitX, final float hitY, final float hitZ) {
         if (side != null) {
-            if (!Platform.hasPermissions(new DimensionalCoord(w, pos), p)) {
+            if (!appeng.util.WorldHelper.hasPermissions(new DimensionalCoord(w, pos), p)) {
                 return false;
             }
 

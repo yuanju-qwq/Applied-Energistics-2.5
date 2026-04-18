@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -144,7 +144,7 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
                 if (!extra.isEmpty()) {
                     final List<ItemStack> drops = new ArrayList<>();
                     drops.add(extra);
-                    Platform.spawnDrops(who.world, new BlockPos((int) who.posX, (int) who.posY, (int) who.posZ), drops);
+                    appeng.util.WorldHelper.spawnDrops(who.world, new BlockPos((int) who.posX, (int) who.posY, (int) who.posZ), drops);
                     return;
                 }
             }
@@ -296,7 +296,7 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
         }
 
         if (drops.size() > 0) {
-            Platform.spawnDrops(p.world, new BlockPos((int) p.posX, (int) p.posY, (int) p.posZ), drops);
+            appeng.util.WorldHelper.spawnDrops(p.world, new BlockPos((int) p.posX, (int) p.posY, (int) p.posZ), drops);
         }
     }
 

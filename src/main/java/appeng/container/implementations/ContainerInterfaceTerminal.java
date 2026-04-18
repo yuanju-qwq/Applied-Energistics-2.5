@@ -49,8 +49,7 @@ import appeng.util.inv.WrapperRangeItemHandler;
 import appeng.util.inv.filter.IAEItemFilter;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityHugeMEPatternProvider;
-import gtqt.common.metatileentities.multi.multiblockpart.appeng.MetaTileEntityMEPatternProvider;
+import gtqt.common.metatileentities.multi.multiblockpart.appeng.IMEPatternProviderPart;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -173,7 +172,7 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                     }
                 }
                 if (Platform.GTLoaded) {
-                    for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityMEPatternProvider.class)) {
+                    for (final IGridNode gn : this.grid.getMachineNodes(IMEPatternProviderPart.class)) {
                         if (gn.isActive()) {
                             BlockPos pos = gn.getGridBlock().getLocation().getPos();
                             World world = gn.getGridBlock().getLocation().getWorld();
@@ -181,10 +180,11 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
 
                             if (te instanceof IGregTechTileEntity igtte) {
                                 MetaTileEntity mte = igtte.getMetaTileEntity();
-                                if (mte instanceof MetaTileEntityMEPatternProvider provider) {
+                                if (mte instanceof IMEPatternProviderPart providerPart
+                                        && providerPart.getPatternSlot() != null) {
                                     ProviderTracker t = null;
                                     for (ProviderTracker pt : this.provider) {
-                                        if (pt.pos.equals(pos) && pt.dim == provider.getWorld().provider.getDimension()) {
+                                        if (pt.pos.equals(pos) && pt.dim == mte.getWorld().provider.getDimension()) {
                                             t = pt;
                                             break;
                                         }
@@ -193,38 +193,7 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                                     if (t == null) {
                                         missing = true;
                                     } else {
-                                        String currentName = provider.getMetaFullName();
-                                        if (!t.unlocalizedName.equals(currentName)) {
-                                            missing = true;
-                                        }
-                                    }
-                                    total++;
-                                }
-                            }
-                        }
-                    }
-
-                    for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityHugeMEPatternProvider.class)) {
-                        if (gn.isActive()) {
-                            BlockPos pos = gn.getGridBlock().getLocation().getPos();
-                            World world = gn.getGridBlock().getLocation().getWorld();
-                            TileEntity te = world.getTileEntity(pos);
-
-                            if (te instanceof IGregTechTileEntity igtte) {
-                                MetaTileEntity mte = igtte.getMetaTileEntity();
-                                if (mte instanceof MetaTileEntityHugeMEPatternProvider provider) {
-                                    ProviderTracker t = null;
-                                    for (ProviderTracker pt : this.provider) {
-                                        if (pt.pos.equals(pos) && pt.dim == provider.getWorld().provider.getDimension()) {
-                                            t = pt;
-                                            break;
-                                        }
-                                    }
-
-                                    if (t == null) {
-                                        missing = true;
-                                    } else {
-                                        String currentName = provider.getMetaFullName();
+                                        String currentName = getProviderDisplayName(mte, providerPart);
                                         if (!t.unlocalizedName.equals(currentName)) {
                                             missing = true;
                                         }
@@ -572,23 +541,15 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                     }
                 }
                 if (Platform.GTLoaded) {
-                    for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityMEPatternProvider.class)) {
+                    for (final IGridNode gn : this.grid.getMachineNodes(IMEPatternProviderPart.class)) {
                         BlockPos pos = gn.getGridBlock().getLocation().getPos();
                         TileEntity te = gn.getGridBlock().getLocation().getWorld().getTileEntity(pos);
                         if (te instanceof IGregTechTileEntity igtte) {
                             MetaTileEntity mte = igtte.getMetaTileEntity();
-                            if (mte instanceof MetaTileEntityMEPatternProvider patternProvider)
-                                provider.add(new ProviderTracker(patternProvider));
-                        }
-                    }
-
-                    for (final IGridNode gn : this.grid.getMachineNodes(MetaTileEntityHugeMEPatternProvider.class)) {
-                        BlockPos pos = gn.getGridBlock().getLocation().getPos();
-                        TileEntity te = gn.getGridBlock().getLocation().getWorld().getTileEntity(pos);
-                        if (te instanceof IGregTechTileEntity igtte) {
-                            MetaTileEntity mte = igtte.getMetaTileEntity();
-                            if (mte instanceof MetaTileEntityHugeMEPatternProvider patternProvider)
-                                provider.add(new ProviderTracker(patternProvider));
+                            if (mte instanceof IMEPatternProviderPart patternProvider
+                                    && patternProvider.getPatternSlot() != null) {
+                                provider.add(new ProviderTracker(mte, patternProvider));
+                            }
                         }
                     }
                 }
@@ -716,38 +677,14 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         private final String unlocalizedName;
         private final long sortBy;
 
-        public ProviderTracker(MetaTileEntityMEPatternProvider controlBase) {
+        public ProviderTracker(MetaTileEntity controlBase, IMEPatternProviderPart providerPart) {
             this.pos = controlBase.getPos();
             this.dim = controlBase.getWorld().provider.getDimension();
-            this.tier = controlBase.getTier();
+            this.tier = providerPart.getTier();
 
-            this.server = controlBase.getPatternSlot();
+            this.server = providerPart.getPatternSlot();
             this.client = new AppEngInternalInventory(null, this.server.getSlots());
-
-
-            if (controlBase.getController() != null) {
-                if (controlBase.getShowName().equals(controlBase.getMetaFullName()))
-                    this.unlocalizedName = controlBase.getController().getMetaFullName();
-                else this.unlocalizedName = controlBase.getShowName();
-            } else this.unlocalizedName = controlBase.getShowName();
-
-            sortBy = getSortValue(pos);
-        }
-
-        public ProviderTracker(MetaTileEntityHugeMEPatternProvider controlBase) {
-            this.pos = controlBase.getPos();
-            this.dim = controlBase.getWorld().provider.getDimension();
-            this.tier = controlBase.getTier();
-
-            this.server = controlBase.getPatternSlot();
-            this.client = new AppEngInternalInventory(null, this.server.getSlots());
-
-
-            if (controlBase.getController() != null) {
-                if (controlBase.getShowName().equals(controlBase.getMetaFullName()))
-                    this.unlocalizedName = controlBase.getController().getMetaFullName();
-                else this.unlocalizedName = controlBase.getShowName();
-            } else this.unlocalizedName = controlBase.getShowName();
+            this.unlocalizedName = getProviderDisplayName(controlBase, providerPart);
 
             sortBy = getSortValue(pos);
         }
@@ -755,6 +692,14 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         private long getSortValue(BlockPos pos) {
             return ((long) pos.getZ() << 24) ^ ((long) pos.getX() << 8) ^ pos.getY();
         }
+    }
+
+    private static String getProviderDisplayName(final MetaTileEntity controlBase,
+            final IMEPatternProviderPart providerPart) {
+        if (providerPart.getController() != null && providerPart.getShowName().equals(controlBase.getMetaFullName())) {
+            return providerPart.getController().getMetaFullName();
+        }
+        return providerPart.getShowName();
     }
 
 

@@ -410,7 +410,7 @@ public class TileInscriber extends AENetworkPowerTile implements IGridTickable, 
     }
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum settingName, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
     }
 
     public long getClientStart() {
@@ -445,18 +445,18 @@ public class TileInscriber extends AENetworkPowerTile implements IGridTickable, 
         String name = "";
 
         if (!plateA.isEmpty()) {
-            final NBTTagCompound tag = Platform.openNbtData(plateA);
+            final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(plateA);
             name += tag.getString("InscribeName");
         }
 
         if (!plateB.isEmpty()) {
-            final NBTTagCompound tag = Platform.openNbtData(plateB);
+            final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(plateB);
             name += " " + tag.getString("InscribeName");
         }
 
         final ItemStack startingItem = input.copy();
         final ItemStack renamedItem = input.copy();
-        final NBTTagCompound tag = Platform.openNbtData(renamedItem);
+        final NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(renamedItem);
 
         final NBTTagCompound display = tag.getCompoundTag("display");
         tag.setTag("display", display);

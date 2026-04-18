@@ -45,16 +45,12 @@ import appeng.container.implementations.ContainerPatternTerm;
 import appeng.container.implementations.ContainerWirelessPatternTerminal;
 import appeng.container.interfaces.IJEIGhostIngredients;
 import appeng.container.slot.AppEngSlot;
-import appeng.container.slot.SlotFake;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
-import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.core.sync.packets.PacketValueConfig;
-import appeng.helpers.InventoryAction;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.tile.inventory.IAEStackInventory;
-import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
 public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredients {
@@ -102,7 +98,7 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
     }
 
     @Override
-    protected void actionPerformed(final GuiButton btn) {
+    protected void actionPerformed(final GuiButton btn) throws java.io.IOException {
         super.actionPerformed(btn);
 
         try {
@@ -299,34 +295,38 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
         if (!(ingredient instanceof ItemStack)) {
             return Collections.emptyList();
         }
-        List<Target<?>> targets = new ArrayList<>();
-        for (Slot slot : this.inventorySlots.inventorySlots) {
-            if (slot instanceof SlotFake) {
-                ItemStack itemStack = (ItemStack) ingredient;
-                Target<Object> target = new Target<Object>() {
-                    @Override
-                    public Rectangle getArea() {
-                        return new Rectangle(getGuiLeft() + slot.xPos, getGuiTop() + slot.yPos, 16, 16);
-                    }
-
-                    @Override
-                    public void accept(Object ingredient) {
-                        final PacketInventoryAction p;
-                        try {
-                            p = new PacketInventoryAction(InventoryAction.PLACE_JEI_GHOST_ITEM, (SlotFake) slot,
-                                    AEItemStack.fromItemStack(itemStack));
-                            NetworkHandler.instance().sendToServer(p);
-
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                };
-                targets.add(target);
-                mapTargetSlot.putIfAbsent(target, slot);
-            }
-        }
+        this.mapTargetSlot.clear();
+        final List<Target<?>> targets = new ArrayList<>();
+        this.addVirtualTargets(targets, this.craftingVSlots, (ItemStack) ingredient);
+        this.addVirtualTargets(targets, this.outputVSlots, (ItemStack) ingredient);
         return targets;
+    }
+
+    private void addVirtualTargets(List<Target<?>> targets, VirtualMEPatternSlot[] slots, ItemStack ingredient) {
+        if (slots == null) {
+            return;
+        }
+
+        for (VirtualMEPatternSlot slot : slots) {
+            if (slot == null || !slot.isVisible() || !slot.isSlotEnabled()) {
+                continue;
+            }
+
+            final Target<Object> target = new Target<Object>() {
+                @Override
+                public Rectangle getArea() {
+                    return new Rectangle(getGuiLeft() + slot.xPos(), getGuiTop() + slot.yPos(), 16, 16);
+                }
+
+                @Override
+                public void accept(Object ignored) {
+                    slot.handleMouseClicked(ingredient, false, 0);
+                }
+            };
+
+            targets.add(target);
+            this.mapTargetSlot.putIfAbsent(target, slot);
+        }
     }
 
     @Override

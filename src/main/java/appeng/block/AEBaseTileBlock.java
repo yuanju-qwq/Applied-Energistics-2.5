@@ -174,7 +174,7 @@ public abstract class AEBaseTileBlock extends AEBaseBlock implements ITileEntity
             }
 
             // Cry ;_; ...
-            Platform.spawnDrops(w, pos, drops);
+            appeng.util.WorldHelper.spawnDrops(w, pos, drops);
         }
 
         // super will remove the TE, as it is not an instance of BlockContainer
@@ -267,7 +267,7 @@ public abstract class AEBaseTileBlock extends AEBaseBlock implements ITileEntity
                     return false;
                 }
 
-                final ItemStack[] itemDropCandidates = Platform.getBlockDrops(world, pos);
+                final ItemStack[] itemDropCandidates = appeng.util.WorldHelper.getBlockDrops(world, pos);
                 final ItemStack op = new ItemStack(this);
 
                 for (final ItemStack ol : itemDropCandidates) {
@@ -281,7 +281,7 @@ public abstract class AEBaseTileBlock extends AEBaseBlock implements ITileEntity
 
                 if (block.removedByPlayer(blockState, world, pos, player, false)) {
                     final List<ItemStack> itemsToDrop = Lists.newArrayList(itemDropCandidates);
-                    Platform.spawnDrops(world, pos, itemsToDrop);
+                    appeng.util.WorldHelper.spawnDrops(world, pos, itemsToDrop);
                     world.setBlockToAir(pos);
                 }
 

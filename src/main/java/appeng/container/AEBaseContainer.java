@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -78,6 +80,8 @@ import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
 public abstract class AEBaseContainer extends Container {
+    private static final Map<Class<?>, List<SyncBinding>> SYNC_BINDINGS = new ConcurrentHashMap<>();
+
     private final InventoryPlayer invPlayer;
     private final IActionSource mySrc;
     private final HashSet<Integer> locked = new HashSet<>();
@@ -125,15 +129,42 @@ public abstract class AEBaseContainer extends Container {
     }
 
     private void prepareSync() {
-        for (final Field f : this.getClass().getFields()) {
-            if (f.isAnnotationPresent(GuiSync.class)) {
-                final GuiSync annotation = f.getAnnotation(GuiSync.class);
-                if (this.syncData.containsKey(annotation.value())) {
-                    AELog.warn("Channel already in use: " + annotation.value() + " for " + f.getName());
-                } else {
-                    this.syncData.put(annotation.value(), new SyncData(this, f, annotation));
+        for (final SyncBinding binding : getSyncBindings(this.getClass())) {
+            this.syncData.put(binding.annotation.value(), new SyncData(this, binding.field, binding.annotation));
+        }
+    }
+
+    private static List<SyncBinding> getSyncBindings(final Class<?> containerClass) {
+        return SYNC_BINDINGS.computeIfAbsent(containerClass, clazz -> {
+            final HashSet<Integer> usedChannels = new HashSet<>();
+            final List<SyncBinding> bindings = new ArrayList<>();
+
+            for (final Field field : clazz.getFields()) {
+                final GuiSync annotation = field.getAnnotation(GuiSync.class);
+                if (annotation == null) {
+                    continue;
                 }
+
+                if (!usedChannels.add(annotation.value())) {
+                    AELog.warn("Channel already in use: " + annotation.value() + " for " + field.getName());
+                    continue;
+                }
+
+                bindings.add(new SyncBinding(field, annotation));
             }
+
+            return bindings;
+        });
+    }
+
+    private static final class SyncBinding {
+
+        private final Field field;
+        private final GuiSync annotation;
+
+        private SyncBinding(final Field field, final GuiSync annotation) {
+            this.field = field;
+            this.annotation = annotation;
         }
     }
 
@@ -685,7 +716,7 @@ public abstract class AEBaseContainer extends Container {
                         ais.setStackSize(ais.getStackSize() - myItem.getCount());
                     }
 
-                    ais = Platform.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
+                    ais = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
                             this.getActionSource());
                     if (ais != null) {
                         adp.addItems(ais.createItemStack());
@@ -706,7 +737,7 @@ public abstract class AEBaseContainer extends Container {
                     ais.setStackSize(1);
                     final IAEItemStack extracted = ais.copy();
 
-                    ais = Platform.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
+                    ais = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
                             this.getActionSource());
                     if (ais == null) {
                         final InventoryAdaptor ia = new AdaptorItemHandler(
@@ -745,7 +776,7 @@ public abstract class AEBaseContainer extends Container {
                     if (liftQty > 0) {
                         IAEItemStack ais = slotItem.copy();
                         ais.setStackSize(1);
-                        ais = Platform.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
+                        ais = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
                                 this.getActionSource());
                         if (ais != null) {
                             final InventoryAdaptor ia = new AdaptorItemHandler(
@@ -770,7 +801,7 @@ public abstract class AEBaseContainer extends Container {
                     if (slotItem != null) {
                         IAEItemStack ais = slotItem.copy();
                         ais.setStackSize(ais.getDefinition().getMaxStackSize());
-                        ais = Platform.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
+                        ais = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
                                 this.getActionSource());
                         if (ais != null) {
                             player.inventory.setItemStack(ais.createItemStack());
@@ -782,7 +813,7 @@ public abstract class AEBaseContainer extends Container {
                 } else {
                     IAEItemStack ais = AEItemStackType.INSTANCE.getStorageChannel()
                             .createStack(player.inventory.getItemStack());
-                    ais = Platform.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
+                    ais = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
                             this.getActionSource());
                     if (ais != null) {
                         player.inventory.setItemStack(ais.createItemStack());
@@ -808,7 +839,7 @@ public abstract class AEBaseContainer extends Container {
                         if (ais != null) {
                             final long stackSize = Math.min(maxSize, ais.getStackSize());
                             ais.setStackSize((stackSize + 1) >> 1);
-                            ais = Platform.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
+                            ais = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
                                     this.getActionSource());
                         }
 
@@ -823,7 +854,7 @@ public abstract class AEBaseContainer extends Container {
                     IAEItemStack ais = AEItemStackType.INSTANCE.getStorageChannel()
                             .createStack(player.inventory.getItemStack());
                     ais.setStackSize(1);
-                    ais = Platform.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
+                    ais = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
                             this.getActionSource());
                     if (ais == null) {
                         final ItemStack is = player.inventory.getItemStack();
@@ -866,7 +897,7 @@ public abstract class AEBaseContainer extends Container {
                             ais.setStackSize(ais.getStackSize() - myItem.getCount());
                         }
 
-                        ais = Platform.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
+                        ais = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
                                 this.getActionSource());
                         if (ais != null) {
                             adp.addItems(ais.createItemStack());
@@ -916,7 +947,7 @@ public abstract class AEBaseContainer extends Container {
         if (this.getPowerSource() == null || this.getCellInventory() == null) {
             return input;
         }
-        final IAEItemStack ais = Platform.poweredInsert(this.getPowerSource(), this.getCellInventory(),
+        final IAEItemStack ais = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(),
                 AEItemStackType.INSTANCE.getStorageChannel().createStack(input),
                 this.getActionSource());
         if (ais == null) {
@@ -1187,7 +1218,7 @@ public abstract class AEBaseContainer extends Container {
             IAEStack<?> aes = inventory.getAEStackInSlot(i);
             IAEStack<?> aesClient = clientSlotsStacks[i];
 
-            if (needsFullVirtualSync || !Platform.isStacksIdentical(aes, aesClient)) {
+            if (needsFullVirtualSync || !appeng.util.AEStackSerialization.isStacksIdentical(aes, aesClient)) {
                 list.put(i, aes);
                 clientSlotsStacks[i] = aes != null ? aes.copy() : null;
             }

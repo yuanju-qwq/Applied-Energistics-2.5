@@ -412,19 +412,26 @@ public final class AEConfig extends Configuration implements IConfigurableObject
         }
     }
 
-    private String getListComment(final Enum value) {
+    private String getListComment(final Enum<?> value) {
+        if (value == null) {
+            return null;
+        }
+
+        return this.getListCommentTyped(value);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <E extends Enum<E>> String getListCommentTyped(final Enum<?> value) {
+        final E typedValue = (E) value;
         String comment = null;
 
-        if (value != null) {
-            final EnumSet set = EnumSet.allOf(value.getClass());
+        final EnumSet<E> set = EnumSet.allOf(typedValue.getDeclaringClass());
 
-            for (final Object Oeg : set) {
-                final Enum eg = (Enum) Oeg;
-                if (comment == null) {
-                    comment = "Possible Values: " + eg.name();
-                } else {
-                    comment += ", " + eg.name();
-                }
+        for (final E eg : set) {
+            if (comment == null) {
+                comment = "Possible Values: " + eg.name();
+            } else {
+                comment += ", " + eg.name();
             }
         }
 
@@ -511,7 +518,7 @@ public final class AEConfig extends Configuration implements IConfigurableObject
     }
 
     @Override
-    public void updateSetting(final IConfigManager manager, final Enum setting, final Enum newValue) {
+    public void updateSetting(final IConfigManager manager, final Enum<?> setting, final Enum<?> newValue) {
         for (final Settings e : this.settings.getSettings()) {
             if (e == setting) {
                 final String Category = "Client";
@@ -584,12 +591,12 @@ public final class AEConfig extends Configuration implements IConfigurableObject
         return this.levelByMillibuckets[i];
     }
 
-    public Enum getSetting(final String category, final Class<? extends Enum> class1, final Enum myDefault) {
+    public <E extends Enum<E>> E getSetting(final String category, final Class<E> class1, final E myDefault) {
         final String name = class1.getSimpleName();
         final Property p = this.get(category, name, myDefault.name());
 
         try {
-            return (Enum) class1.getField(p.toString()).get(class1);
+            return Enum.valueOf(class1, p.getString());
         } catch (final Throwable t) {
             // :{
         }
@@ -597,7 +604,7 @@ public final class AEConfig extends Configuration implements IConfigurableObject
         return myDefault;
     }
 
-    public void setSetting(final String category, final Enum s) {
+    public void setSetting(final String category, final Enum<?> s) {
         final String name = s.getClass().getSimpleName();
         this.get(category, name, s.name()).set(s.name());
         this.save();
@@ -608,7 +615,7 @@ public final class AEConfig extends Configuration implements IConfigurableObject
     }
 
     public void nextPowerUnit(final boolean backwards) {
-        this.selectedPowerUnit = Platform.rotateEnum(this.selectedPowerUnit, backwards,
+        this.selectedPowerUnit = appeng.util.EnumCycler.rotateEnum(this.selectedPowerUnit, backwards,
                 Settings.POWER_UNITS.getPossibleValues());
         this.save();
     }

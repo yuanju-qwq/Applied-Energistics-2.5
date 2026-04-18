@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -219,7 +219,7 @@ public class ContainerCraftConfirm extends AEBaseContainer {
                         IAEStack<?> missing = null;
                         if (c != null && this.result.isSimulation()) {
                             missing = toExtract.copy();
-                            toExtract = storageAtBeginning.extractItems(toExtract, Actionable.SIMULATE);
+                            toExtract = storageAtBeginning.extractAny(toExtract, Actionable.SIMULATE);
 
                             if (toExtract == null) {
                                 toExtract = missing.copy();

@@ -1,7 +1,7 @@
 package appeng.crafting.v2;
 
-import static appeng.util.Platform.readStackByte;
-import static appeng.util.Platform.writeStackByte;
+import static appeng.util.AEStackSerialization.readStackByte;
+import static appeng.util.AEStackSerialization.writeStackByte;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;

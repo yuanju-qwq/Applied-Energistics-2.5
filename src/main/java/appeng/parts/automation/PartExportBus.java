@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -273,7 +273,7 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
         if (canFit > 0) {
             IAEItemStack ais = org.copy();
             ais.setStackSize(canFit);
-            final IAEItemStack itemsToAdd = Platform.poweredExtraction(energy, inv, ais, this.mySrc);
+            final IAEItemStack itemsToAdd = appeng.util.StorageHelper.poweredExtraction(energy, inv, ais, this.mySrc);
 
             if (itemsToAdd != null) {
                 this.itemToSend -= itemsToAdd.getStackSize();

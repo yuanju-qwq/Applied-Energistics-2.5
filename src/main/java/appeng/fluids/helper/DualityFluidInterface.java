@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2018, AlgorithmX2, All rights reserved.
  *
@@ -220,7 +220,7 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
 
         final TileEntity te = this.iHost.getTileEntity();
         if (te != null && te.getWorld() != null) {
-            Platform.notifyBlocksOfNeighbors(te.getWorld(), te.getPos());
+            appeng.util.WorldHelper.notifyBlocksOfNeighbors(te.getWorld(), te.getPos());
         }
     }
 
@@ -289,7 +289,7 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
                 ItemStack what = new ItemStack(directedBlock, 1, directedBlock.getMetaFromState(directedBlockState));
 
                 if (Platform.GTLoaded && directedBlock instanceof BlockMachine) {
-                    MetaTileEntity metaTileEntity = Platform.getMetaTileEntity(directedTile.getWorld(),
+                    MetaTileEntity metaTileEntity = appeng.util.WorldHelper.getMetaTileEntity(directedTile.getWorld(),
                             directedTile.getPos());
                     if (metaTileEntity != null) {
                         if (metaTileEntity instanceof MetaTileEntityMultiblockPart part) {
@@ -463,7 +463,7 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
                 } else if (this.gridProxy.getStorage()
                         .getInventory(AEFluidStackType.INSTANCE.getStorageChannel())
                         .getStorageList().findPrecise(work) != null) {
-                    final IAEFluidStack acquired = Platform.poweredExtraction(src, dest, work,
+                    final IAEFluidStack acquired = appeng.util.StorageHelper.poweredExtraction(src, dest, work,
                             this.interfaceRequestSource);
                     if (acquired != null) {
                         changed = true;
@@ -482,7 +482,7 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
                 if (canExtract == null || canExtract.amount != toStore.getStackSize()) {
                     changed = true;
                 } else {
-                    IAEFluidStack notStored = Platform.poweredInsert(src, dest, toStore, this.interfaceRequestSource);
+                    IAEFluidStack notStored = appeng.util.StorageHelper.poweredInsert(src, dest, toStore, this.interfaceRequestSource);
                     toStore.setStackSize(toStore.getStackSize() - (notStored == null ? 0 : notStored.getStackSize()));
 
                     if (toStore.getStackSize() > 0) {
@@ -715,6 +715,6 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
     }
 
     @Override
-    public void updateSetting(IConfigManager manager, Enum settingName, Enum newValue) {
+    public void updateSetting(IConfigManager manager, Enum<?> settingName, Enum<?> newValue) {
     }
 }

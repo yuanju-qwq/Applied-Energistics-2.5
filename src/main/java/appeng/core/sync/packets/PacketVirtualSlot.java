@@ -57,7 +57,7 @@ public class PacketVirtualSlot extends AppEngPacket {
         for (int i = 0; i < size; i++) {
             final int slot = buf.readInt();
             if (buf.readBoolean()) {
-                this.slotStacks.put(slot, Platform.readStackByte(buf));
+                this.slotStacks.put(slot, appeng.util.AEStackSerialization.readStackByte(buf));
             } else {
                 this.slotStacks.put(slot, null);
             }
@@ -81,7 +81,7 @@ public class PacketVirtualSlot extends AppEngPacket {
             IAEStack<?> stack = entry.getValue();
             buf.writeBoolean(stack != null);
             if (stack != null) {
-                Platform.writeStackByte(stack, buf);
+                appeng.util.AEStackSerialization.writeStackByte(stack, buf);
             }
         }
 
@@ -103,7 +103,7 @@ public class PacketVirtualSlot extends AppEngPacket {
         buf.writeInt(slotIndex);
         buf.writeBoolean(stack != null);
         if (stack != null) {
-            Platform.writeStackByte(stack, buf);
+            appeng.util.AEStackSerialization.writeStackByte(stack, buf);
         }
 
         this.configureWrite(buf);

@@ -107,7 +107,7 @@ public class TileInterface extends AENetworkInvTile
             newForward = facing.getOpposite();
             this.omniDirectional = false;
         } else {
-            newForward = Platform.rotateAround(this.getForward(), facing);
+            newForward = appeng.util.OrientationHelper.rotateAround(this.getForward(), facing);
         }
 
         if (this.omniDirectional) {

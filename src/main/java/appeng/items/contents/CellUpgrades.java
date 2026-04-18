@@ -29,11 +29,11 @@ public final class CellUpgrades extends StackUpgradeInventory {
     public CellUpgrades(final ItemStack is, final int upgrades) {
         super(is, null, upgrades);
         this.is = is;
-        this.readFromNBT(Platform.openNbtData(is), "upgrades");
+        this.readFromNBT(appeng.util.ItemStackNbtHelper.openNbtData(is), "upgrades");
     }
 
     @Override
     protected void onContentsChanged(int slot) {
-        this.writeToNBT(Platform.openNbtData(this.is), "upgrades");
+        this.writeToNBT(appeng.util.ItemStackNbtHelper.openNbtData(this.is), "upgrades");
     }
 }

@@ -103,7 +103,7 @@ public class ContainerQuartzKnife extends AEBaseContainer {
             if (SlotRestrictedInput.isMetalIngot(input)) {
                 if (ContainerQuartzKnife.this.myName.length() > 0) {
                     return AEApi.instance().definitions().materials().namePress().maybeStack(1).map(namePressStack -> {
-                        final NBTTagCompound compound = Platform.openNbtData(namePressStack);
+                        final NBTTagCompound compound = appeng.util.ItemStackNbtHelper.openNbtData(namePressStack);
                         compound.setString("InscribeName", ContainerQuartzKnife.this.myName);
 
                         return namePressStack;

@@ -55,7 +55,7 @@ public class GuiWirelessPatternTerminal extends GuiPatternTerm {
     }
 
     @Override
-    protected void actionPerformed(final GuiButton btn) {
+    protected void actionPerformed(final GuiButton btn) throws java.io.IOException {
         if (this.universalButtons != null && this.universalButtons.handleButtonClick(btn)) {
             return;
         }
