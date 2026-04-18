@@ -55,6 +55,7 @@ import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.parts.IPart;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.StorageName;
+import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.me.SlotME;
@@ -66,8 +67,10 @@ import appeng.container.slot.SlotRestrictedInput.PlacableItemType;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
+import appeng.core.sync.packets.PacketTargetFluidStack;
 import appeng.core.sync.packets.PacketTargetItemStack;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.fluids.util.AEFluidStack;
 import appeng.fluids.items.ItemFluidDrop;
 import appeng.helpers.ICustomNameObject;
 import appeng.helpers.InventoryAction;
@@ -93,10 +96,12 @@ public abstract class AEBaseContainer extends Container {
     private String customName;
     private ContainerOpenContext openContext;
     private IMEInventoryHandler<IAEItemStack> cellInv;
+    private IMEInventoryHandler<IAEFluidStack> fluidCellInv;
     private IEnergySource powerSrc;
     private boolean sentCustomName;
     private int ticksSinceCheck = 900;
     private IAEItemStack clientRequestedTargetItem = null;
+    private IAEFluidStack clientRequestedTargetFluid = null;
 
     public AEBaseContainer(final InventoryPlayer ip, final TileEntity myTile, final IPart myPart) {
         this(ip, myTile, myPart, null);
@@ -201,6 +206,41 @@ public abstract class AEBaseContainer extends Container {
         }
 
         this.clientRequestedTargetItem = stack == null ? null : stack.copy();
+        if (stack != null) {
+            this.clientRequestedTargetFluid = null;
+        }
+    }
+
+    public IAEFluidStack getTargetFluidStack() {
+        return this.clientRequestedTargetFluid;
+    }
+
+    public void setTargetStack(final IAEFluidStack stack) {
+        if (Platform.isClient()) {
+            if (stack == null && this.clientRequestedTargetFluid == null) {
+                return;
+            }
+            if (stack != null && this.clientRequestedTargetFluid != null
+                    && stack.getFluidStack().isFluidEqual(this.clientRequestedTargetFluid.getFluidStack())) {
+                return;
+            }
+
+            final AEFluidStack packetStack = stack == null ? null : AEFluidStack.fromFluidStack(stack.getFluidStack());
+            NetworkHandler.instance().sendToServer(new PacketTargetFluidStack(packetStack));
+        }
+
+        this.clientRequestedTargetFluid = stack == null ? null : stack.copy();
+        if (stack != null) {
+            this.clientRequestedTargetItem = null;
+        }
+    }
+
+    public void setTargetStack(final IAEStack<?> stack) {
+        if (stack instanceof IAEItemStack itemStack) {
+            this.setTargetStack(itemStack);
+        } else if (stack instanceof IAEFluidStack fluidStack) {
+            this.setTargetStack(fluidStack);
+        }
     }
 
     public IActionSource getActionSource() {
@@ -693,8 +733,9 @@ public abstract class AEBaseContainer extends Container {
             return;
         }
 
-        // get target item.
+        // get target stack.
         final IAEItemStack slotItem = this.clientRequestedTargetItem;
+        final IAEFluidStack slotFluid = this.clientRequestedTargetFluid;
 
         switch (action) {
             case SHIFT_CLICK:
@@ -915,6 +956,20 @@ public abstract class AEBaseContainer extends Container {
             case CONTAINER_QUICK_TRANSFER:
                 // 流体容器交互操作（预留，需在 ContainerMEMonitorable 等子类中实现）
                 break;
+            case FILL_ITEM:
+                if (this.getPowerSource() == null || this.getFluidCellInventory() == null || slotFluid == null) {
+                    return;
+                }
+
+                this.handleFillFluidContainer(player, slotFluid);
+                break;
+            case EMPTY_ITEM:
+                if (this.getPowerSource() == null || this.getFluidCellInventory() == null) {
+                    return;
+                }
+
+                this.handleEmptyFluidContainer(player);
+                break;
             case SET_ITEM_PIN:
             case SET_CONTAINER_PIN:
             case UNSET_PIN:
@@ -923,6 +978,143 @@ public abstract class AEBaseContainer extends Container {
             default:
                 break;
         }
+    }
+
+    private void handleFillFluidContainer(final EntityPlayerMP player, final IAEFluidStack slotFluid) {
+        final ItemStack held = player.inventory.getItemStack();
+        if (held.isEmpty()) {
+            return;
+        }
+
+        final int heldAmount = held.getCount();
+
+        for (int i = 0; i < heldAmount; i++) {
+            final ItemStack copiedFluidContainer = held.copy();
+            copiedFluidContainer.setCount(1);
+            final var fluidHandler = FluidUtil.getFluidHandler(copiedFluidContainer);
+            if (fluidHandler == null) {
+                return;
+            }
+
+            final IAEFluidStack request = slotFluid.copy();
+            request.setStackSize(Integer.MAX_VALUE);
+            final int amountAllowed = fluidHandler.fill(request.getFluidStack(), false);
+            if (amountAllowed <= 0) {
+                return;
+            }
+
+            final IAEFluidStack canPull = appeng.util.StorageHelper.poweredExtraction(
+                    this.getPowerSource(),
+                    this.getFluidCellInventory(),
+                    request.setStackSize(amountAllowed),
+                    this.getActionSource(),
+                    Actionable.SIMULATE);
+            if (canPull == null || canPull.getStackSize() < 1) {
+                return;
+            }
+
+            final int canFill = fluidHandler.fill(canPull.getFluidStack(), false);
+            if (canFill <= 0) {
+                return;
+            }
+
+            final IAEFluidStack pulled = appeng.util.StorageHelper.poweredExtraction(
+                    this.getPowerSource(),
+                    this.getFluidCellInventory(),
+                    request.setStackSize(canFill),
+                    this.getActionSource());
+            if (pulled == null || pulled.getStackSize() < 1) {
+                AELog.error("Unable to pull fluid out of the ME system even though the simulation said yes");
+                return;
+            }
+
+            final int used = fluidHandler.fill(pulled.getFluidStack(), true);
+            if (used != canFill) {
+                AELog.error("Fluid item [%s] reported a different possible amount than it actually accepted.",
+                        held.getDisplayName());
+            }
+
+            if (held.getCount() == 1) {
+                player.inventory.setItemStack(fluidHandler.getContainer());
+            } else {
+                player.inventory.getItemStack().shrink(1);
+                if (!player.inventory.addItemStackToInventory(fluidHandler.getContainer())) {
+                    player.dropItem(fluidHandler.getContainer(), false);
+                }
+            }
+        }
+
+        this.updateHeld(player);
+    }
+
+    private void handleEmptyFluidContainer(final EntityPlayerMP player) {
+        final ItemStack held = player.inventory.getItemStack();
+        if (held.isEmpty()) {
+            return;
+        }
+
+        final int heldAmount = held.getCount();
+
+        for (int i = 0; i < heldAmount; i++) {
+            final ItemStack copiedFluidContainer = held.copy();
+            copiedFluidContainer.setCount(1);
+            final var fluidHandler = FluidUtil.getFluidHandler(copiedFluidContainer);
+            if (fluidHandler == null) {
+                return;
+            }
+
+            final FluidStack extract = fluidHandler.drain(Integer.MAX_VALUE, false);
+            if (extract == null || extract.amount < 1) {
+                return;
+            }
+
+            final IAEFluidStack notStorable = appeng.util.StorageHelper.poweredInsert(
+                    this.getPowerSource(),
+                    this.getFluidCellInventory(),
+                    AEFluidStack.fromFluidStack(extract),
+                    this.getActionSource(),
+                    Actionable.SIMULATE);
+
+            if (notStorable != null && notStorable.getStackSize() > 0) {
+                final int toStore = (int) (extract.amount - notStorable.getStackSize());
+                final FluidStack storable = fluidHandler.drain(toStore, false);
+                if (storable == null || storable.amount == 0) {
+                    return;
+                }
+                extract.amount = storable.amount;
+            }
+
+            final FluidStack drained = fluidHandler.drain(extract, true);
+            if (drained == null || drained.amount <= 0) {
+                return;
+            }
+            extract.amount = drained.amount;
+
+            final IAEFluidStack notInserted = appeng.util.StorageHelper.poweredInsert(
+                    this.getPowerSource(),
+                    this.getFluidCellInventory(),
+                    AEFluidStack.fromFluidStack(extract),
+                    this.getActionSource());
+
+            if (notInserted != null && notInserted.getStackSize() > 0) {
+                final IAEFluidStack spill = this.getFluidCellInventory()
+                        .injectItems(notInserted, Actionable.MODULATE, this.getActionSource());
+                if (spill != null && spill.getStackSize() > 0) {
+                    fluidHandler.fill(spill.getFluidStack(), true);
+                }
+            }
+
+            if (held.getCount() == 1) {
+                player.inventory.setItemStack(fluidHandler.getContainer());
+            } else {
+                player.inventory.getItemStack().shrink(1);
+                if (!player.inventory.addItemStackToInventory(fluidHandler.getContainer())) {
+                    player.dropItem(fluidHandler.getContainer(), false);
+                }
+            }
+        }
+
+        this.updateHeld(player);
     }
 
     protected void updateHeld(final EntityPlayerMP p) {
@@ -1140,6 +1332,14 @@ public abstract class AEBaseContainer extends Container {
 
     public void setCellInventory(final IMEInventoryHandler<IAEItemStack> cellInv) {
         this.cellInv = cellInv;
+    }
+
+    public IMEInventoryHandler<IAEFluidStack> getFluidCellInventory() {
+        return this.fluidCellInv;
+    }
+
+    public void setFluidCellInventory(final IMEInventoryHandler<IAEFluidStack> fluidCellInv) {
+        this.fluidCellInv = fluidCellInv;
     }
 
     public String getCustomName() {

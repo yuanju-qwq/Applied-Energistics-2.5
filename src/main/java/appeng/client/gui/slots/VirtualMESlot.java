@@ -32,6 +32,7 @@ import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 
+import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.gui.widgets.GuiCustomSlot;
@@ -188,6 +189,8 @@ public abstract class VirtualMESlot extends GuiCustomSlot {
         IAEStack<?> stack = this.getAEStack();
         if (stack instanceof IAEItemStack) {
             return ((IAEItemStack) stack).createItemStack();
+        } else if (stack instanceof IAEFluidStack) {
+            return ((IAEFluidStack) stack).getFluidStack();
         }
         return null;
     }

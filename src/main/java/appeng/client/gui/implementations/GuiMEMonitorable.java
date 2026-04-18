@@ -667,7 +667,7 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
                         final int inventorySize = this.inventorySlots.inventorySlots.size();
                         for (int h = 0; h < times; h++) {
                             final PacketInventoryAction p = new PacketInventoryAction(
-                                    direction, inventorySize, 0);
+                                    direction, inventorySize, -1);
                             NetworkHandler.instance().sendToServer(p);
                         }
                         return;

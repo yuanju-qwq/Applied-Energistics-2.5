@@ -19,7 +19,9 @@
 package appeng.client.gui.implementations;
 
 import static appeng.client.render.BlockPosHighlighter.hilightBlock;
+import static appeng.helpers.PatternHelper.CRAFTING_GRID_DIMENSION;
 import static appeng.helpers.ItemStackHelper.stackFromNBT;
+import static appeng.helpers.PatternHelper.PROCESSING_INPUT_WIDTH;
 
 import java.awt.*;
 import java.io.IOException;
@@ -59,7 +61,7 @@ import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
-import appeng.client.gui.AEBaseGui;
+import appeng.client.gui.AEBaseMEGui;
 import appeng.client.gui.slots.VirtualMEMonitorableSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
@@ -113,9 +115,11 @@ import appeng.util.item.AEItemStackType;
  * 闁插洨鏁?AE2Things 閻ㄥ嫮澹掑▓濠囨桨閺夊灝绔风仦鈧敍姝篠ize = 240閿涘本鐗遍弶鍧楁桨閺夊じ绮?guiLeft+209 瀵偓婵绮崚璁圭礉
  * 娑撳簼瀵?GUI 閺?31px 閻ㄥ嫰鍣搁崣鐘插隘閸╃喆鈧?
  */
-public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
+public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         implements ContainerWirelessDualInterfaceTerminal.IMEInventoryUpdateReceiver,
         ISortSource, IConfigManagerHost {
+
+    private static final int CRAFTING_INPUT_SLOTS = CRAFTING_GRID_DIMENSION * CRAFTING_GRID_DIMENSION;
 
     // ========== 鐠愭潙娴樼挧鍕爱 ==========
     private static final ResourceLocation ITEMS_TEXTURE = new ResourceLocation("appliedenergistics2",
@@ -164,8 +168,10 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
 
     // ===== 閸氬牊鍨氱純鎴炵壐閸︺劋绗傞崡濠呭垱閸ュ彞鑵戦惃鍕秴缂冾噯绱欓惄绋款嚠娴滃酣娼伴弶鍨箯娑撳﹨顫楅敍?=====
     /** 閸氬牊鍨氱純鎴炵壐鐠у嘲顫怷/Y閸嬪繒些閿涘牏娴夌€靛綊娼伴弶鍨箯娑撳﹨顫楅敍灞筋嚠姒绘劘鍒涢崶鍙ヨ厬閻?鑴?缂冩垶鐗哥粭顑跨娑擃亝蝎娴ｅ秴涔忔稉濠咁潡閿?*/
-    private static final int GRID_OFFSET_X = 15;
-    private static final int GRID_OFFSET_Y = 18;
+    private static final int CRAFTING_GRID_OFFSET_X = 15;
+    private static final int CRAFTING_GRID_OFFSET_Y = 18;
+    private static final int PROCESSING_GRID_OFFSET_X = 15;
+    private static final int PROCESSING_GRID_OFFSET_Y = 9;
 
     // ===== 鏉堟挸鍤Σ钘夋躬娑撳﹤宕愮拹鏉戞禈娑擃厾娈戞担宥囩枂 =====
     /**
@@ -173,8 +179,9 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
      * 閸氬牊鍨氬Ο鈥崇础婢堆勑?(26鑴?6) 鏉堣顢嬮崷銊ㄥ垱閸?(103, 32)閿涘瞼澧块崫浣哥湷娑?+5
      * 婢跺嫮鎮婂Ο鈥崇础 3 娑擃亝鐖ｉ崙鍡樞?(18鑴?8) 娑撳骸鎮庨幋鎰佸蹇氱翻閸戝搫顕?
      */
-    private static final int OUTPUT_OFFSET_X = 108;
-    private static final int OUTPUT_OFFSET_Y = 18;
+    private static final int CRAFTING_OUTPUT_OFFSET_X = 108;
+    private static final int PROCESSING_OUTPUT_OFFSET_X = 112;
+    private static final int PROCESSING_OUTPUT_OFFSET_Y = 9;
 
     // ===== 閺嶉攱婢業N/OUT閸︺劋绗呴崡濠呭垱閸ュ彞鑵戦惃鍕秴缂冾噯绱欓惄绋款嚠闂堛垺婢樺锔跨瑐鐟欐帪绱?=====
     /** 缁岃櫣娅ч弽閿嬫緲鏉堟挸鍙嗗Σ鐣屽⒖閸濅焦瑕嗛弻鎾茬秴缂冾噯绱?8鑴?8 閺嶅洤鍣Σ鏂ょ礉鏉堣顢嬮崷銊ョ俺闁劏鍒涢崶?(9,5)閿涘瞼澧块崫?+1閿?*/
@@ -451,20 +458,32 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                 if (slot instanceof SlotFakeCraftingMatrix) {
                     // 3x3閸氬牊鍨氱純鎴炵壐濡叉垝缍?
                     final int craftIdx = slot.getSlotIndex();
-                    final int gridX = craftIdx % 3;
-                    final int gridY = craftIdx / 3;
-                    slot.xPos = panelX + GRID_OFFSET_X + gridX * 18;
-                    slot.yPos = panelY + GRID_OFFSET_Y + gridY * 18;
+                    if (getDualContainer().isCraftingMode()) {
+                        if (craftIdx >= CRAFTING_INPUT_SLOTS) {
+                            slot.xPos = -9000;
+                            slot.yPos = -9000;
+                        } else {
+                            final int gridX = craftIdx % CRAFTING_GRID_DIMENSION;
+                            final int gridY = craftIdx / CRAFTING_GRID_DIMENSION;
+                            slot.xPos = panelX + CRAFTING_GRID_OFFSET_X + gridX * 18;
+                            slot.yPos = panelY + CRAFTING_GRID_OFFSET_Y + gridY * 18;
+                        }
+                    } else {
+                        final int gridX = craftIdx % PROCESSING_INPUT_WIDTH;
+                        final int gridY = craftIdx / PROCESSING_INPUT_WIDTH;
+                        slot.xPos = panelX + PROCESSING_GRID_OFFSET_X + gridX * 18;
+                        slot.yPos = panelY + PROCESSING_GRID_OFFSET_Y + gridY * 18;
+                    }
                 } else if (slot instanceof SlotPatternTerm) {
                     // 閺嶉攱婢樼紓鏍垳鏉堟挸鍤Σ鏂ょ礄閸氬牊鍨氬Ο鈥崇础娑撳娈戞径褏绮ㄩ弸婊勑?26鑴?6閿?
                     // 閻椻晛鎼у〒鍙夌厠娴ｅ秶鐤?= 婢堆勑潏瑙勵攱(103,32) + 鐏炲懍鑵戦崑蹇曅?5,5)
-                    slot.xPos = panelX + OUTPUT_OFFSET_X;
+                    slot.xPos = panelX + CRAFTING_OUTPUT_OFFSET_X;
                     slot.yPos = panelY + 37;
                 } else if (slot instanceof SlotPatternOutputs) {
                     // 婢跺嫮鎮婂Ο鈥崇础閻ㄥ嫯绶崙鐑樞敍?娑擃亝鐖ｉ崙?18鑴?8 濡叉垝缍呴敍?
                     final int outIdx = slot.getSlotIndex();
-                    slot.xPos = panelX + OUTPUT_OFFSET_X;
-                    slot.yPos = panelY + OUTPUT_OFFSET_Y + outIdx * 18;
+                    slot.xPos = panelX + PROCESSING_OUTPUT_OFFSET_X;
+                    slot.yPos = panelY + PROCESSING_OUTPUT_OFFSET_Y + outIdx * 18;
                 } else if (slot instanceof SlotRestrictedInput restrictedSlot) {
                     // 閸栧搫鍨庣粚铏规閺嶉攱婢樻潏鎾冲弳濡茶棄鎷扮紓鏍垳閺嶉攱婢樻潏鎾冲毉濡?
                     if (restrictedSlot.getPlaceableItemType()
@@ -620,8 +639,8 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         this.buttonList.add(this.combineDisabledBtn);
 
         // ===== 閺佷即鍣虹拫鍐╂殻閹稿鎸抽敍鍫濐槱閻炲棙膩瀵繋绗呴弰鍓с仛閿涘本鏂侀崷銊ㄧ翻閸戠儤蝎閸欏厖鏅堕敍?=====
-        final int adjBtnX1 = panelScreenX + OUTPUT_OFFSET_X + 22;
-        final int adjBtnX2 = panelScreenX + OUTPUT_OFFSET_X + 12;
+        final int adjBtnX1 = panelScreenX + PROCESSING_OUTPUT_OFFSET_X + 22;
+        final int adjBtnX2 = panelScreenX + PROCESSING_OUTPUT_OFFSET_X + 12;
 
         this.x3Btn = new GuiImgButton(adjBtnX1, panelScreenY + 6,
                 Settings.ACTIONS, ActionItems.MULTIPLY_BY_THREE);
@@ -730,13 +749,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         this.updateItemPanelScrollbar();
 
         // ===== 婢跺嫮鎮婂Ο鈥崇础鏉堟挸鍤Σ鐣岀倳妞ゅ灚绮撮崝銊︽蒋閿涘牅缍呮禍搴ょ翻閸戠儤蝎閸欏厖鏅堕敍?=====
-        final int panelRelX = getPatternPanelX();
-        final int panelRelY = getPatternPanelY();
-        this.processingScrollBar.setLeft(panelRelX + OUTPUT_OFFSET_X + 18)
-                .setTop(panelRelY + OUTPUT_OFFSET_Y)
-                .setHeight(3 * 18 - 2);
-        final int totalPages = getDualContainer().getTotalPages();
-        this.processingScrollBar.setRange(0, Math.max(0, totalPages - 1), 1);
+        this.updateProcessingScrollbar();
 
         this.itemRepo.setPower(true);
 
@@ -1094,6 +1107,8 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
     @Override
     public void updateScreen() {
         super.updateScreen();
+        this.repositionSlots();
+        this.updateProcessingScrollbar();
 
         // PlacePattern: 缂傛牜鐖滅€瑰本鍨氶崥搴ゅ殰閸斻劌鐨㈤弽閿嬫緲閺€鎯у弳妤傛ü瀵掗幒銉ュ經閻ㄥ嫮鈹栭梻鍙壭担?
         if (this.pendingPlacePattern) {
@@ -1136,12 +1151,50 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
      */
     private void sendActivePageUpdate() {
         final int newPage = this.processingScrollBar.getCurrentScroll();
+        getDualContainer().setActivePage(newPage);
         try {
             NetworkHandler.instance().sendToServer(
                     new PacketValueConfig("PatternTerminal.ActivePage", String.valueOf(newPage)));
         } catch (IOException e) {
             // ignore
         }
+    }
+
+    private void updateProcessingScrollbar() {
+        final int panelRelX = getPatternPanelX();
+        final int panelRelY = getPatternPanelY();
+        this.processingScrollBar.setLeft(panelRelX + PROCESSING_OUTPUT_OFFSET_X + 18)
+                .setTop(panelRelY + PROCESSING_OUTPUT_OFFSET_Y)
+                .setHeight(3 * 18 - 2);
+
+        final ContainerWirelessDualInterfaceTerminal container = getDualContainer();
+        final int totalPages = container.getTotalPages();
+        this.processingScrollBar.setRange(0, Math.max(0, totalPages - 1), 1);
+        this.processingScrollBar.setCurrentScroll(container.getActivePage());
+    }
+
+    private boolean updateItemPanelScrollFromMouse(final int mouseX, final int mouseY) {
+        final int oldScroll = this.itemPanelScrollbar.getCurrentScroll();
+        this.itemPanelScrollbar.click(this, mouseX - this.guiLeft, mouseY - this.guiTop);
+        if (oldScroll != this.itemPanelScrollbar.getCurrentScroll()) {
+            this.itemRepo.updateView();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean updatePatternOutputScrollFromMouse(final int mouseX, final int mouseY) {
+        if (getDualContainer().isCraftingMode()) {
+            return false;
+        }
+
+        final int oldScroll = this.processingScrollBar.getCurrentScroll();
+        this.processingScrollBar.click(this, mouseX - this.guiLeft, mouseY - this.guiTop);
+        if (oldScroll != this.processingScrollBar.getCurrentScroll()) {
+            this.sendActivePageUpdate();
+            return true;
+        }
+        return false;
     }
 
     // ========== 缂佹ê鍩楅懗灞炬珯 ==========
@@ -1561,6 +1614,11 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
         this.searchFieldOutputs.mouseClicked(xCoord, yCoord, btn);
         this.searchFieldNames.mouseClicked(xCoord, yCoord, btn);
 
+        if (btn == 0 && (this.updateItemPanelScrollFromMouse(xCoord, yCoord)
+                || this.updatePatternOutputScrollFromMouse(xCoord, yCoord))) {
+            return;
+        }
+
         super.mouseClicked(xCoord, yCoord, btn);
     }
 
@@ -1572,6 +1630,10 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseGui
                 this.reinitialize();
                 return;
             }
+        }
+        if (clickedMouseButton == 0 && (this.updateItemPanelScrollFromMouse(mouseX, mouseY)
+                || this.updatePatternOutputScrollFromMouse(mouseX, mouseY))) {
+            return;
         }
         super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
     }

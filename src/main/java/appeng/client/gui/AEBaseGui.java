@@ -109,6 +109,7 @@ public abstract class AEBaseGui extends GuiContainer implements IMTModGuiContain
     private Object bookmarkedIngredient;
     private boolean isDraggingJeiGhostItem;
     private boolean haltDragging = false;
+    private boolean handlingCustomSlotClick = false;
 
     public void setJeiGhostItem(boolean jeiGhostItem) {
         isJeiGhostItem = jeiGhostItem;
@@ -364,6 +365,7 @@ public abstract class AEBaseGui extends GuiContainer implements IMTModGuiContain
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
         this.drag_click.clear();
+        this.handlingCustomSlotClick = false;
 
         if (btn == 1) {
             for (final Object o : this.buttonList) {
@@ -378,7 +380,9 @@ public abstract class AEBaseGui extends GuiContainer implements IMTModGuiContain
         for (GuiCustomSlot slot : this.guiSlots) {
             if (this.isPointInRegion(slot.xPos(), slot.yPos(), slot.getWidth(), slot.getHeight(), xCoord, yCoord)
                     && slot.canClick(this.mc.player)) {
+                this.handlingCustomSlotClick = true;
                 slot.slotClicked(this.mc.player.inventory.getItemStack(), btn);
+                return;
             }
         }
 
@@ -394,11 +398,20 @@ public abstract class AEBaseGui extends GuiContainer implements IMTModGuiContain
         this.drag_click.clear();
         this.haltDragging = false;
 
+        if (this.handlingCustomSlotClick) {
+            this.handlingCustomSlotClick = false;
+            return;
+        }
+
         super.mouseReleased(mouseX, mouseY, state);
     }
 
     @Override
     protected void mouseClickMove(final int x, final int y, final int c, final long d) {
+        if (this.handlingCustomSlotClick) {
+            return;
+        }
+
         final Slot slot = this.getSlot(x, y);
         final ItemStack itemstack = this.mc.player.inventory.getItemStack();
 

@@ -107,6 +107,12 @@ public class GuiScrollbar implements IScrollSource {
         return this.currentScroll;
     }
 
+    public GuiScrollbar setCurrentScroll(final int currentScroll) {
+        this.currentScroll = currentScroll;
+        this.applyRange();
+        return this;
+    }
+
     public void click(final AEBaseGui aeBaseGui, final int x, final int y) {
         if (this.getRange() == 0) {
             return;

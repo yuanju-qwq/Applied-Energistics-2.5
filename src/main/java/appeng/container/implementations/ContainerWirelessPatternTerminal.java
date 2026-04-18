@@ -25,8 +25,11 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.items.IItemHandler;
 
+import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.implementations.IUpgradeableCellContainer;
+import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.storage.StorageName;
+import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.container.helper.WirelessContainerHelper;
 import appeng.container.interfaces.IInventorySlotAware;
@@ -183,6 +186,31 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
     public void onChangeInventory(final IItemHandler inv, final int slot, final InvOperation mc,
             final ItemStack removedStack, final ItemStack newStack) {
         super.onChangeInventory(inv, slot, mc, removedStack, newStack);
+
+        if (inv == this.pattern && slot == 1) {
+            final ItemStack encodedPattern = this.pattern.getStackInSlot(1);
+            if (!encodedPattern.isEmpty() && encodedPattern.getItem() instanceof ICraftingPatternItem) {
+                final ICraftingPatternItem patternItem = (ICraftingPatternItem) encodedPattern.getItem();
+                final ICraftingPatternDetails details = patternItem.getPatternForItem(encodedPattern,
+                        this.getPlayerInv().player.world);
+                if (details != null) {
+                    this.setCraftingMode(details.isCraftable());
+                    this.setSubstitute(details.canSubstitute());
+
+                    for (int i = 0; i < this.craftingInv.getSizeInventory(); i++) {
+                        final IAEItemStack input = i < details.getInputs().length ? details.getInputs()[i] : null;
+                        this.craftingInv.putAEStackInSlot(i, input);
+                    }
+
+                    for (int i = 0; i < this.outputInv.getSizeInventory(); i++) {
+                        final IAEItemStack output = i < details.getOutputs().length ? details.getOutputs()[i] : null;
+                        this.outputInv.putAEStackInSlot(i, output);
+                    }
+
+                    this.saveChanges();
+                }
+            }
+        }
     }
 
     @Override

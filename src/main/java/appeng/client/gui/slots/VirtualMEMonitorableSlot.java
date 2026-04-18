@@ -24,7 +24,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.FluidUtil;
 
+import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.me.ItemRepo;
@@ -64,20 +66,29 @@ public class VirtualMEMonitorableSlot extends VirtualMESlot {
 
     @Override
     public void slotClicked(final ItemStack clickStack, final int mouseButton) {
-        final IAEStack<?> aeStack = this.getAEStack();
-        if (aeStack == null) {
+        final EntityPlayer player = Minecraft.getMinecraft().player;
+        if (player == null) {
             return;
         }
 
-        final EntityPlayer player = Minecraft.getMinecraft().player;
-        if (player == null) {
+        final IAEStack<?> aeStack = this.getAEStack();
+        final ItemStack heldStack = player.inventory.getItemStack();
+        final boolean hasItemInHand = !heldStack.isEmpty();
+        final boolean hasFluidInHand = this.hasFluidInHand(heldStack);
+        if (aeStack == null && !hasItemInHand) {
             return;
         }
 
         InventoryAction action = null;
         IAEItemStack itemStack = (aeStack instanceof IAEItemStack) ? (IAEItemStack) aeStack : null;
 
-        if (GuiScreen.isShiftKeyDown()) {
+        if (aeStack instanceof IAEFluidStack) {
+            action = mouseButton == 1 || hasFluidInHand ? InventoryAction.EMPTY_ITEM : InventoryAction.FILL_ITEM;
+        } else if (aeStack == null && hasFluidInHand) {
+            action = InventoryAction.EMPTY_ITEM;
+        } else if (hasItemInHand) {
+            action = mouseButton == 1 ? InventoryAction.SPLIT_OR_PLACE_SINGLE : InventoryAction.PICKUP_OR_SET_DOWN;
+        } else if (GuiScreen.isShiftKeyDown()) {
             // Shift+点击 = 快速移动
             action = (mouseButton == 1) ? InventoryAction.PICKUP_SINGLE : InventoryAction.SHIFT_CLICK;
         } else if (mouseButton == 1) {
@@ -90,7 +101,7 @@ public class VirtualMEMonitorableSlot extends VirtualMESlot {
             // 如果栈数量为 0 或按住 Alt 且手上没有物品，触发自动合成
             if (itemStack != null
                     && (itemStack.getStackSize() == 0 || GuiScreen.isAltKeyDown())
-                    && player.inventory.getItemStack().isEmpty()) {
+                    && !hasItemInHand) {
                 action = InventoryAction.AUTO_CRAFT;
             }
         }
@@ -104,13 +115,23 @@ public class VirtualMEMonitorableSlot extends VirtualMESlot {
             }
         }
 
-        if (action != null && itemStack != null) {
+        if (action != null) {
             if (player.openContainer instanceof AEBaseContainer container) {
-                container.setTargetStack(itemStack);
+                container.setTargetStack(aeStack);
                 final int inventorySize = container.inventorySlots.size();
-                final PacketInventoryAction p = new PacketInventoryAction(action, inventorySize, 0);
+                final PacketInventoryAction p = new PacketInventoryAction(action, inventorySize, -1);
                 NetworkHandler.instance().sendToServer(p);
             }
         }
+    }
+
+    private boolean hasFluidInHand(final ItemStack heldStack) {
+        if (heldStack.isEmpty()) {
+            return false;
+        }
+
+        final ItemStack singleStack = heldStack.copy();
+        singleStack.setCount(1);
+        return FluidUtil.getFluidContained(singleStack) != null;
     }
 }

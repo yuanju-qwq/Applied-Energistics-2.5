@@ -19,6 +19,8 @@
 package appeng.container.implementations;
 
 import static appeng.helpers.PatternHelper.CRAFTING_GRID_DIMENSION;
+import static appeng.helpers.PatternHelper.PROCESSING_INPUT_HEIGHT;
+import static appeng.helpers.PatternHelper.PROCESSING_INPUT_WIDTH;
 
 import java.io.IOException;
 import java.nio.BufferOverflowException;
@@ -90,6 +92,8 @@ import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 import appeng.util.helpers.ItemHandlerUtil;
 import appeng.util.inv.InvOperation;
+import appeng.util.inv.WrapperRangeItemHandler;
+import appeng.util.inv.WrapperSupplierItemHandler;
 import appeng.util.item.AEItemStack;
 
 /**
@@ -107,6 +111,9 @@ import appeng.util.item.AEItemStack;
 public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInterfaceTerminal
         implements IOptionalSlotHost, IContainerCraftingPacket, IMEMonitorHandlerReceiver,
         IConfigurableObject, IConfigManagerHost {
+
+    private static final int CRAFTING_INPUT_SLOTS = CRAFTING_GRID_DIMENSION * CRAFTING_GRID_DIMENSION;
+    private static final int PROCESSING_INPUT_SLOTS = PROCESSING_INPUT_WIDTH * PROCESSING_INPUT_HEIGHT;
 
     // ========== 鏍锋澘缂栧啓鐩稿叧瀛楁锛堜粠 ContainerPatternEncoder 绉绘锛?==========
     private final AppEngInternalInventory crafting;
@@ -182,12 +189,12 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         this.clientCM.registerSetting(Settings.SORT_DIRECTION, SortDir.ASCENDING);
 
         // 鍒濆鍖栨牱鏉跨紪鍐欑殑鐗╁搧鏍?
-        this.crafting = new AppEngInternalInventory(this, CRAFTING_GRID_DIMENSION * CRAFTING_GRID_DIMENSION);
+        this.crafting = new AppEngInternalInventory(this, PROCESSING_INPUT_SLOTS);
         this.patternOutput = new AppEngInternalInventory(this, TOTAL_OUTPUT_SLOTS);
         this.patternSlots = new AppEngInternalInventory(this, 2);
 
-        this.craftingSlots = new SlotFakeCraftingMatrix[9];
-        this.outputSlots = new OptionalSlotFake[TOTAL_OUTPUT_SLOTS];
+        this.craftingSlots = new SlotFakeCraftingMatrix[PROCESSING_INPUT_SLOTS];
+        this.outputSlots = new OptionalSlotFake[OUTPUT_SLOTS_PER_PAGE];
 
         this.loadPatternFromNBT();
 
@@ -212,6 +219,12 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             if (itemMon != null) {
                 this.setCellInventory(itemMon);
             }
+            @SuppressWarnings("unchecked")
+            IMEMonitor<IAEFluidStack> fluidMon = (IMEMonitor<IAEFluidStack>) gui
+                    .getInventory(AEStackTypeRegistry.getType("fluid"));
+            if (fluidMon != null) {
+                this.setFluidCellInventory(fluidMon);
+            }
 
             // 鑾峰彇缃戠粶鑺傜偣寮曠敤
             this.networkNode = gui.getActionableNode();
@@ -225,10 +238,11 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
         // 娣诲姞鏍锋澘缂栧啓妲戒綅锛?x3鍚堟垚缃戞牸锛?
         // 娉ㄦ剰锛氳繖浜涘潗鏍囨槸"鍒濆鍧愭爣"锛屾渶缁堜綅缃敱 GUI 鐨?repositionSlots() 鏂规硶鍐冲畾
-        for (int y = 0; y < 3; y++) {
-            for (int x = 0; x < 3; x++) {
-                this.addSlotToContainer(this.craftingSlots[x + y * 3] = new SlotFakeCraftingMatrix(this.crafting,
-                        x + y * 3, 18 + x * 18, -76 + y * 18));
+        for (int y = 0; y < PROCESSING_INPUT_HEIGHT; y++) {
+            for (int x = 0; x < PROCESSING_INPUT_WIDTH; x++) {
+                final int slotIndex = x + y * PROCESSING_INPUT_WIDTH;
+                this.addSlotToContainer(this.craftingSlots[slotIndex] = new SlotFakeCraftingMatrix(this.crafting,
+                        slotIndex, 18 + x * 18, -76 + y * 18));
             }
         }
 
@@ -240,7 +254,15 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         // 娣诲姞杈撳嚭妲?
         for (int y = 0; y < this.outputSlots.length; y++) {
             this.addSlotToContainer(
-                    this.outputSlots[y] = new SlotPatternOutputs(patternOutput, this, y, 110, -76 + y * 18, 0, 0, 1));
+                    this.outputSlots[y] = new SlotPatternOutputs(
+                            new WrapperSupplierItemHandler(this::getVisiblePatternOutputs),
+                            this,
+                            y,
+                            112,
+                            -75 + y * 18,
+                            0,
+                            0,
+                            1));
             this.outputSlots[y].setRenderDisabled(false);
             this.outputSlots[y].setIIcon(-1);
         }
@@ -455,6 +477,12 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         return (TOTAL_OUTPUT_SLOTS + OUTPUT_SLOTS_PER_PAGE - 1) / OUTPUT_SLOTS_PER_PAGE;
     }
 
+    private IItemHandler getVisiblePatternOutputs() {
+        final int pageStart = this.activePage * OUTPUT_SLOTS_PER_PAGE;
+        final int pageEnd = Math.min(TOTAL_OUTPUT_SLOTS, pageStart + OUTPUT_SLOTS_PER_PAGE);
+        return new WrapperRangeItemHandler(this.patternOutput, pageStart, pageEnd);
+    }
+
     /**
      * 鏇存柊杈撳嚭妲戒綅鐨勬樉绀?闅愯棌鐘舵€侊細
      * - 鍚堟垚妯″紡涓嬶細鏄剧ず craftSlot锛堝崟涓緭鍑猴級锛岄殣钘忔墍鏈?outputSlots
@@ -466,22 +494,16 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             if (craftSlot != null) {
                 this.craftSlot.xPos = -9000;
             }
-            final int pageStart = this.activePage * OUTPUT_SLOTS_PER_PAGE;
-            for (int y = 0; y < TOTAL_OUTPUT_SLOTS; y++) {
-                if (y >= pageStart && y < pageStart + OUTPUT_SLOTS_PER_PAGE) {
-                    this.outputSlots[y].xPos = this.outputSlots[y].getX();
+            for (int y = 0; y < OUTPUT_SLOTS_PER_PAGE; y++) {
+                this.outputSlots[y].xPos = this.outputSlots[y].getX();
                     // 灏嗗綋鍓嶉〉鐨勬Ы浣?yPos 鏄犲皠鍒板墠 3 涓Ы浣嶇殑浣嶇疆
-                    final int pageIndex = y - pageStart;
-                    this.outputSlots[y].yPos = this.outputSlots[pageIndex].getY();
-                } else {
-                    this.outputSlots[y].xPos = -9000;
-                }
+                this.outputSlots[y].yPos = this.outputSlots[y].getY();
             }
         } else {
             if (craftSlot != null) {
                 this.craftSlot.xPos = this.craftSlot.getX();
             }
-            for (int y = 0; y < TOTAL_OUTPUT_SLOTS; y++) {
+            for (int y = 0; y < OUTPUT_SLOTS_PER_PAGE; y++) {
                 this.outputSlots[y].xPos = -9000;
             }
         }
@@ -1089,9 +1111,10 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     private ItemStack[] getItemsFromCraftingSlots() {
-        final ItemStack[] input = new ItemStack[craftingSlots.length];
+        final int slotCount = this.isCraftingMode() ? CRAFTING_INPUT_SLOTS : this.craftingSlots.length;
+        final ItemStack[] input = new ItemStack[slotCount];
         boolean hasValue = false;
-        for (int x = 0; x < this.craftingSlots.length; x++) {
+        for (int x = 0; x < slotCount; x++) {
             input[x] = this.craftingSlots[x].getStack();
             if (!input[x].isEmpty()) {
                 hasValue = true;

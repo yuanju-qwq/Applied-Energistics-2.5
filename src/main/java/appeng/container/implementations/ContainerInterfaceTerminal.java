@@ -371,6 +371,7 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
             }
 
             this.updateHeld(player);
+            return;
         }
         if (Platform.GTLoaded) {
             final ProviderTracker providerTracker = this.providerId.get(id);
@@ -510,8 +511,11 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                 }
 
                 this.updateHeld(player);
+                return;
             }
         }
+
+        super.doAction(player, action, slot, id);
     }
 
     private void regenList(final NBTTagCompound data) {

@@ -185,36 +185,42 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
         this.clearBtn.setHalfSize(true);
         this.buttonList.add(this.clearBtn);
 
-        this.x3Btn = new GuiImgButton(this.guiLeft + 128, this.guiTop + this.ySize - 158, Settings.ACTIONS,
+        this.x3Btn = new GuiImgButton(this.guiLeft + this.getMultiplyButtonX(),
+                this.guiTop + this.ySize - 158, Settings.ACTIONS,
                 ActionItems.MULTIPLY_BY_THREE);
         this.x3Btn.setHalfSize(true);
         this.buttonList.add(this.x3Btn);
 
-        this.x2Btn = new GuiImgButton(this.guiLeft + 128, this.guiTop + this.ySize - 148, Settings.ACTIONS,
+        this.x2Btn = new GuiImgButton(this.guiLeft + this.getMultiplyButtonX(),
+                this.guiTop + this.ySize - 148, Settings.ACTIONS,
                 ActionItems.MULTIPLY_BY_TWO);
         this.x2Btn.setHalfSize(true);
         this.buttonList.add(this.x2Btn);
 
-        this.plusOneBtn = new GuiImgButton(this.guiLeft + 128, this.guiTop + this.ySize - 138, Settings.ACTIONS,
+        this.plusOneBtn = new GuiImgButton(this.guiLeft + this.getMultiplyButtonX(),
+                this.guiTop + this.ySize - 138, Settings.ACTIONS,
                 ActionItems.INCREASE_BY_ONE);
         this.plusOneBtn.setHalfSize(true);
         this.buttonList.add(this.plusOneBtn);
 
-        this.divThreeBtn = new GuiImgButton(this.guiLeft + 100, this.guiTop + this.ySize - 158, Settings.ACTIONS,
+        this.divThreeBtn = new GuiImgButton(this.guiLeft + this.getDivideButtonX(),
+                this.guiTop + this.ySize - 158, Settings.ACTIONS,
                 ActionItems.DIVIDE_BY_THREE);
         this.divThreeBtn.setHalfSize(true);
         this.divThreeBtn.visible = false;
         this.divThreeBtn.enabled = false;
         this.buttonList.add(this.divThreeBtn);
 
-        this.divTwoBtn = new GuiImgButton(this.guiLeft + 100, this.guiTop + this.ySize - 148, Settings.ACTIONS,
+        this.divTwoBtn = new GuiImgButton(this.guiLeft + this.getDivideButtonX(),
+                this.guiTop + this.ySize - 148, Settings.ACTIONS,
                 ActionItems.DIVIDE_BY_TWO);
         this.divTwoBtn.setHalfSize(true);
         this.divTwoBtn.visible = false;
         this.divTwoBtn.enabled = false;
         this.buttonList.add(this.divTwoBtn);
 
-        this.minusOneBtn = new GuiImgButton(this.guiLeft + 100, this.guiTop + this.ySize - 138, Settings.ACTIONS,
+        this.minusOneBtn = new GuiImgButton(this.guiLeft + this.getDivideButtonX(),
+                this.guiTop + this.ySize - 138, Settings.ACTIONS,
                 ActionItems.DECREASE_BY_ONE);
         this.minusOneBtn.setHalfSize(true);
         this.minusOneBtn.visible = false;
@@ -380,6 +386,14 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
             return true;
         }
         return !this.container.isCraftingMode();
+    }
+
+    protected int getMultiplyButtonX() {
+        return 128;
+    }
+
+    protected int getDivideButtonX() {
+        return 100;
     }
 
     protected void refreshVirtualSlots() {

@@ -246,7 +246,10 @@ public final class ContainerInterfaceConfigurationTerminal extends AEBaseContain
             }
 
             this.updateHeld(player);
+            return;
         }
+
+        super.doAction(player, action, slot, id);
     }
 
     private void regenList(final NBTTagCompound data) {

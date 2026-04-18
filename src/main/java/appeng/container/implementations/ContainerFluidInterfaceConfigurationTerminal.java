@@ -42,7 +42,6 @@ import appeng.api.storage.data.IAEFluidStack;
 import appeng.container.AEBaseContainer;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketCompressedNBT;
-import appeng.core.sync.packets.PacketTargetFluidStack;
 import appeng.fluids.helper.DualityFluidInterface;
 import appeng.fluids.helper.IFluidInterfaceHost;
 import appeng.fluids.parts.PartFluidInterface;
@@ -65,8 +64,6 @@ public final class ContainerFluidInterfaceConfigurationTerminal extends AEBaseCo
     private final Map<Long, FluidConfigTracker> byId = new HashMap<>();
     private IGrid grid;
     private NBTTagCompound data = new NBTTagCompound();
-    private IAEFluidStack clientRequestedTargetFluid;
-
     public ContainerFluidInterfaceConfigurationTerminal(final InventoryPlayer ip,
             final PartFluidInterfaceConfigurationTerminal anchor) {
         super(ip, anchor);
@@ -193,22 +190,10 @@ public final class ContainerFluidInterfaceConfigurationTerminal extends AEBaseCo
             inv.server.setFluidInSlot(slot, null);
 
             this.updateHeld(player);
-        }
-    }
-
-    public void setTargetStack(final IAEFluidStack stack) {
-        if (Platform.isClient()) {
-            if (stack == null && this.clientRequestedTargetFluid == null) {
-                return;
-            }
-            if (stack != null && this.clientRequestedTargetFluid != null
-                    && stack.getFluidStack().isFluidEqual(this.clientRequestedTargetFluid.getFluidStack())) {
-                return;
-            }
-            NetworkHandler.instance().sendToServer(new PacketTargetFluidStack((AEFluidStack) stack));
+            return;
         }
 
-        this.clientRequestedTargetFluid = stack == null ? null : stack.copy();
+        super.doAction(player, action, slot, id);
     }
 
     private void regenList(final NBTTagCompound data) {

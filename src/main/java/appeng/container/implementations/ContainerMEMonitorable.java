@@ -54,6 +54,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.AEStackTypeRegistry;
+import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
@@ -165,6 +166,11 @@ public class ContainerMEMonitorable extends AEBaseContainer
                         AEStackTypeRegistry.getType("item"));
                 if (itemMon != null) {
                     this.setCellInventory((IMEInventoryHandler<IAEItemStack>) itemMon);
+                }
+                IMEMonitor<?> fluidMon = this.monitors.get(
+                        AEStackTypeRegistry.getType("fluid"));
+                if (fluidMon != null) {
+                    this.setFluidCellInventory((IMEInventoryHandler<IAEFluidStack>) fluidMon);
                 }
 
                 if (monitorable instanceof IPortableCell) {
