@@ -247,6 +247,16 @@ public final class AELog {
         return AEConfig.instance().isFeatureEnabled(AEFeature.DEBUG_LOGGING);
     }
 
+    public static boolean isPatternDebugLogEnabled() {
+        return isDebugLogEnabled();
+    }
+
+    public static void patternDebug(@Nonnull final String format, final Object... params) {
+        if (isPatternDebugLogEnabled()) {
+            log(Level.INFO, format, params);
+        }
+    }
+
     //
     // Specialized handlers
     //

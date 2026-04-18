@@ -83,6 +83,7 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
 
     protected VirtualMEPatternSlot[] craftingVSlots;
     protected VirtualMEPatternSlot[] outputVSlots;
+    protected Boolean lastCraftingMode;
 
     public GuiPatternTerm(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(inventoryPlayer, te, new ContainerPatternTerm(inventoryPlayer, te));
@@ -123,27 +124,18 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
             }
 
             if (this.x2Btn == btn) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("PatternTerminal.MultiplyByTwo", "1"));
+                NetworkHandler.instance().sendToServer(new PacketValueConfig(
+                        isShiftKeyDown() ? "PatternTerminal.DivideByTwo" : "PatternTerminal.MultiplyByTwo", "1"));
             }
 
             if (this.x3Btn == btn) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("PatternTerminal.MultiplyByThree", "1"));
-            }
-
-            if (this.divTwoBtn == btn) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("PatternTerminal.DivideByTwo", "1"));
-            }
-
-            if (this.divThreeBtn == btn) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("PatternTerminal.DivideByThree", "1"));
+                NetworkHandler.instance().sendToServer(new PacketValueConfig(
+                        isShiftKeyDown() ? "PatternTerminal.DivideByThree" : "PatternTerminal.MultiplyByThree", "1"));
             }
 
             if (this.plusOneBtn == btn) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("PatternTerminal.IncreaseByOne", "1"));
-            }
-
-            if (this.minusOneBtn == btn) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("PatternTerminal.DecreaseByOne", "1"));
+                NetworkHandler.instance().sendToServer(new PacketValueConfig(
+                        isShiftKeyDown() ? "PatternTerminal.DecreaseByOne" : "PatternTerminal.IncreaseByOne", "1"));
             }
 
             if (this.maxCountBtn == btn) {
@@ -211,16 +203,22 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
         this.divThreeBtn = new GuiImgButton(this.guiLeft + 100, this.guiTop + this.ySize - 158, Settings.ACTIONS,
                 ActionItems.DIVIDE_BY_THREE);
         this.divThreeBtn.setHalfSize(true);
+        this.divThreeBtn.visible = false;
+        this.divThreeBtn.enabled = false;
         this.buttonList.add(this.divThreeBtn);
 
         this.divTwoBtn = new GuiImgButton(this.guiLeft + 100, this.guiTop + this.ySize - 148, Settings.ACTIONS,
                 ActionItems.DIVIDE_BY_TWO);
         this.divTwoBtn.setHalfSize(true);
+        this.divTwoBtn.visible = false;
+        this.divTwoBtn.enabled = false;
         this.buttonList.add(this.divTwoBtn);
 
         this.minusOneBtn = new GuiImgButton(this.guiLeft + 100, this.guiTop + this.ySize - 138, Settings.ACTIONS,
                 ActionItems.DECREASE_BY_ONE);
         this.minusOneBtn.setHalfSize(true);
+        this.minusOneBtn.visible = false;
+        this.minusOneBtn.enabled = false;
         this.buttonList.add(this.minusOneBtn);
 
         // this.maxCountBtn = new GuiImgButton( this.guiLeft + 128, this.guiTop + this.ySize - 108, Settings.ACTIONS,
@@ -237,6 +235,8 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
 
     @Override
     public void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
+        this.refreshVirtualSlots();
+
         if (this.container.isCraftingMode()) {
             this.tabCraftButton.visible = true;
             this.tabProcessButton.visible = false;
@@ -262,10 +262,13 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
             this.substitutionsDisabledBtn.visible = false;
             this.x2Btn.visible = true;
             this.x3Btn.visible = true;
-            this.divTwoBtn.visible = true;
-            this.divThreeBtn.visible = true;
+            this.x2Btn.set(isShiftKeyDown() ? ActionItems.DIVIDE_BY_TWO : ActionItems.MULTIPLY_BY_TWO);
+            this.x3Btn.set(isShiftKeyDown() ? ActionItems.DIVIDE_BY_THREE : ActionItems.MULTIPLY_BY_THREE);
+            this.divTwoBtn.visible = false;
+            this.divThreeBtn.visible = false;
             this.plusOneBtn.visible = true;
-            this.minusOneBtn.visible = true;
+            this.plusOneBtn.set(isShiftKeyDown() ? ActionItems.DECREASE_BY_ONE : ActionItems.INCREASE_BY_ONE);
+            this.minusOneBtn.visible = false;
             // this.maxCountBtn.visible = true;
         }
 
@@ -337,6 +340,8 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
     // ---- 虚拟槽位初始化 ----
 
     protected void initVirtualSlots() {
+        this.guiSlots.removeIf(slot -> slot instanceof VirtualMEPatternSlot);
+
         final IAEStackInventory craftInv = this.container.getCraftingAEInv();
         final IAEStackInventory outInv = this.container.getOutputAEInv();
 
@@ -346,7 +351,7 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
                 for (int x = 0; x < 3; x++) {
                     final int slotIdx = x + y * 3;
                     VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
-                            slotIdx, 18 + x * 18, -76 + y * 18,
+                            slotIdx, 18 + x * 18, this.patternGuiY(-76 + y * 18),
                             craftInv, slotIdx, this::acceptType);
                     this.craftingVSlots[slotIdx] = slot;
                     this.guiSlots.add(slot);
@@ -358,12 +363,15 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
             this.outputVSlots = new VirtualMEPatternSlot[outInv.getSizeInventory()];
             for (int y = 0; y < outInv.getSizeInventory(); y++) {
                 VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
-                        y, 110, -76 + y * 18,
+                        y, 110, this.patternGuiY(-76 + y * 18),
                         outInv, y, this::acceptType);
                 this.outputVSlots[y] = slot;
                 this.guiSlots.add(slot);
             }
         }
+
+        this.updateVirtualSlotVisibility();
+        this.lastCraftingMode = this.container.isCraftingMode();
     }
 
     protected boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
@@ -372,5 +380,39 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
             return true;
         }
         return !this.container.isCraftingMode();
+    }
+
+    protected void refreshVirtualSlots() {
+        final boolean craftingMode = this.container.isCraftingMode();
+        if (this.lastCraftingMode == null || this.lastCraftingMode.booleanValue() != craftingMode) {
+            this.initVirtualSlots();
+            return;
+        }
+
+        this.updateVirtualSlotVisibility();
+    }
+
+    protected void updateVirtualSlotVisibility() {
+        final boolean craftingMode = this.container.isCraftingMode();
+
+        if (this.craftingVSlots != null) {
+            for (final VirtualMEPatternSlot slot : this.craftingVSlots) {
+                if (slot != null) {
+                    slot.setHidden(false);
+                }
+            }
+        }
+
+        if (this.outputVSlots != null) {
+            for (final VirtualMEPatternSlot slot : this.outputVSlots) {
+                if (slot != null) {
+                    slot.setHidden(craftingMode);
+                }
+            }
+        }
+    }
+
+    protected int patternGuiY(final int y) {
+        return y + this.ySize - 81;
     }
 }

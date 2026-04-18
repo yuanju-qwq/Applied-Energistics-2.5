@@ -22,6 +22,7 @@ import appeng.client.ClientHelper;
 import appeng.client.gui.implementations.GuiCraftAmount;
 import appeng.client.gui.implementations.GuiCraftConfirm;
 import appeng.client.gui.implementations.GuiCraftingCPU;
+import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiCustomSlot;
 import appeng.container.interfaces.IJEIGhostIngredients;
 import appeng.container.interfaces.ISpecialSlotIngredient;
@@ -122,38 +123,54 @@ public class AEGuiHandler implements IAdvancedGuiHandler<AEBaseGui>, IGhostIngre
     @Override
     @Nonnull
     public <I> List<Target<I>> getTargets(@Nonnull AEBaseGui gui, @Nonnull I ingredient, boolean doStart) {
-        if (!(gui instanceof IJEIGhostIngredients g))
-            return Collections.emptyList();
-
         // HEI Specific Behaviour
         if (ClientHelper.isHei) {
             Object ingToUse = getIngFromBookmarkItem(ingredient);
             if (ingToUse != null) {
-                List<Target<Object>> phantomTargets = (List<Target<Object>>) (Object) g.getPhantomTargets(ingToUse);
-
-                List<Target<I>> result = new ArrayList<>();
-                for (Target<Object> target : phantomTargets) {
-                    result.add(new Target<>() {
-                        @Override
-                        public @NotNull Rectangle getArea() {
-                            return target.getArea();
-                        }
-
-                        @Override
-                        public void accept(@NotNull I ingredient) {
-                            Object ingToUse = getIngFromBookmarkItem(ingredient);
-                            if (ingToUse != null) {
-                                target.accept(ingToUse);
-                            }
-                        }
-                    });
-                }
-
-                return result;
+                return this.getTargets(gui, (I) ingToUse, doStart);
             }
         }
 
-        return (List<Target<I>>) (Object) g.getPhantomTargets(ingredient);
+        final List<Target<I>> virtualTargets = this.getVirtualTargets(gui, ingredient);
+        if (!virtualTargets.isEmpty()) {
+            return virtualTargets;
+        }
+
+        if (gui instanceof IJEIGhostIngredients g) {
+            return (List<Target<I>>) (Object) g.getPhantomTargets(ingredient);
+        }
+
+        return Collections.emptyList();
+    }
+
+    private <I> List<Target<I>> getVirtualTargets(@Nonnull AEBaseGui gui, @Nonnull I ingredient) {
+        if (!(ingredient instanceof net.minecraft.item.ItemStack itemStack)) {
+            return Collections.emptyList();
+        }
+
+        final List<Target<I>> result = new ArrayList<>();
+        for (GuiCustomSlot customSlot : gui.getGuiSlots()) {
+            if (!(customSlot instanceof VirtualMEPhantomSlot virtualSlot)
+                    || !virtualSlot.isVisible()
+                    || !virtualSlot.isSlotEnabled()) {
+                continue;
+            }
+
+            result.add(new Target<>() {
+                @Override
+                public @NotNull Rectangle getArea() {
+                    return new Rectangle(gui.getGuiLeft() + virtualSlot.xPos(), gui.getGuiTop() + virtualSlot.yPos(),
+                            virtualSlot.getWidth(), virtualSlot.getHeight());
+                }
+
+                @Override
+                public void accept(@NotNull I ignored) {
+                    virtualSlot.handleMouseClicked(itemStack, false, 0);
+                }
+            });
+        }
+
+        return result;
     }
 
     @Nullable

@@ -75,6 +75,7 @@ import appeng.me.helpers.PlayerSource;
 import appeng.tile.crafting.TileCraftingMonitorTile;
 import appeng.tile.crafting.TileCraftingTile;
 import appeng.util.Platform;
+import appeng.util.StorageHelper;
 import appeng.util.item.AEItemStack;
 import appeng.util.item.IMixedStackList;
 
@@ -242,7 +243,6 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         return canAccept((IAEStack<?>) input);
     }
 
-    @SuppressWarnings("unchecked")
     public boolean canAccept(final IAEStack<?> input) {
         if (input != null) {
             final IAEStack<?> is = this.waitingFor.findPrecise(input);
@@ -530,7 +530,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
                 boolean found = false;
                 for (IAEItemStack substitute : substitutes) {
-                    for (IAEItemStack fuzz : this.inventory.getItemList().findFuzzy(substitute, FuzzyMode.IGNORE_ALL)) {
+                    for (IAEItemStack fuzz : this.inventory.findFuzzyItems(substitute, FuzzyMode.IGNORE_ALL)) {
                         int alreadyConsumed = consumedCount.getOrDefault(fuzz, 0);
                         if (fuzz.getStackSize() - alreadyConsumed <= 0) {
                             continue; // Already fully consumed by a previous slot of this recipe
@@ -568,7 +568,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                 }
                 boolean found = false;
 
-                for (IAEItemStack fuzz : this.inventory.getItemList().findFuzzy(g, FuzzyMode.IGNORE_ALL)) {
+                for (IAEItemStack fuzz : this.inventory.findFuzzyItems(g, FuzzyMode.IGNORE_ALL)) {
                     fuzz = fuzz.copy();
                     fuzz.setStackSize(g.getStackSize());
                     final IAEItemStack ais = this.inventory.extractItems(fuzz, Actionable.SIMULATE, this.machineSrc);
@@ -600,7 +600,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         final IItemList<IAEStackBase> list;
         this.getGenericListOfItem(list = new appeng.util.item.IAEStackList(), CraftingItemList.ALL);
         for (final IAEStackBase is : list) {
-            this.postChange((IAEStack<?>) is, this.machineSrc);
+            this.postChange(asGenericStack(is), this.machineSrc);
         }
 
         this.isComplete = true;
@@ -763,20 +763,20 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                                 itemList = new ArrayList<>(substitutes.size());
 
                                                 for (IAEItemStack stack : substitutes) {
-                                                    itemList.addAll(this.inventory.getItemList().findFuzzy(stack,
-                                                            FuzzyMode.IGNORE_ALL));
+                                                    itemList.addAll(
+                                                            this.inventory.findFuzzyItems(stack, FuzzyMode.IGNORE_ALL));
                                                 }
                                             } else {
                                                 itemList = new ArrayList<>(1);
 
-                                                final IAEItemStack item = this.inventory.getItemList()
-                                                        .findPrecise((IAEItemStack) input[x]);
+                                                final IAEItemStack item = this.inventory
+                                                        .findPreciseItem((IAEItemStack) input[x]);
                                                 if (item != null) {
                                                     itemList.add(item);
                                                 } else if (((IAEItemStack) input[x]).getDefinition().getItem().isDamageable() || Platform
                                                         .isGTDamageableItem(((IAEItemStack) input[x]).getDefinition().getItem())) {
-                                                    itemList.addAll(this.inventory.getItemList().findFuzzy((IAEItemStack) input[x],
-                                                            FuzzyMode.IGNORE_ALL));
+                                                    itemList.addAll(this.inventory.findFuzzyItems(
+                                                            (IAEItemStack) input[x], FuzzyMode.IGNORE_ALL));
                                                 }
                                             }
 
@@ -1015,7 +1015,6 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         return pushed;
     }
 
-    @SuppressWarnings("unchecked")
     private void storeItems() {
         Preconditions.checkState(isComplete, "CPU should be complete to prevent re-insertion when dumping items");
         final IGrid g = this.getGrid();
@@ -1028,17 +1027,17 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
         // 统一处理所有类型（物品、流体等）
         for (var entry : this.inventory.getInventoryMap().entrySet()) {
-            var type = entry.getKey();
-            IMEMonitor monitor = sg.getInventory(type);
+            final var type = entry.getKey();
+            final IMEMonitor<?> monitor = sg.getInventory(type);
             if (monitor == null) continue;
-            IItemList<?> list = entry.getValue();
-            for (IAEStackBase stackBase : (IItemList<IAEStackBase>) list) {
-                IAEStack<?> aeStack = (IAEStack<?>) stackBase;
+            final IItemList<?> list = entry.getValue();
+            for (IAEStackBase stackBase : asBaseList(list)) {
+                IAEStack<?> aeStack = asGenericStack(stackBase);
                 aeStack = this.inventory.extractAny(aeStack.copy(), Actionable.MODULATE);
 
                 if (aeStack != null) {
                     this.postChange(aeStack, this.machineSrc);
-                    aeStack = (IAEStack<?>) monitor.injectItems(aeStack, Actionable.MODULATE, this.machineSrc);
+                    aeStack = StorageHelper.injectItems(monitor, aeStack, Actionable.MODULATE, this.machineSrc);
                 }
 
                 if (aeStack != null) {
@@ -1052,6 +1051,15 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         }
 
         this.markDirty();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static IItemList<IAEStackBase> asBaseList(final IItemList<?> list) {
+        return (IItemList<IAEStackBase>) list;
+    }
+
+    private static IAEStack<?> asGenericStack(final IAEStackBase stackBase) {
+        return (IAEStack<?>) stackBase;
     }
 
     @SuppressWarnings("unchecked")
@@ -1110,7 +1118,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                 final IItemList<IAEStackBase> list = new appeng.util.item.IAEStackList();
                 this.getGenericListOfItem(list, CraftingItemList.ALL);
                 for (final IAEStackBase ge : list) {
-                    this.postChange((IAEStack<?>) ge, this.machineSrc);
+                    this.postChange(asGenericStack(ge), this.machineSrc);
                 }
 
                 return whatLink;
@@ -1293,7 +1301,6 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
     /**
      * 泛型版本，支持物品/流体等
      */
-    @SuppressWarnings("unchecked")
     public void addStorage(final IAEStack<?> stack) {
         this.inventory.injectItems(stack, Actionable.MODULATE);
     }
@@ -1306,7 +1313,6 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
     /**
      * 泛型版本，支持物品/流体等
      */
-    @SuppressWarnings("unchecked")
     public void addEmitable(final IAEStack<?> stack) {
         this.waitingFor.add(stack);
         this.postCraftingStatusChange(stack);
@@ -1323,13 +1329,12 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
     }
 
     @Deprecated
-    @SuppressWarnings("unchecked")
     public IAEItemStack getItemStack(final IAEItemStack what, final CraftingItemList storage2) {
         IAEItemStack is;
 
         switch (storage2) {
             case STORAGE:
-                is = this.inventory.getItemList().findPrecise(what);
+                is = this.inventory.findPreciseItem(what);
                 break;
             case ACTIVE:
                 is = this.asItemStack(this.waitingFor.findPrecise(what));

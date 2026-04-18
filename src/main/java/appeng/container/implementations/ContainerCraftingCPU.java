@@ -165,9 +165,13 @@ public class ContainerCraftingCPU extends AEBaseContainer
                     final PacketMEInventoryUpdate c = new PacketMEInventoryUpdate((byte) 2);
 
                     for (final IAEStackBase out : this.list) {
-                        a.appendStack(this.getMonitor().getItemStack((IAEStack<?>) out, CraftingItemList.STORAGE));
-                        b.appendStack(this.getMonitor().getItemStack((IAEStack<?>) out, CraftingItemList.ACTIVE));
-                        c.appendStack(this.getMonitor().getItemStack((IAEStack<?>) out, CraftingItemList.PENDING));
+                        if (!(out instanceof IAEStack<?> stack)) {
+                            continue;
+                        }
+
+                        a.appendStack(this.getMonitor().getItemStack(stack, CraftingItemList.STORAGE));
+                        b.appendStack(this.getMonitor().getItemStack(stack, CraftingItemList.ACTIVE));
+                        c.appendStack(this.getMonitor().getItemStack(stack, CraftingItemList.PENDING));
                     }
 
                     this.list.resetStatus();

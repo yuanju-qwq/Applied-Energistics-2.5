@@ -29,6 +29,9 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
@@ -46,11 +49,16 @@ import appeng.container.implementations.ContainerCraftingTerm;
 import appeng.container.implementations.ContainerPatternEncoder;
 import appeng.container.implementations.ContainerWirelessCraftingTerminal;
 import appeng.container.implementations.ContainerWirelessDualInterfaceTerminal;
+import appeng.api.storage.StorageName;
+import appeng.api.storage.data.IAEStack;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketJEIRecipe;
+import appeng.core.sync.packets.PacketVirtualSlot;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStack;
 
 class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandler<T> {
 
@@ -123,55 +131,59 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
                 recipeLayout.getItemStacks().getGuiIngredients().entrySet());
         ingredients.sort(Comparator.comparingInt(Map.Entry::getKey));
 
-        final NBTTagCompound recipe = new NBTTagCompound();
-        final NBTTagList outputs = new NBTTagList();
+        if (container instanceof ContainerPatternEncoder patternContainer) {
+            transferToPatternVirtualSlots(patternContainer, ingredients, recipeType);
+        } else {
+            final NBTTagCompound recipe = new NBTTagCompound();
+            final NBTTagList outputs = new NBTTagList();
 
-        int slotIndex = 0;
-        for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> ingredientEntry : ingredients) {
-            IGuiIngredient<ItemStack> ingredient = ingredientEntry.getValue();
-            if (!ingredient.isInput()) {
-                ItemStack output = ingredient.getDisplayedIngredient();
-                if (output != null) {
-                    final NBTTagCompound tag = stackToNBT(output);
-                    outputs.appendTag(tag);
-                }
-                continue;
-            }
-
-            final NBTTagList tags = new NBTTagList();
-            final List<ItemStack> list = new ArrayList<>();
-            final ItemStack displayed = ingredient.getDisplayedIngredient();
-
-            if (displayed != null && !displayed.isEmpty()) {
-                list.add(displayed);
-            }
-
-            for (ItemStack stack : ingredient.getAllIngredients()) {
-                if (stack == null) {
+            int slotIndex = 0;
+            for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> ingredientEntry : ingredients) {
+                IGuiIngredient<ItemStack> ingredient = ingredientEntry.getValue();
+                if (!ingredient.isInput()) {
+                    ItemStack output = ingredient.getDisplayedIngredient();
+                    if (output != null) {
+                        final NBTTagCompound tag = stackToNBT(output);
+                        outputs.appendTag(tag);
+                    }
                     continue;
                 }
-                if (Platform.isRecipePrioritized(stack)) {
-                    list.add(0, stack);
-                } else {
-                    list.add(stack);
+
+                final NBTTagList tags = new NBTTagList();
+                final List<ItemStack> list = new ArrayList<>();
+                final ItemStack displayed = ingredient.getDisplayedIngredient();
+
+                if (displayed != null && !displayed.isEmpty()) {
+                    list.add(displayed);
                 }
+
+                for (ItemStack stack : ingredient.getAllIngredients()) {
+                    if (stack == null) {
+                        continue;
+                    }
+                    if (Platform.isRecipePrioritized(stack)) {
+                        list.add(0, stack);
+                    } else {
+                        list.add(stack);
+                    }
+                }
+
+                for (final ItemStack is : list) {
+                    final NBTTagCompound tag = stackToNBT(is);
+                    tags.appendTag(tag);
+                }
+
+                recipe.setTag("#" + slotIndex, tags);
+                slotIndex++;
             }
 
-            for (final ItemStack is : list) {
-                final NBTTagCompound tag = stackToNBT(is);
-                tags.appendTag(tag);
+            recipe.setTag("outputs", outputs);
+
+            try {
+                NetworkHandler.instance().sendToServer(new PacketJEIRecipe(recipe));
+            } catch (IOException e) {
+                AELog.debug(e);
             }
-
-            recipe.setTag("#" + slotIndex, tags);
-            slotIndex++;
-        }
-
-        recipe.setTag("outputs", outputs);
-
-        try {
-            NetworkHandler.instance().sendToServer(new PacketJEIRecipe(recipe));
-        } catch (IOException e) {
-            AELog.debug(e);
         }
 
         // 二合一接口终端：将配方类别名称（机器名）设置为 Names 搜索框的建议文本
@@ -188,5 +200,53 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         }
 
         return null;
+    }
+
+    private static void transferToPatternVirtualSlots(ContainerPatternEncoder container,
+            List<Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>>> ingredients, String recipeType) {
+        final IAEStackInventory craftingInv = container.getCraftingAEInv();
+        final IAEStackInventory outputInv = container.getOutputAEInv();
+        if (craftingInv == null || outputInv == null) {
+            return;
+        }
+
+        final Int2ObjectMap<IAEStack<?>> craftingSlots = new Int2ObjectOpenHashMap<>();
+        for (int i = 0; i < craftingInv.getSizeInventory(); i++) {
+            craftingSlots.put(i, null);
+        }
+
+        final Int2ObjectMap<IAEStack<?>> outputSlots = new Int2ObjectOpenHashMap<>();
+        for (int i = 0; i < outputInv.getSizeInventory(); i++) {
+            outputSlots.put(i, null);
+        }
+
+        int craftingIndex = 0;
+        int outputIndex = 0;
+        for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> ingredientEntry : ingredients) {
+            final IGuiIngredient<ItemStack> ingredient = ingredientEntry.getValue();
+            final ItemStack displayed = ingredient.getDisplayedIngredient();
+            if (ingredient.isInput()) {
+                if (craftingIndex < craftingInv.getSizeInventory()) {
+                    craftingSlots.put(craftingIndex, toAEStack(displayed));
+                }
+                craftingIndex++;
+            } else if (!recipeType.equals(VanillaRecipeCategoryUid.CRAFTING)) {
+                if (outputIndex < outputInv.getSizeInventory()) {
+                    outputSlots.put(outputIndex, toAEStack(displayed));
+                }
+                outputIndex++;
+            }
+        }
+
+        NetworkHandler.instance().sendToServer(new PacketVirtualSlot(StorageName.CRAFTING_INPUT, craftingSlots));
+        NetworkHandler.instance().sendToServer(new PacketVirtualSlot(StorageName.CRAFTING_OUTPUT, outputSlots));
+    }
+
+    @Nullable
+    private static IAEStack<?> toAEStack(@Nullable ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return null;
+        }
+        return AEItemStack.fromItemStack(stack);
     }
 }

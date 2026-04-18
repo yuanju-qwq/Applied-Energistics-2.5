@@ -253,6 +253,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                 this.patternSlotOUT = new SlotRestrictedInput(SlotRestrictedInput.PlacableItemType.ENCODED_PATTERN,
                         patternSlots, 1, 147, -72 + 34, this.getInventoryPlayer()));
         this.patternSlotOUT.setStackLimit(1);
+        this.refreshPatternPreview();
     }
 
     // ========== IMEMonitorHandlerReceiver 鎺ュ彛瀹炵幇锛圡E 缃戠粶鐩戞帶锛?==========
@@ -389,6 +390,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         if (craftingMode) {
             this.fixCraftingRecipes();
         }
+        this.refreshPatternPreview();
     }
 
     public boolean isSubstitute() {
@@ -517,6 +519,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
      * 缂栫爜鏍锋澘锛氬皢鍚堟垚缃戞牸涓殑杈撳叆鍜岃緭鍑虹紪鐮佷负鏍锋澘鐗╁搧
      */
     public void encode() {
+        this.refreshPatternPreview();
+
         ItemStack output = this.patternSlotOUT.getStack();
         final ItemStack[] in = this.getInputs();
         final ItemStack[] out = this.getOutputs();
@@ -609,8 +613,9 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         for (int x = 0; x < this.patternOutput.getSlots(); x++) {
             this.patternOutput.setStackInSlot(x, ItemStack.EMPTY);
         }
+        this.refreshPatternPreview();
+        this.saveChanges();
         this.detectAndSendChanges();
-        this.getAndUpdateOutput();
     }
 
     /**
@@ -1156,6 +1161,14 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         return is;
     }
 
+    private void refreshPatternPreview() {
+        if (this.isCraftingMode()) {
+            this.getAndUpdateOutput();
+        } else {
+            this.cOut.setStackInSlot(0, ItemStack.EMPTY);
+        }
+    }
+
     private boolean isPattern(final ItemStack output) {
         if (output.isEmpty()) {
             return false;
@@ -1249,7 +1262,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     @Override
     public void putStackInSlot(int slotID, ItemStack stack) {
         super.putStackInSlot(slotID, stack);
-        this.getAndUpdateOutput();
+        this.refreshPatternPreview();
     }
 
     @Override
@@ -1450,6 +1463,10 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         // 澶勭悊鍚堟垚缃戞牸鍙樻洿
         if (inv == this.crafting) {
             this.fixCraftingRecipes();
+            this.refreshPatternPreview();
+            this.saveChanges();
+        } else if (inv == this.patternOutput || inv == this.patternSlots) {
+            this.saveChanges();
         }
         // 澶勭悊鏍锋澘妲界殑鍙樻洿锛氬綋鏀惧叆宸茬紪鐮佺殑鏍锋澘鏃讹紝鑷姩鍔犺浇鍏跺唴瀹瑰埌缂栧啓缃戞牸
         if (inv == this.patternSlots && slot == 1) {
@@ -1462,8 +1479,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                     this.setCraftingMode(details.isCraftable());
                     this.setSubstitute(details.canSubstitute());
 
-                    for (int x = 0; x < this.crafting.getSlots() && x < details.getInputs().length; x++) {
-                        final IAEItemStack item = details.getInputs()[x];
+                    for (int x = 0; x < this.crafting.getSlots(); x++) {
+                        final IAEItemStack item = x < details.getInputs().length ? details.getInputs()[x] : null;
                         ItemHandlerUtil.setStackInSlot(this.crafting, x,
                                 item == null ? ItemStack.EMPTY : item.createItemStack());
                     }
@@ -1477,6 +1494,9 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                         }
                         this.patternOutput.setStackInSlot(x, item == null ? ItemStack.EMPTY : item.createItemStack());
                     }
+
+                    this.refreshPatternPreview();
+                    this.saveChanges();
                 }
             }
         }

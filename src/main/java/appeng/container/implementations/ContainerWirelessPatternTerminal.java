@@ -30,8 +30,10 @@ import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
 import appeng.container.helper.WirelessContainerHelper;
 import appeng.container.interfaces.IInventorySlotAware;
+import appeng.container.slot.SlotPatternTerm;
 import appeng.container.slot.SlotRestrictedInput;
 import appeng.helpers.WirelessTerminalGuiObject;
+import appeng.items.contents.CellConfigLegacy;
 import appeng.tile.inventory.AppEngInternalInventory;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.tile.inventory.IIAEStackInventory;
@@ -71,6 +73,10 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
         this.pattern = new AppEngInternalInventory(this, 2);
 
         this.loadFromNBT();
+        final IItemHandler craftingHandler = new CellConfigLegacy(this.craftingInv, null);
+        this.addSlotToContainer(this.craftSlot = new SlotPatternTerm(ip.player, this.getActionSource(),
+                this.getPowerSource(), gui, craftingHandler, this.pattern, this.cOut, 110, -76 + 18, this, 2, this));
+        this.craftSlot.setIIcon(-1);
 
         // 样板输入/输出槽
         this.addSlotToContainer(

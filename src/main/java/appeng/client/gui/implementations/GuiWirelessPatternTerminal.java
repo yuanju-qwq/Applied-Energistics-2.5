@@ -73,36 +73,56 @@ public class GuiWirelessPatternTerminal extends GuiPatternTerm {
 
     @Override
     protected void initVirtualSlots() {
+        this.guiSlots.removeIf(slot -> slot instanceof VirtualMEPatternSlot);
         final IAEStackInventory craftInv = this.container.getCraftingAEInv();
         final IAEStackInventory outInv = this.container.getOutputAEInv();
+        final boolean craftingMode = this.container.isCraftingMode();
 
         // 16 输入槽位（4x4 网格）
         if (craftInv != null) {
             this.craftingVSlots = new VirtualMEPatternSlot[craftInv.getSizeInventory()];
-            for (int i = 0; i < craftInv.getSizeInventory(); i++) {
-                final int x = (i % 4) * 18;
-                final int y = (i / 4) * 18;
-                VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
-                        i, 15 + x, -76 + y,
-                        craftInv, i, this::acceptTypeWireless);
-                this.craftingVSlots[i] = slot;
-                this.guiSlots.add(slot);
+            if (craftingMode) {
+                for (int y = 0; y < 3; y++) {
+                    for (int x = 0; x < 3; x++) {
+                        final int slotIdx = x + y * 3;
+                        final VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
+                                slotIdx, 18 + x * 18, this.patternGuiY(-76 + y * 18),
+                                craftInv, slotIdx, this::acceptTypeWireless);
+                        this.craftingVSlots[slotIdx] = slot;
+                        this.guiSlots.add(slot);
+                    }
+                }
+            } else {
+                for (int i = 0; i < craftInv.getSizeInventory(); i++) {
+                    final int x = (i % 4) * 18;
+                    final int y = (i / 4) * 18;
+                    final VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
+                            i, 15 + x, this.patternGuiY(-76 + y),
+                            craftInv, i, this::acceptTypeWireless);
+                    this.craftingVSlots[i] = slot;
+                    this.guiSlots.add(slot);
+                }
             }
         }
 
         // 6 输出槽位
         if (outInv != null) {
             this.outputVSlots = new VirtualMEPatternSlot[outInv.getSizeInventory()];
-            for (int i = 0; i < outInv.getSizeInventory(); i++) {
-                final int x = (i % 4) * 18;
-                final int y = (i / 4) * 18;
-                VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
-                        i, 109 + x, -76 + y,
-                        outInv, i, this::acceptTypeWireless);
-                this.outputVSlots[i] = slot;
-                this.guiSlots.add(slot);
+            if (!craftingMode) {
+                for (int i = 0; i < outInv.getSizeInventory(); i++) {
+                    final int x = (i % 2) * 18;
+                    final int y = (i / 2) * 18;
+                    final VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
+                            i, 96 + x, this.patternGuiY(-76 + y),
+                            outInv, i, this::acceptTypeWireless);
+                    this.outputVSlots[i] = slot;
+                    this.guiSlots.add(slot);
+                }
             }
         }
+
+        this.updateVirtualSlotVisibility();
+        this.lastCraftingMode = craftingMode;
     }
 
     private boolean acceptTypeWireless(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {

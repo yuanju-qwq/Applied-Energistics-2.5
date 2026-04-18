@@ -508,7 +508,7 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 final long perCraft = bp.getValue();
                 final IAEStack<?> toExtract = bp.getKey().copy()
                         .setStackSize(Math.multiplyExact(refundedCrafts, perCraft));
-                context.byproductsInventory.extractItems((IAEStack) toExtract, Actionable.MODULATE);
+                context.byproductsInventory.extractAny(toExtract, Actionable.MODULATE);
             }
 
             // 退还子请求的输入
@@ -533,8 +533,8 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 recChild.fullRefund(context);
             }
             for (Map.Entry<IAEStack<?>, Long> bp : byproducts.entrySet()) {
-                context.byproductsInventory.extractItems(
-                        (IAEStack) bp.getKey().copy().setStackSize(Math.multiplyExact(totalCraftsDone, bp.getValue())),
+                context.byproductsInventory.extractAny(
+                        bp.getKey().copy().setStackSize(Math.multiplyExact(totalCraftsDone, bp.getValue())),
                         Actionable.MODULATE);
             }
             if (matchingOutputRemainderItems > 0) {

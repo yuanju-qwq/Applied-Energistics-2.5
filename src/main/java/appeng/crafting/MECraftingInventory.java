@@ -20,6 +20,7 @@ package appeng.crafting;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -441,12 +442,26 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         return (StackType) this.findPreciseAny(is);
     }
 
+    public IAEItemStack findPreciseItem(final IAEItemStack item) {
+        if (item == null) {
+            return null;
+        }
+        return this.getItemListInternal().findPrecise(item);
+    }
+
     /**
      * 获取指定栈的模糊匹配。
      */
     public Collection<IAEStack<?>> findFuzzyAny(final IAEStack<?> filter, final FuzzyMode fuzzy) {
         if (filter == null) return null;
         return findFuzzyInTypedList(this.getList(filter.getStackType()), filter, fuzzy);
+    }
+
+    public Collection<IAEItemStack> findFuzzyItems(final IAEItemStack filter, final FuzzyMode fuzzy) {
+        if (filter == null) {
+            return Collections.emptyList();
+        }
+        return this.getItemListInternal().findFuzzy(filter, fuzzy);
     }
 
     @SuppressWarnings("unchecked")

@@ -25,7 +25,9 @@ import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
 import appeng.api.definitions.IDefinitions;
+import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.implementations.guiobjects.IGuiItemObject;
+import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.ITerminalHost;
@@ -46,10 +48,12 @@ import appeng.container.slot.SlotPatternTerm;
 import appeng.container.slot.SlotPlayerHotBar;
 import appeng.container.slot.SlotPlayerInv;
 import appeng.container.slot.SlotRestrictedInput;
+import appeng.core.AELog;
 import appeng.core.sync.packets.PacketPatternSlot;
 import appeng.fluids.items.ItemFluidDrop;
 import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.IContainerCraftingPacket;
+import appeng.items.contents.CellConfigLegacy;
 import appeng.items.storage.ItemViewCell;
 import appeng.me.helpers.MachineSource;
 import appeng.parts.reporting.AbstractPartEncoder;
@@ -138,7 +142,22 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             return new PlayerInvWrapper(this.getInventoryPlayer());
         }
         if (this.getPart() != null) {
-            return this.getPart().getInventoryByName(name);
+            final IItemHandler partInventory = this.getPart().getInventoryByName(name);
+            if (partInventory != null) {
+                return partInventory;
+            }
+        }
+        if (name.equals("crafting")) {
+            final IAEStackInventory craftingAE = this.getCraftingAEInv();
+            if (craftingAE != null) {
+                return new CellConfigLegacy(craftingAE, null);
+            }
+        }
+        if (name.equals("output")) {
+            final IAEStackInventory outputAE = this.getOutputAEInv();
+            if (outputAE != null) {
+                return new CellConfigLegacy(outputAE, null);
+            }
         }
         return null;
     }
@@ -236,6 +255,8 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     }
 
     public void encode() {
+        this.refreshPatternPreview();
+
         ItemStack output = this.patternSlotOUT.getStack();
         final ItemStack[] in = this.getInputs();
         final ItemStack[] out = this.getOutputs();
@@ -321,7 +342,22 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         }
 
         output.setTagCompound(encodedValue);
+        this.logEncodedPatternValidation(output, in, out);
         patternSlotOUT.putStack(output);
+    }
+
+    private void logEncodedPatternValidation(final ItemStack output, final ItemStack[] in, final ItemStack[] out) {
+        if (!Platform.isServer() || !AELog.isPatternDebugLogEnabled()
+                || !(output.getItem() instanceof ICraftingPatternItem patternItem)) {
+            return;
+        }
+
+        final ICraftingPatternDetails details = patternItem.getPatternForItem(output, this.getPlayerInv().player.world);
+        AELog.patternDebug("[PatternDebug] encoded pattern valid=%s, crafting=%s, inputs=%s, outputs=%s",
+                details != null,
+                this.isCraftingMode(),
+                this.describeStacks(in),
+                this.describeStacks(out));
     }
 
     /**
@@ -468,10 +504,11 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         final IAEStackInventory inv = this.getCraftingAEInv();
         if (inv == null) return null;
 
-        final ItemStack[] input = new ItemStack[inv.getSizeInventory()];
+        final int inputSize = this.isCraftingMode() ? 9 : inv.getSizeInventory();
+        final ItemStack[] input = new ItemStack[inputSize];
         boolean hasValue = false;
 
-        for (int x = 0; x < inv.getSizeInventory(); x++) {
+        for (int x = 0; x < inputSize; x++) {
             final IAEStack<?> stack = inv.getAEStackInSlot(x);
             if (stack instanceof IAEItemStack) {
                 input[x] = ((IAEItemStack) stack).createItemStack();
@@ -535,13 +572,16 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     protected ItemStack getAndUpdateOutput() {
         final World world = this.getPlayerInv().player.world;
         final InventoryCrafting ic = new InventoryCrafting(this, 3, 3);
+        boolean hasInput = false;
 
         final IAEStackInventory inv = this.getCraftingAEInv();
         for (int x = 0; x < ic.getSizeInventory(); x++) {
             if (inv != null) {
                 final IAEStack<?> stack = inv.getAEStackInSlot(x);
                 if (stack instanceof IAEItemStack) {
-                    ic.setInventorySlotContents(x, ((IAEItemStack) stack).createItemStack());
+                    final ItemStack itemStack = ((IAEItemStack) stack).createItemStack();
+                    ic.setInventorySlotContents(x, itemStack);
+                    hasInput |= !itemStack.isEmpty();
                 } else {
                     ic.setInventorySlotContents(x, ItemStack.EMPTY);
                 }
@@ -562,8 +602,69 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             is = this.currentRecipe.getCraftingResult(ic);
         }
 
+        if (Platform.isServer() && hasInput && AELog.isPatternDebugLogEnabled()) {
+            if (is.isEmpty()) {
+                AELog.patternDebug("[PatternDebug] no recipe result; recipe=%s, matrix=%s",
+                        this.currentRecipe == null ? "<null>" : this.currentRecipe.getRegistryName(),
+                        this.describeCraftingMatrix(ic));
+            } else {
+                AELog.patternDebug("[PatternDebug] recipe result=%s, matrix=%s",
+                        is.getItem().getRegistryName() + "@" + is.getMetadata() + "x" + is.getCount(),
+                        this.describeCraftingMatrix(ic));
+            }
+        }
+
         this.cOut.setStackInSlot(0, is);
         return is;
+    }
+
+    private String describeCraftingMatrix(final InventoryCrafting ic) {
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < ic.getSizeInventory(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            final ItemStack stack = ic.getStackInSlot(i);
+            if (stack.isEmpty()) {
+                sb.append(i).append("=<empty>");
+            } else {
+                sb.append(i)
+                        .append('=')
+                        .append(stack.getItem().getRegistryName())
+                        .append('@')
+                        .append(stack.getMetadata())
+                        .append('x')
+                        .append(stack.getCount());
+            }
+        }
+        return sb.toString();
+    }
+
+    private String describeStacks(final ItemStack[] stacks) {
+        if (stacks == null) {
+            return "<null>";
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < stacks.length; i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+
+            final ItemStack stack = stacks[i];
+            if (stack == null || stack.isEmpty()) {
+                sb.append(i).append("=<empty>");
+            } else {
+                sb.append(i)
+                        .append('=')
+                        .append(stack.getItem().getRegistryName())
+                        .append('@')
+                        .append(stack.getMetadata())
+                        .append('x')
+                        .append(stack.getCount());
+            }
+        }
+        return sb.toString();
     }
 
     public boolean isCraftingMode() {
@@ -874,6 +975,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             for (var entry : slotStacks.int2ObjectEntrySet()) {
                 inv.putAEStackInSlot(entry.getIntKey(), entry.getValue());
             }
+            this.refreshPatternPreview();
         }
     }
 
@@ -889,6 +991,18 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         }
         if (inv != null && slotId >= 0 && slotId < inv.getSizeInventory()) {
             inv.putAEStackInSlot(slotId, aes);
+            this.refreshPatternPreview();
+
+            if (Platform.isServer()) {
+                this.saveChanges();
+                this.detectAndSendChanges();
+            }
+        }
+    }
+
+    private void refreshPatternPreview() {
+        if (this.isCraftingMode()) {
+            this.getAndUpdateOutput();
         }
     }
 

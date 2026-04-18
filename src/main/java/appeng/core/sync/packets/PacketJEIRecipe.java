@@ -146,6 +146,10 @@ public class PacketJEIRecipe extends AppEngPacket {
         final IItemHandler craftMatrix = cct.getInventoryByName("crafting");
         final IItemHandler playerInventory = cct.getInventoryByName("player");
 
+        if (craftMatrix == null || playerInventory == null) {
+            return;
+        }
+
         if (inv != null && this.recipe != null && security != null) {
             final IMEMonitor<IAEItemStack> storage = inv
                     .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
@@ -266,6 +270,9 @@ public class PacketJEIRecipe extends AppEngPacket {
             if (this.output != null && ((con instanceof ContainerPatternEncoder
                     && !((ContainerPatternEncoder) con).isCraftingMode()))) {
                 IItemHandler outputSlots = cct.getInventoryByName("output");
+                if (outputSlots == null) {
+                    return;
+                }
                 for (int i = 0; i < outputSlots.getSlots(); ++i) {
                     ItemHandlerUtil.setStackInSlot(outputSlots, i, ItemStack.EMPTY);
                 }
