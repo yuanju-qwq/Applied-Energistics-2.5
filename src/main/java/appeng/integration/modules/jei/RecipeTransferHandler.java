@@ -21,6 +21,8 @@ package appeng.integration.modules.jei;
 import static appeng.helpers.ItemStackHelper.stackToNBT;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -51,6 +53,7 @@ import appeng.container.implementations.ContainerPatternEncoder;
 import appeng.container.implementations.ContainerWirelessCraftingTerminal;
 import appeng.container.implementations.ContainerWirelessDualInterfaceTerminal;
 import appeng.api.storage.StorageName;
+import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
@@ -62,6 +65,9 @@ import appeng.fluids.util.AEFluidStack;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
+import gregtech.api.recipes.ingredients.IntCircuitIngredient;
+import gtqt.common.items.GTQTMetaItems;
+import gtqt.common.items.behaviors.ProgrammableCircuit;
 
 class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandler<T> {
 
@@ -85,13 +91,16 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         private final int slotKey;
         private final int sourceOrder;
         private final boolean input;
+        private final boolean notConsumed;
         @Nullable
         private final IAEStack<?> stack;
 
-        private PatternTransferIngredient(int slotKey, int sourceOrder, boolean input, @Nullable IAEStack<?> stack) {
+        private PatternTransferIngredient(int slotKey, int sourceOrder, boolean input, boolean notConsumed,
+                @Nullable IAEStack<?> stack) {
             this.slotKey = slotKey;
             this.sourceOrder = sourceOrder;
             this.input = input;
+            this.notConsumed = notConsumed;
             this.stack = stack;
         }
     }
@@ -169,7 +178,8 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         fluidIngredients.sort(Comparator.comparingInt(Map.Entry::getKey));
 
         if (container instanceof ContainerPatternEncoder patternContainer) {
-            transferToPatternVirtualSlots(patternContainer, ingredients, fluidIngredients, recipeType);
+            transferToPatternVirtualSlots(patternContainer, recipeLayout, ingredients, fluidIngredients, recipeType,
+                    player);
         } else {
             final NBTTagCompound recipe = new NBTTagCompound();
             final NBTTagList outputs = new NBTTagList();
@@ -227,9 +237,11 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
     }
 
     private static void transferToPatternVirtualSlots(ContainerPatternEncoder container,
+            IRecipeLayout recipeLayout,
             List<Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>>> itemIngredients,
             List<Map.Entry<Integer, ? extends IGuiIngredient<FluidStack>>> fluidIngredients,
-            String recipeType) {
+            String recipeType,
+            EntityPlayer player) {
         final IAEStackInventory craftingInv = container.getCraftingAEInv();
         final IAEStackInventory outputInv = container.getOutputAEInv();
         if (craftingInv == null || outputInv == null) {
@@ -247,17 +259,36 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         }
 
         final boolean preserveLayout = recipeType.equals(VanillaRecipeCategoryUid.CRAFTING);
+        final boolean shouldApplyToolkitRules = hasToolkitInInventory(player) &&
+                GTQTMetaItems.PROGRAMMABLE_CIRCUIT != null;
+        boolean wrappedCircuitAdded = false;
+        boolean hasProgrammableCircuitInput = false;
         int craftingIndex = 0;
         int outputIndex = 0;
-        final List<PatternTransferIngredient> ingredients = collectPatternIngredients(itemIngredients, fluidIngredients);
+        final List<PatternTransferIngredient> ingredients = collectPatternIngredients(
+                recipeLayout, itemIngredients, fluidIngredients);
         for (PatternTransferIngredient ingredient : ingredients) {
             if (!preserveLayout && ingredient.stack == null) {
                 continue;
             }
 
             if (ingredient.input) {
+                IAEStack<?> transferStack = ingredient.stack == null ? null : ingredient.stack.copy();
+                final ItemStack itemStack = toItemStack(transferStack);
+                if (itemStack != null && isProgrammableCircuit(itemStack)) {
+                    hasProgrammableCircuitInput = true;
+                }
+                if (shouldApplyToolkitRules && !wrappedCircuitAdded && itemStack != null
+                        && !isProgrammableCircuit(itemStack)
+                        && (ingredient.notConsumed || IntCircuitIngredient.isIntegratedCircuit(itemStack))) {
+                    transferStack = wrapItemAsProgrammable(itemStack);
+                    wrappedCircuitAdded = transferStack != null;
+                    if (wrappedCircuitAdded) {
+                        hasProgrammableCircuitInput = true;
+                    }
+                }
                 if (craftingIndex < craftingInv.getSizeInventory()) {
-                    craftingSlots.put(craftingIndex, ingredient.stack == null ? null : ingredient.stack.copy());
+                    craftingSlots.put(craftingIndex, transferStack);
                 }
                 craftingIndex++;
             } else if (!recipeType.equals(VanillaRecipeCategoryUid.CRAFTING)) {
@@ -268,8 +299,81 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             }
         }
 
+        if (shouldApplyToolkitRules && !wrappedCircuitAdded && !hasProgrammableCircuitInput) {
+            final int firstEmptySlot = findFirstEmptyInputSlot(craftingSlots, craftingInv.getSizeInventory());
+            if (firstEmptySlot >= 0) {
+                craftingSlots.put(firstEmptySlot, toAEStack(GTQTMetaItems.PROGRAMMABLE_CIRCUIT.getStackForm(1)));
+            }
+        }
+
+        // Apply immediately on client so JEI transfer visually reflects programmable-circuit replacement.
+        container.receiveSlotStacks(StorageName.CRAFTING_INPUT, craftingSlots);
+        container.receiveSlotStacks(StorageName.CRAFTING_OUTPUT, outputSlots);
+
         NetworkHandler.instance().sendToServer(new PacketVirtualSlot(StorageName.CRAFTING_INPUT, craftingSlots));
         NetworkHandler.instance().sendToServer(new PacketVirtualSlot(StorageName.CRAFTING_OUTPUT, outputSlots));
+    }
+
+    @Nullable
+    private static ItemStack toItemStack(@Nullable IAEStack<?> stack) {
+        if (!(stack instanceof IAEItemStack)) {
+            return null;
+        }
+        final ItemStack itemStack = ((IAEItemStack) stack).createItemStack();
+        return itemStack.isEmpty() ? null : itemStack;
+    }
+
+    @Nullable
+    private static IAEStack<?> wrapItemAsProgrammable(ItemStack sourceItem) {
+        if (sourceItem.isEmpty()) {
+            return null;
+        }
+
+        if (GTQTMetaItems.PROGRAMMABLE_CIRCUIT == null) {
+            return toAEStack(sourceItem);
+        }
+
+        final ItemStack wrappedItem;
+        if (IntCircuitIngredient.isIntegratedCircuit(sourceItem)) {
+            final int config = IntCircuitIngredient.getCircuitConfiguration(sourceItem);
+            wrappedItem = IntCircuitIngredient.getIntegratedCircuit(config);
+        } else {
+            wrappedItem = sourceItem.copy();
+            wrappedItem.setCount(1);
+        }
+
+        final ItemStack programmable = GTQTMetaItems.PROGRAMMABLE_CIRCUIT.getStackForm(1);
+        ProgrammableCircuit.wrap(wrappedItem, programmable);
+        return toAEStack(programmable);
+    }
+
+    private static boolean isProgrammableCircuit(ItemStack stack) {
+        return GTQTMetaItems.PROGRAMMABLE_CIRCUIT != null
+                && !stack.isEmpty()
+                && GTQTMetaItems.PROGRAMMABLE_CIRCUIT.isItemEqual(stack);
+    }
+
+    private static int findFirstEmptyInputSlot(Int2ObjectMap<IAEStack<?>> craftingSlots, int size) {
+        for (int i = 0; i < size; i++) {
+            if (craftingSlots.get(i) == null) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean hasToolkitInInventory(@Nullable EntityPlayer player) {
+        if (player == null || GTQTMetaItems.PROGRAMMING_TOOLKIT == null) {
+            return false;
+        }
+
+        for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
+            final ItemStack invStack = player.inventory.getStackInSlot(i);
+            if (!invStack.isEmpty() && GTQTMetaItems.PROGRAMMING_TOOLKIT.isItemEqual(invStack)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Nullable
@@ -289,16 +393,19 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
     }
 
     private static List<PatternTransferIngredient> collectPatternIngredients(
+            IRecipeLayout recipeLayout,
             List<Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>>> itemIngredients,
             List<Map.Entry<Integer, ? extends IGuiIngredient<FluidStack>>> fluidIngredients) {
         final List<PatternTransferIngredient> result = new ArrayList<>(itemIngredients.size() + fluidIngredients.size());
 
         for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> ingredientEntry : itemIngredients) {
             final IGuiIngredient<ItemStack> ingredient = ingredientEntry.getValue();
+            final boolean notConsumed = ingredient.isInput() && isNotConsumedSlot(recipeLayout, ingredientEntry.getKey());
             result.add(new PatternTransferIngredient(
                     ingredientEntry.getKey(),
                     0,
                     ingredient.isInput(),
+                    notConsumed,
                     toAEStack(getDisplayedOrFirst(ingredient))));
         }
 
@@ -308,6 +415,7 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
                     ingredientEntry.getKey(),
                     1,
                     ingredient.isInput(),
+                    false,
                     toAEStack(getDisplayedOrFirst(ingredient))));
         }
 
@@ -389,5 +497,26 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         }
         final List<V> all = ingredient.getAllIngredients();
         return all.isEmpty() ? null : all.get(0);
+    }
+
+    private static boolean isNotConsumedSlot(@Nullable IRecipeLayout recipeLayout, int slotIndex) {
+        if (recipeLayout == null) {
+            return false;
+        }
+
+        try {
+            final Field wrapperField = recipeLayout.getClass().getDeclaredField("recipeWrapper");
+            wrapperField.setAccessible(true);
+            final Object recipeWrapper = wrapperField.get(recipeLayout);
+            if (recipeWrapper == null) {
+                return false;
+            }
+
+            final Method isNotConsumedItem = recipeWrapper.getClass().getMethod("isNotConsumedItem", int.class);
+            final Object result = isNotConsumedItem.invoke(recipeWrapper, slotIndex);
+            return result instanceof Boolean && (Boolean) result;
+        } catch (ReflectiveOperationException ignored) {
+            return false;
+        }
     }
 }
