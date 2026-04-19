@@ -286,7 +286,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                 final NBTTagCompound c = waitingList.getCompoundTagAt(x);
                 if (c != null) {
                     // 鐏忔繆鐦担璺ㄦ暏閺傛壆娈戝▔娑樼€烽崣宥呯碍閸掓瀵?
-                    IAEStack<?> stack = IAEStack.fromNBTGeneric(c);
+                    IAEStack<?> stack = c.hasKey("StackType") ? IAEStack.fromNBTGeneric(c) : null;
                     if (stack != null) {
                         this.addToSendList(stack);
                     } else {
@@ -784,8 +784,12 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
     }
 
     private void pushItemsOut(final EnumFacing s) {
-        if (!this.waitingToSendFacing.containsKey(s)
-                || (this.waitingToSendFacing.containsKey(s) && this.waitingToSendFacing.get(s).isEmpty())) {
+        if (this.waitingToSendFacing == null) {
+            return;
+        }
+
+        final List<ItemStack> facingQueue = this.waitingToSendFacing.get(s);
+        if (facingQueue == null || facingQueue.isEmpty()) {
             return;
         }
 
@@ -816,7 +820,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                             IMEMonitor<IAEItemStack> inv = sm.getInventory(
                                     AEItemStackType.INSTANCE.getStorageChannel());
                             if (inv != null) {
-                                final Iterator<ItemStack> i = this.waitingToSendFacing.get(s).iterator();
+                                final Iterator<ItemStack> i = facingQueue.iterator();
                                 while (i.hasNext()) {
                                     ItemStack whatToSend = i.next();
                                     final IAEItemStack result = inv.injectItems(AEItemStack.fromItemStack(whatToSend),
@@ -828,7 +832,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                                         i.remove();
                                     }
                                 }
-                                if (this.waitingToSendFacing.get(s).isEmpty()) {
+                                if (facingQueue.isEmpty()) {
                                     this.waitingToSendFacing.remove(s);
                                 }
                             }
@@ -845,7 +849,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
 
         final InventoryAdaptor ad = InventoryAdaptor.getAdaptor(te, s.getOpposite());
 
-        final Iterator<ItemStack> i = this.waitingToSendFacing.get(s).iterator();
+        final Iterator<ItemStack> i = facingQueue.iterator();
         while (i.hasNext()) {
             ItemStack whatToSend = i.next();
             if (ad != null) {
@@ -859,7 +863,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
             }
         }
 
-        if (this.waitingToSendFacing.get(s).isEmpty()) {
+        if (facingQueue.isEmpty()) {
             this.waitingToSendFacing.remove(s);
         }
     }
@@ -1182,6 +1186,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                                         this.addToSendList(gi.copy());
                                     }
                                 }
+                                pushItemsOut(EnumSet.of(s));
                             } else {
                                 for (int x = 0; x < table.getSizeInventory(); x++) {
                                     final ItemStack is = table.getStackInSlot(x);
@@ -1189,9 +1194,9 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                                         addToSendListFacing(is, s);
                                     }
                                 }
+                                pushItemsOut(s);
                             }
                             onPushPatternSuccess(patternDetails);
-                            pushItemsOut(s);
 
                             return true;
                         }
@@ -1273,7 +1278,11 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                     }
 
                     onPushPatternSuccess(patternDetails);
-                    pushItemsOut(s);
+                    if (hasFluidInputs) {
+                        pushItemsOut(EnumSet.of(s));
+                    } else {
+                        pushItemsOut(s);
+                    }
                     return true;
                 }
             }

@@ -90,7 +90,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
             }
 
             // 尝试泛型反序列化（带 aeTypeId）
-            IAEStack<?> generic = IAEStack.fromNBTGeneric(ingredient);
+            IAEStack<?> generic = ingredient.hasKey("StackType") ? IAEStack.fromNBTGeneric(ingredient) : null;
             if (generic != null) {
                 inGeneric.add(generic);
                 if (generic instanceof IAEItemStack itemStack) {
@@ -130,7 +130,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
             }
 
             // 尝试泛型反序列化（带 aeTypeId）
-            IAEStack<?> generic = IAEStack.fromNBTGeneric(resultItemTag);
+            IAEStack<?> generic = resultItemTag.hasKey("StackType") ? IAEStack.fromNBTGeneric(resultItemTag) : null;
             if (generic != null) {
                 outGeneric.add(generic);
                 if (generic instanceof IAEItemStack itemStack) {

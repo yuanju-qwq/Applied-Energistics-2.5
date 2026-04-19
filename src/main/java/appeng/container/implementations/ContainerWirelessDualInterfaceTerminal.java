@@ -72,6 +72,8 @@ import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
+import appeng.container.ContainerNull;
+import appeng.container.guisync.GuiSync;
 import appeng.container.slot.IOptionalSlotHost;
 import appeng.container.slot.OptionalSlotFake;
 import appeng.container.slot.SlotFakeCraftingMatrix;
@@ -134,15 +136,24 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     private final AppEngInternalInventory cOut = new AppEngInternalInventory(null, 1);
 
-    private boolean craftingMode = true;
-    private boolean substitute = false;
-    private boolean beSubstitute = false;
-    private boolean inverted = false;
-    private boolean combine = false;
-    private int activePage = 0;
-    private static final int OUTPUT_SLOTS_PER_PAGE = 3;
-    private static final int TOTAL_OUTPUT_SLOTS = 24;
+    @GuiSync(97)
+    public boolean craftingMode = true;
+    @GuiSync(96)
+    public boolean substitute = false;
+    @GuiSync(95)
+    public boolean combine = false;
+    @GuiSync(94)
+    public boolean beSubstitute = false;
+    @GuiSync(93)
+    public boolean inverted = false;
+    @GuiSync(92)
+    public int activePage = 0;
+    private static final int OUTPUT_SLOTS_PER_PAGE = 4;
+    private static final int TOTAL_OUTPUT_SLOTS = 4;
     private IRecipe currentRecipe;
+    private int bulkPatternUpdateDepth = 0;
+    private boolean bulkPatternChanged = false;
+    private boolean bulkCraftingChanged = false;
 
     // ========== ME 缃戠粶鐩戞帶鐩稿叧瀛楁锛堜粠 ContainerMEMonitorable 绉绘锛?==========
 
@@ -257,13 +268,15 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
         // 娣诲姞杈撳嚭妲?
         for (int y = 0; y < this.outputSlots.length; y++) {
+            final int outputX = 96;
+            final int outputY = -75 + y * 18;
             this.addSlotToContainer(
                     this.outputSlots[y] = new SlotPatternOutputs(
                             new WrapperSupplierItemHandler(this::getVisiblePatternOutputs),
                             this,
                             y,
-                            112,
-                            -75 + y * 18,
+                            outputX,
+                            outputY,
                             0,
                             0,
                             1));
@@ -406,17 +419,28 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         return craftingMode;
     }
 
+    private NBTTagCompound getOrCreateTerminalTag() {
+        NBTTagCompound tag = this.guiObject.getItemStack().getTagCompound();
+        if (tag == null) {
+            tag = new NBTTagCompound();
+            this.guiObject.getItemStack().setTagCompound(tag);
+        }
+        return tag;
+    }
+
     public void setCraftingMode(boolean craftingMode) {
         this.craftingMode = craftingMode;
-        NBTTagCompound nbtTagCompound = guiObject.getItemStack().getTagCompound();
-        if (nbtTagCompound != null) {
-            nbtTagCompound.setBoolean("isCraftingMode", craftingMode);
-            this.updateOrderOfOutputSlots();
-        }
-        if (craftingMode) {
+        NBTTagCompound nbtTagCompound = this.getOrCreateTerminalTag();
+        nbtTagCompound.setBoolean("isCraftingMode", craftingMode);
+        this.updateOrderOfOutputSlots();
+        if (craftingMode && !this.isBulkPatternUpdating()) {
             this.fixCraftingRecipes();
         }
-        this.refreshPatternPreview();
+        if (this.isBulkPatternUpdating()) {
+            this.markBulkPatternChanged(true);
+        } else {
+            this.refreshPatternPreview();
+        }
     }
 
     public boolean isSubstitute() {
@@ -425,9 +449,10 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     public void setSubstitute(boolean substitute) {
         this.substitute = substitute;
-        NBTTagCompound nbtTagCompound = guiObject.getItemStack().getTagCompound();
-        if (nbtTagCompound != null) {
-            nbtTagCompound.setBoolean("isSubstitute", substitute);
+        NBTTagCompound nbtTagCompound = this.getOrCreateTerminalTag();
+        nbtTagCompound.setBoolean("isSubstitute", substitute);
+        if (this.isBulkPatternUpdating()) {
+            this.markBulkPatternChanged(false);
         }
     }
 
@@ -437,9 +462,10 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     public void setBeSubstitute(boolean beSubstitute) {
         this.beSubstitute = beSubstitute;
-        NBTTagCompound nbtTagCompound = guiObject.getItemStack().getTagCompound();
-        if (nbtTagCompound != null) {
-            nbtTagCompound.setBoolean("beSubstitute", beSubstitute);
+        NBTTagCompound nbtTagCompound = this.getOrCreateTerminalTag();
+        nbtTagCompound.setBoolean("beSubstitute", beSubstitute);
+        if (this.isBulkPatternUpdating()) {
+            this.markBulkPatternChanged(false);
         }
     }
 
@@ -449,9 +475,10 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     public void setInverted(boolean inverted) {
         this.inverted = inverted;
-        NBTTagCompound nbtTagCompound = guiObject.getItemStack().getTagCompound();
-        if (nbtTagCompound != null) {
-            nbtTagCompound.setBoolean("isInverted", inverted);
+        NBTTagCompound nbtTagCompound = this.getOrCreateTerminalTag();
+        nbtTagCompound.setBoolean("isInverted", inverted);
+        if (this.isBulkPatternUpdating()) {
+            this.markBulkPatternChanged(false);
         }
     }
 
@@ -461,9 +488,10 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     public void setCombine(boolean combine) {
         this.combine = combine;
-        NBTTagCompound nbtTagCompound = guiObject.getItemStack().getTagCompound();
-        if (nbtTagCompound != null) {
-            nbtTagCompound.setBoolean("isCombine", combine);
+        NBTTagCompound nbtTagCompound = this.getOrCreateTerminalTag();
+        nbtTagCompound.setBoolean("isCombine", combine);
+        if (this.isBulkPatternUpdating()) {
+            this.markBulkPatternChanged(false);
         }
     }
 
@@ -475,6 +503,44 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         final int maxPage = getTotalPages() - 1;
         this.activePage = Math.max(0, Math.min(page, maxPage));
         this.updateOrderOfOutputSlots();
+    }
+
+    private boolean isBulkPatternUpdating() {
+        return this.bulkPatternUpdateDepth > 0;
+    }
+
+    private void beginBulkPatternUpdate() {
+        this.bulkPatternUpdateDepth++;
+    }
+
+    private void markBulkPatternChanged(final boolean craftingChanged) {
+        this.bulkPatternChanged = true;
+        if (craftingChanged) {
+            this.bulkCraftingChanged = true;
+        }
+    }
+
+    private void endBulkPatternUpdate(final boolean syncNow) {
+        if (this.bulkPatternUpdateDepth <= 0) {
+            return;
+        }
+        this.bulkPatternUpdateDepth--;
+        if (this.bulkPatternUpdateDepth > 0) {
+            return;
+        }
+
+        if (this.bulkPatternChanged) {
+            if (this.bulkCraftingChanged) {
+                this.fixCraftingRecipes();
+            }
+            this.refreshPatternPreview();
+            this.saveChanges();
+            if (syncNow) {
+                this.detectAndSendChanges();
+            }
+        }
+        this.bulkPatternChanged = false;
+        this.bulkCraftingChanged = false;
     }
 
     public int getTotalPages() {
@@ -494,21 +560,32 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
      *   骞跺皢瀹冧滑鐨?yPos 閲嶆柊瀹氫綅鍒板墠 3 涓Ы鐨勪綅缃?
      */
     private void updateOrderOfOutputSlots() {
+        if (this.outputSlots == null || this.outputSlots.length == 0) {
+            return;
+        }
+
         if (!this.isCraftingMode()) {
-            if (craftSlot != null) {
+            if (this.craftSlot != null) {
                 this.craftSlot.xPos = -9000;
             }
             for (int y = 0; y < OUTPUT_SLOTS_PER_PAGE; y++) {
-                this.outputSlots[y].xPos = this.outputSlots[y].getX();
+                final OptionalSlotFake outputSlot = this.outputSlots[y];
+                if (outputSlot == null) {
+                    continue;
+                }
+                outputSlot.xPos = outputSlot.getX();
                     // 灏嗗綋鍓嶉〉鐨勬Ы浣?yPos 鏄犲皠鍒板墠 3 涓Ы浣嶇殑浣嶇疆
-                this.outputSlots[y].yPos = this.outputSlots[y].getY();
+                outputSlot.yPos = outputSlot.getY();
             }
         } else {
-            if (craftSlot != null) {
+            if (this.craftSlot != null) {
                 this.craftSlot.xPos = this.craftSlot.getX();
             }
             for (int y = 0; y < OUTPUT_SLOTS_PER_PAGE; y++) {
-                this.outputSlots[y].xPos = -9000;
+                final OptionalSlotFake outputSlot = this.outputSlots[y];
+                if (outputSlot != null) {
+                    outputSlot.xPos = -9000;
+                }
             }
         }
     }
@@ -551,8 +628,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         final ItemStack[] in = this.getInputs();
         final ItemStack[] out = this.getOutputs();
         final boolean fluidPattern = containsFluid(in) || containsFluid(out);
-        final ItemStack[] encodedIn = fluidPattern && !this.isCraftingMode() ? this.compactPatternStacks(in) : in;
-        final ItemStack[] encodedOut = fluidPattern && !this.isCraftingMode() ? this.compactPatternStacks(out) : out;
+        final ItemStack[] encodedIn = in;
+        final ItemStack[] encodedOut = out;
 
         // 杈撳叆蹇呴』瀛樺湪
         if (encodedIn == null) {
@@ -564,16 +641,21 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             return;
         }
 
-        boolean requiresSpecialPattern = (encodedOut == null);
-        if (!requiresSpecialPattern) {
-            requiresSpecialPattern = true;
+        boolean hasValidOutput = false;
+        if (encodedOut != null) {
             for (ItemStack stack : encodedOut) {
                 if (!stack.isEmpty()) {
-                    requiresSpecialPattern = false;
+                    hasValidOutput = true;
                     break;
                 }
             }
         }
+
+        if (this.isCraftingMode() && !hasValidOutput) {
+            return;
+        }
+
+        boolean requiresSpecialPattern = !hasValidOutput;
 
         boolean isCurrentSpecial = this.isSpecialPattern(output);
         boolean typeMatches = (requiresSpecialPattern == isCurrentSpecial);
@@ -636,15 +718,13 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
      * 娓呴櫎鍚堟垚缃戞牸鍜岃緭鍑烘Ы
      */
     public void clear() {
-        for (int x = 0; x < this.crafting.getSlots(); x++) {
-            this.crafting.setStackInSlot(x, ItemStack.EMPTY);
+        this.beginBulkPatternUpdate();
+        try {
+            this.clearPatternContents();
+            this.markBulkPatternChanged(true);
+        } finally {
+            this.endBulkPatternUpdate(true);
         }
-        for (int x = 0; x < this.patternOutput.getSlots(); x++) {
-            this.patternOutput.setStackInSlot(x, ItemStack.EMPTY);
-        }
-        this.refreshPatternPreview();
-        this.saveChanges();
-        this.detectAndSendChanges();
     }
 
     /**
@@ -1173,7 +1253,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     private ItemStack getAndUpdateOutput() {
         final World world = this.getPlayerInv().player.world;
-        final InventoryCrafting ic = new InventoryCrafting(this, 3, 3);
+        final InventoryCrafting ic = new InventoryCrafting(new ContainerNull(), 3, 3);
 
         for (int x = 0; x < ic.getSizeInventory(); x++) {
             ic.setInventorySlotContents(x, this.crafting.getStackInSlot(x));
@@ -1312,6 +1392,23 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             } else {
                 this.loadValidPatternSlots(data, LEGACY_NBT_PATTERNS);
             }
+            if (data.hasKey("isCraftingMode")) {
+                this.craftingMode = data.getBoolean("isCraftingMode");
+            }
+            if (data.hasKey("isSubstitute")) {
+                this.substitute = data.getBoolean("isSubstitute");
+            }
+            if (data.hasKey("beSubstitute")) {
+                this.beSubstitute = data.getBoolean("beSubstitute");
+            }
+            if (data.hasKey("isInverted")) {
+                this.inverted = data.getBoolean("isInverted");
+            }
+            if (data.hasKey("isCombine")) {
+                this.combine = data.getBoolean("isCombine");
+            }
+            this.updateOrderOfOutputSlots();
+            this.refreshPatternPreview();
         }
     }
 
@@ -1354,8 +1451,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                 if (nbtTagCompound.hasKey("isCraftingMode")) {
                     boolean crafting = nbtTagCompound.getBoolean("isCraftingMode");
                     if (this.isCraftingMode() != crafting) {
-                        this.craftingMode = crafting;
-                        this.updateOrderOfOutputSlots();
+                        this.setCraftingMode(crafting);
                     }
                 } else {
                     nbtTagCompound.setBoolean("isCraftingMode", false);
@@ -1364,7 +1460,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                 if (nbtTagCompound.hasKey("isSubstitute")) {
                     boolean sub = nbtTagCompound.getBoolean("isSubstitute");
                     if (this.isSubstitute() != sub) {
-                        this.substitute = sub;
+                        this.setSubstitute(sub);
                     }
                 } else {
                     nbtTagCompound.setBoolean("isSubstitute", false);
@@ -1373,7 +1469,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                 if (nbtTagCompound.hasKey("beSubstitute")) {
                     boolean beSub = nbtTagCompound.getBoolean("beSubstitute");
                     if (this.isBeSubstitute() != beSub) {
-                        this.beSubstitute = beSub;
+                        this.setBeSubstitute(beSub);
                     }
                 } else {
                     nbtTagCompound.setBoolean("beSubstitute", false);
@@ -1382,7 +1478,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                 if (nbtTagCompound.hasKey("isInverted")) {
                     boolean inv = nbtTagCompound.getBoolean("isInverted");
                     if (this.isInverted() != inv) {
-                        this.inverted = inv;
+                        this.setInverted(inv);
                     }
                 } else {
                     nbtTagCompound.setBoolean("isInverted", false);
@@ -1391,7 +1487,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                 if (nbtTagCompound.hasKey("isCombine")) {
                     boolean comb = nbtTagCompound.getBoolean("isCombine");
                     if (this.isCombine() != comb) {
-                        this.combine = comb;
+                        this.setCombine(comb);
                     }
                 } else {
                     nbtTagCompound.setBoolean("isCombine", false);
@@ -1459,6 +1555,18 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     /**
      * 鍚戞寚瀹氱帺瀹跺彂閫佸畬鏁寸殑 ME 缃戠粶搴撳瓨
      */
+    @Override
+    public void onUpdate(final String field, final Object oldValue, final Object newValue) {
+        super.onUpdate(field, oldValue, newValue);
+
+        if ("craftingMode".equals(field)) {
+            this.refreshPatternPreview();
+            this.updateOrderOfOutputSlots();
+        } else if ("activePage".equals(field)) {
+            this.updateOrderOfOutputSlots();
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private void queueMEInventory(final EntityPlayerMP player) {
         try {
@@ -1517,6 +1625,20 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     public void onChangeInventory(final IItemHandler inv, final int slot, final InvOperation mc,
             final ItemStack removedStack, final ItemStack newStack) {
         // 澶勭悊鍚堟垚缃戞牸鍙樻洿
+        if (this.isBulkPatternUpdating()) {
+            if (inv == this.crafting) {
+                this.markBulkPatternChanged(true);
+            } else if (inv == this.patternOutput || inv == this.patternSlots) {
+                this.markBulkPatternChanged(false);
+            }
+            return;
+        }
+
+        if (inv == this.patternSlots && slot == 1) {
+            this.restoreEncodedPatternContents();
+            return;
+        }
+
         if (inv == this.crafting) {
             this.fixCraftingRecipes();
             this.refreshPatternPreview();
@@ -1525,54 +1647,59 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             this.saveChanges();
         }
         // 澶勭悊鏍锋澘妲界殑鍙樻洿锛氬綋鏀惧叆宸茬紪鐮佺殑鏍锋澘鏃讹紝鑷姩鍔犺浇鍏跺唴瀹瑰埌缂栧啓缃戞牸
-        if (inv == this.patternSlots && slot == 1) {
-            this.restoreEncodedPatternContents();
-        }
     }
 
     private void restoreEncodedPatternContents() {
-        this.clearPatternContents();
+        this.beginBulkPatternUpdate();
+        try {
+            this.clearPatternContents();
 
-        final ItemStack patternStack = this.patternSlots.getStackInSlot(1);
-        if (patternStack.isEmpty() || !(patternStack.getItem() instanceof ICraftingPatternItem pattern)) {
-            this.refreshPatternPreview();
-            this.saveChanges();
-            return;
+            final ItemStack patternStack = this.patternSlots.getStackInSlot(1);
+            if (patternStack.isEmpty() || !(patternStack.getItem() instanceof ICraftingPatternItem pattern)) {
+                this.markBulkPatternChanged(true);
+                return;
+            }
+
+            final ICraftingPatternDetails details = pattern.getPatternForItem(patternStack, this.getPlayerInv().player.world);
+            if (details == null) {
+                this.markBulkPatternChanged(true);
+                return;
+            }
+
+            this.setCraftingMode(details.isCraftable());
+            this.setSubstitute(details.canSubstitute());
+
+            final IAEStack<?>[] inputs = details.getAEInputs();
+            for (int x = 0; x < this.crafting.getSlots(); x++) {
+                final IAEStack<?> item = inputs != null && x < inputs.length ? inputs[x] : null;
+                this.setStackIfChanged(this.crafting, x, this.toPatternTerminalStack(item));
+            }
+
+            final IAEStack<?>[] outputs = details.getAEOutputs();
+            for (int x = 0; x < this.patternOutput.getSlots(); x++) {
+                final IAEStack<?> item = outputs != null && x < outputs.length ? outputs[x] : null;
+                this.setStackIfChanged(this.patternOutput, x, this.toPatternTerminalStack(item));
+            }
+        } finally {
+            this.endBulkPatternUpdate(false);
         }
-
-        final ICraftingPatternDetails details = pattern.getPatternForItem(patternStack, this.getPlayerInv().player.world);
-        if (details == null) {
-            this.refreshPatternPreview();
-            this.saveChanges();
-            return;
-        }
-
-        this.setCraftingMode(details.isCraftable());
-        this.setSubstitute(details.canSubstitute());
-
-        final IAEStack<?>[] inputs = details.getAEInputs();
-        for (int x = 0; x < this.crafting.getSlots(); x++) {
-            final IAEStack<?> item = inputs != null && x < inputs.length ? inputs[x] : null;
-            ItemHandlerUtil.setStackInSlot(this.crafting, x, this.toPatternTerminalStack(item));
-        }
-
-        final IAEStack<?>[] outputs = details.getAEOutputs();
-        for (int x = 0; x < this.patternOutput.getSlots(); x++) {
-            final IAEStack<?> item = outputs != null && x < outputs.length ? outputs[x] : null;
-            this.patternOutput.setStackInSlot(x, this.toPatternTerminalStack(item));
-        }
-
-        this.refreshPatternPreview();
-        this.saveChanges();
     }
 
     private void clearPatternContents() {
         for (int x = 0; x < this.crafting.getSlots(); x++) {
-            ItemHandlerUtil.setStackInSlot(this.crafting, x, ItemStack.EMPTY);
+            this.setStackIfChanged(this.crafting, x, ItemStack.EMPTY);
         }
         for (int x = 0; x < this.patternOutput.getSlots(); x++) {
-            this.patternOutput.setStackInSlot(x, ItemStack.EMPTY);
+            this.setStackIfChanged(this.patternOutput, x, ItemStack.EMPTY);
         }
+    }
+
+    private void setStackIfChanged(final IItemHandler inv, final int slot, final ItemStack desired) {
+        final ItemStack current = inv.getStackInSlot(slot);
+        if (ItemStack.areItemStacksEqual(current, desired)) {
+            return;
+        }
+        ItemHandlerUtil.setStackInSlot(inv, slot, desired);
     }
 
     private void loadValidPatternSlots(final NBTTagCompound data, final String key) {

@@ -22,12 +22,15 @@ import java.io.IOException;
 
 import io.netty.buffer.ByteBuf;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
+import appeng.helpers.ItemStackHelper;
+import appeng.util.item.AEItemStackType;
 import appeng.util.item.IMixedStackList;
 
 public final class AEStackSerialization {
@@ -97,7 +100,13 @@ public final class AEStackSerialization {
     public static void readAEStackListNBT(final IItemList<IAEStackBase> list, final NBTTagList tagList) {
         for (int i = 0; i < tagList.tagCount(); i++) {
             final NBTTagCompound tag = tagList.getCompoundTagAt(i);
-            final IAEStack<?> stack = IAEStack.fromNBTGeneric(tag);
+            IAEStack<?> stack = tag.hasKey("StackType") ? IAEStack.fromNBTGeneric(tag) : null;
+            if (stack == null) {
+                final ItemStack legacyStack = ItemStackHelper.stackFromNBT(tag);
+                if (!legacyStack.isEmpty()) {
+                    stack = AEItemStackType.INSTANCE.getStorageChannel().createStack(legacyStack);
+                }
+            }
             if (stack != null) {
                 list.add(stack);
             }
@@ -107,7 +116,13 @@ public final class AEStackSerialization {
     public static void readAEStackListNBT(final IMixedStackList list, final NBTTagList tagList) {
         for (int i = 0; i < tagList.tagCount(); i++) {
             final NBTTagCompound tag = tagList.getCompoundTagAt(i);
-            final IAEStack<?> stack = IAEStack.fromNBTGeneric(tag);
+            IAEStack<?> stack = tag.hasKey("StackType") ? IAEStack.fromNBTGeneric(tag) : null;
+            if (stack == null) {
+                final ItemStack legacyStack = ItemStackHelper.stackFromNBT(tag);
+                if (!legacyStack.isEmpty()) {
+                    stack = AEItemStackType.INSTANCE.getStorageChannel().createStack(legacyStack);
+                }
+            }
             if (stack != null) {
                 list.add(stack);
             }

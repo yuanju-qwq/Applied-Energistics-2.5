@@ -52,6 +52,7 @@ import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.container.implementations.ContainerPatternEncoder;
+import appeng.container.implementations.ContainerWirelessDualInterfaceTerminal;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.network.INetworkInfo;
 import appeng.helpers.IContainerCraftingPacket;
@@ -155,8 +156,15 @@ public class PacketJEIRecipe extends AppEngPacket {
                     .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
             final IPartitionList<IAEItemStack> filter = ItemViewCell.createFilter(cct.getViewCells());
 
+            final boolean overwriteGhostSlots = !cct.useRealItems()
+                    && con instanceof ContainerWirelessDualInterfaceTerminal;
+
             for (int x = 0; x < craftMatrix.getSlots(); x++) {
                 ItemStack currentItem = craftMatrix.getStackInSlot(x);
+
+                if (overwriteGhostSlots) {
+                    currentItem = ItemStack.EMPTY;
+                }
 
                 if (x >= this.recipe.size()) {
                     currentItem = ItemStack.EMPTY;
@@ -267,8 +275,11 @@ public class PacketJEIRecipe extends AppEngPacket {
 
             con.onCraftMatrixChanged(new WrapperInvItemHandler(craftMatrix));
 
-            if (this.output != null && ((con instanceof ContainerPatternEncoder
-                    && !((ContainerPatternEncoder) con).isCraftingMode()))) {
+            final boolean canWritePatternOutputs = (con instanceof ContainerPatternEncoder
+                    && !((ContainerPatternEncoder) con).isCraftingMode())
+                    || (con instanceof ContainerWirelessDualInterfaceTerminal
+                            && !((ContainerWirelessDualInterfaceTerminal) con).isCraftingMode());
+            if (this.output != null && canWritePatternOutputs) {
                 IItemHandler outputSlots = cct.getInventoryByName("output");
                 if (outputSlots == null) {
                     return;

@@ -85,14 +85,17 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
 
         // 读取输入
         final NBTTagList inTag = encodedValue.getTagList("in", 10);
-        for (int x = 0; x < inTag.tagCount(); x++) {
+        final int inTagCount = Math.min(inTag.tagCount(), PROCESSING_INPUT_LIMIT);
+        for (int x = 0; x < inTagCount; x++) {
             final NBTTagCompound tag = inTag.getCompoundTagAt(x);
             if (tag.isEmpty()) {
+                inGeneric.add(null);
+                inItems.add(null);
                 continue;
             }
 
             // 尝试泛型反序列化（带 aeTypeId）
-            IAEStack<?> generic = IAEStack.fromNBTGeneric(tag);
+            IAEStack<?> generic = tag.hasKey("StackType") ? IAEStack.fromNBTGeneric(tag) : null;
             if (generic != null) {
                 inGeneric.add(generic);
                 if (generic instanceof IAEItemStack itemStack) {
@@ -100,9 +103,9 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
                 } else if (generic instanceof IAEFluidStack fluidStack) {
                     // 流体 → ItemFluidDrop 伪物品（供合成树使用）
                     IAEItemStack drop = ItemFluidDrop.newAEStack(fluidStack);
-                    if (drop != null) {
-                        inItems.add(drop);
-                    }
+                    inItems.add(drop);
+                } else {
+                    inItems.add(null);
                 }
             } else {
                 // 回退：当作普通物品
@@ -112,7 +115,13 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
                     if (aeItem != null) {
                         inGeneric.add(aeItem);
                         inItems.add(aeItem);
+                    } else {
+                        inGeneric.add(null);
+                        inItems.add(null);
                     }
+                } else {
+                    inGeneric.add(null);
+                    inItems.add(null);
                 }
             }
         }
@@ -127,33 +136,34 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
                 }
                 IAEFluidStack fluid = AEFluidStack.fromNBT(tag);
                 if (fluid != null) {
-                    inGeneric.add(fluid);
+                    putIntoFirstNullOrAppend(inGeneric, fluid, PROCESSING_INPUT_LIMIT);
                     IAEItemStack drop = ItemFluidDrop.newAEStack(fluid);
-                    if (drop != null) {
-                        inItems.add(drop);
-                    }
+                    putIntoFirstNullOrAppend(inItems, drop, PROCESSING_INPUT_LIMIT);
                 }
             }
         }
 
         // 读取输出
         final NBTTagList outTag = encodedValue.getTagList("out", 10);
-        for (int x = 0; x < outTag.tagCount(); x++) {
+        final int outTagCount = Math.min(outTag.tagCount(), PROCESSING_OUTPUT_LIMIT);
+        for (int x = 0; x < outTagCount; x++) {
             final NBTTagCompound tag = outTag.getCompoundTagAt(x);
             if (tag.isEmpty()) {
+                outGeneric.add(null);
+                outItems.add(null);
                 continue;
             }
 
-            IAEStack<?> generic = IAEStack.fromNBTGeneric(tag);
+            IAEStack<?> generic = tag.hasKey("StackType") ? IAEStack.fromNBTGeneric(tag) : null;
             if (generic != null) {
                 outGeneric.add(generic);
                 if (generic instanceof IAEItemStack itemStack) {
                     outItems.add(itemStack);
                 } else if (generic instanceof IAEFluidStack fluidStack) {
                     IAEItemStack drop = ItemFluidDrop.newAEStack(fluidStack);
-                    if (drop != null) {
-                        outItems.add(drop);
-                    }
+                    outItems.add(drop);
+                } else {
+                    outItems.add(null);
                 }
             } else {
                 final ItemStack gs = ItemStackHelper.stackFromNBT(tag);
@@ -162,7 +172,13 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
                     if (aeItem != null) {
                         outGeneric.add(aeItem);
                         outItems.add(aeItem);
+                    } else {
+                        outGeneric.add(null);
+                        outItems.add(null);
                     }
+                } else {
+                    outGeneric.add(null);
+                    outItems.add(null);
                 }
             }
         }
@@ -177,11 +193,9 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
                 }
                 IAEFluidStack fluid = AEFluidStack.fromNBT(tag);
                 if (fluid != null) {
-                    outGeneric.add(fluid);
+                    putIntoFirstNullOrAppend(outGeneric, fluid, PROCESSING_OUTPUT_LIMIT);
                     IAEItemStack drop = ItemFluidDrop.newAEStack(fluid);
-                    if (drop != null) {
-                        outItems.add(drop);
-                    }
+                    putIntoFirstNullOrAppend(outItems, drop, PROCESSING_OUTPUT_LIMIT);
                 }
             }
         }
@@ -349,6 +363,18 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
         return tmp.values().toArray(new IAEStack<?>[0]);
     }
 
+    private static <T> void putIntoFirstNullOrAppend(final List<T> list, final T value, final int maxSize) {
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i) == null) {
+                list.set(i, value);
+                return;
+            }
+        }
+        if (list.size() < maxSize) {
+            list.add(value);
+        }
+    }
+
     /**
      * 检查给定的 Pattern ItemStack 是否为流体合成配方。
      * <p>
@@ -379,7 +405,7 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
     private static boolean hasGenericEntries(NBTTagList tagList) {
         for (int i = 0; i < tagList.tagCount(); i++) {
             NBTTagCompound tag = tagList.getCompoundTagAt(i);
-            if (tag.hasKey("aeTypeId")) {
+            if (tag.hasKey("StackType") || tag.hasKey("aeTypeId")) {
                 return true;
             }
         }

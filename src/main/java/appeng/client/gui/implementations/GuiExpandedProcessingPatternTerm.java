@@ -43,11 +43,11 @@ import appeng.util.item.AEItemStackType;
 
 public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredients {
     private static final String BACKGROUND_EXPANDED_PROCESSING_MODE = "guis/pattern_processing_expanded.png";
-    private static final int PROCESSING_INPUT_OFFSET_X = 4;
-    private static final int PROCESSING_INPUT_OFFSET_Y = -84;
+    private static final int PROCESSING_INPUT_OFFSET_X = 5;
+    private static final int PROCESSING_INPUT_OFFSET_Y = -88;
     private static final int PROCESSING_INPUT_SCROLLBAR_OFFSET_X = PROCESSING_INPUT_OFFSET_X + 4 * 18 + 4;
     private static final int PROCESSING_OUTPUT_OFFSET_X = 96;
-    private static final int PROCESSING_OUTPUT_OFFSET_Y = -75;
+    private static final int PROCESSING_OUTPUT_OFFSET_Y = -76;
     private static final int PROCESSING_INPUT_ROWS = 4;
 
     private static final String SUBSITUTION_DISABLE = "0";

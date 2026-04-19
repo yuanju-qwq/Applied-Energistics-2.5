@@ -164,7 +164,7 @@ public class IAEStackInventory {
                 if (target.hasKey(key, NBT.TAG_COMPOUND)) {
                     final NBTTagCompound c = target.getCompoundTag(key);
                     // 优先尝试新的泛型格式（含 "StackType" 键）
-                    IAEStack<?> stack = IAEStack.fromNBTGeneric(c);
+                    IAEStack<?> stack = c.hasKey("StackType") ? IAEStack.fromNBTGeneric(c) : null;
                     if (stack == null && !c.isEmpty()) {
                         // 兼容旧版 AppEngInternalAEInventory 格式（无 "StackType" 键）
                         stack = appeng.util.item.AEItemStack.fromNBT(c);

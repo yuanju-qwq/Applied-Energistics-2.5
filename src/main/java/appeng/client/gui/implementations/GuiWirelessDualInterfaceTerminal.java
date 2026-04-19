@@ -160,11 +160,14 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
      */
     private static final int PATTERN_PANEL_LOWER_WIDTH = 40;
     private static final int PATTERN_PANEL_LOWER_HEIGHT = 77;
+    private static final int PATTERN_PANEL_FOOTER_WIDTH = 32;
+    private static final int PATTERN_PANEL_FOOTER_HEIGHT = 32;
 
     /**
      * 閺嶉攱婢橀棃銏℃緲閹鐝惔?
      */
     private static final int PATTERN_PANEL_HEIGHT = PATTERN_PANEL_UPPER_HEIGHT + PATTERN_PANEL_LOWER_HEIGHT;
+    private static final int PATTERN_PANEL_TOTAL_HEIGHT = PATTERN_PANEL_HEIGHT + PATTERN_PANEL_FOOTER_HEIGHT;
 
     // ===== 閸氬牊鍨氱純鎴炵壐閸︺劋绗傞崡濠呭垱閸ュ彞鑵戦惃鍕秴缂冾噯绱欓惄绋款嚠娴滃酣娼伴弶鍨箯娑撳﹨顫楅敍?=====
     /** 閸氬牊鍨氱純鎴炵壐鐠у嘲顫怷/Y閸嬪繒些閿涘牏娴夌€靛綊娼伴弶鍨箯娑撳﹨顫楅敍灞筋嚠姒绘劘鍒涢崶鍙ヨ厬閻?鑴?缂冩垶鐗哥粭顑跨娑擃亝蝎娴ｅ秴涔忔稉濠咁潡閿?*/
@@ -182,8 +185,13 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
      * 婢跺嫮鎮婂Ο鈥崇础 3 娑擃亝鐖ｉ崙鍡樞?(18鑴?8) 娑撳骸鎮庨幋鎰佸蹇氱翻閸戝搫顕?
      */
     private static final int CRAFTING_OUTPUT_OFFSET_X = 108;
-    private static final int PROCESSING_OUTPUT_OFFSET_X = 112;
+    private static final int PROCESSING_OUTPUT_OFFSET_X = 96;
     private static final int PROCESSING_OUTPUT_OFFSET_Y = 9;
+    private static final int PROCESSING_OUTPUT_COLUMNS = 1;
+    private static final int PROCESSING_OUTPUT_ROWS = 4;
+    private static final int PROCESSING_OUTPUT_NORMAL_OFFSET_X = 112;
+    private static final int PROCESSING_OUTPUT_INVERTED_OFFSET_X = 15;
+    private static final int PROCESSING_INVERTED_GRID_OFFSET_X = 58;
 
     // ===== 閺嶉攱婢業N/OUT閸︺劋绗呴崡濠呭垱閸ュ彞鑵戦惃鍕秴缂冾噯绱欓惄绋款嚠闂堛垺婢樺锔跨瑐鐟欐帪绱?=====
     /** 缁岃櫣娅ч弽閿嬫緲鏉堟挸鍙嗗Σ鐣屽⒖閸濅焦瑕嗛弻鎾茬秴缂冾噯绱?8鑴?8 閺嶅洤鍣Σ鏂ょ礉鏉堣顢嬮崷銊ョ俺闁劏鍒涢崶?(9,5)閿涘瞼澧块崫?+1閿?*/
@@ -474,6 +482,10 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
                             slot.yPos = panelY + CRAFTING_GRID_OFFSET_Y + gridY * 18;
                         }
                     } else {
+                        final boolean inverted = getDualContainer().isInverted();
+                        final int processingGridOffsetX = inverted
+                                ? PROCESSING_INVERTED_GRID_OFFSET_X
+                                : PROCESSING_GRID_OFFSET_X;
                         final int pageStart = this.processingInputPage * PatternHelper.PROCESSING_INPUT_PAGE_SLOTS;
                         final int pageEnd = Math.min(pageStart + PatternHelper.PROCESSING_INPUT_PAGE_SLOTS,
                                 PatternHelper.PROCESSING_INPUT_LIMIT);
@@ -484,20 +496,35 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
                             final int visibleIndex = craftIdx - pageStart;
                             final int gridX = visibleIndex % PROCESSING_INPUT_WIDTH;
                             final int gridY = visibleIndex / PROCESSING_INPUT_WIDTH;
-                            slot.xPos = panelX + PROCESSING_GRID_OFFSET_X + gridX * 18;
+                            slot.xPos = panelX + processingGridOffsetX + gridX * 18;
                             slot.yPos = panelY + PROCESSING_GRID_OFFSET_Y + gridY * 18;
                         }
                     }
                 } else if (slot instanceof SlotPatternTerm) {
                     // 閺嶉攱婢樼紓鏍垳鏉堟挸鍤Σ鏂ょ礄閸氬牊鍨氬Ο鈥崇础娑撳娈戞径褏绮ㄩ弸婊勑?26鑴?6閿?
                     // 閻椻晛鎼у〒鍙夌厠娴ｅ秶鐤?= 婢堆勑潏瑙勵攱(103,32) + 鐏炲懍鑵戦崑蹇曅?5,5)
-                    slot.xPos = panelX + CRAFTING_OUTPUT_OFFSET_X;
-                    slot.yPos = panelY + 37;
+                    if (getDualContainer().isCraftingMode()) {
+                        slot.xPos = panelX + CRAFTING_OUTPUT_OFFSET_X;
+                        slot.yPos = panelY + 37;
+                    } else {
+                        slot.xPos = -9000;
+                        slot.yPos = -9000;
+                    }
                 } else if (slot instanceof SlotPatternOutputs) {
                     // 婢跺嫮鎮婂Ο鈥崇础閻ㄥ嫯绶崙鐑樞敍?娑擃亝鐖ｉ崙?18鑴?8 濡叉垝缍呴敍?
-                    final int outIdx = slot.getSlotIndex();
-                    slot.xPos = panelX + PROCESSING_OUTPUT_OFFSET_X;
-                    slot.yPos = panelY + PROCESSING_OUTPUT_OFFSET_Y + outIdx * 18;
+                    if (getDualContainer().isCraftingMode()) {
+                        slot.xPos = -9000;
+                        slot.yPos = -9000;
+                    } else {
+                        final int processingOutputOffsetX = getDualContainer().isInverted()
+                                ? PROCESSING_OUTPUT_INVERTED_OFFSET_X
+                                : PROCESSING_OUTPUT_NORMAL_OFFSET_X;
+                        final int outIdx = slot.getSlotIndex();
+                        final int outX = outIdx % PROCESSING_OUTPUT_COLUMNS;
+                        final int outY = outIdx / PROCESSING_OUTPUT_COLUMNS;
+                        slot.xPos = panelX + processingOutputOffsetX + outX * 18;
+                        slot.yPos = panelY + PROCESSING_OUTPUT_OFFSET_Y + outY * 18;
+                    }
                 } else if (slot instanceof SlotRestrictedInput restrictedSlot) {
                     // 閸栧搫鍨庣粚铏规閺嶉攱婢樻潏鎾冲弳濡茶棄鎷扮紓鏍垳閺嶉攱婢樻潏鎾冲毉濡?
                     if (restrictedSlot.getPlaceableItemType()
@@ -653,8 +680,8 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         this.buttonList.add(this.combineDisabledBtn);
 
         // ===== 閺佷即鍣虹拫鍐╂殻閹稿鎸抽敍鍫濐槱閻炲棙膩瀵繋绗呴弰鍓с仛閿涘本鏂侀崷銊ㄧ翻閸戠儤蝎閸欏厖鏅堕敍?=====
-        final int adjBtnX1 = panelScreenX + PROCESSING_OUTPUT_OFFSET_X + 22;
-        final int adjBtnX2 = panelScreenX + PROCESSING_OUTPUT_OFFSET_X + 12;
+        final int adjBtnX1 = panelScreenX + PROCESSING_OUTPUT_OFFSET_X + 38;
+        final int adjBtnX2 = panelScreenX + PROCESSING_OUTPUT_OFFSET_X + 28;
 
         this.x3Btn = new GuiImgButton(adjBtnX1, panelScreenY + 6,
                 Settings.ACTIONS, ActionItems.MULTIPLY_BY_THREE);
@@ -783,7 +810,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         // 閸欏厖鏅堕弽閿嬫緲闂堛垺婢橀幒鎺楁珟閸栧搫鐓?
         final int panelScreenX = this.guiLeft + getPatternPanelX();
         final int panelScreenY = this.guiTop + getPatternPanelY();
-        area.add(new Rectangle(panelScreenX, panelScreenY, PATTERN_PANEL_WIDTH, PATTERN_PANEL_HEIGHT));
+        area.add(new Rectangle(panelScreenX, panelScreenY, PATTERN_PANEL_WIDTH, PATTERN_PANEL_TOTAL_HEIGHT));
         // 瀹革缚鏅禡E閻椻晛鎼ч棃銏℃緲閹烘帡娅庨崠鍝勭厵
         area.add(new Rectangle(getItemPanelAbsX(), getItemPanelAbsY(), ITEM_PANEL_WIDTH, ITEM_PANEL_HEIGHT));
         return area;
@@ -906,9 +933,12 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
 
         // ===== 閺嶉攱婢橀棃銏℃緲閹稿鎸?=====
         try {
-            if (btn == this.tabCraftButton || btn == this.tabProcessButton) {
+            if (btn == this.tabCraftButton) {
                 NetworkHandler.instance().sendToServer(new PacketValueConfig("PatternTerminal.CraftMode",
-                        ct.isCraftingMode() ? "0" : "1"));
+                        "0"));
+            } else if (btn == this.tabProcessButton) {
+                NetworkHandler.instance().sendToServer(new PacketValueConfig("PatternTerminal.CraftMode",
+                        "1"));
             } else if (btn == this.encodeBtn) {
                 final int value = (isCtrlKeyDown() ? 1 : 0) << 1 | (isShiftKeyDown() ? 1 : 0);
                 NetworkHandler.instance()
@@ -934,10 +964,14 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
                         this.combineEnabledBtn == btn ? "0" : "1"));
             } else if (btn == this.x2Btn) {
                 NetworkHandler.instance()
-                        .sendToServer(new PacketValueConfig("PatternTerminal.MultiplyByTwo", "1"));
+                        .sendToServer(new PacketValueConfig(
+                                isShiftKeyDown() ? "PatternTerminal.DivideByTwo" : "PatternTerminal.MultiplyByTwo",
+                                "1"));
             } else if (btn == this.x3Btn) {
                 NetworkHandler.instance()
-                        .sendToServer(new PacketValueConfig("PatternTerminal.MultiplyByThree", "1"));
+                        .sendToServer(new PacketValueConfig(
+                                isShiftKeyDown() ? "PatternTerminal.DivideByThree" : "PatternTerminal.MultiplyByThree",
+                                "1"));
             } else if (btn == this.divTwoBtn) {
                 NetworkHandler.instance()
                         .sendToServer(new PacketValueConfig("PatternTerminal.DivideByTwo", "1"));
@@ -946,7 +980,9 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
                         .sendToServer(new PacketValueConfig("PatternTerminal.DivideByThree", "1"));
             } else if (btn == this.plusOneBtn) {
                 NetworkHandler.instance()
-                        .sendToServer(new PacketValueConfig("PatternTerminal.IncreaseByOne", "1"));
+                        .sendToServer(new PacketValueConfig(
+                                isShiftKeyDown() ? "PatternTerminal.DecreaseByOne" : "PatternTerminal.IncreaseByOne",
+                                "1"));
             } else if (btn == this.minusOneBtn) {
                 NetworkHandler.instance()
                         .sendToServer(new PacketValueConfig("PatternTerminal.DecreaseByOne", "1"));
@@ -1099,7 +1135,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
                     }
                 }
 
-                if (this.isMouseOverProcessingOutputArea(x, y)) {
+                if (this.isMouseOverProcessingOutputArea(x, y) && getDualContainer().getTotalPages() > 1) {
                     this.processingScrollBar.wheel(wheel);
                     this.sendActivePageUpdate();
                     return;
@@ -1187,12 +1223,20 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         }
     }
 
+    private int getProcessingGridOffsetX() {
+        return getDualContainer().isInverted() ? PROCESSING_INVERTED_GRID_OFFSET_X : PROCESSING_GRID_OFFSET_X;
+    }
+
+    private int getProcessingOutputOffsetX() {
+        return getDualContainer().isInverted() ? PROCESSING_OUTPUT_INVERTED_OFFSET_X : PROCESSING_OUTPUT_NORMAL_OFFSET_X;
+    }
+
     private void updateProcessingScrollbar() {
         final int panelRelX = getPatternPanelX();
         final int panelRelY = getPatternPanelY();
-        this.processingScrollBar.setLeft(panelRelX + PROCESSING_OUTPUT_OFFSET_X + 18)
+        this.processingScrollBar.setLeft(panelRelX + this.getProcessingOutputOffsetX() + PROCESSING_OUTPUT_COLUMNS * 18)
                 .setTop(panelRelY + PROCESSING_OUTPUT_OFFSET_Y)
-                .setHeight(3 * 18 - 2);
+                .setHeight(PROCESSING_OUTPUT_ROWS * 18 - 2);
 
         final ContainerWirelessDualInterfaceTerminal container = getDualContainer();
         final int totalPages = container.getTotalPages();
@@ -1209,7 +1253,8 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         final int panelRelX = getPatternPanelX();
         final int panelRelY = getPatternPanelY();
         this.processingInputPage = Math.min(this.processingInputPage, this.getTotalProcessingInputPages() - 1);
-        this.processingInputScrollbar.setLeft(panelRelX + PROCESSING_INPUT_SCROLLBAR_OFFSET_X)
+        this.processingInputScrollbar.setLeft(panelRelX + this.getProcessingGridOffsetX()
+                + PROCESSING_INPUT_WIDTH * 18 + 4)
                 .setTop(panelRelY + PROCESSING_GRID_OFFSET_Y)
                 .setHeight(PROCESSING_INPUT_ROWS * 18 - 2);
         this.processingInputScrollbar.setRange(0, Math.max(0, this.getTotalProcessingInputPages() - 1), 1);
@@ -1242,7 +1287,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
     }
 
     private boolean updatePatternOutputScrollFromMouse(final int mouseX, final int mouseY) {
-        if (getDualContainer().isCraftingMode()) {
+        if (getDualContainer().isCraftingMode() || getDualContainer().getTotalPages() <= 1) {
             return false;
         }
 
@@ -1263,9 +1308,9 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
     private boolean isMouseOverProcessingInputArea(final int mouseX, final int mouseY) {
         final int panelAbsX = this.guiLeft + getPatternPanelX();
         final int panelAbsY = this.guiTop + getPatternPanelY();
-        final int left = panelAbsX + PROCESSING_GRID_OFFSET_X;
+        final int left = panelAbsX + this.getProcessingGridOffsetX();
         final int top = panelAbsY + PROCESSING_GRID_OFFSET_Y;
-        final int right = panelAbsX + PROCESSING_INPUT_SCROLLBAR_OFFSET_X + this.processingInputScrollbar.getWidth();
+        final int right = left + PROCESSING_INPUT_WIDTH * 18 + 4 + this.processingInputScrollbar.getWidth();
         final int bottom = top + PROCESSING_INPUT_ROWS * 18;
         return mouseX >= left && mouseX < right && mouseY >= top && mouseY < bottom;
     }
@@ -1273,10 +1318,10 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
     private boolean isMouseOverProcessingOutputArea(final int mouseX, final int mouseY) {
         final int panelAbsX = this.guiLeft + getPatternPanelX();
         final int panelAbsY = this.guiTop + getPatternPanelY();
-        final int left = panelAbsX + PROCESSING_OUTPUT_OFFSET_X;
+        final int left = panelAbsX + this.getProcessingOutputOffsetX();
         final int top = panelAbsY + PROCESSING_OUTPUT_OFFSET_Y;
-        final int right = panelAbsX + PROCESSING_OUTPUT_OFFSET_X + 18 + this.processingScrollBar.getWidth();
-        final int bottom = top + 3 * 18;
+        final int right = left + PROCESSING_OUTPUT_COLUMNS * 18;
+        final int bottom = top + PROCESSING_OUTPUT_ROWS * 18;
         return mouseX >= left && mouseX < right && mouseY >= top && mouseY < bottom;
     }
 
@@ -1352,7 +1397,9 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
             if (this.getTotalProcessingInputPages() > 1) {
                 this.processingInputScrollbar.draw(this);
             }
-            this.processingScrollBar.draw(this);
+            if (getDualContainer().getTotalPages() > 1) {
+                this.processingScrollBar.draw(this);
+            }
         }
         GlStateManager.popMatrix();
 
@@ -1377,6 +1424,10 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
             this.mc.getTextureManager().bindTexture(PATTERN3_TEXTURE);
             this.drawTexturedModalRect(panelX, panelY, 0, 0,
                     PATTERN_PANEL_WIDTH, PATTERN_PANEL_UPPER_HEIGHT);
+        } else if (ct.isInverted()) {
+            this.mc.getTextureManager().bindTexture(PATTERN_TEXTURE);
+            this.drawTexturedModalRect(panelX, panelY, 0, 0,
+                    PATTERN_PANEL_WIDTH, PATTERN_PANEL_UPPER_HEIGHT);
         } else {
             this.mc.getTextureManager().bindTexture(PATTERN_TEXTURE);
             this.drawTexturedModalRect(panelX, panelY, 0, PATTERN_PANEL_UPPER_HEIGHT,
@@ -1387,6 +1438,8 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         this.mc.getTextureManager().bindTexture(PATTERN_TEXTURE);
         this.drawTexturedModalRect(panelX, panelY + PATTERN_PANEL_UPPER_HEIGHT,
                 133, 0, PATTERN_PANEL_LOWER_WIDTH, PATTERN_PANEL_LOWER_HEIGHT);
+        this.drawTexturedModalRect(panelX, panelY + PATTERN_PANEL_HEIGHT,
+                173, 0, PATTERN_PANEL_FOOTER_WIDTH, PATTERN_PANEL_FOOTER_HEIGHT);
     }
 
     /**
@@ -1490,12 +1543,63 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
             this.combineDisabledBtn.visible = !ct.isCombine();
             this.x2Btn.visible = true;
             this.x3Btn.visible = true;
-            this.divTwoBtn.visible = true;
-            this.divThreeBtn.visible = true;
+            this.x2Btn.set(isShiftKeyDown() ? ActionItems.DIVIDE_BY_TWO : ActionItems.MULTIPLY_BY_TWO);
+            this.x3Btn.set(isShiftKeyDown() ? ActionItems.DIVIDE_BY_THREE : ActionItems.MULTIPLY_BY_THREE);
+            this.divTwoBtn.visible = false;
+            this.divThreeBtn.visible = false;
             this.plusOneBtn.visible = true;
-            this.minusOneBtn.visible = true;
+            this.plusOneBtn.set(isShiftKeyDown() ? ActionItems.DECREASE_BY_ONE : ActionItems.INCREASE_BY_ONE);
+            this.minusOneBtn.visible = false;
             this.doubleBtn.visible = true;
         }
+    }
+
+    private void setButtonPos(final GuiButton button, final int x, final int y) {
+        if (button == null) {
+            return;
+        }
+        button.x = x;
+        button.y = y;
+    }
+
+    private void updatePatternControlPositions() {
+        final int panelScreenX = this.guiLeft + getPatternPanelX();
+        final int panelScreenY = this.guiTop + getPatternPanelY();
+        final ContainerWirelessDualInterfaceTerminal ct = getDualContainer();
+
+        this.setButtonPos(this.encodeBtn, panelScreenX + 11, panelScreenY + 118);
+        this.setButtonPos(this.tabCraftButton, panelScreenX + 39, panelScreenY + 93);
+        this.setButtonPos(this.tabProcessButton, panelScreenX + 39, panelScreenY + 93);
+
+        if (ct.isCraftingMode()) {
+            // Keep crafting mode layout aligned with AE2Things pattern panel.
+            this.setButtonPos(this.clearBtn, panelScreenX + 72, panelScreenY + 14);
+            this.setButtonPos(this.substitutionsEnabledBtn, panelScreenX + 82, panelScreenY + 14);
+            this.setButtonPos(this.substitutionsDisabledBtn, panelScreenX + 82, panelScreenY + 14);
+            this.setButtonPos(this.beSubstitutionsEnabledBtn, panelScreenX + 82, panelScreenY + 24);
+            this.setButtonPos(this.beSubstitutionsDisabledBtn, panelScreenX + 82, panelScreenY + 24);
+            return;
+        }
+
+        final int offset = ct.isInverted() ? -3 * 18 : 0;
+        this.setButtonPos(this.clearBtn, panelScreenX + 87 + offset, panelScreenY + 10);
+        this.setButtonPos(this.substitutionsEnabledBtn, panelScreenX + 97 + offset, panelScreenY + 10);
+        this.setButtonPos(this.substitutionsDisabledBtn, panelScreenX + 97 + offset, panelScreenY + 10);
+        this.setButtonPos(this.beSubstitutionsEnabledBtn, panelScreenX + 97 + offset, panelScreenY + 69);
+        this.setButtonPos(this.beSubstitutionsDisabledBtn, panelScreenX + 97 + offset, panelScreenY + 69);
+        this.setButtonPos(this.invertBtn, panelScreenX + 87 + offset, panelScreenY + 20);
+        this.setButtonPos(this.combineEnabledBtn, panelScreenX + 87 + offset, panelScreenY + 59);
+        this.setButtonPos(this.combineDisabledBtn, panelScreenX + 87 + offset, panelScreenY + 59);
+
+        final int adjBtnX1 = panelScreenX + PROCESSING_OUTPUT_OFFSET_X + 38 + offset;
+        final int adjBtnX2 = panelScreenX + PROCESSING_OUTPUT_OFFSET_X + 28 + offset;
+        this.setButtonPos(this.x3Btn, adjBtnX1, panelScreenY + 6);
+        this.setButtonPos(this.x2Btn, adjBtnX1, panelScreenY + 16);
+        this.setButtonPos(this.plusOneBtn, adjBtnX1, panelScreenY + 26);
+        this.setButtonPos(this.divThreeBtn, adjBtnX2, panelScreenY + 6);
+        this.setButtonPos(this.divTwoBtn, adjBtnX2, panelScreenY + 16);
+        this.setButtonPos(this.minusOneBtn, adjBtnX2, panelScreenY + 26);
+        this.setButtonPos(this.doubleBtn, adjBtnX2, panelScreenY + 36);
     }
 
     // ========== drawScreen ==========
@@ -1515,6 +1619,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         guiButtonBrokenRecipes.set(onlyBrokenRecipes ? ActionItems.TOGGLE_SHOW_ONLY_INVALID_PATTERNS_ON
                 : ActionItems.TOGGLE_SHOW_ONLY_INVALID_PATTERNS_OFF);
         terminalStyleBox.set(AEConfig.instance().getConfigManager().getSetting(Settings.TERMINAL_STYLE));
+        this.updatePatternControlPositions();
 
         buttonList.add(guiButtonAssemblersOnly);
         buttonList.add(guiButtonHideFull);

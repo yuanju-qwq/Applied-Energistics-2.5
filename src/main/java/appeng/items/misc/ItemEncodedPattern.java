@@ -208,6 +208,9 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
     @Override
     public ICraftingPatternDetails getPatternForItemWithNest(final ItemStack is, final World w) {
         try {
+            if (FluidPatternHelper.isFluidPattern(is)) {
+                return new FluidPatternHelper(is, w);
+            }
             return new PatternNestHelper(is, w);
         } catch (final Throwable t) {
             return null;
@@ -228,7 +231,13 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
 
         final ICraftingPatternDetails details = this.getPatternForItem(item, w);
 
-        out = details != null ? details.getOutputs()[0].createItemStack() : ItemStack.EMPTY;
+        out = ItemStack.EMPTY;
+        if (details != null) {
+            final IAEItemStack[] outputs = details.getOutputs();
+            if (outputs != null && outputs.length > 0 && outputs[0] != null) {
+                out = outputs[0].createItemStack();
+            }
+        }
 
         SIMPLE_CACHE.put(item, out);
         return out;

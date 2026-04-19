@@ -113,9 +113,14 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
     @Override
     public ICraftingPatternDetails getPatternForItem(final ItemStack is, final World w) {
         try {
-            return new PatternHelper(is, w);
+            return new SpecialPatternHelper(is, w);
         } catch (final Throwable t) {
-            return null;
+            try {
+                // Backward compatibility for legacy special patterns that were encoded like normal patterns.
+                return new PatternHelper(is, w);
+            } catch (final Throwable ignored) {
+                return null;
+            }
         }
     }
 
@@ -132,9 +137,13 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
             return ItemStack.EMPTY;
 
         ICraftingPatternDetails details = getPatternForItem(item, w);
-        ItemStack output = (details != null && details.getOutputs().length > 0)
-                ? details.getOutputs()[0].createItemStack()
-                : ItemStack.EMPTY;
+        ItemStack output = ItemStack.EMPTY;
+        if (details != null) {
+            final IAEItemStack[] outputs = details.getOutputs();
+            if (outputs.length > 0 && outputs[0] != null) {
+                output = outputs[0].createItemStack();
+            }
+        }
 
         OUTPUT_CACHE.put(item, output);
         return output;
