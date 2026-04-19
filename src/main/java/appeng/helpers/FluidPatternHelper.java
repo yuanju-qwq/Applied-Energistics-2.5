@@ -18,6 +18,9 @@
 
 package appeng.helpers;
 
+import static appeng.helpers.PatternHelper.PROCESSING_INPUT_LIMIT;
+import static appeng.helpers.PatternHelper.PROCESSING_OUTPUT_LIMIT;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -183,13 +186,13 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
             }
         }
 
-        this.inputs = inItems.toArray(new IAEItemStack[0]);
-        this.outputs = outItems.toArray(new IAEItemStack[0]);
+        this.inputs = inItems.toArray(new IAEItemStack[PROCESSING_INPUT_LIMIT]);
+        this.outputs = outItems.toArray(new IAEItemStack[PROCESSING_OUTPUT_LIMIT]);
         this.condensedInputs = condenseItemList(this.inputs);
         this.condensedOutputs = condenseItemList(this.outputs);
 
-        this.genericInputs = inGeneric.toArray(new IAEStack<?>[0]);
-        this.genericOutputs = outGeneric.toArray(new IAEStack<?>[0]);
+        this.genericInputs = inGeneric.toArray(new IAEStack<?>[PROCESSING_INPUT_LIMIT]);
+        this.genericOutputs = outGeneric.toArray(new IAEStack<?>[PROCESSING_OUTPUT_LIMIT]);
         this.genericCondensedInputs = condenseGenericList(this.genericInputs);
         this.genericCondensedOutputs = condenseGenericList(this.genericOutputs);
 

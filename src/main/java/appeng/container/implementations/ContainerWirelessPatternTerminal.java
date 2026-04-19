@@ -18,6 +18,8 @@
 
 package appeng.container.implementations;
 
+import static appeng.helpers.PatternHelper.PROCESSING_INPUT_LIMIT;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.ClickType;
@@ -25,11 +27,11 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.items.IItemHandler;
 
+import appeng.api.AEApi;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.implementations.IUpgradeableCellContainer;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.container.helper.WirelessContainerHelper;
 import appeng.container.interfaces.IInventorySlotAware;
@@ -52,8 +54,12 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
         implements IUpgradeableCellContainer, IInventorySlotAware, IIAEStackInventory {
 
     // 处理模式：16 输入 + 6 输出（与扩展处理样板终端一致）
-    private static final int PROCESSING_INPUT_SLOTS = 16;
+    private static final int PROCESSING_INPUT_SLOTS = PROCESSING_INPUT_LIMIT;
     private static final int PROCESSING_OUTPUT_SLOTS = 6;
+    private static final String NBT_CRAFTING_GRID = "wirelessPatternCraftingGrid";
+    private static final String NBT_OUTPUT = "wirelessPatternOutput";
+    private static final String NBT_PATTERNS = "wirelessPatternSlots";
+    private static final String LEGACY_NBT_PATTERNS = "patterns";
 
     private final WirelessTerminalGuiObject wirelessTerminalGUIObject;
     private final WirelessContainerHelper wirelessHelper;
@@ -90,6 +96,7 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
                         pattern, 1, 147, -72 + 34, this.getInventoryPlayer()));
 
         this.patternSlotOUT.setStackLimit(1);
+        this.restoreEncodedPatternContents();
 
         this.updateOrderOfOutputSlots();
 
@@ -165,9 +172,13 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
     public void saveChanges() {
         if (Platform.isServer()) {
             NBTTagCompound tag = this.wirelessHelper.saveUpgradesToNBT();
-            this.craftingInv.writeToNBT(tag, "craftingGrid");
-            this.outputInv.writeToNBT(tag, "output");
-            this.pattern.writeToNBT(tag, "patterns");
+            this.craftingInv.writeToNBT(tag, NBT_CRAFTING_GRID);
+            this.outputInv.writeToNBT(tag, NBT_OUTPUT);
+            this.pattern.writeToNBT(tag, NBT_PATTERNS);
+            final NBTTagCompound data = this.wirelessTerminalGUIObject.getItemStack().getTagCompound();
+            if (data != null) {
+                data.removeTag(LEGACY_NBT_PATTERNS);
+            }
             this.wirelessTerminalGUIObject.saveChanges(tag);
         }
     }
@@ -176,9 +187,13 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
         this.wirelessHelper.loadUpgradesFromNBT();
         NBTTagCompound data = wirelessTerminalGUIObject.getItemStack().getTagCompound();
         if (data != null) {
-            this.craftingInv.readFromNBT(data, "craftingGrid");
-            this.outputInv.readFromNBT(data, "output");
-            this.pattern.readFromNBT(data, "patterns");
+            this.craftingInv.readFromNBT(data, NBT_CRAFTING_GRID);
+            this.outputInv.readFromNBT(data, NBT_OUTPUT);
+            if (data.hasKey(NBT_PATTERNS)) {
+                this.loadValidPatternSlots(data, NBT_PATTERNS);
+            } else {
+                this.loadValidPatternSlots(data, LEGACY_NBT_PATTERNS);
+            }
         }
     }
 
@@ -188,28 +203,72 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
         super.onChangeInventory(inv, slot, mc, removedStack, newStack);
 
         if (inv == this.pattern && slot == 1) {
-            final ItemStack encodedPattern = this.pattern.getStackInSlot(1);
-            if (!encodedPattern.isEmpty() && encodedPattern.getItem() instanceof ICraftingPatternItem) {
-                final ICraftingPatternItem patternItem = (ICraftingPatternItem) encodedPattern.getItem();
-                final ICraftingPatternDetails details = patternItem.getPatternForItem(encodedPattern,
-                        this.getPlayerInv().player.world);
-                if (details != null) {
-                    this.setCraftingMode(details.isCraftable());
-                    this.setSubstitute(details.canSubstitute());
+            this.restoreEncodedPatternContents();
+        }
+    }
 
-                    for (int i = 0; i < this.craftingInv.getSizeInventory(); i++) {
-                        final IAEItemStack input = i < details.getInputs().length ? details.getInputs()[i] : null;
-                        this.craftingInv.putAEStackInSlot(i, input);
-                    }
+    private void restoreEncodedPatternContents() {
+        this.clearPatternContents();
 
-                    for (int i = 0; i < this.outputInv.getSizeInventory(); i++) {
-                        final IAEItemStack output = i < details.getOutputs().length ? details.getOutputs()[i] : null;
-                        this.outputInv.putAEStackInSlot(i, output);
-                    }
+        final ItemStack encodedPattern = this.pattern.getStackInSlot(1);
+        if (encodedPattern.isEmpty() || !(encodedPattern.getItem() instanceof ICraftingPatternItem)) {
+            this.getAndUpdateOutput();
+            this.saveChanges();
+            return;
+        }
 
-                    this.saveChanges();
-                }
-            }
+        final ICraftingPatternItem patternItem = (ICraftingPatternItem) encodedPattern.getItem();
+        final ICraftingPatternDetails details = patternItem.getPatternForItem(encodedPattern,
+                this.getPlayerInv().player.world);
+        if (details == null) {
+            this.getAndUpdateOutput();
+            this.saveChanges();
+            return;
+        }
+
+        this.setCraftingMode(details.isCraftable());
+        this.setSubstitute(details.canSubstitute());
+
+        final IAEStack<?>[] inputs = details.getAEInputs();
+        for (int i = 0; i < this.craftingInv.getSizeInventory(); i++) {
+            final IAEStack<?> input = inputs != null && i < inputs.length && inputs[i] != null ? inputs[i].copy() : null;
+            this.craftingInv.putAEStackInSlot(i, input);
+        }
+
+        final IAEStack<?>[] outputs = details.getAEOutputs();
+        for (int i = 0; i < this.outputInv.getSizeInventory(); i++) {
+            final IAEStack<?> output = outputs != null && i < outputs.length && outputs[i] != null
+                    ? outputs[i].copy()
+                    : null;
+            this.outputInv.putAEStackInSlot(i, output);
+        }
+
+        this.getAndUpdateOutput();
+        this.saveChanges();
+    }
+
+    private void clearPatternContents() {
+        for (int i = 0; i < this.craftingInv.getSizeInventory(); i++) {
+            this.craftingInv.putAEStackInSlot(i, null);
+        }
+        for (int i = 0; i < this.outputInv.getSizeInventory(); i++) {
+            this.outputInv.putAEStackInSlot(i, null);
+        }
+    }
+
+    private void loadValidPatternSlots(final NBTTagCompound data, final String key) {
+        final AppEngInternalInventory loadedPattern = new AppEngInternalInventory(null, 2);
+        loadedPattern.readFromNBT(data, key);
+
+        final ItemStack blankPattern = loadedPattern.getStackInSlot(0);
+        if (!blankPattern.isEmpty()
+                && AEApi.instance().definitions().materials().blankPattern().isSameAs(blankPattern)) {
+            this.pattern.setStackInSlot(0, blankPattern.copy());
+        }
+
+        final ItemStack encodedPattern = loadedPattern.getStackInSlot(1);
+        if (!encodedPattern.isEmpty() && encodedPattern.getItem() instanceof ICraftingPatternItem) {
+            this.pattern.setStackInSlot(1, encodedPattern.copy());
         }
     }
 

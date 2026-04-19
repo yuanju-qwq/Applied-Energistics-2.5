@@ -260,9 +260,12 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         ItemStack output = this.patternSlotOUT.getStack();
         final ItemStack[] in = this.getInputs();
         final ItemStack[] out = this.getOutputs();
+        final boolean fluidPattern = containsFluid(in) || containsFluid(out);
+        final ItemStack[] encodedIn = fluidPattern && !this.isCraftingMode() ? this.compactPatternStacks(in) : in;
+        final ItemStack[] encodedOut = fluidPattern && !this.isCraftingMode() ? this.compactPatternStacks(out) : out;
 
         // 输入必须存在，输出可以为 null（特殊样板场景）
-        if (in == null) {
+        if (encodedIn == null) {
             return;
         }
 
@@ -271,10 +274,10 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             return;
         }
 
-        boolean requiresSpecialPattern = (out == null);
+        boolean requiresSpecialPattern = (encodedOut == null);
         if (!requiresSpecialPattern) {
             requiresSpecialPattern = true; // 假设需要特殊样板
-            for (ItemStack stack : out) {
+            for (ItemStack stack : encodedOut) {
                 if (!stack.isEmpty()) {
                     requiresSpecialPattern = false; // 找到有效输出，不需要特殊样板
                     break;
@@ -316,13 +319,13 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         final NBTTagList tagIn = new NBTTagList();
         final NBTTagList tagOut = new NBTTagList();
 
-        for (final ItemStack i : in) {
+        for (final ItemStack i : encodedIn) {
             tagIn.appendTag(this.createItemTag(i));
         }
 
         // 即使 out 为 null，也写入空列表（保持NBT结构完整）
-        if (out != null) {
-            for (final ItemStack i : out) {
+        if (encodedOut != null) {
+            for (final ItemStack i : encodedOut) {
                 tagOut.appendTag(this.createItemTag(i));
             }
         }
@@ -333,7 +336,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         encodedValue.setBoolean("substitute", this.isSubstitute());
 
         // 标记流体样板（当输入或输出中包含流体时）
-        if (containsFluid(in) || containsFluid(out)) {
+        if (fluidPattern) {
             encodedValue.setBoolean("fluidPattern", true);
         }
 
@@ -342,7 +345,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         }
 
         output.setTagCompound(encodedValue);
-        this.logEncodedPatternValidation(output, in, out);
+        this.logEncodedPatternValidation(output, encodedIn, encodedOut);
         patternSlotOUT.putStack(output);
     }
 
@@ -544,25 +547,29 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             final IAEStackInventory inv = this.getOutputAEInv();
             if (inv == null) return null;
 
-            final List<ItemStack> list = new ArrayList<>(inv.getSizeInventory());
+            final ItemStack[] output = new ItemStack[inv.getSizeInventory()];
             boolean hasValue = false;
 
             for (int x = 0; x < inv.getSizeInventory(); x++) {
                 final IAEStack<?> stack = inv.getAEStackInSlot(x);
                 if (stack instanceof IAEItemStack) {
-                    list.add(((IAEItemStack) stack).createItemStack());
+                    output[x] = ((IAEItemStack) stack).createItemStack();
                     hasValue = true;
                 } else if (stack instanceof IAEFluidStack) {
                     ItemStack fluidDrop = ItemFluidDrop.newStack(((IAEFluidStack) stack).getFluidStack());
                     if (!fluidDrop.isEmpty()) {
-                        list.add(fluidDrop);
+                        output[x] = fluidDrop;
                         hasValue = true;
+                    } else {
+                        output[x] = ItemStack.EMPTY;
                     }
+                } else {
+                    output[x] = ItemStack.EMPTY;
                 }
             }
 
             if (hasValue) {
-                return list.toArray(new ItemStack[0]);
+                return output;
             }
         }
 
@@ -840,6 +847,21 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             }
         }
         return false;
+    }
+
+    private ItemStack[] compactPatternStacks(final ItemStack[] stacks) {
+        if (stacks == null) {
+            return null;
+        }
+
+        final List<ItemStack> compacted = new ArrayList<>();
+        for (final ItemStack stack : stacks) {
+            if (stack != null && !stack.isEmpty()) {
+                compacted.add(stack.copy());
+            }
+        }
+
+        return compacted.isEmpty() ? null : compacted.toArray(new ItemStack[0]);
     }
 
     public void clear() {

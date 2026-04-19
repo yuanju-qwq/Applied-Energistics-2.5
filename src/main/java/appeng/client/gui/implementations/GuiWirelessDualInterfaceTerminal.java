@@ -172,6 +172,8 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
     private static final int CRAFTING_GRID_OFFSET_Y = 18;
     private static final int PROCESSING_GRID_OFFSET_X = 15;
     private static final int PROCESSING_GRID_OFFSET_Y = 9;
+    private static final int PROCESSING_INPUT_SCROLLBAR_OFFSET_X = PROCESSING_GRID_OFFSET_X + 4 * 18 + 4;
+    private static final int PROCESSING_INPUT_ROWS = 4;
 
     // ===== 鏉堟挸鍤Σ钘夋躬娑撳﹤宕愮拹鏉戞禈娑擃厾娈戞担宥囩枂 =====
     /**
@@ -286,6 +288,8 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
     private MEGuiTextField itemSearchField;
 
     // ========== 婢跺嫮鎮婂Ο鈥崇础鏉堟挸鍤Σ鐣岀倳妞ゅ灚绮撮崝銊︽蒋 ==========
+    private final GuiScrollbar processingInputScrollbar;
+    private int processingInputPage = 0;
     private final GuiScrollbar processingScrollBar;
 
     private final IConfigManager configSrc;
@@ -334,6 +338,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         this.itemRepo.setRowSize(ITEM_PANEL_COLS);
 
         // 閸掓繂顫愰崠鏍ь槱閻炲棙膩瀵繗绶崙鐑樞紙濠氥€夊姘З閺?
+        this.processingInputScrollbar = new GuiScrollbar();
         this.processingScrollBar = new GuiScrollbar();
 
         // 閸掓繂顫愰崠鏍桨閺夋寧瀚嬮幏鐣屽Ц閹?
@@ -469,10 +474,19 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
                             slot.yPos = panelY + CRAFTING_GRID_OFFSET_Y + gridY * 18;
                         }
                     } else {
-                        final int gridX = craftIdx % PROCESSING_INPUT_WIDTH;
-                        final int gridY = craftIdx / PROCESSING_INPUT_WIDTH;
-                        slot.xPos = panelX + PROCESSING_GRID_OFFSET_X + gridX * 18;
-                        slot.yPos = panelY + PROCESSING_GRID_OFFSET_Y + gridY * 18;
+                        final int pageStart = this.processingInputPage * PatternHelper.PROCESSING_INPUT_PAGE_SLOTS;
+                        final int pageEnd = Math.min(pageStart + PatternHelper.PROCESSING_INPUT_PAGE_SLOTS,
+                                PatternHelper.PROCESSING_INPUT_LIMIT);
+                        if (craftIdx < pageStart || craftIdx >= pageEnd) {
+                            slot.xPos = -9000;
+                            slot.yPos = -9000;
+                        } else {
+                            final int visibleIndex = craftIdx - pageStart;
+                            final int gridX = visibleIndex % PROCESSING_INPUT_WIDTH;
+                            final int gridY = visibleIndex / PROCESSING_INPUT_WIDTH;
+                            slot.xPos = panelX + PROCESSING_GRID_OFFSET_X + gridX * 18;
+                            slot.yPos = panelY + PROCESSING_GRID_OFFSET_Y + gridY * 18;
+                        }
                     }
                 } else if (slot instanceof SlotPatternTerm) {
                     // 閺嶉攱婢樼紓鏍垳鏉堟挸鍤Σ鏂ょ礄閸氬牊鍨氬Ο鈥崇础娑撳娈戞径褏绮ㄩ弸婊勑?26鑴?6閿?
@@ -1075,9 +1089,21 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
             final int patPanelAbsY = this.guiTop + getPatternPanelY();
             if (x >= patPanelAbsX && x < patPanelAbsX + PATTERN_PANEL_WIDTH
                     && y >= patPanelAbsY && y < patPanelAbsY + PATTERN_PANEL_UPPER_HEIGHT) {
-                this.processingScrollBar.wheel(wheel);
-                this.sendActivePageUpdate();
-                return;
+                if (this.isMouseOverProcessingInputArea(x, y) && this.getTotalProcessingInputPages() > 1) {
+                    this.updateProcessingInputScrollbar();
+                    final int oldScroll = this.processingInputScrollbar.getCurrentScroll();
+                    this.processingInputScrollbar.wheel(wheel);
+                    if (oldScroll != this.processingInputScrollbar.getCurrentScroll()) {
+                        this.setProcessingInputPage(this.processingInputScrollbar.getCurrentScroll());
+                        return;
+                    }
+                }
+
+                if (this.isMouseOverProcessingOutputArea(x, y)) {
+                    this.processingScrollBar.wheel(wheel);
+                    this.sendActivePageUpdate();
+                    return;
+                }
             }
         }
 
@@ -1107,6 +1133,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
     @Override
     public void updateScreen() {
         super.updateScreen();
+        this.updateProcessingInputScrollbar();
         this.repositionSlots();
         this.updateProcessingScrollbar();
 
@@ -1173,11 +1200,42 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         this.processingScrollBar.setCurrentScroll(container.getActivePage());
     }
 
+    private int getTotalProcessingInputPages() {
+        return Math.max(1, (PatternHelper.PROCESSING_INPUT_LIMIT + PatternHelper.PROCESSING_INPUT_PAGE_SLOTS - 1)
+                / PatternHelper.PROCESSING_INPUT_PAGE_SLOTS);
+    }
+
+    private void updateProcessingInputScrollbar() {
+        final int panelRelX = getPatternPanelX();
+        final int panelRelY = getPatternPanelY();
+        this.processingInputPage = Math.min(this.processingInputPage, this.getTotalProcessingInputPages() - 1);
+        this.processingInputScrollbar.setLeft(panelRelX + PROCESSING_INPUT_SCROLLBAR_OFFSET_X)
+                .setTop(panelRelY + PROCESSING_GRID_OFFSET_Y)
+                .setHeight(PROCESSING_INPUT_ROWS * 18 - 2);
+        this.processingInputScrollbar.setRange(0, Math.max(0, this.getTotalProcessingInputPages() - 1), 1);
+        this.processingInputScrollbar.setCurrentScroll(this.processingInputPage);
+    }
+
     private boolean updateItemPanelScrollFromMouse(final int mouseX, final int mouseY) {
         final int oldScroll = this.itemPanelScrollbar.getCurrentScroll();
         this.itemPanelScrollbar.click(this, mouseX - this.guiLeft, mouseY - this.guiTop);
         if (oldScroll != this.itemPanelScrollbar.getCurrentScroll()) {
             this.itemRepo.updateView();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean updatePatternInputScrollFromMouse(final int mouseX, final int mouseY) {
+        if (getDualContainer().isCraftingMode() || this.getTotalProcessingInputPages() <= 1) {
+            return false;
+        }
+
+        this.updateProcessingInputScrollbar();
+        final int oldScroll = this.processingInputScrollbar.getCurrentScroll();
+        this.processingInputScrollbar.click(this, mouseX - this.guiLeft, mouseY - this.guiTop);
+        if (oldScroll != this.processingInputScrollbar.getCurrentScroll()) {
+            this.setProcessingInputPage(this.processingInputScrollbar.getCurrentScroll());
             return true;
         }
         return false;
@@ -1195,6 +1253,31 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
             return true;
         }
         return false;
+    }
+
+    private void setProcessingInputPage(final int page) {
+        this.processingInputPage = Math.max(0, Math.min(page, this.getTotalProcessingInputPages() - 1));
+        this.repositionSlots();
+    }
+
+    private boolean isMouseOverProcessingInputArea(final int mouseX, final int mouseY) {
+        final int panelAbsX = this.guiLeft + getPatternPanelX();
+        final int panelAbsY = this.guiTop + getPatternPanelY();
+        final int left = panelAbsX + PROCESSING_GRID_OFFSET_X;
+        final int top = panelAbsY + PROCESSING_GRID_OFFSET_Y;
+        final int right = panelAbsX + PROCESSING_INPUT_SCROLLBAR_OFFSET_X + this.processingInputScrollbar.getWidth();
+        final int bottom = top + PROCESSING_INPUT_ROWS * 18;
+        return mouseX >= left && mouseX < right && mouseY >= top && mouseY < bottom;
+    }
+
+    private boolean isMouseOverProcessingOutputArea(final int mouseX, final int mouseY) {
+        final int panelAbsX = this.guiLeft + getPatternPanelX();
+        final int panelAbsY = this.guiTop + getPatternPanelY();
+        final int left = panelAbsX + PROCESSING_OUTPUT_OFFSET_X;
+        final int top = panelAbsY + PROCESSING_OUTPUT_OFFSET_Y;
+        final int right = panelAbsX + PROCESSING_OUTPUT_OFFSET_X + 18 + this.processingScrollBar.getWidth();
+        final int bottom = top + 3 * 18;
+        return mouseX >= left && mouseX < right && mouseY >= top && mouseY < bottom;
     }
 
     // ========== 缂佹ê鍩楅懗灞炬珯 ==========
@@ -1266,6 +1349,9 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         this.itemPanelScrollbar.draw(this);
         // 婢跺嫮鎮婂Ο鈥崇础娑撳绮崚鎯扮翻閸戠儤蝎缂堝銆夊姘З閺?
         if (!getDualContainer().isCraftingMode()) {
+            if (this.getTotalProcessingInputPages() > 1) {
+                this.processingInputScrollbar.draw(this);
+            }
             this.processingScrollBar.draw(this);
         }
         GlStateManager.popMatrix();
@@ -1615,6 +1701,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         this.searchFieldNames.mouseClicked(xCoord, yCoord, btn);
 
         if (btn == 0 && (this.updateItemPanelScrollFromMouse(xCoord, yCoord)
+                || this.updatePatternInputScrollFromMouse(xCoord, yCoord)
                 || this.updatePatternOutputScrollFromMouse(xCoord, yCoord))) {
             return;
         }
@@ -1632,6 +1719,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
             }
         }
         if (clickedMouseButton == 0 && (this.updateItemPanelScrollFromMouse(mouseX, mouseY)
+                || this.updatePatternInputScrollFromMouse(mouseX, mouseY)
                 || this.updatePatternOutputScrollFromMouse(mouseX, mouseY))) {
             return;
         }

@@ -37,6 +37,7 @@ import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraftforge.fluids.FluidStack;
 
 import mezz.jei.api.gui.IGuiIngredient;
 import mezz.jei.api.gui.IRecipeLayout;
@@ -56,11 +57,44 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketJEIRecipe;
 import appeng.core.sync.packets.PacketVirtualSlot;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.fluids.items.ItemFluidDrop;
+import appeng.fluids.util.AEFluidStack;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 
 class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandler<T> {
+
+    private static final class LegacyTransferIngredient {
+
+        private final int slotKey;
+        private final int sourceOrder;
+        private final boolean input;
+        private final List<ItemStack> options;
+
+        private LegacyTransferIngredient(int slotKey, int sourceOrder, boolean input, List<ItemStack> options) {
+            this.slotKey = slotKey;
+            this.sourceOrder = sourceOrder;
+            this.input = input;
+            this.options = options;
+        }
+    }
+
+    private static final class PatternTransferIngredient {
+
+        private final int slotKey;
+        private final int sourceOrder;
+        private final boolean input;
+        @Nullable
+        private final IAEStack<?> stack;
+
+        private PatternTransferIngredient(int slotKey, int sourceOrder, boolean input, @Nullable IAEStack<?> stack) {
+            this.slotKey = slotKey;
+            this.sourceOrder = sourceOrder;
+            this.input = input;
+            this.stack = stack;
+        }
+    }
 
     private final Class<T> containerClass;
 
@@ -130,45 +164,35 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         final List<Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>>> ingredients = new ArrayList<>(
                 recipeLayout.getItemStacks().getGuiIngredients().entrySet());
         ingredients.sort(Comparator.comparingInt(Map.Entry::getKey));
+        final List<Map.Entry<Integer, ? extends IGuiIngredient<FluidStack>>> fluidIngredients = new ArrayList<>(
+                recipeLayout.getFluidStacks().getGuiIngredients().entrySet());
+        fluidIngredients.sort(Comparator.comparingInt(Map.Entry::getKey));
 
         if (container instanceof ContainerPatternEncoder patternContainer) {
-            transferToPatternVirtualSlots(patternContainer, ingredients, recipeType);
+            transferToPatternVirtualSlots(patternContainer, ingredients, fluidIngredients, recipeType);
         } else {
             final NBTTagCompound recipe = new NBTTagCompound();
             final NBTTagList outputs = new NBTTagList();
+            final boolean preserveLayout = recipeType.equals(VanillaRecipeCategoryUid.CRAFTING);
 
+            final List<LegacyTransferIngredient> transferIngredients = collectLegacyIngredients(ingredients, fluidIngredients);
             int slotIndex = 0;
-            for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> ingredientEntry : ingredients) {
-                IGuiIngredient<ItemStack> ingredient = ingredientEntry.getValue();
-                if (!ingredient.isInput()) {
-                    ItemStack output = ingredient.getDisplayedIngredient();
-                    if (output != null) {
-                        final NBTTagCompound tag = stackToNBT(output);
+            for (LegacyTransferIngredient ingredient : transferIngredients) {
+                final boolean hasOptions = !ingredient.options.isEmpty();
+                if (!preserveLayout && !hasOptions) {
+                    continue;
+                }
+
+                if (!ingredient.input) {
+                    if (hasOptions) {
+                        final NBTTagCompound tag = stackToNBT(ingredient.options.get(0));
                         outputs.appendTag(tag);
                     }
                     continue;
                 }
 
                 final NBTTagList tags = new NBTTagList();
-                final List<ItemStack> list = new ArrayList<>();
-                final ItemStack displayed = ingredient.getDisplayedIngredient();
-
-                if (displayed != null && !displayed.isEmpty()) {
-                    list.add(displayed);
-                }
-
-                for (ItemStack stack : ingredient.getAllIngredients()) {
-                    if (stack == null) {
-                        continue;
-                    }
-                    if (Platform.isRecipePrioritized(stack)) {
-                        list.add(0, stack);
-                    } else {
-                        list.add(stack);
-                    }
-                }
-
-                for (final ItemStack is : list) {
+                for (final ItemStack is : ingredient.options) {
                     final NBTTagCompound tag = stackToNBT(is);
                     tags.appendTag(tag);
                 }
@@ -203,7 +227,9 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
     }
 
     private static void transferToPatternVirtualSlots(ContainerPatternEncoder container,
-            List<Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>>> ingredients, String recipeType) {
+            List<Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>>> itemIngredients,
+            List<Map.Entry<Integer, ? extends IGuiIngredient<FluidStack>>> fluidIngredients,
+            String recipeType) {
         final IAEStackInventory craftingInv = container.getCraftingAEInv();
         final IAEStackInventory outputInv = container.getOutputAEInv();
         if (craftingInv == null || outputInv == null) {
@@ -220,19 +246,23 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             outputSlots.put(i, null);
         }
 
+        final boolean preserveLayout = recipeType.equals(VanillaRecipeCategoryUid.CRAFTING);
         int craftingIndex = 0;
         int outputIndex = 0;
-        for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> ingredientEntry : ingredients) {
-            final IGuiIngredient<ItemStack> ingredient = ingredientEntry.getValue();
-            final ItemStack displayed = ingredient.getDisplayedIngredient();
-            if (ingredient.isInput()) {
+        final List<PatternTransferIngredient> ingredients = collectPatternIngredients(itemIngredients, fluidIngredients);
+        for (PatternTransferIngredient ingredient : ingredients) {
+            if (!preserveLayout && ingredient.stack == null) {
+                continue;
+            }
+
+            if (ingredient.input) {
                 if (craftingIndex < craftingInv.getSizeInventory()) {
-                    craftingSlots.put(craftingIndex, toAEStack(displayed));
+                    craftingSlots.put(craftingIndex, ingredient.stack == null ? null : ingredient.stack.copy());
                 }
                 craftingIndex++;
             } else if (!recipeType.equals(VanillaRecipeCategoryUid.CRAFTING)) {
                 if (outputIndex < outputInv.getSizeInventory()) {
-                    outputSlots.put(outputIndex, toAEStack(displayed));
+                    outputSlots.put(outputIndex, ingredient.stack == null ? null : ingredient.stack.copy());
                 }
                 outputIndex++;
             }
@@ -248,5 +278,116 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             return null;
         }
         return AEItemStack.fromItemStack(stack);
+    }
+
+    @Nullable
+    private static IAEStack<?> toAEStack(@Nullable FluidStack stack) {
+        if (stack == null || stack.amount <= 0) {
+            return null;
+        }
+        return AEFluidStack.fromFluidStack(stack.copy());
+    }
+
+    private static List<PatternTransferIngredient> collectPatternIngredients(
+            List<Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>>> itemIngredients,
+            List<Map.Entry<Integer, ? extends IGuiIngredient<FluidStack>>> fluidIngredients) {
+        final List<PatternTransferIngredient> result = new ArrayList<>(itemIngredients.size() + fluidIngredients.size());
+
+        for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> ingredientEntry : itemIngredients) {
+            final IGuiIngredient<ItemStack> ingredient = ingredientEntry.getValue();
+            result.add(new PatternTransferIngredient(
+                    ingredientEntry.getKey(),
+                    0,
+                    ingredient.isInput(),
+                    toAEStack(getDisplayedOrFirst(ingredient))));
+        }
+
+        for (Map.Entry<Integer, ? extends IGuiIngredient<FluidStack>> ingredientEntry : fluidIngredients) {
+            final IGuiIngredient<FluidStack> ingredient = ingredientEntry.getValue();
+            result.add(new PatternTransferIngredient(
+                    ingredientEntry.getKey(),
+                    1,
+                    ingredient.isInput(),
+                    toAEStack(getDisplayedOrFirst(ingredient))));
+        }
+
+        result.sort(Comparator
+                .comparingInt((PatternTransferIngredient ingredient) -> ingredient.slotKey)
+                .thenComparingInt(ingredient -> ingredient.sourceOrder));
+        return result;
+    }
+
+    private static List<LegacyTransferIngredient> collectLegacyIngredients(
+            List<Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>>> itemIngredients,
+            List<Map.Entry<Integer, ? extends IGuiIngredient<FluidStack>>> fluidIngredients) {
+        final List<LegacyTransferIngredient> result = new ArrayList<>(itemIngredients.size() + fluidIngredients.size());
+
+        for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> ingredientEntry : itemIngredients) {
+            final IGuiIngredient<ItemStack> ingredient = ingredientEntry.getValue();
+            result.add(new LegacyTransferIngredient(
+                    ingredientEntry.getKey(),
+                    0,
+                    ingredient.isInput(),
+                    collectItemOptions(ingredient)));
+        }
+
+        for (Map.Entry<Integer, ? extends IGuiIngredient<FluidStack>> ingredientEntry : fluidIngredients) {
+            final IGuiIngredient<FluidStack> ingredient = ingredientEntry.getValue();
+            final List<ItemStack> options = new ArrayList<>(1);
+            final ItemStack fluidDrop = toLegacyTransferItem(getDisplayedOrFirst(ingredient));
+            if (!fluidDrop.isEmpty()) {
+                options.add(fluidDrop);
+            }
+            result.add(new LegacyTransferIngredient(
+                    ingredientEntry.getKey(),
+                    1,
+                    ingredient.isInput(),
+                    options));
+        }
+
+        result.sort(Comparator
+                .comparingInt((LegacyTransferIngredient ingredient) -> ingredient.slotKey)
+                .thenComparingInt(ingredient -> ingredient.sourceOrder));
+        return result;
+    }
+
+    private static List<ItemStack> collectItemOptions(IGuiIngredient<ItemStack> ingredient) {
+        final List<ItemStack> result = new ArrayList<>();
+        final ItemStack displayed = ingredient.getDisplayedIngredient();
+        if (displayed != null && !displayed.isEmpty()) {
+            result.add(displayed.copy());
+        }
+
+        for (ItemStack stack : ingredient.getAllIngredients()) {
+            if (stack == null || stack.isEmpty()) {
+                continue;
+            }
+            final ItemStack copy = stack.copy();
+            if (Platform.isRecipePrioritized(copy)) {
+                result.add(0, copy);
+            } else {
+                result.add(copy);
+            }
+        }
+
+        return result;
+    }
+
+    @Nullable
+    private static ItemStack toLegacyTransferItem(@Nullable FluidStack stack) {
+        if (stack == null || stack.amount <= 0) {
+            return ItemStack.EMPTY;
+        }
+        return ItemFluidDrop.newStack(stack.copy());
+    }
+
+    @Nullable
+    private static <V> V getDisplayedOrFirst(IGuiIngredient<V> ingredient) {
+        final V displayed = ingredient.getDisplayedIngredient();
+        if (displayed != null) {
+            return displayed;
+        }
+        final List<V> all = ingredient.getAllIngredients();
+        return all.isEmpty() ? null : all.get(0);
     }
 }

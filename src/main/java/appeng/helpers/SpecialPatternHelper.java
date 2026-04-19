@@ -31,7 +31,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
     // 常量定义（与原PatternHelper一致）
     public static final int PROCESSING_INPUT_HEIGHT = 4;
     public static final int PROCESSING_INPUT_WIDTH = 4;
-    public static final int PROCESSING_INPUT_LIMIT = PROCESSING_INPUT_HEIGHT * PROCESSING_INPUT_WIDTH;
+    public static final int PROCESSING_INPUT_LIMIT = PatternHelper.PROCESSING_INPUT_LIMIT;
     public static final int PROCESSING_OUTPUT_LIMIT = 6;
 
     // 核心字段
@@ -124,6 +124,8 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         for (int x = 0; x < outTag.tagCount() && x < PROCESSING_OUTPUT_LIMIT; x++) {
             final NBTTagCompound resultItemTag = outTag.getCompoundTagAt(x);
             if (resultItemTag.isEmpty()) {
+                outItems.add(null);
+                outGeneric.add(null);
                 continue;
             }
 
@@ -155,6 +157,11 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
             }
         }
 
+        while (outItems.size() < PROCESSING_OUTPUT_LIMIT) {
+            outItems.add(null);
+            outGeneric.add(null);
+        }
+
         // 输入不能为空（无输入的模板无意义）
         if (inItems.isEmpty() || inItems.stream().allMatch(Objects::isNull)) {
             throw new IllegalStateException("Special pattern requires at least one input");
@@ -167,13 +174,13 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         // ========== 物品类型数组初始化 ==========
 
         // 初始化输入数组（固定大小）
-        this.inputs = new IAEItemStack[PROCESSING_INPUT_LIMIT];
-        for (int i = 0; i < Math.min(inItems.size(), PROCESSING_INPUT_LIMIT); i++) {
+        this.inputs = new IAEItemStack[Math.max(PROCESSING_INPUT_LIMIT, inItems.size())];
+        for (int i = 0; i < Math.min(inItems.size(), this.inputs.length); i++) {
             this.inputs[i] = inItems.get(i);
         }
 
         // 初始化输出数组（动态大小）
-        this.outputs = outItems.toArray(new IAEItemStack[0]);
+        this.outputs = outItems.toArray(new IAEItemStack[PROCESSING_OUTPUT_LIMIT]);
 
         // 压缩物品输入（合并相同物品）
         final Map<IAEItemStack, IAEItemStack> tmpInputs = new Object2ObjectOpenHashMap<>();
@@ -204,13 +211,13 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         // ========== 泛型数组初始化 ==========
 
         // 泛型输入数组（固定大小，保持槽位位置）
-        this.genericInputs = new IAEStack<?>[PROCESSING_INPUT_LIMIT];
-        for (int i = 0; i < Math.min(inGeneric.size(), PROCESSING_INPUT_LIMIT); i++) {
+        this.genericInputs = new IAEStack<?>[Math.max(PROCESSING_INPUT_LIMIT, inGeneric.size())];
+        for (int i = 0; i < Math.min(inGeneric.size(), this.genericInputs.length); i++) {
             this.genericInputs[i] = inGeneric.get(i);
         }
 
         // 泛型输出数组
-        this.genericOutputs = outGeneric.toArray(new IAEStack<?>[0]);
+        this.genericOutputs = outGeneric.toArray(new IAEStack<?>[PROCESSING_OUTPUT_LIMIT]);
 
         // 压缩泛型输入
         this.genericCondensedInputs = condenseGenericList(this.genericInputs);

@@ -30,21 +30,12 @@ public class MeaningfulFluidIterator<T extends IAEStack<T>> implements Iterator<
 
     public MeaningfulFluidIterator(final Iterator<T> iterator) {
         this.parent = iterator;
+        this.next = seekNext();
     }
 
     @Override
     public boolean hasNext() {
-        while (this.parent.hasNext()) {
-            this.next = this.parent.next();
-            if (this.next.isMeaningful()) {
-                return true;
-            } else {
-                this.parent.remove(); // self cleaning :3
-            }
-        }
-
-        this.next = null;
-        return false;
+        return this.next != null;
     }
 
     @Override
@@ -53,11 +44,24 @@ public class MeaningfulFluidIterator<T extends IAEStack<T>> implements Iterator<
             throw new NoSuchElementException();
         }
 
-        return this.next;
+        final T result = this.next;
+        this.next = seekNext();
+        return result;
     }
 
     @Override
     public void remove() {
         this.parent.remove();
+    }
+
+    private T seekNext() {
+        while (this.parent.hasNext()) {
+            final T candidate = this.parent.next();
+            if (candidate.isMeaningful()) {
+                return candidate;
+            }
+            this.parent.remove(); // self cleaning :3
+        }
+        return null;
     }
 }

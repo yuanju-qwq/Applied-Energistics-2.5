@@ -28,6 +28,7 @@ import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.FluidStack;
 
 import mezz.jei.api.gui.IGhostIngredientHandler.Target;
 
@@ -35,6 +36,8 @@ import appeng.api.config.ActionItems;
 import appeng.api.config.ItemSubstitution;
 import appeng.api.config.Settings;
 import appeng.api.storage.ITerminalHost;
+import appeng.api.storage.StorageName;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.client.gui.slots.VirtualMEPatternSlot;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
@@ -48,7 +51,9 @@ import appeng.container.slot.AppEngSlot;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
+import appeng.core.sync.packets.PacketVirtualSlot;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStackType;
@@ -301,17 +306,33 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
 
     @Override
     public List<Target<?>> getPhantomTargets(Object ingredient) {
-        if (!(ingredient instanceof ItemStack)) {
+        final ItemStack itemIngredient = ingredient instanceof ItemStack ? (ItemStack) ingredient : ItemStack.EMPTY;
+        final IAEStack<?> aeIngredient = this.toJeiGhostStack(ingredient);
+
+        if (itemIngredient.isEmpty() && aeIngredient == null) {
             return Collections.emptyList();
         }
+
+        if (aeIngredient != null && this.container.isCraftingMode()) {
+            return Collections.emptyList();
+        }
+
         this.mapTargetSlot.clear();
         final List<Target<?>> targets = new ArrayList<>();
-        this.addVirtualTargets(targets, this.craftingVSlots, (ItemStack) ingredient);
-        this.addVirtualTargets(targets, this.outputVSlots, (ItemStack) ingredient);
+        this.addVirtualTargets(targets, this.craftingVSlots, itemIngredient, aeIngredient);
+        this.addVirtualTargets(targets, this.outputVSlots, itemIngredient, aeIngredient);
         return targets;
     }
 
-    private void addVirtualTargets(List<Target<?>> targets, VirtualMEPatternSlot[] slots, ItemStack ingredient) {
+    protected IAEStack<?> toJeiGhostStack(final Object ingredient) {
+        if (ingredient instanceof FluidStack fluidStack) {
+            return AEFluidStack.fromFluidStack(fluidStack.copy());
+        }
+        return null;
+    }
+
+    private void addVirtualTargets(List<Target<?>> targets, VirtualMEPatternSlot[] slots, ItemStack itemIngredient,
+            IAEStack<?> aeIngredient) {
         if (slots == null) {
             return;
         }
@@ -329,7 +350,18 @@ public class GuiPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredi
 
                 @Override
                 public void accept(Object ignored) {
-                    slot.handleMouseClicked(ingredient, false, 0);
+                    if (aeIngredient != null) {
+                        final IAEStackInventory targetInv = slot.getStorageName() == StorageName.CRAFTING_OUTPUT
+                                ? container.getOutputAEInv()
+                                : container.getCraftingAEInv();
+                        if (targetInv != null) {
+                            targetInv.putAEStackInSlot(slot.getSlotIndex(), aeIngredient.copy());
+                        }
+                        NetworkHandler.instance().sendToServer(
+                                new PacketVirtualSlot(slot.getStorageName(), slot.getSlotIndex(), aeIngredient));
+                    } else {
+                        slot.handleMouseClicked(itemIngredient, false, 0);
+                    }
                 }
             };
 

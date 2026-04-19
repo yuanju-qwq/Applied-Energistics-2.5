@@ -255,7 +255,7 @@ public class ContainerCraftConfirm extends AEBaseContainer {
                 }
             } catch (final Throwable e) {
                 this.getPlayerInv().player.sendMessage(new TextComponentString("Error: " + e));
-                AELog.debug(e);
+                AELog.error(e, "Failed to build craft confirmation plan.");
                 this.setValidContainer(false);
                 this.result = null;
             }

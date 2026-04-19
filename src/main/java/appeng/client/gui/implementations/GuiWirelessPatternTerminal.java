@@ -20,13 +20,16 @@ package appeng.client.gui.implementations;
 
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.storage.data.IAEStackType;
 import appeng.client.gui.slots.VirtualMEPatternSlot;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
+import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.gui.widgets.UniversalTerminalButtons;
 import appeng.container.implementations.ContainerWirelessPatternTerminal;
+import appeng.helpers.PatternHelper;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.tile.inventory.IAEStackInventory;
 
@@ -38,8 +41,16 @@ import appeng.tile.inventory.IAEStackInventory;
 public class GuiWirelessPatternTerminal extends GuiPatternTerm {
 
     private static final String BACKGROUND_EXPANDED_PROCESSING_MODE = "guis/pattern_processing_expanded.png";
+    private static final int PROCESSING_INPUT_OFFSET_X = 4;
+    private static final int PROCESSING_INPUT_OFFSET_Y = -84;
+    private static final int PROCESSING_INPUT_SCROLLBAR_OFFSET_X = PROCESSING_INPUT_OFFSET_X + 4 * 18 + 4;
+    private static final int PROCESSING_OUTPUT_OFFSET_X = 96;
+    private static final int PROCESSING_OUTPUT_OFFSET_Y = -75;
+    private static final int PROCESSING_INPUT_ROWS = 4;
 
     private UniversalTerminalButtons universalButtons;
+    private final GuiScrollbar processingInputScrollbar = new GuiScrollbar();
+    private int processingInputPage = 0;
 
     public GuiWirelessPatternTerminal(final InventoryPlayer inventoryPlayer, final WirelessTerminalGuiObject te) {
         super(inventoryPlayer, te, new ContainerWirelessPatternTerminal(inventoryPlayer, te));
@@ -67,6 +78,14 @@ public class GuiWirelessPatternTerminal extends GuiPatternTerm {
         this.bindTexture("guis/wirelessupgrades.png");
         Gui.drawModalRectWithCustomSizedTexture(offsetX + 198, offsetY + 127, 0, 0, 32, 32, 32, 32);
         super.drawBG(offsetX, offsetY, mouseX, mouseY);
+
+        if (!this.container.isCraftingMode() && this.getTotalProcessingInputPages() > 1) {
+            this.updateProcessingInputScrollbar();
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(offsetX, offsetY, 0);
+            this.processingInputScrollbar.draw(this);
+            GlStateManager.popMatrix();
+        }
     }
 
     // ---- 覆盖虚拟槽位初始化，处理模式使用 16 输入(4x4) + 6 输出布局 ----
@@ -80,8 +99,8 @@ public class GuiWirelessPatternTerminal extends GuiPatternTerm {
 
         // 16 输入槽位（4x4 网格）
         if (craftInv != null) {
-            this.craftingVSlots = new VirtualMEPatternSlot[craftInv.getSizeInventory()];
             if (craftingMode) {
+                this.craftingVSlots = new VirtualMEPatternSlot[9];
                 for (int y = 0; y < 3; y++) {
                     for (int x = 0; x < 3; x++) {
                         final int slotIdx = x + y * 3;
@@ -93,13 +112,17 @@ public class GuiWirelessPatternTerminal extends GuiPatternTerm {
                     }
                 }
             } else {
-                for (int i = 0; i < craftInv.getSizeInventory(); i++) {
-                    final int x = (i % 4) * 18;
-                    final int y = (i / 4) * 18;
+                final int pageStart = this.processingInputPage * PatternHelper.PROCESSING_INPUT_PAGE_SLOTS;
+                final int pageEnd = Math.min(craftInv.getSizeInventory(), pageStart + PatternHelper.PROCESSING_INPUT_PAGE_SLOTS);
+                this.craftingVSlots = new VirtualMEPatternSlot[Math.max(0, pageEnd - pageStart)];
+                for (int i = pageStart; i < pageEnd; i++) {
+                    final int visibleIndex = i - pageStart;
+                    final int x = (visibleIndex % 4) * 18;
+                    final int y = (visibleIndex / 4) * 18;
                     final VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
-                            i, 15 + x, this.patternGuiY(-76 + y),
+                            i, PROCESSING_INPUT_OFFSET_X + x, this.patternGuiY(PROCESSING_INPUT_OFFSET_Y + y),
                             craftInv, i, this::acceptTypeWireless);
-                    this.craftingVSlots[i] = slot;
+                    this.craftingVSlots[visibleIndex] = slot;
                     this.guiSlots.add(slot);
                 }
             }
@@ -113,7 +136,7 @@ public class GuiWirelessPatternTerminal extends GuiPatternTerm {
                     final int x = (i % 2) * 18;
                     final int y = (i / 2) * 18;
                     final VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
-                            i, 96 + x, this.patternGuiY(-76 + y),
+                            i, PROCESSING_OUTPUT_OFFSET_X + x, this.patternGuiY(PROCESSING_OUTPUT_OFFSET_Y + y),
                             outInv, i, this::acceptTypeWireless);
                     this.outputVSlots[i] = slot;
                     this.guiSlots.add(slot);
@@ -134,11 +157,103 @@ public class GuiWirelessPatternTerminal extends GuiPatternTerm {
     }
 
     @Override
+    protected int getMultiplyButtonX() {
+        return 131;
+    }
+
+    @Override
+    protected int getDivideButtonX() {
+        return 87;
+    }
+
+    @Override
     protected String getBackground() {
         if (this.container.isCraftingMode()) {
             return super.getBackground();
         }
         // 处理模式使用扩展处理终端的背景贴图
         return BACKGROUND_EXPANDED_PROCESSING_MODE;
+    }
+
+    @Override
+    protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws java.io.IOException {
+        if (!this.container.isCraftingMode() && btn == 0 && this.updateProcessingInputScrollFromMouse(xCoord, yCoord)) {
+            return;
+        }
+        super.mouseClicked(xCoord, yCoord, btn);
+    }
+
+    @Override
+    protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+        if (!this.container.isCraftingMode() && clickedMouseButton == 0
+                && this.updateProcessingInputScrollFromMouse(mouseX, mouseY)) {
+            return;
+        }
+        super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+    }
+
+    @Override
+    protected void mouseWheelEvent(final int x, final int y, final int wheel) {
+        if (!this.container.isCraftingMode() && this.isMouseOverProcessingInputArea(x, y)
+                && this.getTotalProcessingInputPages() > 1) {
+            final int oldScroll = this.processingInputScrollbar.getCurrentScroll();
+            this.processingInputScrollbar.wheel(wheel);
+            if (oldScroll != this.processingInputScrollbar.getCurrentScroll()) {
+                this.setProcessingInputPage(this.processingInputScrollbar.getCurrentScroll());
+                return;
+            }
+        }
+        super.mouseWheelEvent(x, y, wheel);
+    }
+
+    private int getTotalProcessingInputPages() {
+        final IAEStackInventory craftInv = this.container.getCraftingAEInv();
+        if (craftInv == null) {
+            return 1;
+        }
+        return Math.max(1, (craftInv.getSizeInventory() + PatternHelper.PROCESSING_INPUT_PAGE_SLOTS - 1)
+                / PatternHelper.PROCESSING_INPUT_PAGE_SLOTS);
+    }
+
+    private void updateProcessingInputScrollbar() {
+        this.processingInputPage = Math.min(this.processingInputPage, this.getTotalProcessingInputPages() - 1);
+        this.processingInputScrollbar
+                .setLeft(PROCESSING_INPUT_SCROLLBAR_OFFSET_X)
+                .setTop(this.patternGuiY(PROCESSING_INPUT_OFFSET_Y))
+                .setHeight(PROCESSING_INPUT_ROWS * 18 - 2);
+        this.processingInputScrollbar.setRange(0, Math.max(0, this.getTotalProcessingInputPages() - 1), 1);
+        this.processingInputScrollbar.setCurrentScroll(this.processingInputPage);
+    }
+
+    private boolean updateProcessingInputScrollFromMouse(final int mouseX, final int mouseY) {
+        if (this.getTotalProcessingInputPages() <= 1) {
+            return false;
+        }
+
+        final int oldScroll = this.processingInputScrollbar.getCurrentScroll();
+        this.processingInputScrollbar.click(this, mouseX - this.guiLeft, mouseY - this.guiTop);
+        if (oldScroll != this.processingInputScrollbar.getCurrentScroll()) {
+            this.setProcessingInputPage(this.processingInputScrollbar.getCurrentScroll());
+            return true;
+        }
+        return false;
+    }
+
+    private void setProcessingInputPage(final int page) {
+        final int clampedPage = Math.max(0, Math.min(page, this.getTotalProcessingInputPages() - 1));
+        if (this.processingInputPage != clampedPage) {
+            this.processingInputPage = clampedPage;
+            this.initVirtualSlots();
+        } else {
+            this.processingInputPage = clampedPage;
+        }
+    }
+
+    private boolean isMouseOverProcessingInputArea(final int mouseX, final int mouseY) {
+        final int left = this.guiLeft + PROCESSING_INPUT_OFFSET_X;
+        final int top = this.guiTop + this.patternGuiY(PROCESSING_INPUT_OFFSET_Y);
+        final int right = this.guiLeft + PROCESSING_INPUT_SCROLLBAR_OFFSET_X + this.processingInputScrollbar.getWidth();
+        final int bottom = top + PROCESSING_INPUT_ROWS * 18;
+        return mouseX >= left && mouseX < right && mouseY >= top && mouseY < bottom;
     }
 }

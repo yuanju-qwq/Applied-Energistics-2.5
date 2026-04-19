@@ -6,10 +6,12 @@ import java.util.*;
 import java.util.List;
 
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.FluidStack;
 
 import mezz.jei.api.gui.IGhostIngredientHandler;
 
@@ -17,10 +19,13 @@ import appeng.api.config.ActionItems;
 import appeng.api.config.ItemSubstitution;
 import appeng.api.config.Settings;
 import appeng.api.storage.ITerminalHost;
+import appeng.api.storage.StorageName;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.client.gui.slots.VirtualMEPatternSlot;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
+import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.container.implementations.ContainerExpandedProcessingPatternTerm;
 import appeng.container.implementations.ContainerPatternEncoder;
@@ -29,12 +34,21 @@ import appeng.container.slot.AppEngSlot;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
+import appeng.core.sync.packets.PacketVirtualSlot;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.fluids.util.AEFluidStack;
+import appeng.helpers.PatternHelper;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStackType;
 
 public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implements IJEIGhostIngredients {
     private static final String BACKGROUND_EXPANDED_PROCESSING_MODE = "guis/pattern_processing_expanded.png";
+    private static final int PROCESSING_INPUT_OFFSET_X = 4;
+    private static final int PROCESSING_INPUT_OFFSET_Y = -84;
+    private static final int PROCESSING_INPUT_SCROLLBAR_OFFSET_X = PROCESSING_INPUT_OFFSET_X + 4 * 18 + 4;
+    private static final int PROCESSING_OUTPUT_OFFSET_X = 96;
+    private static final int PROCESSING_OUTPUT_OFFSET_Y = -75;
+    private static final int PROCESSING_INPUT_ROWS = 4;
 
     private static final String SUBSITUTION_DISABLE = "0";
     private static final String SUBSITUTION_ENABLE = "1";
@@ -60,6 +74,8 @@ public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implement
     private VirtualMEPatternSlot[] craftingVSlots;
     private VirtualMEPatternSlot[] outputVSlots;
     private final ContainerPatternEncoder container;
+    private final GuiScrollbar processingInputScrollbar = new GuiScrollbar();
+    private int processingInputPage = 0;
 
     public GuiExpandedProcessingPatternTerm(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(inventoryPlayer, te, new ContainerExpandedProcessingPatternTerm(inventoryPlayer, te));
@@ -221,6 +237,19 @@ public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implement
     }
 
     @Override
+    public void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
+        super.drawBG(offsetX, offsetY, mouseX, mouseY);
+
+        if (this.getTotalProcessingInputPages() > 1) {
+            this.updateProcessingInputScrollbar();
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(offsetX, offsetY, 0);
+            this.processingInputScrollbar.draw(this);
+            GlStateManager.popMatrix();
+        }
+    }
+
+    @Override
     protected void repositionSlot(final AppEngSlot s) {
         final int offsetPlayerSide = s.isPlayerSide() ? 5 : 3;
 
@@ -229,18 +258,23 @@ public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implement
 
     @Override
     public List<IGhostIngredientHandler.Target<?>> getPhantomTargets(Object ingredient) {
-        if (!(ingredient instanceof ItemStack)) {
+        final ItemStack itemIngredient = ingredient instanceof ItemStack ? (ItemStack) ingredient : ItemStack.EMPTY;
+        final IAEStack<?> aeIngredient = ingredient instanceof FluidStack fluidStack
+                ? AEFluidStack.fromFluidStack(fluidStack.copy())
+                : null;
+
+        if (itemIngredient.isEmpty() && aeIngredient == null) {
             return Collections.emptyList();
         }
         this.mapTargetSlot.clear();
         List<IGhostIngredientHandler.Target<?>> targets = new ArrayList<>();
-        this.addVirtualTargets(targets, this.craftingVSlots, (ItemStack) ingredient);
-        this.addVirtualTargets(targets, this.outputVSlots, (ItemStack) ingredient);
+        this.addVirtualTargets(targets, this.craftingVSlots, itemIngredient, aeIngredient);
+        this.addVirtualTargets(targets, this.outputVSlots, itemIngredient, aeIngredient);
         return targets;
     }
 
     private void addVirtualTargets(List<IGhostIngredientHandler.Target<?>> targets, VirtualMEPatternSlot[] slots,
-            ItemStack ingredient) {
+            ItemStack itemIngredient, IAEStack<?> aeIngredient) {
         if (slots == null) {
             return;
         }
@@ -258,7 +292,18 @@ public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implement
 
                 @Override
                 public void accept(Object ignored) {
-                    slot.handleMouseClicked(ingredient, false, 0);
+                    if (aeIngredient != null) {
+                        final IAEStackInventory targetInv = slot.getStorageName() == StorageName.CRAFTING_OUTPUT
+                                ? container.getOutputAEInv()
+                                : container.getCraftingAEInv();
+                        if (targetInv != null) {
+                            targetInv.putAEStackInSlot(slot.getSlotIndex(), aeIngredient.copy());
+                        }
+                        NetworkHandler.instance().sendToServer(
+                                new PacketVirtualSlot(slot.getStorageName(), slot.getSlotIndex(), aeIngredient));
+                    } else {
+                        slot.handleMouseClicked(itemIngredient, false, 0);
+                    }
                 }
             };
 
@@ -275,19 +320,22 @@ public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implement
     // ---- 虚拟槽位初始化 ----
 
     private void initVirtualSlots() {
+        this.guiSlots.removeIf(slot -> slot instanceof VirtualMEPatternSlot);
         final IAEStackInventory craftInv = this.container.getCraftingAEInv();
         final IAEStackInventory outInv = this.container.getOutputAEInv();
 
         if (craftInv != null) {
-            final int slotsPerPage = 16; // 4x4 per page
-            this.craftingVSlots = new VirtualMEPatternSlot[craftInv.getSizeInventory()];
-            for (int i = 0; i < craftInv.getSizeInventory(); i++) {
-                final int x = (i % 4) * 18;
-                final int y = (i / 4 % 4) * 18;
+            final int pageStart = this.processingInputPage * PatternHelper.PROCESSING_INPUT_PAGE_SLOTS;
+            final int pageEnd = Math.min(craftInv.getSizeInventory(), pageStart + PatternHelper.PROCESSING_INPUT_PAGE_SLOTS);
+            this.craftingVSlots = new VirtualMEPatternSlot[Math.max(0, pageEnd - pageStart)];
+            for (int i = pageStart; i < pageEnd; i++) {
+                final int visibleIndex = i - pageStart;
+                final int x = (visibleIndex % 4) * 18;
+                final int y = (visibleIndex / 4) * 18;
                 VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
-                        i, 15 + x, this.patternGuiY(-76 + y),
+                        i, PROCESSING_INPUT_OFFSET_X + x, this.patternGuiY(PROCESSING_INPUT_OFFSET_Y + y),
                         craftInv, i, this::acceptType);
-                this.craftingVSlots[i] = slot;
+                this.craftingVSlots[visibleIndex] = slot;
                 this.guiSlots.add(slot);
             }
         }
@@ -298,7 +346,7 @@ public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implement
                 final int x = (i % 2) * 18;
                 final int y = (i / 2) * 18;
                 VirtualMEPatternSlot slot = new VirtualMEPatternSlot(
-                        i, 96 + x, this.patternGuiY(-76 + y),
+                        i, PROCESSING_OUTPUT_OFFSET_X + x, this.patternGuiY(PROCESSING_OUTPUT_OFFSET_Y + y),
                         outInv, i, this::acceptType);
                 this.outputVSlots[i] = slot;
                 this.guiSlots.add(slot);
@@ -313,5 +361,85 @@ public class GuiExpandedProcessingPatternTerm extends GuiMEMonitorable implement
 
     private int patternGuiY(final int y) {
         return y + this.ySize - 81;
+    }
+
+    @Override
+    protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
+        if (btn == 0 && this.updateProcessingInputScrollFromMouse(xCoord, yCoord)) {
+            return;
+        }
+        super.mouseClicked(xCoord, yCoord, btn);
+    }
+
+    @Override
+    protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+        if (clickedMouseButton == 0 && this.updateProcessingInputScrollFromMouse(mouseX, mouseY)) {
+            return;
+        }
+        super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+    }
+
+    @Override
+    protected void mouseWheelEvent(final int x, final int y, final int wheel) {
+        if (this.isMouseOverProcessingInputArea(x, y) && this.getTotalProcessingInputPages() > 1) {
+            final int oldScroll = this.processingInputScrollbar.getCurrentScroll();
+            this.processingInputScrollbar.wheel(wheel);
+            if (oldScroll != this.processingInputScrollbar.getCurrentScroll()) {
+                this.setProcessingInputPage(this.processingInputScrollbar.getCurrentScroll());
+                return;
+            }
+        }
+        super.mouseWheelEvent(x, y, wheel);
+    }
+
+    private int getTotalProcessingInputPages() {
+        final IAEStackInventory craftInv = this.container.getCraftingAEInv();
+        if (craftInv == null) {
+            return 1;
+        }
+        return Math.max(1, (craftInv.getSizeInventory() + PatternHelper.PROCESSING_INPUT_PAGE_SLOTS - 1)
+                / PatternHelper.PROCESSING_INPUT_PAGE_SLOTS);
+    }
+
+    private void updateProcessingInputScrollbar() {
+        this.processingInputPage = Math.min(this.processingInputPage, this.getTotalProcessingInputPages() - 1);
+        this.processingInputScrollbar
+                .setLeft(PROCESSING_INPUT_SCROLLBAR_OFFSET_X)
+                .setTop(this.patternGuiY(PROCESSING_INPUT_OFFSET_Y))
+                .setHeight(PROCESSING_INPUT_ROWS * 18 - 2);
+        this.processingInputScrollbar.setRange(0, Math.max(0, this.getTotalProcessingInputPages() - 1), 1);
+        this.processingInputScrollbar.setCurrentScroll(this.processingInputPage);
+    }
+
+    private boolean updateProcessingInputScrollFromMouse(final int mouseX, final int mouseY) {
+        if (this.getTotalProcessingInputPages() <= 1) {
+            return false;
+        }
+
+        final int oldScroll = this.processingInputScrollbar.getCurrentScroll();
+        this.processingInputScrollbar.click(this, mouseX - this.guiLeft, mouseY - this.guiTop);
+        if (oldScroll != this.processingInputScrollbar.getCurrentScroll()) {
+            this.setProcessingInputPage(this.processingInputScrollbar.getCurrentScroll());
+            return true;
+        }
+        return false;
+    }
+
+    private void setProcessingInputPage(final int page) {
+        final int clampedPage = Math.max(0, Math.min(page, this.getTotalProcessingInputPages() - 1));
+        if (this.processingInputPage != clampedPage) {
+            this.processingInputPage = clampedPage;
+            this.initVirtualSlots();
+        } else {
+            this.processingInputPage = clampedPage;
+        }
+    }
+
+    private boolean isMouseOverProcessingInputArea(final int mouseX, final int mouseY) {
+        final int left = this.guiLeft + PROCESSING_INPUT_OFFSET_X;
+        final int top = this.guiTop + this.patternGuiY(PROCESSING_INPUT_OFFSET_Y);
+        final int right = this.guiLeft + PROCESSING_INPUT_SCROLLBAR_OFFSET_X + this.processingInputScrollbar.getWidth();
+        final int bottom = top + PROCESSING_INPUT_ROWS * 18;
+        return mouseX >= left && mouseX < right && mouseY >= top && mouseY < bottom;
     }
 }

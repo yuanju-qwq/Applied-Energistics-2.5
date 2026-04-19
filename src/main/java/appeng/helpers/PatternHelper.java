@@ -47,7 +47,9 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     private static final int CRAFTING_INPUT_LIMIT = CRAFTING_GRID_DIMENSION * CRAFTING_GRID_DIMENSION;
     public static final int PROCESSING_INPUT_HEIGHT = 4;
     public static final int PROCESSING_INPUT_WIDTH = 4;
-    public static final int PROCESSING_INPUT_LIMIT = PROCESSING_INPUT_HEIGHT * PROCESSING_INPUT_WIDTH;
+    public static final int PROCESSING_INPUT_PAGE_SLOTS = PROCESSING_INPUT_HEIGHT * PROCESSING_INPUT_WIDTH;
+    public static final int PROCESSING_INPUT_LIMIT = PROCESSING_INPUT_PAGE_SLOTS * 4;
+    private static final int PROCESSING_INPUT_INVENTORY_HEIGHT = PROCESSING_INPUT_LIMIT / PROCESSING_INPUT_WIDTH;
     public static final int CRAFTING_OUTPUT_LIMIT = 1;
     public static final int PROCESSING_OUTPUT_LIMIT = 6;
 
@@ -79,8 +81,10 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
         final NBTTagList outTag = encodedValue.getTagList("out", 10);
         this.isCrafting = encodedValue.getBoolean("crafting");
 
-        crafting = new InventoryCrafting(new ContainerNull(), isCrafting ? 3 : 4, isCrafting ? 3 : 4);
-        testFrame = new InventoryCrafting(new ContainerNull(), isCrafting ? 3 : 4, isCrafting ? 3 : 4);
+        crafting = new InventoryCrafting(new ContainerNull(), isCrafting ? 3 : PROCESSING_INPUT_WIDTH,
+                isCrafting ? 3 : PROCESSING_INPUT_INVENTORY_HEIGHT);
+        testFrame = new InventoryCrafting(new ContainerNull(), isCrafting ? 3 : PROCESSING_INPUT_WIDTH,
+                isCrafting ? 3 : PROCESSING_INPUT_INVENTORY_HEIGHT);
 
         this.canSubstitute = this.isCrafting && encodedValue.getBoolean("substitute");
         this.patternItem = is;
@@ -123,6 +127,10 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
 
             for (int x = 0; x < outTag.tagCount(); x++) {
                 NBTTagCompound resultItemTag = outTag.getCompoundTagAt(x);
+                if (resultItemTag.isEmpty()) {
+                    out.add(null);
+                    continue;
+                }
                 final ItemStack gs = stackFromNBT(resultItemTag);
 
                 if (!resultItemTag.isEmpty() && gs.isEmpty()) {
@@ -131,10 +139,12 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
 
                 if (!gs.isEmpty()) {
                     out.add(AEItemStackType.INSTANCE.getStorageChannel().createStack(gs));
+                } else {
+                    out.add(null);
                 }
             }
         }
-        final int outputLength = out.size();
+        final int outputLength = this.isCrafting ? out.size() : PROCESSING_OUTPUT_LIMIT;
 
         this.inputs = in.toArray(new IAEItemStack[isCrafting ? CRAFTING_INPUT_LIMIT : PROCESSING_INPUT_LIMIT]);
         this.outputs = out.toArray(new IAEItemStack[outputLength]);
