@@ -47,9 +47,10 @@ import appeng.util.inv.WrapperCursorItemHandler;
 import appeng.util.inv.WrapperFilteredItemHandler;
 import appeng.util.inv.WrapperRangeItemHandler;
 import appeng.util.inv.filter.IAEItemFilter;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gtqt.common.metatileentities.multi.multiblockpart.appeng.IMEPatternProviderPart;
+import gregtech.api.bridge.GTBridge;
+import gregtech.api.bridge.IGTMachineHelper;
+import gregtech.api.bridge.IGTMachineInfo;
+import gregtech.api.bridge.IGTPatternProviderInfo;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -172,19 +173,20 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                     }
                 }
                 if (Platform.GTLoaded) {
-                    for (final IGridNode gn : this.grid.getMachineNodes(IMEPatternProviderPart.class)) {
+                    for (final IGridNode gn : this.grid.getMachineNodes(IGTPatternProviderInfo.class)) {
                         if (gn.isActive()) {
                             BlockPos pos = gn.getGridBlock().getLocation().getPos();
                             World world = gn.getGridBlock().getLocation().getWorld();
-                            TileEntity te = world.getTileEntity(pos);
 
-                            if (te instanceof IGregTechTileEntity igtte) {
-                                MetaTileEntity mte = igtte.getMetaTileEntity();
-                                if (mte instanceof IMEPatternProviderPart providerPart
+                            final IGTMachineHelper machineHelper = GTBridge.getMachineHelper();
+                            if (machineHelper != null) {
+                                TileEntity te = world.getTileEntity(pos);
+                                final IGTMachineInfo machineInfo = machineHelper.getMachineInfoFromTileEntity(te);
+                                if (machineInfo instanceof IGTPatternProviderInfo providerPart
                                         && providerPart.getPatternSlot() != null) {
                                     ProviderTracker t = null;
                                     for (ProviderTracker pt : this.provider) {
-                                        if (pt.pos.equals(pos) && pt.dim == mte.getWorld().provider.getDimension()) {
+                                        if (pt.pos.equals(pos) && pt.dim == machineInfo.getWorld().provider.getDimension()) {
                                             t = pt;
                                             break;
                                         }
@@ -193,7 +195,7 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                                     if (t == null) {
                                         missing = true;
                                     } else {
-                                        String currentName = getProviderDisplayName(mte, providerPart);
+                                        String currentName = getProviderDisplayName(providerPart);
                                         if (!t.unlocalizedName.equals(currentName)) {
                                             missing = true;
                                         }
@@ -545,14 +547,15 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                     }
                 }
                 if (Platform.GTLoaded) {
-                    for (final IGridNode gn : this.grid.getMachineNodes(IMEPatternProviderPart.class)) {
+                    for (final IGridNode gn : this.grid.getMachineNodes(IGTPatternProviderInfo.class)) {
                         BlockPos pos = gn.getGridBlock().getLocation().getPos();
                         TileEntity te = gn.getGridBlock().getLocation().getWorld().getTileEntity(pos);
-                        if (te instanceof IGregTechTileEntity igtte) {
-                            MetaTileEntity mte = igtte.getMetaTileEntity();
-                            if (mte instanceof IMEPatternProviderPart patternProvider
+                        final IGTMachineHelper machineHelper = GTBridge.getMachineHelper();
+                        if (machineHelper != null) {
+                            final IGTMachineInfo machineInfo = machineHelper.getMachineInfoFromTileEntity(te);
+                            if (machineInfo instanceof IGTPatternProviderInfo patternProvider
                                     && patternProvider.getPatternSlot() != null) {
-                                provider.add(new ProviderTracker(mte, patternProvider));
+                                provider.add(new ProviderTracker(patternProvider));
                             }
                         }
                     }
@@ -681,14 +684,15 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         private final String unlocalizedName;
         private final long sortBy;
 
-        public ProviderTracker(MetaTileEntity controlBase, IMEPatternProviderPart providerPart) {
-            this.pos = controlBase.getPos();
-            this.dim = controlBase.getWorld().provider.getDimension();
+        public ProviderTracker(IGTPatternProviderInfo providerPart) {
+            final IGTMachineInfo machineInfo = providerPart.getMachineInfo();
+            this.pos = machineInfo.getPos();
+            this.dim = machineInfo.getWorld().provider.getDimension();
             this.tier = providerPart.getTier();
 
             this.server = providerPart.getPatternSlot();
             this.client = new AppEngInternalInventory(null, this.server.getSlots());
-            this.unlocalizedName = getProviderDisplayName(controlBase, providerPart);
+            this.unlocalizedName = getProviderDisplayName(providerPart);
 
             sortBy = getSortValue(pos);
         }
@@ -698,10 +702,11 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         }
     }
 
-    private static String getProviderDisplayName(final MetaTileEntity controlBase,
-            final IMEPatternProviderPart providerPart) {
-        if (providerPart.getController() != null && providerPart.getShowName().equals(controlBase.getMetaFullName())) {
-            return providerPart.getController().getMetaFullName();
+    private static String getProviderDisplayName(final IGTPatternProviderInfo providerPart) {
+        final IGTMachineInfo machineInfo = providerPart.getMachineInfo();
+        final IGTMachineInfo controller = providerPart.getController();
+        if (controller != null && providerPart.getShowName().equals(machineInfo.getMetaFullName())) {
+            return controller.getMetaFullName();
         }
         return providerPart.getShowName();
     }

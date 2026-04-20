@@ -65,9 +65,8 @@ import appeng.fluids.util.AEFluidStack;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
-import gregtech.api.recipes.ingredients.IntCircuitIngredient;
-import gtqt.common.items.GTQTMetaItems;
-import gtqt.common.items.behaviors.ProgrammableCircuit;
+import gregtech.api.bridge.GTBridge;
+import gregtech.api.bridge.IGTItemHelper;
 
 class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandler<T> {
 
@@ -258,9 +257,10 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             outputSlots.put(i, null);
         }
 
+        final IGTItemHelper itemHelper = GTBridge.getItemHelper();
         final boolean preserveLayout = recipeType.equals(VanillaRecipeCategoryUid.CRAFTING);
-        final boolean shouldApplyToolkitRules = hasToolkitInInventory(player) &&
-                GTQTMetaItems.PROGRAMMABLE_CIRCUIT != null;
+        final boolean shouldApplyToolkitRules = hasToolkitInInventory(player, itemHelper) &&
+                itemHelper != null && itemHelper.getProgrammableCircuitStack() != null;
         boolean wrappedCircuitAdded = false;
         boolean hasProgrammableCircuitInput = false;
         int craftingIndex = 0;
@@ -275,13 +275,13 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             if (ingredient.input) {
                 IAEStack<?> transferStack = ingredient.stack == null ? null : ingredient.stack.copy();
                 final ItemStack itemStack = toItemStack(transferStack);
-                if (itemStack != null && isProgrammableCircuit(itemStack)) {
+                if (itemStack != null && isProgrammableCircuit(itemStack, itemHelper)) {
                     hasProgrammableCircuitInput = true;
                 }
                 if (shouldApplyToolkitRules && !wrappedCircuitAdded && itemStack != null
-                        && !isProgrammableCircuit(itemStack)
-                        && (ingredient.notConsumed || IntCircuitIngredient.isIntegratedCircuit(itemStack))) {
-                    transferStack = wrapItemAsProgrammable(itemStack);
+                        && !isProgrammableCircuit(itemStack, itemHelper)
+                        && (ingredient.notConsumed || (itemHelper != null && itemHelper.isIntegratedCircuit(itemStack)))) {
+                    transferStack = wrapItemAsProgrammable(itemStack, itemHelper);
                     wrappedCircuitAdded = transferStack != null;
                     if (wrappedCircuitAdded) {
                         hasProgrammableCircuitInput = true;
@@ -301,8 +301,11 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
 
         if (shouldApplyToolkitRules && !wrappedCircuitAdded && !hasProgrammableCircuitInput) {
             final int firstEmptySlot = findFirstEmptyInputSlot(craftingSlots, craftingInv.getSizeInventory());
-            if (firstEmptySlot >= 0) {
-                craftingSlots.put(firstEmptySlot, toAEStack(GTQTMetaItems.PROGRAMMABLE_CIRCUIT.getStackForm(1)));
+            if (firstEmptySlot >= 0 && itemHelper != null) {
+                final ItemStack programmable = itemHelper.getProgrammableCircuitStack();
+                if (programmable != null) {
+                    craftingSlots.put(firstEmptySlot, toAEStack(programmable));
+                }
             }
         }
 
@@ -324,33 +327,37 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
     }
 
     @Nullable
-    private static IAEStack<?> wrapItemAsProgrammable(ItemStack sourceItem) {
-        if (sourceItem.isEmpty()) {
-            return null;
+    private static IAEStack<?> wrapItemAsProgrammable(ItemStack sourceItem, @Nullable IGTItemHelper itemHelper) {
+        if (sourceItem.isEmpty() || itemHelper == null) {
+            return toAEStack(sourceItem);
         }
 
-        if (GTQTMetaItems.PROGRAMMABLE_CIRCUIT == null) {
+        if (itemHelper.getProgrammableCircuitStack() == null) {
             return toAEStack(sourceItem);
         }
 
         final ItemStack wrappedItem;
-        if (IntCircuitIngredient.isIntegratedCircuit(sourceItem)) {
-            final int config = IntCircuitIngredient.getCircuitConfiguration(sourceItem);
-            wrappedItem = IntCircuitIngredient.getIntegratedCircuit(config);
+        if (itemHelper.isIntegratedCircuit(sourceItem)) {
+            final int config = itemHelper.getCircuitConfiguration(sourceItem);
+            wrappedItem = itemHelper.getIntegratedCircuit(config);
         } else {
             wrappedItem = sourceItem.copy();
             wrappedItem.setCount(1);
         }
 
-        final ItemStack programmable = GTQTMetaItems.PROGRAMMABLE_CIRCUIT.getStackForm(1);
-        ProgrammableCircuit.wrap(wrappedItem, programmable);
-        return toAEStack(programmable);
+        final ItemStack programmable = itemHelper.wrapAsProgrammableCircuit(wrappedItem);
+        return programmable != null ? toAEStack(programmable) : toAEStack(wrappedItem);
     }
 
-    private static boolean isProgrammableCircuit(ItemStack stack) {
-        return GTQTMetaItems.PROGRAMMABLE_CIRCUIT != null
+    private static boolean isProgrammableCircuit(ItemStack stack, @Nullable IGTItemHelper itemHelper) {
+        if (itemHelper == null) {
+            return false;
+        }
+        final ItemStack programmable = itemHelper.getProgrammableCircuitStack();
+        return programmable != null
                 && !stack.isEmpty()
-                && GTQTMetaItems.PROGRAMMABLE_CIRCUIT.isItemEqual(stack);
+                && programmable.getItem() == stack.getItem()
+                && programmable.getItemDamage() == stack.getItemDamage();
     }
 
     private static int findFirstEmptyInputSlot(Int2ObjectMap<IAEStack<?>> craftingSlots, int size) {
@@ -362,18 +369,30 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         return -1;
     }
 
-    private static boolean hasToolkitInInventory(@Nullable EntityPlayer player) {
-        if (player == null || GTQTMetaItems.PROGRAMMING_TOOLKIT == null) {
+    private static boolean hasToolkitInInventory(@Nullable EntityPlayer player, @Nullable IGTItemHelper itemHelper) {
+        if (player == null || itemHelper == null) {
             return false;
         }
 
-        for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
-            final ItemStack invStack = player.inventory.getStackInSlot(i);
-            if (!invStack.isEmpty() && GTQTMetaItems.PROGRAMMING_TOOLKIT.isItemEqual(invStack)) {
-                return true;
-            }
+        // 通过 IGTItemHelper 查找编程工具包
+        // 如果 itemHelper 没有提供 getProgrammableCircuitStack()，则工具包功能不可用
+        final ItemStack programmable = itemHelper.getProgrammableCircuitStack();
+        if (programmable == null) {
+            return false;
         }
-        return false;
+
+        // 查找玩家背包中是否有编程工具包
+        final boolean[] found = {false};
+        itemHelper.findMetaItem("programming_toolkit", (item, meta) -> {
+            for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
+                final ItemStack invStack = player.inventory.getStackInSlot(i);
+                if (!invStack.isEmpty() && invStack.getItem() == item && invStack.getItemDamage() == meta) {
+                    found[0] = true;
+                    return;
+                }
+            }
+        });
+        return found[0];
     }
 
     @Nullable

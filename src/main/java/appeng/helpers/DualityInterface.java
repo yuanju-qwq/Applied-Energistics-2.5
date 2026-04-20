@@ -49,9 +49,10 @@ import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 
 import de.ellpeck.actuallyadditions.api.tile.IPhantomTile;
-import gregtech.api.block.machines.BlockMachine;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
+
+import gregtech.api.bridge.GTBridge;
+import gregtech.api.bridge.IGTMachineHelper;
+import gregtech.api.bridge.IGTMachineInfo;
 
 import appeng.api.config.*;
 import appeng.api.implementations.ICraftingPatternItem;
@@ -1593,16 +1594,18 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                 final Block directedBlock = directedBlockState.getBlock();
                 ItemStack what = new ItemStack(directedBlock, 1, directedBlock.getMetaFromState(directedBlockState));
 
-                if (Platform.GTLoaded && directedBlock instanceof BlockMachine) {
-                    MetaTileEntity metaTileEntity = appeng.util.WorldHelper.getMetaTileEntity(directedTile.getWorld(),
-                            directedTile.getPos());
-                    if (metaTileEntity != null) {
-                        if (metaTileEntity instanceof MetaTileEntityMultiblockPart part) {
-                            if (part.getController() != null) {
-                                return part.getController().getMetaFullName();
+                if (Platform.GTLoaded) {
+                    final IGTMachineHelper machineHelper = GTBridge.getMachineHelper();
+                    if (machineHelper != null && machineHelper.isGTMachineBlock(directedBlock)) {
+                        final IGTMachineInfo machineInfo = machineHelper.getMachineInfo(
+                                directedTile.getWorld(), directedTile.getPos());
+                        if (machineInfo != null) {
+                            final IGTMachineInfo controller = machineInfo.getMultiblockController();
+                            if (controller != null) {
+                                return controller.getMetaFullName();
                             }
+                            return machineInfo.getMetaFullName();
                         }
-                        return metaTileEntity.getMetaFullName();
                     }
                 }
 

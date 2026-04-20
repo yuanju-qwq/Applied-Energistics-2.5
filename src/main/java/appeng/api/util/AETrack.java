@@ -4,7 +4,9 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
 
-import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.bridge.GTBridge;
+import gregtech.api.bridge.IGTMachineHelper;
+import gregtech.api.bridge.IGTMachineInfo;
 
 import appeng.api.networking.crafting.ICraftingMedium;
 import appeng.api.networking.crafting.ICraftingProvider;
@@ -22,8 +24,8 @@ public class AETrack {
                         + blockPos.getY() + " Z:" + blockPos.getZ() + " 的接口"));
                 showPos(blockPos, player);
             } else if (Platform.isModLoaded("gregtech")) {
-                if (provider instanceof MetaTileEntity metaTileEntity) {
-                    BlockPos blockPos = metaTileEntity.getPos();
+                if (provider instanceof IGTMachineInfo machineInfo) {
+                    BlockPos blockPos = machineInfo.getPos();
                     player.sendMessage(new TextComponentTranslation("[合成追踪]正在追踪位于 X:" + blockPos.getX() + " Y:"
                             + blockPos.getY() + " Z:" + blockPos.getZ() + " 的样板总成"));
                     showPos(blockPos, player);

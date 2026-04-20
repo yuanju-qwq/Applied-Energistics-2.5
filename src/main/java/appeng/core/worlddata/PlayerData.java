@@ -89,7 +89,10 @@ final class PlayerData extends WorldSavedData implements IWorldPlayerData {
         int[] playerIds = nbt.getIntArray(TAG_PLAYER_IDS);
         long[] profileIds;
         if (nbt.hasKey(TAG_PROFILE_IDS)) {
-            profileIds = ((NBTTagLongArray) nbt.getTag(TAG_PROFILE_IDS)).data;
+            // NBTTagLongArray 没有公开的 getter 方法，使用反射获取 data 字段
+            // 传入 SRG 名 "field_193587_b" 和 MCP 名 "data" 以兼容开发与生产环境
+            profileIds = net.minecraftforge.fml.relauncher.ReflectionHelper
+                    .getPrivateValue(NBTTagLongArray.class, (NBTTagLongArray) nbt.getTag(TAG_PROFILE_IDS), "field_193587_b", "data");
         } else {
             profileIds = new long[0];
         }

@@ -12,10 +12,10 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
 
-import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.IEnergyContainer;
 
 import appeng.api.parts.IPartModel;
+import appeng.capabilities.Capabilities;
 import appeng.items.parts.PartModels;
 import appeng.me.GridAccessException;
 
@@ -49,9 +49,9 @@ public class PartP2PGTCEPower extends PartP2PTunnel<PartP2PGTCEPower> {
             final TileEntity self = this.getTile();
             final TileEntity te = self.getWorld().getTileEntity(self.getPos().offset(this.getSide().getFacing()));
 
-            if (te != null && te.hasCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER,
+            if (te != null && te.hasCapability(Capabilities.GTCE_ENERGY,
                     this.getSide().getOpposite().getFacing())) {
-                return te.getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER,
+                return te.getCapability(Capabilities.GTCE_ENERGY,
                         this.getSide().getOpposite().getFacing());
             }
         }
@@ -61,7 +61,7 @@ public class PartP2PGTCEPower extends PartP2PTunnel<PartP2PGTCEPower> {
     @Override
     public boolean hasCapability(@Nonnull Capability<?> capability) {
         if (!this.isOutput()) {
-            if (capability == GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER) {
+            if (capability == Capabilities.GTCE_ENERGY) {
                 return true;
             }
         }
@@ -71,7 +71,7 @@ public class PartP2PGTCEPower extends PartP2PTunnel<PartP2PGTCEPower> {
     @Nullable
     @Override
     public <T> T getCapability(@Nonnull Capability<T> capability) {
-        if (capability == GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER) {
+        if (capability == Capabilities.GTCE_ENERGY) {
             if (this.isOutput()) {
                 return null;
             }

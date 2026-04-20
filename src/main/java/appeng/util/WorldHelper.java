@@ -18,8 +18,6 @@
 
 package appeng.util;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,11 +38,10 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.util.FakePlayerFactory;
-import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
-import gregtech.api.block.machines.BlockMachine;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.util.GTUtility;
+import gregtech.api.bridge.GTBridge;
+import gregtech.api.bridge.IGTMachineHelper;
+import gregtech.api.bridge.IGTMachineInfo;
 
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
@@ -54,7 +51,6 @@ import appeng.hooks.TickHandler;
 public final class WorldHelper {
     private static final Random RANDOM_GENERATOR = new Random();
     private static final WeakHashMap<World, EntityPlayer> FAKE_PLAYERS = new WeakHashMap<>();
-    private static Method reflectGTgetMTE;
 
     private WorldHelper() {
     }
@@ -185,21 +181,10 @@ public final class WorldHelper {
         return (float) (player.posY + player.getEyeHeight() - player.getDefaultEyeHeight());
     }
 
-    public static MetaTileEntity getMetaTileEntity(IBlockAccess world, BlockPos pos) {
-        if (reflectGTgetMTE == null) {
-            try {
-                reflectGTgetMTE = ReflectionHelper.findMethod(BlockMachine.class, "getMetaTileEntity", null,
-                        IBlockAccess.class, BlockPos.class);
-            } catch (ReflectionHelper.UnableToFindMethodException e) {
-                reflectGTgetMTE = ReflectionHelper.findMethod(GTUtility.class, "getMetaTileEntity", null,
-                        IBlockAccess.class, BlockPos.class);
-            }
-        } else {
-            try {
-                return (MetaTileEntity) reflectGTgetMTE.invoke(reflectGTgetMTE, world, pos);
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
-            }
+    public static IGTMachineInfo getMetaTileEntity(IBlockAccess world, BlockPos pos) {
+        final IGTMachineHelper helper = GTBridge.getMachineHelper();
+        if (helper != null) {
+            return helper.getMachineInfo(world, pos);
         }
         return null;
     }
