@@ -508,4 +508,45 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
             return equality;
         }
     }
+
+    // ========== 静态工具方法：列表压缩 ==========
+
+    /**
+     * 将物品栈数组中的相同项合并（压缩）。
+     */
+    public static IAEItemStack[] convertToCondensedList(final IAEItemStack[] items) {
+        final LinkedHashMap<IAEItemStack, IAEItemStack> tmp = new LinkedHashMap<>();
+        for (final IAEItemStack io : items) {
+            if (io == null) {
+                continue;
+            }
+            final IAEItemStack g = tmp.get(io);
+            if (g == null) {
+                tmp.put(io, io.copy());
+            } else {
+                g.add(io);
+            }
+        }
+        return tmp.values().toArray(new IAEItemStack[0]);
+    }
+
+    /**
+     * 将泛型栈数组中的相同项合并（压缩）。
+     */
+    @SuppressWarnings("unchecked")
+    public static IAEStack<?>[] convertToCondensedAEList(final IAEStack<?>[] items) {
+        final LinkedHashMap<IAEStack<?>, IAEStack<?>> tmp = new LinkedHashMap<>();
+        for (final IAEStack<?> io : items) {
+            if (io == null) {
+                continue;
+            }
+            final IAEStack g = tmp.get(io);
+            if (g == null) {
+                tmp.put(io, io.copy());
+            } else {
+                g.add(io);
+            }
+        }
+        return tmp.values().toArray(new IAEStack<?>[0]);
+    }
 }

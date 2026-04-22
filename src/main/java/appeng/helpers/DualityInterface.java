@@ -34,6 +34,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.InventoryCrafting;
+import appeng.util.inv.MEInventoryCrafting;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -436,8 +437,9 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
         }
 
         // 濡偓閺屻儲妲搁崥锔胯礋 ItemFluidDrop閿涘牊绁︽担鎾插悏閻椻晛鎼ч敍?
-        if (appeng.fluids.items.ItemFluidDrop.isFluidDrop(is)) {
-            net.minecraftforge.fluids.FluidStack fs = appeng.fluids.items.ItemFluidDrop.getFluidStack(is);
+        // FluidDummyItem：流体占位物品（由 asItemStackRepresentation 产生）
+        if (is.getItem() instanceof appeng.fluids.items.FluidDummyItem fluidDummy) {
+            net.minecraftforge.fluids.FluidStack fs = fluidDummy.getFluidStack(is);
             if (fs != null) {
                 return AEFluidStack.fromFluidStack(fs);
             }
@@ -1171,24 +1173,30 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
 
                             this.visitedFaces.clear();
 
-                            // 鐎甸€涚艾濞翠椒缍?Pattern閿涘奔濞囬悽銊︾【閸ㄥ绶崗?
-                            final IAEStack<?>[] genericInputs = patternDetails.getCondensedAEInputs();
-                            boolean hasFluidInputs = false;
-                            for (IAEStack<?> gi : genericInputs) {
-                                if (gi != null && !(gi instanceof IAEItemStack)) {
-                                    hasFluidInputs = true;
-                                    break;
+                          
+                            // 从 MEInventoryCrafting 直接获取泛型栈，根据类型分流推送
+                            boolean hasNonItemInputs = false;
+                            if (table instanceof MEInventoryCrafting meTable) {
+                                for (int x = 0; x < meTable.getSizeInventory(); x++) {
+                                    final IAEStack<?> aeStack = meTable.getAEStackInSlot(x);
+                                    if (aeStack != null && !(aeStack instanceof IAEItemStack)) {
+                                        hasNonItemInputs = true;
+                                        break;
+                                    }
                                 }
                             }
 
-                            if (hasFluidInputs) {
-                                for (IAEStack<?> gi : genericInputs) {
-                                    if (gi != null) {
-                                        this.addToSendList(gi.copy());
+                            if (hasNonItemInputs && table instanceof MEInventoryCrafting meTable) {
+                                // 含流体/非物品输入：使用泛型栈直接发送
+                                for (int x = 0; x < meTable.getSizeInventory(); x++) {
+                                    final IAEStack<?> aeStack = meTable.getAEStackInSlot(x);
+                                    if (aeStack != null) {
+                                        this.addToSendList(aeStack.copy());
                                     }
                                 }
                                 pushItemsOut(EnumSet.of(s));
                             } else {
+                                // 纯物品输入：使用 ItemStack 按面发送
                                 for (int x = 0; x < table.getSizeInventory(); x++) {
                                     final ItemStack is = table.getStackInSlot(x);
                                     if (!is.isEmpty()) {
@@ -1252,24 +1260,28 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                     this.visitedFaces.clear();
 
                     // 鐎甸€涚艾濞翠椒缍?Pattern閿涘奔濞囬悽銊︾【閸ㄥ绶崗銉︽降閹恒劑鈧緤绱欓弨顖涘瘮濞翠椒缍嬮弽鍫礆
-                    final IAEStack<?>[] genericInputs = patternDetails.getCondensedAEInputs();
-                    boolean hasFluidInputs = false;
-                    for (IAEStack<?> gi : genericInputs) {
-                        if (gi != null && !(gi instanceof IAEItemStack)) {
-                            hasFluidInputs = true;
-                            break;
+                    // 从 MEInventoryCrafting 直接获取泛型栈，根据类型分流推送
+                    boolean hasNonItemInputs = false;
+                    if (table instanceof MEInventoryCrafting meTable) {
+                        for (int x = 0; x < meTable.getSizeInventory(); x++) {
+                            final IAEStack<?> aeStack = meTable.getAEStackInSlot(x);
+                            if (aeStack != null && !(aeStack instanceof IAEItemStack)) {
+                                hasNonItemInputs = true;
+                                break;
+                            }
                         }
                     }
 
-                    if (hasFluidInputs) {
-                        // 濞翠椒缍?Pattern閿涙矮绮犲▔娑樼€锋潏鎾冲弳閹恒劑鈧?
-                        for (IAEStack<?> gi : genericInputs) {
-                            if (gi != null) {
-                                this.addToSendList(gi.copy());
+                    if (hasNonItemInputs && table instanceof MEInventoryCrafting meTable) {
+                        // 含流体/非物品输入：使用泛型栈直接发送
+                        for (int x = 0; x < meTable.getSizeInventory(); x++) {
+                            final IAEStack<?> aeStack = meTable.getAEStackInSlot(x);
+                            if (aeStack != null) {
+                                this.addToSendList(aeStack.copy());
                             }
                         }
                     } else {
-                        // 閺咁噣鈧?Pattern閿涙矮绮?InventoryCrafting 閹恒劑鈧?
+                        // 纯物品输入：使用 ItemStack 按面发送
                         for (int x = 0; x < table.getSizeInventory(); x++) {
                             final ItemStack is = table.getStackInSlot(x);
                             if (!is.isEmpty()) {
@@ -1279,7 +1291,7 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                     }
 
                     onPushPatternSuccess(patternDetails);
-                    if (hasFluidInputs) {
+                    if (hasNonItemInputs) {
                         pushItemsOut(EnumSet.of(s));
                     } else {
                         pushItemsOut(s);

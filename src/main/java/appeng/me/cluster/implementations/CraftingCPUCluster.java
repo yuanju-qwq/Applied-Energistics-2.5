@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableList;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -49,7 +48,6 @@ import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
@@ -64,8 +62,8 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketCraftingToast;
 import appeng.crafting.*;
 import appeng.crafting.v2.CraftingJobV2;
-import appeng.fluids.items.ItemFluidDrop;
 import appeng.helpers.PatternHelper;
+import appeng.util.inv.MEInventoryCrafting;
 import appeng.integration.modules.betterquesting.BQEventHelper;
 import appeng.me.cache.CraftingGridCache;
 import appeng.me.cluster.IAECluster;
@@ -695,7 +693,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                 }
 
                 if (this.canCraft(details, details.getCondensedAEInputs())) {
-                    InventoryCrafting ic = null;
+                    MEInventoryCrafting ic = null;
 
                     if (!visitedMediums.containsKey(details) || visitedMediums.get(details).isEmpty()) {
                         visitedMediums.put(details, new ArrayDeque<>(
@@ -726,9 +724,9 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                     continue;
                                 }
                                 if (details.isCraftable()) {
-                                    ic = new InventoryCrafting(new ContainerNull(), 3, 3);
+                                    ic = new MEInventoryCrafting(new ContainerNull(), 3, 3);
                                 } else {
-                                    ic = new InventoryCrafting(new ContainerNull(),
+                                    ic = new MEInventoryCrafting(new ContainerNull(),
                                             PatternHelper.PROCESSING_INPUT_WIDTH,
                                             PatternHelper.PROCESSING_INPUT_HEIGHT);
                                 }
@@ -791,17 +789,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
                                             if (ais != null && ais.getStackSize() > 0) {
                                                 this.postChange(input[x], this.machineSrc);
-                                                // 将泛型栈转换为 ItemStack 放入 InventoryCrafting
-                                                // 物品类型直接 createItemStack()，流体类型通过 ItemFluidDrop 桥接
-                                                final ItemStack is;
-                                                if (ais instanceof IAEItemStack itemAIS) {
-                                                    is = itemAIS.createItemStack();
-                                                } else if (ais instanceof IAEFluidStack fluidAIS) {
-                                                    is = ItemFluidDrop.newStack(fluidAIS.getFluidStack());
-                                                } else {
-                                                    is = ais.asItemStackRepresentation();
-                                                }
-                                                ic.setInventorySlotContents(x, is);
+                                                // 使用 MEInventoryCrafting 的泛型槽位，直接放入 IAEStack
+                                                ic.setInventorySlotContents(x, ais);
                                                 if (ais.getStackSize() >= input[x].getStackSize()) {
                                                     found = true;
                                                     continue;
@@ -817,14 +806,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
                                 if (!found) {
                                     // put stuff back..
-                                    for (int x = 0; x < ic.getSizeInventory(); x++) {
-                                        final ItemStack is = ic.getStackInSlot(x);
-                                        if (!is.isEmpty()) {
-                                            this.inventory.injectItems(AEItemStack.fromItemStack(is),
-                                                    Actionable.MODULATE,
-                                                    this.machineSrc);
-                                        }
-                                    }
+                                    this.returnItems(ic);
                                     ic = null;
                                     break;
                                 }
@@ -879,14 +861,34 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
                     if (ic != null) {
                         // put stuff back..
-                        for (int x = 0; x < ic.getSizeInventory(); x++) {
-                            final ItemStack is = ic.getStackInSlot(x);
-                            if (!is.isEmpty()) {
-                                this.inventory.injectItems(AEItemStack.fromItemStack(is), Actionable.MODULATE,
-                                        this.machineSrc);
-                            }
-                        }
+                        this.returnItems(ic);
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * 将 {@link MEInventoryCrafting} 中所有槽位的内容退还到合成仓库。
+     * <p>
+     * 优先使用 {@link MEInventoryCrafting#getAEStackInSlot} 获取泛型栈（支持物品+流体），
+     * 若并行数组为空（例如合成台模式中通过原生 ItemStack 设置的槽位），
+     * 则回退到从 {@link ItemStack} 构建 {@link AEItemStack}。
+     *
+     * @param ic 需要退还内容的合成背包
+     */
+    private void returnItems(MEInventoryCrafting ic) {
+        for (int x = 0; x < ic.getSizeInventory(); x++) {
+            final IAEStack<?> aeStack = ic.getAEStackInSlot(x);
+            if (aeStack != null) {
+                // 优先使用泛型栈退还（支持物品、流体等所有类型）
+                this.inventory.injectItems(aeStack, Actionable.MODULATE);
+            } else {
+                // 回退：从 ItemStack 构建（合成台模式的物品栈）
+                final ItemStack is = ic.getStackInSlot(x);
+                if (!is.isEmpty()) {
+                    this.inventory.injectItems(AEItemStack.fromItemStack(is),
+                            Actionable.MODULATE, this.machineSrc);
                 }
             }
         }
@@ -948,22 +950,14 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             return 0;
         }
 
-        // 第三步：构建 InventoryCrafting 并调用批量推送
-        InventoryCrafting ic = new InventoryCrafting(new appeng.container.ContainerNull(),
+        // 第三步：构建 MEInventoryCrafting 并调用批量推送
+        MEInventoryCrafting ic = new MEInventoryCrafting(new appeng.container.ContainerNull(),
                 appeng.helpers.PatternHelper.PROCESSING_INPUT_WIDTH,
                 appeng.helpers.PatternHelper.PROCESSING_INPUT_HEIGHT);
         for (int x = 0; x < input.length; x++) {
             if (input[x] != null) {
-                // 物品类型直接 createItemStack()，流体类型通过 ItemFluidDrop 桥接
-                final ItemStack is;
-                if (input[x] instanceof IAEItemStack itemInput) {
-                    is = itemInput.createItemStack();
-                } else if (input[x] instanceof IAEFluidStack fluidInput) {
-                    is = ItemFluidDrop.newStack(fluidInput.getFluidStack());
-                } else {
-                    is = input[x].asItemStackRepresentation();
-                }
-                ic.setInventorySlotContents(x, is);
+                // 使用 MEInventoryCrafting 的泛型槽位，直接放入 IAEStack
+                ic.setInventorySlotContents(x, input[x]);
             }
         }
 

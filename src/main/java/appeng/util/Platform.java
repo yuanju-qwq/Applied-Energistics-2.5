@@ -840,4 +840,203 @@ public class Platform {
     /**
      * 比较两个泛型 IAEStack 是否完全相同（包括类型、内容和数量）。
      */
+
+    // ========== 泛型栈 NBT 序列化/反序列化工具方法 ==========
+
+    /**
+     * 从 NBT 中读取一个泛型 {@link IAEStack}。
+     * <p>
+     * 支持以下两种 NBT 格式，实现旧存档无缝迁移：
+     * <ol>
+     *   <li><b>新格式</b>：含 {@code "StackType"} 字符串键 → 通过 {@link IAEStack#fromNBTGeneric(NBTTagCompound)} 反序列化</li>
+     *   <li><b>旧格式</b>：不含 {@code "StackType"} 键 → 当作 {@link IAEItemStack}，可选地做 ItemFluidDrop 转换</li>
+     * </ol>
+     *
+     * @param tag     NBT 标签
+     * @param convert 是否尝试将旧格式的 ItemFluidDrop 物品转换为 {@link IAEFluidStack}
+     * @return 反序列化的泛型栈，tag 为空则返回 null
+     */
+    @Nullable
+    public static IAEStack<?> readStackNBT(@Nullable final NBTTagCompound tag, final boolean convert) {
+        if (tag == null || tag.isEmpty()) {
+            return null;
+        }
+
+        // 新格式：StackType 为字符串
+        String stackType = tag.getString("StackType");
+        if (!stackType.isEmpty()) {
+            return IAEStack.fromNBTGeneric(tag);
+        }
+
+        // 旧格式：无 StackType 键，当作物品栈
+        IAEItemStack itemStack = AEItemStack.fromNBT(tag);
+        if (itemStack == null) {
+            return null;
+        }
+        if (convert) {
+            return convertLegacyStack(itemStack);
+        }
+        return itemStack;
+    }
+
+    /**
+     * 简化版本：不做旧格式转换。
+     */
+    @Nullable
+    public static IAEStack<?> readStackNBT(@Nullable final NBTTagCompound tag) {
+        return readStackNBT(tag, false);
+    }
+
+    /**
+     * 将泛型栈写入 NBT。
+     *
+     * @param stack    泛型栈，可为 null
+     * @param tag      写入目标
+     * @param isModern true = 使用新格式（带 "StackType" 字符串），false = 使用旧格式（兼容旧版 AE2）
+     * @return 写入后的 tag
+     */
+    public static NBTTagCompound writeStackNBT(@Nullable final IAEStack<?> stack, final NBTTagCompound tag,
+            boolean isModern) {
+        if (stack != null) {
+            if (isModern) {
+                // 新格式：带类型标识
+                stack.writeToNBTGeneric(tag);
+            } else if (stack instanceof IAEItemStack) {
+                // 旧格式：直接作为物品栈序列化
+                stack.writeToNBT(tag);
+            } else if (stack instanceof IAEFluidStack) {
+                // 旧格式：流体需要转为 ItemFluidDrop 的物品栈格式
+                IAEItemStack converted = stackConvert(stack);
+                if (converted != null) {
+                    converted.writeToNBT(tag);
+                }
+            } else {
+                // 未知类型，回退到新格式
+                stack.writeToNBTGeneric(tag);
+            }
+        }
+        return tag;
+    }
+
+    /**
+     * 将泛型栈写入 NBT（默认使用新格式）。
+     */
+    public static NBTTagCompound writeStackNBT(@Nullable final IAEStack<?> stack, final NBTTagCompound tag) {
+        return writeStackNBT(stack, tag, true);
+    }
+
+    // ========== 泛型栈列表 NBT 序列化/反序列化 ==========
+
+    /**
+     * 从 {@link NBTTagList} 中读取泛型栈列表。
+     *
+     * @param tags    NBTTagList（每个条目为 NBTTagCompound）
+     * @param convert 是否做旧格式 ItemFluidDrop 自动转换
+     * @return 泛型栈列表
+     */
+    public static IItemList<IAEStack<?>> readAEStackListNBT(@Nullable final NBTTagList tags, boolean convert) {
+        @SuppressWarnings("unchecked")
+        final IItemList<IAEStack<?>> out = (IItemList<IAEStack<?>>) (IItemList<?>)
+                AEApi.instance().storage().createAEStackList();
+
+        if (tags != null) {
+            for (int x = 0; x < tags.tagCount(); x++) {
+                final IAEStack<?> ais = readStackNBT(tags.getCompoundTagAt(x), convert);
+                if (ais != null) {
+                    out.addGeneric(ais);
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 简化版本：不做旧格式转换。
+     */
+    public static IItemList<IAEStack<?>> readAEStackListNBT(@Nullable final NBTTagList tags) {
+        return readAEStackListNBT(tags, false);
+    }
+
+    /**
+     * 将泛型栈列表写入 {@link NBTTagList}（使用新格式）。
+     *
+     * @param myList 栈列表
+     * @return 写入后的 NBTTagList
+     */
+    public static NBTTagList writeAEStackListNBT(final IItemList<?> myList) {
+        return writeAEStackListNBT(myList, new NBTTagList());
+    }
+
+    /**
+     * 将泛型栈列表追加到已有的 {@link NBTTagList}。
+     *
+     * @param myList 栈列表
+     * @param out    已有的 NBTTagList
+     * @return 写入后的 NBTTagList
+     */
+    public static NBTTagList writeAEStackListNBT(final IItemList<?> myList, NBTTagList out) {
+        for (final IAEStack<?> ais : myList) {
+            NBTTagCompound tag = new NBTTagCompound();
+            writeStackNBT(ais, tag, true);
+            out.appendTag(tag);
+        }
+        return out;
+    }
+
+    /**
+     * 将 {@link IAEStack} 转换为 {@link IAEItemStack}（用于旧接口兼容）。
+     * <p>
+     * 如果栈本身是 {@link IAEItemStack} 则直接返回；
+     * 如果是 {@link IAEFluidStack} 且 ItemFluidDrop 可用，则创建对应的 drop 物品；
+     * 否则返回 null。
+     *
+     * @param stack 泛型栈
+     * @return 物品栈表示，或 null
+     */
+    @Nullable
+    public static IAEItemStack stackConvert(@Nullable final IAEStack<?> stack) {
+        if (stack == null) {
+            return null;
+        }
+        if (stack instanceof IAEItemStack ais) {
+            return ais;
+        }
+        if (stack instanceof IAEFluidStack ifs) {
+            IAEItemStack result = appeng.fluids.items.ItemFluidDrop.newAEStack(ifs);
+            if (result != null) {
+                // 保留元数据
+                result.setCraftable(stack.isCraftable());
+                result.setCountRequestable(stack.getCountRequestable());
+            }
+            return result;
+        }
+        return null;
+    }
+
+    /**
+     * 尝试将旧格式的 {@link IAEItemStack}（可能是 ItemFluidDrop）转换为 {@link IAEFluidStack}。
+     * 如果不是 ItemFluidDrop，原样返回。
+     * 转换时保留 craftable / requestable 等元数据。
+     */
+    @Nullable
+    private static IAEStack<?> convertLegacyStack(@Nullable final IAEItemStack stack) {
+        if (stack == null) {
+            return null;
+        }
+        final ItemStack is = stack.createItemStack();
+        if (appeng.fluids.items.ItemFluidDrop.isFluidDrop(is)) {
+            final net.minecraftforge.fluids.FluidStack fluid =
+                    appeng.fluids.items.ItemFluidDrop.getFluidStack(is);
+            if (fluid != null) {
+                IAEFluidStack fluidStack = AEFluidStack.fromFluidStack(fluid);
+                if (fluidStack != null) {
+                    // 保留元数据
+                    fluidStack.setCraftable(stack.isCraftable());
+                    fluidStack.setCountRequestable(stack.getCountRequestable());
+                    return fluidStack;
+                }
+            }
+        }
+        return stack;
+    }
 }

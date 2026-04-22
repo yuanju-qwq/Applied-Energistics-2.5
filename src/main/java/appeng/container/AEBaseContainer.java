@@ -71,7 +71,7 @@ import appeng.core.sync.packets.PacketTargetFluidStack;
 import appeng.core.sync.packets.PacketTargetItemStack;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.fluids.util.AEFluidStack;
-import appeng.fluids.items.ItemFluidDrop;
+import appeng.fluids.items.FluidDummyItem;
 import appeng.helpers.ICustomNameObject;
 import appeng.helpers.InventoryAction;
 import appeng.me.helpers.PlayerSource;
@@ -671,7 +671,7 @@ public abstract class AEBaseContainer extends Container {
                             }
                         } else {
                             ItemStack existing = s.getStack();
-                            if (!existing.isEmpty() && existing.getItem() instanceof ItemFluidDrop) {
+                            if (!existing.isEmpty() && existing.getItem() instanceof FluidDummyItem) {
                                 int newCount = existing.getCount() - 1000;
                                 if (newCount <= 0) {
                                     s.putStack(ItemStack.EMPTY);
@@ -688,7 +688,7 @@ public abstract class AEBaseContainer extends Container {
                             s.putStack(ItemStack.EMPTY);
                         } else {
                             ItemStack maxFluid = tryConvertToFluidDrop(hand);
-                            if (maxFluid.getItem() instanceof ItemFluidDrop) {
+                            if (maxFluid.getItem() instanceof FluidDummyItem) {
                                 maxFluid.setCount(Integer.MAX_VALUE);
                             }
                             s.putStack(maxFluid);
@@ -1379,7 +1379,7 @@ public abstract class AEBaseContainer extends Container {
     }
 
     /**
-     * 尝试将流体容器（桶等）转换为 ItemFluidDrop。
+     * 尝试将流体容器（桶等）转换为 FluidDummyItem 占位物品。
      * 如果物品不是流体容器，则返回原物品的副本。
      */
     protected static ItemStack tryConvertToFluidDrop(ItemStack hand) {
@@ -1388,9 +1388,9 @@ public abstract class AEBaseContainer extends Container {
         }
         FluidStack fluid = FluidUtil.getFluidContained(hand);
         if (fluid != null && fluid.amount > 0) {
-            ItemStack fluidDrop = ItemFluidDrop.newStack(fluid);
-            if (!fluidDrop.isEmpty()) {
-                return fluidDrop;
+            AEFluidStack aeFluid = AEFluidStack.fromFluidStack(fluid);
+            if (aeFluid != null) {
+                return aeFluid.asItemStackRepresentation();
             }
         }
         return hand.copy();

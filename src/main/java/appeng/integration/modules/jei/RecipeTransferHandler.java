@@ -60,7 +60,6 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketJEIRecipe;
 import appeng.core.sync.packets.PacketVirtualSlot;
 import appeng.core.sync.packets.PacketValueConfig;
-import appeng.fluids.items.ItemFluidDrop;
 import appeng.fluids.util.AEFluidStack;
 import appeng.integration.modules.gregtech.CircuitHelper;
 import appeng.tile.inventory.IAEStackInventory;
@@ -439,12 +438,21 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         return result;
     }
 
+    /**
+     * Legacy 路径的流体转换：将 FluidStack 转为 ItemStack 表示。
+     * 由于 legacy 路径（PacketJEIRecipe）主要面向合成终端（只支持物品），
+     * 流体成分使用 FluidDummyItem（asItemStackRepresentation）作为占位表示。
+     */
     @Nullable
     private static ItemStack toLegacyTransferItem(@Nullable FluidStack stack) {
         if (stack == null || stack.amount <= 0) {
             return ItemStack.EMPTY;
         }
-        return ItemFluidDrop.newStack(stack.copy());
+        final AEFluidStack aeFluid = AEFluidStack.fromFluidStack(stack.copy());
+        if (aeFluid == null) {
+            return ItemStack.EMPTY;
+        }
+        return aeFluid.asItemStackRepresentation();
     }
 
     @Nullable

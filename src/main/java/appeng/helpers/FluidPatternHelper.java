@@ -49,7 +49,10 @@ import appeng.util.item.AEItemStackType;
  * <p>
  * 物品栈存储在 "in"/"out" 标签中，流体栈存储在 "fluidIn"/"fluidOut" 标签中。
  * 也支持统一在 "in"/"out" 中使用泛型序列化格式（带 "aeTypeId" 字段）。
+ *
+ * @deprecated 已被 {@link UltimatePatternHelper} 替代。此类仅为旧代码兼容保留。
  */
+@Deprecated
 public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<FluidPatternHelper> {
 
     private final ItemStack patternItem;

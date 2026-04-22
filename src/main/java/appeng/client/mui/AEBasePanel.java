@@ -90,7 +90,7 @@ import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.core.sync.packets.PacketSwapSlots;
 import appeng.fluids.client.render.FluidStackSizeRenderer;
 import appeng.fluids.container.slots.IMEFluidSlot;
-import appeng.fluids.items.ItemFluidDrop;
+import appeng.fluids.items.FluidDummyItem;
 import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.InventoryAction;
 import appeng.items.misc.ItemEncodedPattern;
@@ -444,10 +444,10 @@ public abstract class AEBasePanel extends GuiContainer {
             }
             return;
         } else if (s instanceof SlotFake && !s.getStack().isEmpty()
-                && s.getStack().getItem() instanceof ItemFluidDrop) {
-            // SlotFake 中的 ItemFluidDrop：渲染为流体纹理 + 流体数量
+                && s.getStack().getItem() instanceof FluidDummyItem) {
+            // SlotFake 中的 FluidDummyItem（由 asItemStackRepresentation 产生）：渲染为流体纹理 + 流体数量
             final ItemStack stack = s.getStack();
-            final FluidStack fluidStack = ItemFluidDrop.getFluidStack(stack);
+            final FluidStack fluidStack = ((FluidDummyItem) stack.getItem()).getFluidStack(stack);
 
             if (fluidStack != null) {
                 GlStateManager.disableLighting();
@@ -468,7 +468,7 @@ public abstract class AEBasePanel extends GuiContainer {
 
                 IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(fluidStack);
                 if (aeFluid != null) {
-                    aeFluid.setStackSize(stack.getCount());
+                    // Use the fluid amount from NBT, not ItemStack.count
                     this.fluidStackSizeRenderer.renderStackSize(this.fontRenderer, aeFluid, s.xPos, s.yPos);
                 }
             } else {

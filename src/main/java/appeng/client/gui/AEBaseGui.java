@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -92,7 +92,7 @@ import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.core.sync.packets.PacketSwapSlots;
 import appeng.fluids.client.render.FluidStackSizeRenderer;
 import appeng.fluids.container.slots.IMEFluidSlot;
-import appeng.fluids.items.ItemFluidDrop;
+import appeng.fluids.items.FluidDummyItem;
 import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.InventoryAction;
 import appeng.items.misc.ItemEncodedPattern;
@@ -845,7 +845,12 @@ public abstract class AEBaseGui extends GuiContainer implements IMTModGuiContain
 
     /**
      * This overrides the base-class method through some access transformer hackery...
+     *
+     * [MUI Migration] 此方法依赖 Access Transformer 将 GuiContainer.drawSlot 从 private 改为 public。
+     * 由于 MUI 系统已完全替代旧 Gui 渲染逻辑（见 AEBasePanel.drawSlot），此方法已注释掉。
+     * 若 AT 编译环境恢复后需要复用，取消注释即可。
      */
+    /*
     @Override
     public void drawSlot(Slot s) {
         if (s instanceof SlotME) {
@@ -1111,7 +1116,8 @@ public abstract class AEBaseGui extends GuiContainer implements IMTModGuiContain
         // do the usual for non-ME Slots.
         super.drawSlot(s);
     }
-
+    */
+/*
     protected boolean isPowered() {
         return true;
     }

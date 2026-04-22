@@ -446,7 +446,7 @@ theoneprobe.appliedenergistics2.p2p_output_one_input=1個接続中 (接続先)
 theoneprobe.appliedenergistics2.p2p_output_many_inputs=%d個接続中 (接続先)
 theoneprobe.appliedenergistics2.p2p_output=接続中 (接続先)
 theoneprobe.appliedenergistics2.p2p_frequency=周波数: §5%1$s§r
-theoneprobe.appliedenergistics2.stored_energy=§2%1$d§к / §4%2$d§r
+theoneprobe.appliedenergistics2.stored_energy=§2%1$d§r / §4%2$d§r
 
 // Items
 item.appliedenergistics2.storage_cell_1k.name=§61k§r MEストレージセル

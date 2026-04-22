@@ -468,7 +468,7 @@ public class PatternProviderLogic
 
     /**
      * 尝试将 ItemStack 转换为 IAEFluidStack。
-     * 支持 ItemFluidDrop 和通用 IFluidHandlerItem。
+     * 支持 FluidDummyItem 和通用 IFluidHandlerItem。
      */
     @Nullable
     private static IAEStack<?> tryConvertToFluidStack(final ItemStack is) {
@@ -476,8 +476,9 @@ public class PatternProviderLogic
             return null;
         }
 
-        if (appeng.fluids.items.ItemFluidDrop.isFluidDrop(is)) {
-            net.minecraftforge.fluids.FluidStack fs = appeng.fluids.items.ItemFluidDrop.getFluidStack(is);
+        // FluidDummyItem：流体占位物品（由 asItemStackRepresentation 产生）
+        if (is.getItem() instanceof appeng.fluids.items.FluidDummyItem fluidDummy) {
+            net.minecraftforge.fluids.FluidStack fs = fluidDummy.getFluidStack(is);
             if (fs != null) {
                 return AEFluidStack.fromFluidStack(fs);
             }
@@ -790,26 +791,32 @@ public class PatternProviderLogic
 
     /**
      * 推送样板内容（物品/流体）并处理锁定。
-     * 提取自 pushPattern 中的重复代码块。
+     * 从 {@link MEInventoryCrafting} 获取泛型栈信息，根据类型分流推送。
      */
     private boolean pushPatternContents(final ICraftingPatternDetails patternDetails,
             final InventoryCrafting table, final EnumFacing s) {
-        final IAEStack<?>[] genericInputs = patternDetails.getCondensedAEInputs();
-        boolean hasFluidInputs = false;
-        for (IAEStack<?> gi : genericInputs) {
-            if (gi != null && !(gi instanceof IAEItemStack)) {
-                hasFluidInputs = true;
-                break;
+        // 从 MEInventoryCrafting 直接获取泛型栈，根据类型分流推送
+        boolean hasNonItemInputs = false;
+        if (table instanceof MEInventoryCrafting meTable) {
+            for (int x = 0; x < meTable.getSizeInventory(); x++) {
+                final IAEStack<?> aeStack = meTable.getAEStackInSlot(x);
+                if (aeStack != null && !(aeStack instanceof IAEItemStack)) {
+                    hasNonItemInputs = true;
+                    break;
+                }
             }
         }
 
-        if (hasFluidInputs) {
-            for (IAEStack<?> gi : genericInputs) {
-                if (gi != null) {
-                    this.addToSendList(gi.copy());
+        if (hasNonItemInputs && table instanceof MEInventoryCrafting meTable) {
+            // 含流体/非物品输入：使用泛型栈直接发送
+            for (int x = 0; x < meTable.getSizeInventory(); x++) {
+                final IAEStack<?> aeStack = meTable.getAEStackInSlot(x);
+                if (aeStack != null) {
+                    this.addToSendList(aeStack.copy());
                 }
             }
         } else {
+            // 纯物品输入：使用 ItemStack 按面发送
             for (int x = 0; x < table.getSizeInventory(); x++) {
                 final ItemStack is = table.getStackInSlot(x);
                 if (!is.isEmpty()) {
@@ -820,7 +827,7 @@ public class PatternProviderLogic
 
         onPushPatternSuccess(patternDetails);
 
-        if (hasFluidInputs) {
+        if (hasNonItemInputs) {
             pushItemsOut(EnumSet.of(s));
         } else {
             pushItemsOut(s);

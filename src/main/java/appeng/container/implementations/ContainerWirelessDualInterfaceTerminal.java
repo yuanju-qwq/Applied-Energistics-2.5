@@ -1,4 +1,4 @@
-/*
+﻿﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -84,7 +84,7 @@ import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.core.sync.packets.PacketValueConfig;
-import appeng.fluids.items.ItemFluidDrop;
+import appeng.fluids.items.FluidDummyItem;
 import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.IContainerCraftingPacket;
 import appeng.helpers.WirelessTerminalGuiObject;
@@ -1302,12 +1302,15 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private NBTBase createItemTag(final ItemStack i) {
         final NBTTagCompound c = new NBTTagCompound();
         if (!i.isEmpty()) {
-            // 娴佷綋浼墿鍝侊紙ItemFluidDrop锛夛細浣跨敤娉涘瀷鏍煎紡搴忓垪鍖栦负娴佷綋
-            if (i.getItem() instanceof ItemFluidDrop) {
-                IAEFluidStack fluidStack = ItemFluidDrop.getAeFluidStack(
-                        AEItemStack.fromItemStack(i));
-                if (fluidStack != null) {
-                    return fluidStack.toNBTGeneric();
+            // FluidDummyItem（流体占位物品）：使用泛型格式序列化为流体
+            // FluidDummyItem（流体占位物品）：使用泛型格式序列化为流体
+            if (i.getItem() instanceof FluidDummyItem fluidDummy) {
+                FluidStack fs = fluidDummy.getFluidStack(i);
+                if (fs != null) {
+                    IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(fs);
+                    if (aeFluid != null) {
+                        return aeFluid.toNBTGeneric();
+                    }
                 }
             }
             // 娴佷綋瀹瑰櫒锛堟《绛夛級锛氭彁鍙栨祦浣撳悗浣跨敤娉涘瀷鏍煎紡搴忓垪鍖?
@@ -1326,7 +1329,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 妫€鏌ヨ緭鍏?杈撳嚭涓槸鍚﹀寘鍚祦浣撴潯鐩紙ItemFluidDrop 鎴栨祦浣撳鍣級銆?
+     * 检查输入/输出中是否包含流体条目（FluidDummyItem 或流体容器）。
      */
     private boolean containsFluid(ItemStack[] stacks) {
         if (stacks == null) {
@@ -1336,7 +1339,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             if (stack.isEmpty()) {
                 continue;
             }
-            if (stack.getItem() instanceof ItemFluidDrop) {
+            if (stack.getItem() instanceof FluidDummyItem) {
                 return true;
             }
             FluidStack fluid = FluidUtil.getFluidContained(stack);
@@ -1725,10 +1728,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             return ((IAEItemStack) stack).createItemStack();
         }
         if (stack instanceof IAEFluidStack) {
-            final ItemStack fluidDrop = ItemFluidDrop.newStack(((IAEFluidStack) stack).getFluidStack());
-            if (!fluidDrop.isEmpty()) {
-                return fluidDrop;
-            }
+            return ((IAEFluidStack) stack).asItemStackRepresentation();
         }
         return stack.asItemStackRepresentation();
     }

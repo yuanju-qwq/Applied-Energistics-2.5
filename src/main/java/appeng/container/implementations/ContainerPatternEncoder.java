@@ -50,7 +50,7 @@ import appeng.container.slot.SlotPlayerInv;
 import appeng.container.slot.SlotRestrictedInput;
 import appeng.core.AELog;
 import appeng.core.sync.packets.PacketPatternSlot;
-import appeng.fluids.items.ItemFluidDrop;
+import appeng.fluids.items.FluidDummyItem;
 import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.IContainerCraftingPacket;
 import appeng.items.contents.CellConfigLegacy;
@@ -517,8 +517,8 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                 input[x] = ((IAEItemStack) stack).createItemStack();
                 hasValue = true;
             } else if (stack instanceof IAEFluidStack) {
-                // 流体栈转换为 ItemFluidDrop
-                input[x] = ItemFluidDrop.newStack(((IAEFluidStack) stack).getFluidStack());
+                // 流体栈转换为 FluidDummyItem 占位物品
+                input[x] = ((IAEFluidStack) stack).asItemStackRepresentation();
                 if (!input[x].isEmpty()) {
                     hasValue = true;
                 } else {
@@ -556,7 +556,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                     output[x] = ((IAEItemStack) stack).createItemStack();
                     hasValue = true;
                 } else if (stack instanceof IAEFluidStack) {
-                    ItemStack fluidDrop = ItemFluidDrop.newStack(((IAEFluidStack) stack).getFluidStack());
+                    ItemStack fluidDrop = ((IAEFluidStack) stack).asItemStackRepresentation();
                     if (!fluidDrop.isEmpty()) {
                         output[x] = fluidDrop;
                         hasValue = true;
@@ -803,12 +803,14 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         final NBTTagCompound c = new NBTTagCompound();
 
         if (!i.isEmpty()) {
-            // 流体伪物品（ItemFluidDrop）：使用泛型格式序列化为流体
-            if (i.getItem() instanceof ItemFluidDrop) {
-                IAEFluidStack fluidStack = ItemFluidDrop.getAeFluidStack(
-                        AEItemStack.fromItemStack(i));
-                if (fluidStack != null) {
-                    return fluidStack.toNBTGeneric();
+            // FluidDummyItem（流体占位物品）：使用泛型格式序列化为流体
+            if (i.getItem() instanceof FluidDummyItem fluidDummy) {
+                FluidStack fs = fluidDummy.getFluidStack(i);
+                if (fs != null) {
+                    IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(fs);
+                    if (aeFluid != null) {
+                        return aeFluid.toNBTGeneric();
+                    }
                 }
             }
             // 流体容器（桶等）：提取流体后使用泛型格式序列化
@@ -828,7 +830,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     }
 
     /**
-     * 检查输入/输出中是否包含流体条目（ItemFluidDrop 或流体容器）。
+     * 检查输入/输出中是否包含流体条目（FluidDummyItem 或流体容器）。
      */
     protected boolean containsFluid(ItemStack[] stacks) {
         if (stacks == null) {
@@ -838,7 +840,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             if (stack.isEmpty()) {
                 continue;
             }
-            if (stack.getItem() instanceof ItemFluidDrop) {
+            if (stack.getItem() instanceof FluidDummyItem) {
                 return true;
             }
             FluidStack fluid = FluidUtil.getFluidContained(stack);

@@ -45,10 +45,10 @@ import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.core.AppEng;
 import appeng.core.localization.GuiText;
-import appeng.helpers.FluidPatternHelper;
 import appeng.helpers.InvalidPatternHelper;
 import appeng.helpers.PatternHelper;
 import appeng.helpers.PatternNestHelper;
+import appeng.helpers.UltimatePatternHelper;
 import appeng.items.AEBaseItem;
 import appeng.util.Platform;
 import appeng.util.item.ItemStackHashStrategy;
@@ -195,10 +195,12 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
     @Override
     public ICraftingPatternDetails getPatternForItem(final ItemStack is, final World w) {
         try {
-            // 检查是否为流体合成配方
-            if (FluidPatternHelper.isFluidPattern(is)) {
-                return new FluidPatternHelper(is, w);
+            final NBTTagCompound tag = is.getTagCompound();
+            if (tag != null && !tag.getBoolean("crafting")) {
+                // 非合成台配方（加工配方）：使用 UltimatePatternHelper 统一处理
+                return new UltimatePatternHelper(is);
             }
+            // 合成台配方
             return new PatternHelper(is, w);
         } catch (final Throwable t) {
             return null;
@@ -208,8 +210,10 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
     @Override
     public ICraftingPatternDetails getPatternForItemWithNest(final ItemStack is, final World w) {
         try {
-            if (FluidPatternHelper.isFluidPattern(is)) {
-                return new FluidPatternHelper(is, w);
+            final NBTTagCompound tag = is.getTagCompound();
+            if (tag != null && !tag.getBoolean("crafting")) {
+                // 非合成台配方（加工配方）：使用 UltimatePatternHelper 统一处理
+                return new UltimatePatternHelper(is);
             }
             return new PatternNestHelper(is, w);
         } catch (final Throwable t) {

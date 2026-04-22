@@ -47,10 +47,13 @@ import appeng.util.item.AEItemStack;
  * <p>
  * 将流体表示为 ItemStack，使合成系统可以无缝处理流体。
  * ItemStack 的 count 对应流体的 mB 数量。
- * NBT 中存储流体种类和可选的 FluidTag。
- * <p>
- * 这是从 ae2fc (AE2FluidCraft) 集成到 AE2 本体的核心物品。
+ *
+ * @deprecated 请使用 {@link FluidDummyItem} 和 {@link appeng.api.storage.data.IAEFluidStack} 替代。
+ *             此类仅为旧存档兼容保留物品注册。新代码不应使用此类。
+ *             仅在 {@link appeng.util.Platform#convertLegacyStack} 和
+ *             {@link appeng.util.Platform#stackConvert} 中作为旧格式迁移桥接被引用。
  */
+@Deprecated
 public class ItemFluidDrop extends Item {
 
     public static ItemFluidDrop INSTANCE;

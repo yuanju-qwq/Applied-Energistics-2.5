@@ -25,7 +25,10 @@ import appeng.util.item.AEItemStackType;
  * <p>
  * 支持多类型栈（物品+流体等），通过泛型 {@code aeTypeId} NBT 字段识别栈类型。
  * 旧格式（纯物品 NBT）亦可向后兼容。
+ *
+ * @deprecated 已被 {@link UltimatePatternHelper} 替代。此类仅为旧代码兼容保留。
  */
+@Deprecated
 public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable<SpecialPatternHelper> {
 
     // 常量定义（与原PatternHelper一致）

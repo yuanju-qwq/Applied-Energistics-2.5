@@ -18,32 +18,56 @@
 
 package appeng.fluids.items;
 
+import java.util.List;
+
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.NonNullList;
+import net.minecraft.world.World;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.items.AEBaseItem;
 
 /**
- * Dummy item to display the fluid Icon
+ * Dummy item to display the fluid icon in GUI slots (e.g. pattern encoder, ME terminal).
+ * <p>
+ * Fluid type and amount are stored entirely in NBT (Forge standard {@link FluidStack} format).
+ * {@code ItemStack.count} is not used for quantity — the actual mB value is in the NBT {@code Amount} field.
  *
  * @author DrummerMC
  * @version rv6 - 2018-01-22
  * @since rv6 2018-01-22
  */
 public class FluidDummyItem extends AEBaseItem {
+
+    public FluidDummyItem() {
+        super();
+        this.setMaxStackSize(Integer.MAX_VALUE);
+    }
+
     @Override
     public String getItemStackDisplayName(ItemStack stack) {
-
         FluidStack fluidStack = this.getFluidStack(stack);
         if (fluidStack == null) {
             fluidStack = new FluidStack(FluidRegistry.WATER, Fluid.BUCKET_VOLUME);
         }
         return fluidStack.getLocalizedName();
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Override
+    public void addCheckedInformation(final ItemStack stack, final World world,
+            final List<String> lines, final ITooltipFlag advancedTooltips) {
+        final FluidStack fluidStack = this.getFluidStack(stack);
+        if (fluidStack != null) {
+            lines.add(fluidStack.amount + " mB");
+        }
     }
 
     public FluidStack getFluidStack(ItemStack is) {
