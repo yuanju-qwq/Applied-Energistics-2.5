@@ -18,10 +18,13 @@
 
 package appeng.core.sync;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.annotation.Nullable;
 
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
@@ -36,7 +39,6 @@ import appeng.api.features.IWirelessTermHandler;
 import appeng.api.implementations.guiobjects.IGuiItem;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridNode;
-import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.parts.IPart;
@@ -44,6 +46,7 @@ import appeng.api.parts.IPartHost;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
 import appeng.client.gui.GuiNull;
+import appeng.client.mui.AEMUIGuiFactory;
 import appeng.container.AEBaseContainer;
 import appeng.container.ContainerNull;
 import appeng.container.ContainerOpenContext;
@@ -51,29 +54,95 @@ import appeng.core.AELog;
 import appeng.helpers.WirelessTerminalGuiObject;
 
 /**
- * 新的 {@link IGuiHandler} 实现，替代 {@link GuiBridge#GUI_Handler} 的 IGuiHandler 角色。
+ * AE2 的 {@link IGuiHandler} 主实现。
  * <p>
- * 从 {@link GuiBridge} 中提取了以下职责：
- * <ul>
- *   <li>ordinal 编码解析：{@code bits [N:4] = GuiBridge.ordinal, [3] = usingItemOnTile, [2:0] = side}</li>
- *   <li>宿主解析：根据 {@link GuiHostType} 获取 TileEntity / Part / Item 宿主</li>
- *   <li>安全检查：根据 {@link SecurityPermissions} 校验玩家权限</li>
- *   <li>Container / GUI 创建：优先走 MUI 工厂（{@link GuiBridge#muiGuiFactory}），
- *       回退走反射（{@link GuiBridge#ConstructContainer} / {@link GuiBridge#ConstructGui}）</li>
- *   <li>ContainerOpenContext 填充</li>
- * </ul>
+ * 基于 {@link AEGuiKey} 进行宿主解析、权限检查和 Container/GUI 创建。
+ * 通过 {@link AEMUIGuiFactory} 的注册表查找对应的工厂方法。
  *
- * <h3>ordinal 编码格式（保持网络兼容）</h3>
- * <pre>
- *   ordinal = (guiBridgeOrdinal << 4) | (usingItemOnTile << 3) | side
- * </pre>
+ * <h3>Token Map 编码方案</h3>
+ * <p>
+ * Forge {@link IGuiHandler} 只支持 {@code int ordinal} 参数。为了彻底去除对
+ * {@link GuiBridge#ordinal()} 的依赖，采用 Token Map 方案：
+ * <ol>
+ *   <li>{@link #allocateToken(AEGuiKey, AEPartLocation, boolean)} 分配自增 token，
+ *       将 {@link AEGuiKey} + side + usingItemOnTile 存入 {@link #pendingOpens}</li>
+ *   <li>token 作为 {@code ordinal} 传给 {@code player.openGui(mod, token, w, x, y, z)}</li>
+ *   <li>{@link #getServerGuiElement}/{@link #getClientGuiElement} 从 map 取出解码</li>
+ *   <li>token 使用后立即从 map 移除（一次性使用）</li>
+ * </ol>
  *
- * @see GuiBridge
  * @see AEGuiKey
+ * @see AEGuiKeys
+ * @see AEMUIGuiFactory
  */
 public final class AEGuiHandler implements IGuiHandler {
 
     public static final AEGuiHandler INSTANCE = new AEGuiHandler();
+
+    // ========== Token Map ==========
+
+    /**
+     * 待处理的 GUI 打开请求。
+     */
+    public static final class PendingGuiOpen {
+
+        private final AEGuiKey guiKey;
+        private final AEPartLocation side;
+        private final boolean usingItemOnTile;
+
+        PendingGuiOpen(AEGuiKey guiKey, AEPartLocation side, boolean usingItemOnTile) {
+            this.guiKey = guiKey;
+            this.side = side;
+            this.usingItemOnTile = usingItemOnTile;
+        }
+
+        public AEGuiKey getGuiKey() {
+            return this.guiKey;
+        }
+
+        public AEPartLocation getSide() {
+            return this.side;
+        }
+
+        public boolean isUsingItemOnTile() {
+            return this.usingItemOnTile;
+        }
+    }
+
+    /**
+     * 自增 token 计数器。
+     * 使用 int 范围足够（约 21 亿次打开操作后回绕，实际不会碰撞）。
+     */
+    private static final AtomicInteger TOKEN_COUNTER = new AtomicInteger(0);
+
+    /**
+     * Token → PendingGuiOpen 映射表。
+     * 服务端和客户端各自维护，因为 {@code player.openGui} 会在同一端
+     * 先调用 {@code allocateToken}，然后 Forge 框架立即回调 {@code getServer/ClientGuiElement}。
+     */
+    private static final ConcurrentHashMap<Integer, PendingGuiOpen> pendingOpens = new ConcurrentHashMap<>();
+
+    /**
+     * 分配一个一次性 token，将 GUI 打开上下文存入映射表。
+     *
+     * @return token（用作 {@code player.openGui} 的 ordinal 参数）
+     */
+    public static int allocateToken(final AEGuiKey guiKey, final AEPartLocation side,
+            final boolean usingItemOnTile) {
+        final int token = TOKEN_COUNTER.incrementAndGet();
+        pendingOpens.put(token, new PendingGuiOpen(guiKey, side, usingItemOnTile));
+        return token;
+    }
+
+    /**
+     * 从映射表中取出并移除 token 对应的 GUI 打开上下文。
+     *
+     * @return 如果 token 有效则返回 PendingGuiOpen，否则返回 null
+     */
+    @Nullable
+    private static PendingGuiOpen consumeToken(final int token) {
+        return pendingOpens.remove(token);
+    }
 
     private AEGuiHandler() {
     }
@@ -83,86 +152,98 @@ public final class AEGuiHandler implements IGuiHandler {
     @Override
     public Object getServerGuiElement(final int ordinal, final EntityPlayer player, final World w,
             final int x, final int y, final int z) {
-        final AEPartLocation side = AEPartLocation.fromOrdinal(ordinal & 0x07);
-        final boolean usingItemOnTile = ((ordinal >> 3) & 1) == 1;
-        final GuiBridge guiBridge = resolveGuiBridge(ordinal >> 4);
-        if (guiBridge == null) {
+        final PendingGuiOpen pending = consumeToken(ordinal);
+        if (pending == null) {
+            AELog.warn("AEGuiHandler: unknown token %d for server GUI element", ordinal);
             return new ContainerNull();
         }
 
+        final AEGuiKey guiKey = pending.getGuiKey();
+        final AEPartLocation side = pending.getSide();
+        final boolean usingItemOnTile = pending.isUsingItemOnTile();
+
         // 解析宿主
-        final Object host = resolveHost(guiBridge, player, w, x, y, z, side, usingItemOnTile);
+        final Object host = resolveHost(guiKey, player, w, x, y, z, side, usingItemOnTile);
         if (host == null) {
             return new ContainerNull();
         }
 
-        // 创建 Container
-        final Object container = guiBridge.ConstructContainer(player.inventory, side, host);
-        return updateOpenContext(container, w, x, y, z, side, host);
+        // 通过 AEMUIGuiFactory 创建 Container
+        final Container container = AEMUIGuiFactory.createContainer(guiKey, player.inventory, host);
+        if (container != null) {
+            return updateOpenContext(container, w, x, y, z, side, host);
+        }
+
+        // 回退：通过 GuiBridge 反射创建（过渡期兼容）
+        final GuiBridge bridge = guiKey.getLegacyBridge();
+        if (bridge != null) {
+            final Object legacyContainer = bridge.ConstructContainer(player.inventory, side, host);
+            return updateOpenContext(legacyContainer, w, x, y, z, side, host);
+        }
+
+        AELog.warn("No container factory registered for GUI key: %s", guiKey.getId());
+        return new ContainerNull();
     }
 
     @Override
     public Object getClientGuiElement(final int ordinal, final EntityPlayer player, final World w,
             final int x, final int y, final int z) {
-        final AEPartLocation side = AEPartLocation.fromOrdinal(ordinal & 0x07);
-        final boolean usingItemOnTile = ((ordinal >> 3) & 1) == 1;
-        final GuiBridge guiBridge = resolveGuiBridge(ordinal >> 4);
-        if (guiBridge == null) {
+        final PendingGuiOpen pending = consumeToken(ordinal);
+        if (pending == null) {
+            AELog.warn("AEGuiHandler: unknown token %d for client GUI element", ordinal);
             return new GuiNull(new ContainerNull());
         }
 
+        final AEGuiKey guiKey = pending.getGuiKey();
+        final AEPartLocation side = pending.getSide();
+        final boolean usingItemOnTile = pending.isUsingItemOnTile();
+
         // 解析宿主
-        final Object host = resolveHost(guiBridge, player, w, x, y, z, side, usingItemOnTile);
+        final Object host = resolveHost(guiKey, player, w, x, y, z, side, usingItemOnTile);
         if (host == null) {
             return new GuiNull(new ContainerNull());
         }
 
-        // 创建 GUI
-        return guiBridge.ConstructGui(player.inventory, side, host);
-    }
-
-    // ========== ordinal 解析 ==========
-
-    /**
-     * 从 ordinal 高位解析 {@link GuiBridge} 枚举值。
-     */
-    @Nullable
-    private static GuiBridge resolveGuiBridge(final int guiBridgeIndex) {
-        final GuiBridge[] values = GuiBridge.values();
-        if (guiBridgeIndex < 0 || guiBridgeIndex >= values.length) {
-            AELog.warn("Invalid GuiBridge index: %d (max: %d)", guiBridgeIndex, values.length - 1);
-            return null;
+        // 通过 AEMUIGuiFactory 创建 GUI
+        final Object gui = AEMUIGuiFactory.createGui(guiKey, player.inventory, host);
+        if (gui != null) {
+            return gui;
         }
-        return values[guiBridgeIndex];
+
+        // 回退：通过 GuiBridge 反射/工厂创建（过渡期兼容）
+        final GuiBridge bridge = guiKey.getLegacyBridge();
+        if (bridge != null) {
+            return bridge.ConstructGui(player.inventory, side, host);
+        }
+
+        AELog.warn("No GUI factory registered for GUI key: %s", guiKey.getId());
+        return new GuiNull(new ContainerNull());
     }
 
     // ========== 宿主解析 ==========
 
     /**
-     * 根据 {@link GuiHostType} 解析 GUI 的宿主对象。
-     * <p>
-     * 对应原 {@link GuiBridge#getServerGuiElement} 和 {@link GuiBridge#getClientGuiElement}
-     * 中的 Item / Tile / Part 解析逻辑。
+     * 根据 {@link AEGuiKey} 的 {@link GuiHostType} 解析 GUI 的宿主对象。
      *
      * @return 解析到的宿主对象，如果不匹配则返回 null
      */
     @Nullable
-    public static Object resolveHost(final GuiBridge guiBridge, final EntityPlayer player, final World w,
+    public static Object resolveHost(final AEGuiKey guiKey, final EntityPlayer player, final World w,
             final int x, final int y, final int z,
             final AEPartLocation side, final boolean usingItemOnTile) {
-        final GuiHostType type = guiBridge.getType();
+        final GuiHostType type = guiKey.getHostType();
 
         // Item 类型宿主
         if (type.isItem()) {
             final Object itemHost = resolveItemHost(player, w, x, y, z, usingItemOnTile);
-            if (itemHost != null && guiBridge.CorrectTileOrPart(itemHost)) {
+            if (itemHost != null && guiKey.isValidHost(itemHost)) {
                 return itemHost;
             }
         }
 
         // Tile / Part 类型宿主
         if (type.isTile()) {
-            final Object tileHost = resolveTileHost(guiBridge, w, x, y, z, side);
+            final Object tileHost = resolveTileHost(guiKey, w, x, y, z, side);
             if (tileHost != null) {
                 return tileHost;
             }
@@ -199,17 +280,17 @@ public final class AEGuiHandler implements IGuiHandler {
      * 解析 Tile / Part 类型的宿主对象（从 TileEntity 或 IPartHost 获取）。
      */
     @Nullable
-    private static Object resolveTileHost(final GuiBridge guiBridge, final World w,
+    private static Object resolveTileHost(final AEGuiKey guiKey, final World w,
             final int x, final int y, final int z,
             final AEPartLocation side) {
         final TileEntity te = w.getTileEntity(new BlockPos(x, y, z));
         if (te instanceof IPartHost) {
             final IPart part = ((IPartHost) te).getPart(side);
-            if (part != null && guiBridge.CorrectTileOrPart(part)) {
+            if (part != null && guiKey.isValidHost(part)) {
                 return part;
             }
         } else {
-            if (te != null && guiBridge.CorrectTileOrPart(te)) {
+            if (te != null && guiKey.isValidHost(te)) {
                 return te;
             }
         }
@@ -218,8 +299,6 @@ public final class AEGuiHandler implements IGuiHandler {
 
     /**
      * 从 ItemStack 获取 GUI 对象（IGuiItem 或 WirelessTerminalGuiObject）。
-     * <p>
-     * 对应原 {@link GuiBridge#getGuiObject} 方法。
      */
     @Nullable
     private static Object getGuiObject(final ItemStack it, final EntityPlayer player, final World w,
@@ -241,8 +320,6 @@ public final class AEGuiHandler implements IGuiHandler {
 
     /**
      * 为 Container 填充 {@link ContainerOpenContext}，记录打开位置和方向。
-     * <p>
-     * 对应原 {@link GuiBridge#updateGui} 方法。
      */
     public static Object updateOpenContext(final Object container, final World w,
             final int x, final int y, final int z,
@@ -259,23 +336,21 @@ public final class AEGuiHandler implements IGuiHandler {
         return container;
     }
 
-    // ========== 安全检查 ==========
+    // ========== 安全检查（基于 AEGuiKey） ==========
 
     /**
-     * 检查玩家是否有权限打开指定的 GUI。
-     * <p>
-     * 对应原 {@link GuiBridge#hasPermissions} 方法。
+     * 检查玩家是否有权限打开指定 {@link AEGuiKey} 的 GUI。
      *
-     * @param guiBridge GUI 标识
-     * @param te        TileEntity（可为 null）
-     * @param x         x 坐标或槽位索引
-     * @param y         y 坐标
-     * @param z         z 坐标
-     * @param side      方向
-     * @param player    玩家
+     * @param guiKey GUI 标识键
+     * @param te     TileEntity（可为 null）
+     * @param x      x 坐标或槽位索引
+     * @param y      y 坐标
+     * @param z      z 坐标
+     * @param side   方向
+     * @param player 玩家
      * @return 如果有权限则返回 true
      */
-    public static boolean hasPermissions(final GuiBridge guiBridge, @Nullable final TileEntity te,
+    public static boolean hasPermissions(final AEGuiKey guiKey, @Nullable final TileEntity te,
             final int x, final int y, final int z,
             final AEPartLocation side, final EntityPlayer player) {
         final World w = player.getEntityWorld();
@@ -287,13 +362,13 @@ public final class AEGuiHandler implements IGuiHandler {
             return false;
         }
 
-        final GuiHostType type = guiBridge.getType();
+        final GuiHostType type = guiKey.getHostType();
 
         if (type.isItem()) {
             final ItemStack it = player.inventory.getCurrentItem();
             if (!it.isEmpty() && it.getItem() instanceof IGuiItem) {
                 final Object myItem = ((IGuiItem) it.getItem()).getGuiObject(it, w, pos);
-                if (guiBridge.CorrectTileOrPart(myItem)) {
+                if (guiKey.isValidHost(myItem)) {
                     return true;
                 }
             }
@@ -303,12 +378,12 @@ public final class AEGuiHandler implements IGuiHandler {
             final TileEntity tileEntity = w.getTileEntity(pos);
             if (tileEntity instanceof IPartHost) {
                 final IPart part = ((IPartHost) tileEntity).getPart(side);
-                if (guiBridge.CorrectTileOrPart(part)) {
-                    return securityCheck(guiBridge, part, player);
+                if (guiKey.isValidHost(part)) {
+                    return securityCheck(guiKey, part, player);
                 }
             } else {
-                if (guiBridge.CorrectTileOrPart(tileEntity)) {
-                    return securityCheck(guiBridge, tileEntity, player);
+                if (guiKey.isValidHost(tileEntity)) {
+                    return securityCheck(guiKey, tileEntity, player);
                 }
             }
         }
@@ -318,12 +393,10 @@ public final class AEGuiHandler implements IGuiHandler {
 
     /**
      * 安全检查：校验玩家对网络的权限。
-     * <p>
-     * 对应原 {@link GuiBridge#securityCheck} 方法。
      */
-    public static boolean securityCheck(final GuiBridge guiBridge, final Object host,
+    public static boolean securityCheck(final AEGuiKey guiKey, final Object host,
             final EntityPlayer player) {
-        final SecurityPermissions requiredPermission = guiBridge.getRequiredPermission();
+        final SecurityPermissions requiredPermission = guiKey.getRequiredPermission();
         if (host instanceof IActionHost && requiredPermission != null) {
             final IGridNode gn = ((IActionHost) host).getActionableNode();
             if (gn != null) {
@@ -336,5 +409,52 @@ public final class AEGuiHandler implements IGuiHandler {
             return false;
         }
         return true;
+    }
+
+    // ========== 旧体系兼容方法 ==========
+
+    /**
+     * @deprecated 使用 {@link #hasPermissions(AEGuiKey, TileEntity, int, int, int, AEPartLocation, EntityPlayer)} 代替。
+     */
+    @Deprecated
+    public static boolean hasPermissions(final GuiBridge guiBridge, @Nullable final TileEntity te,
+            final int x, final int y, final int z,
+            final AEPartLocation side, final EntityPlayer player) {
+        final AEGuiKey key = AEGuiKeys.fromLegacy(guiBridge);
+        if (key == null) {
+            AELog.warn("GuiBridge %s has no AEGuiKey mapping for permission check", guiBridge.name());
+            return false;
+        }
+        return hasPermissions(key, te, x, y, z, side, player);
+    }
+
+    /**
+     * @deprecated 使用 {@link #securityCheck(AEGuiKey, Object, EntityPlayer)} 代替。
+     */
+    @Deprecated
+    public static boolean securityCheck(final GuiBridge guiBridge, final Object host,
+            final EntityPlayer player) {
+        final AEGuiKey key = AEGuiKeys.fromLegacy(guiBridge);
+        if (key == null) {
+            AELog.warn("GuiBridge %s has no AEGuiKey mapping for security check", guiBridge.name());
+            return false;
+        }
+        return securityCheck(key, host, player);
+    }
+
+    /**
+     * @deprecated 使用 {@link #resolveHost(AEGuiKey, EntityPlayer, World, int, int, int, AEPartLocation, boolean)} 代替。
+     */
+    @Deprecated
+    @Nullable
+    public static Object resolveHost(final GuiBridge guiBridge, final EntityPlayer player, final World w,
+            final int x, final int y, final int z,
+            final AEPartLocation side, final boolean usingItemOnTile) {
+        final AEGuiKey key = AEGuiKeys.fromLegacy(guiBridge);
+        if (key == null) {
+            AELog.warn("GuiBridge %s has no AEGuiKey mapping for host resolution", guiBridge.name());
+            return null;
+        }
+        return resolveHost(key, player, w, x, y, z, side, usingItemOnTile);
     }
 }

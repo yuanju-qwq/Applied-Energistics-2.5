@@ -38,8 +38,8 @@ import appeng.client.mui.AEBasePanel;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerPatternValueName;
 import appeng.core.localization.GuiText;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketPatternNameSet;
 import appeng.core.sync.packets.PacketSwitchGuis;
@@ -60,7 +60,7 @@ public class MUIPatternValueNamePanel extends AEBasePanel {
     private GuiTabButton originalGuiBtn;
     private GuiButton submit;
     private GuiButton clearName;
-    private GuiBridge originalGui;
+    private AEGuiKey originalGui;
 
     public MUIPatternValueNamePanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(new ContainerPatternValueName(inventoryPlayer, te));
@@ -85,8 +85,9 @@ public class MUIPatternValueNamePanel extends AEBasePanel {
 
         if (target instanceof WirelessTerminalGuiObject) {
             myIcon = ((WirelessTerminalGuiObject) target).getItemStack();
-            this.originalGui = (GuiBridge) AEApi.instance().registries().wireless()
-                    .getWirelessTerminalHandler(myIcon).getGuiHandler(myIcon);
+            this.originalGui = AEGuiKeys.fromLegacy(
+                    (appeng.core.sync.GuiBridge) AEApi.instance().registries().wireless()
+                            .getWirelessTerminalHandler(myIcon).getGuiHandler(myIcon));
         }
 
         if (target instanceof PartPatternTerminal) {

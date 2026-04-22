@@ -18,10 +18,13 @@
 
 package appeng.core.sync;
 
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
 import javax.annotation.Nullable;
+
+import net.minecraft.util.ResourceLocation;
 
 import appeng.api.config.SecurityPermissions;
 import appeng.api.implementations.IUpgradeableHost;
@@ -322,7 +325,7 @@ public final class AEGuiKeys {
             .hostType(GuiHostType.ITEM_OR_WORLD).permission(SecurityPermissions.CRAFT)
             .hostClass(ITerminalHost.class).legacyBridge(GuiBridge.GUI_PATTERN_VALUE_NAME).build();
 
-    // ========== 旧体系兼容映射 ==========
+    // ========== 映射表 ==========
 
     /**
      * GuiBridge → AEGuiKey 的反向映射表。
@@ -330,12 +333,19 @@ public final class AEGuiKeys {
      */
     private static final Map<GuiBridge, AEGuiKey> LEGACY_MAP = new IdentityHashMap<>();
 
+    /**
+     * ResourceLocation → AEGuiKey 的映射表，用于网络包解码。
+     * 在类加载时自动填充。
+     */
+    private static final Map<ResourceLocation, AEGuiKey> ID_MAP = new HashMap<>();
+
     static {
         // 反射遍历所有 static final AEGuiKey 字段，自动填充映射表
         try {
             for (java.lang.reflect.Field f : AEGuiKeys.class.getDeclaredFields()) {
                 if (f.getType() == AEGuiKey.class && java.lang.reflect.Modifier.isStatic(f.getModifiers())) {
                     AEGuiKey guiKey = (AEGuiKey) f.get(null);
+                    ID_MAP.put(guiKey.getId(), guiKey);
                     if (guiKey.getLegacyBridge() != null) {
                         LEGACY_MAP.put(guiKey.getLegacyBridge(), guiKey);
                     }
@@ -344,6 +354,20 @@ public final class AEGuiKeys {
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Failed to initialize AEGuiKeys legacy map", e);
         }
+    }
+
+    // ========== 查询方法 ==========
+
+    /**
+     * 从 {@link ResourceLocation} 查询对应的 {@link AEGuiKey}。
+     * 用于网络包解码。
+     *
+     * @param id GUI 标识的 ResourceLocation
+     * @return 对应的 AEGuiKey，如果没有注册则返回 {@code null}
+     */
+    @Nullable
+    public static AEGuiKey fromId(ResourceLocation id) {
+        return ID_MAP.get(id);
     }
 
     /**

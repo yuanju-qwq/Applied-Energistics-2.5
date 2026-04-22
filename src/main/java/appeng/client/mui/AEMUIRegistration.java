@@ -29,7 +29,7 @@ import appeng.client.mui.screen.*;
 import appeng.container.implementations.*;
 import appeng.fluids.container.*;
 import appeng.core.AELog;
-import appeng.core.sync.GuiBridge;
+import appeng.core.sync.AEGuiKeys;
 import appeng.helpers.ICustomNameObject;
 import appeng.helpers.IInterfaceHost;
 import appeng.helpers.IPriorityHost;
@@ -45,7 +45,6 @@ import appeng.parts.reporting.PartCraftingTerminal;
 import appeng.parts.reporting.PartExpandedProcessingPatternTerminal;
 import appeng.parts.reporting.PartInterfaceTerminal;
 import appeng.parts.reporting.PartPatternTerminal;
-import appeng.tile.crafting.TileCraftingTile;
 import appeng.tile.crafting.TileMolecularAssembler;
 import appeng.tile.grindstone.TileGrinder;
 import appeng.tile.misc.TileCellWorkbench;
@@ -69,8 +68,13 @@ import appeng.parts.reporting.PartFluidInterfaceConfigurationTerminal;
  * MUI GUI 统一注册入口。
  * <p>
  * 在客户端初始化阶段调用 {@link #registerAll()}，
- * 将所有 MUI 面板通过 {@link GuiBridge#setMuiGuiFactory} 注册到 GuiBridge 枚举上。
- * 注册后，{@link GuiBridge#ConstructGui} 将优先使用 MUI 面板，跳过旧 GUI 的反射创建。
+ * 将所有 MUI 面板通过 {@link AEMUIGuiFactory#register(appeng.core.sync.AEGuiKey,
+ * AEMUIGuiFactory.IHostContainerFactory, AEMUIGuiFactory.IHostGuiFactory)}
+ * 注册到以 {@link appeng.core.sync.AEGuiKey} 为主键的注册表中。
+ * <p>
+ * 注册时同时提供服务端 Container 工厂和客户端 GUI 工厂，
+ * {@link AEMUIGuiFactory} 内部会自动同步到旧体系的 {@code legacyRegistry}
+ * 以保持兼容。
  *
  * <h3>注册范围</h3>
  * <ul>
@@ -99,7 +103,7 @@ public final class AEMUIRegistration {
     }
 
     /**
-     * 注册所有 MUI 面板到 GuiBridge。
+     * 注册所有 MUI 面板到 {@link AEMUIGuiFactory} 的 AEGuiKey 注册表。
      * 应在客户端 init 阶段调用。
      */
     public static void registerAll() {
@@ -107,91 +111,117 @@ public final class AEMUIRegistration {
 
         // ========== 存储设备 ==========
 
-        GuiBridge.GUI_CHEST.setMuiGuiFactory(
-                (ip, te) -> new MUIChestPanel(ip, (TileChest) te));
+        AEMUIGuiFactory.register(AEGuiKeys.CHEST,
+                (ip, host) -> new ContainerChest(ip, (TileChest) host),
+                (ip, host) -> new MUIChestPanel(ip, (TileChest) host));
 
-        GuiBridge.GUI_DRIVE.setMuiGuiFactory(
-                (ip, te) -> new MUIDrivePanel(ip, (TileDrive) te));
+        AEMUIGuiFactory.register(AEGuiKeys.DRIVE,
+                (ip, host) -> new ContainerDrive(ip, (TileDrive) host),
+                (ip, host) -> new MUIDrivePanel(ip, (TileDrive) host));
 
-        GuiBridge.GUI_CELL_WORKBENCH.setMuiGuiFactory(
-                (ip, te) -> new MUICellWorkbenchPanel(new ContainerCellWorkbench(ip, (TileCellWorkbench) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.CELL_WORKBENCH,
+                (ip, host) -> new ContainerCellWorkbench(ip, (TileCellWorkbench) host),
+                (ip, host) -> new MUICellWorkbenchPanel(
+                        new ContainerCellWorkbench(ip, (TileCellWorkbench) host)));
 
-        GuiBridge.GUI_PORTABLE_CELL.setMuiGuiFactory(
-                (ip, te) -> new MUIMEPortableCellPanelImpl(
-                        new ContainerMEPortableCell(ip, (IPortableCell) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.PORTABLE_CELL,
+                (ip, host) -> new ContainerMEPortableCell(ip, (IPortableCell) host),
+                (ip, host) -> new MUIMEPortableCellPanelImpl(
+                        new ContainerMEPortableCell(ip, (IPortableCell) host)));
 
         // ========== 合成设备 ==========
 
-        GuiBridge.GUI_MAC.setMuiGuiFactory(
-                (ip, te) -> new MUIMACPanel(ip, (TileMolecularAssembler) te));
+        AEMUIGuiFactory.register(AEGuiKeys.MAC,
+                (ip, host) -> new ContainerMAC(ip, (TileMolecularAssembler) host),
+                (ip, host) -> new MUIMACPanel(ip, (TileMolecularAssembler) host));
 
-        GuiBridge.GUI_INSCRIBER.setMuiGuiFactory(
-                (ip, te) -> new MUIInscriberPanel(ip, (TileInscriber) te));
+        AEMUIGuiFactory.register(AEGuiKeys.INSCRIBER,
+                (ip, host) -> new ContainerInscriber(ip, (TileInscriber) host),
+                (ip, host) -> new MUIInscriberPanel(ip, (TileInscriber) host));
 
         // ========== 工具/杂项 ==========
 
-        GuiBridge.GUI_PRIORITY.setMuiGuiFactory(
-                (ip, te) -> new MUIPriorityPanel(ip, (IPriorityHost) te));
+        AEMUIGuiFactory.register(AEGuiKeys.PRIORITY,
+                (ip, host) -> new ContainerPriority(ip, (IPriorityHost) host),
+                (ip, host) -> new MUIPriorityPanel(ip, (IPriorityHost) host));
 
-        GuiBridge.GUI_SECURITY.setMuiGuiFactory(
-                (ip, te) -> new MUISecurityStationPanelImpl(
-                        new ContainerSecurityStation(ip, (ITerminalHost) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.SECURITY,
+                (ip, host) -> new ContainerSecurityStation(ip, (ITerminalHost) host),
+                (ip, host) -> new MUISecurityStationPanelImpl(
+                        new ContainerSecurityStation(ip, (ITerminalHost) host)));
 
-        GuiBridge.GUI_NETWORK_STATUS.setMuiGuiFactory(
-                (ip, te) -> new MUINetworkStatusPanel(
-                        new ContainerNetworkStatus(ip, (INetworkTool) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.NETWORK_STATUS,
+                (ip, host) -> new ContainerNetworkStatus(ip, (INetworkTool) host),
+                (ip, host) -> new MUINetworkStatusPanel(
+                        new ContainerNetworkStatus(ip, (INetworkTool) host)));
 
-        GuiBridge.GUI_NETWORK_TOOL.setMuiGuiFactory(
-                (ip, te) -> new MUINetworkToolPanel(ip, (INetworkTool) te));
+        AEMUIGuiFactory.register(AEGuiKeys.NETWORK_TOOL,
+                (ip, host) -> new ContainerNetworkTool(ip, (INetworkTool) host),
+                (ip, host) -> new MUINetworkToolPanel(ip, (INetworkTool) host));
 
-        GuiBridge.GUI_WIRELESS.setMuiGuiFactory(
-                (ip, te) -> new MUIWirelessPanel(ip, (TileWireless) te));
+        AEMUIGuiFactory.register(AEGuiKeys.WIRELESS,
+                (ip, host) -> new ContainerWireless(ip, (TileWireless) host),
+                (ip, host) -> new MUIWirelessPanel(ip, (TileWireless) host));
 
-        GuiBridge.GUI_SPATIAL_IO_PORT.setMuiGuiFactory(
-                (ip, te) -> new MUISpatialIOPortPanel(ip, (TileSpatialIOPort) te));
+        AEMUIGuiFactory.register(AEGuiKeys.SPATIAL_IO_PORT,
+                (ip, host) -> new ContainerSpatialIOPort(ip, (TileSpatialIOPort) host),
+                (ip, host) -> new MUISpatialIOPortPanel(ip, (TileSpatialIOPort) host));
 
-        GuiBridge.GUI_CONDENSER.setMuiGuiFactory(
-                (ip, te) -> new MUICondenserPanel(ip, (TileCondenser) te));
+        AEMUIGuiFactory.register(AEGuiKeys.CONDENSER,
+                (ip, host) -> new ContainerCondenser(ip, (TileCondenser) host),
+                (ip, host) -> new MUICondenserPanel(ip, (TileCondenser) host));
 
-        GuiBridge.GUI_VIBRATION_CHAMBER.setMuiGuiFactory(
-                (ip, te) -> new MUIVibrationChamberPanel(ip, (TileVibrationChamber) te));
+        AEMUIGuiFactory.register(AEGuiKeys.VIBRATION_CHAMBER,
+                (ip, host) -> new ContainerVibrationChamber(ip, (TileVibrationChamber) host),
+                (ip, host) -> new MUIVibrationChamberPanel(ip, (TileVibrationChamber) host));
 
-        GuiBridge.GUI_GRINDER.setMuiGuiFactory(
-                (ip, te) -> new MUIGrinderPanel(ip, (TileGrinder) te));
+        AEMUIGuiFactory.register(AEGuiKeys.GRINDER,
+                (ip, host) -> new ContainerGrinder(ip, (TileGrinder) host),
+                (ip, host) -> new MUIGrinderPanel(ip, (TileGrinder) host));
 
-        GuiBridge.GUI_QNB.setMuiGuiFactory(
-                (ip, te) -> new MUIQNBPanel(ip, (TileQuantumBridge) te));
+        AEMUIGuiFactory.register(AEGuiKeys.QNB,
+                (ip, host) -> new ContainerQNB(ip, (TileQuantumBridge) host),
+                (ip, host) -> new MUIQNBPanel(ip, (TileQuantumBridge) host));
 
-        GuiBridge.GUI_SKYCHEST.setMuiGuiFactory(
-                (ip, te) -> new MUISkyChestPanel(ip, (TileSkyChest) te));
+        AEMUIGuiFactory.register(AEGuiKeys.SKY_CHEST,
+                (ip, host) -> new ContainerSkyChest(ip, (TileSkyChest) host),
+                (ip, host) -> new MUISkyChestPanel(ip, (TileSkyChest) host));
 
-        GuiBridge.GUI_QUARTZ_KNIFE.setMuiGuiFactory(
-                (ip, te) -> new MUIQuartzKnifePanel(ip, (QuartzKnifeObj) te));
+        AEMUIGuiFactory.register(AEGuiKeys.QUARTZ_KNIFE,
+                (ip, host) -> new ContainerQuartzKnife(ip, (QuartzKnifeObj) host),
+                (ip, host) -> new MUIQuartzKnifePanel(ip, (QuartzKnifeObj) host));
 
-        GuiBridge.GUI_RENAMER.setMuiGuiFactory(
-                (ip, te) -> new MUIRenamerPanel(ip, (ICustomNameObject) te));
+        AEMUIGuiFactory.register(AEGuiKeys.RENAMER,
+                (ip, host) -> new ContainerRenamer(ip, (ICustomNameObject) host),
+                (ip, host) -> new MUIRenamerPanel(ip, (ICustomNameObject) host));
 
-        GuiBridge.GUI_OREDICTSTORAGEBUS.setMuiGuiFactory(
-                (ip, te) -> new MUIOreDictStorageBusPanel(
-                        new ContainerOreDictStorageBus(ip, (PartOreDicStorageBus) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.ORE_DICT_STORAGE_BUS,
+                (ip, host) -> new ContainerOreDictStorageBus(ip, (PartOreDicStorageBus) host),
+                (ip, host) -> new MUIOreDictStorageBusPanel(
+                        new ContainerOreDictStorageBus(ip, (PartOreDicStorageBus) host)));
 
         // ========== 无线终端 ==========
 
-        GuiBridge.GUI_WIRELESS_TERM.setMuiGuiFactory(
-                (ip, te) -> new MUIWirelessTermPanelImpl(ip, (WirelessTerminalGuiObject) te));
+        AEMUIGuiFactory.register(AEGuiKeys.WIRELESS_TERM,
+                (ip, host) -> new ContainerWirelessTerm(ip, (WirelessTerminalGuiObject) host),
+                (ip, host) -> new MUIWirelessTermPanelImpl(ip, (WirelessTerminalGuiObject) host));
 
-        GuiBridge.GUI_WIRELESS_CRAFTING_TERMINAL.setMuiGuiFactory(
-                (ip, te) -> new MUIWirelessCraftingTermPanelImpl(ip, (WirelessTerminalGuiObject) te));
+        AEMUIGuiFactory.register(AEGuiKeys.WIRELESS_CRAFTING_TERMINAL,
+                (ip, host) -> new ContainerWirelessCraftingTerminal(ip, (WirelessTerminalGuiObject) host),
+                (ip, host) -> new MUIWirelessCraftingTermPanelImpl(ip, (WirelessTerminalGuiObject) host));
 
-        GuiBridge.GUI_WIRELESS_PATTERN_TERMINAL.setMuiGuiFactory(
-                (ip, te) -> new MUIWirelessPatternTermPanelImpl(ip, (WirelessTerminalGuiObject) te));
+        AEMUIGuiFactory.register(AEGuiKeys.WIRELESS_PATTERN_TERMINAL,
+                (ip, host) -> new ContainerWirelessPatternTerminal(ip, (WirelessTerminalGuiObject) host),
+                (ip, host) -> new MUIWirelessPatternTermPanelImpl(ip, (WirelessTerminalGuiObject) host));
 
-        GuiBridge.GUI_WIRELESS_INTERFACE_TERMINAL.setMuiGuiFactory(
-                (ip, te) -> new MUIWirelessInterfaceTermPanelImpl(ip, (WirelessTerminalGuiObject) te));
+        AEMUIGuiFactory.register(AEGuiKeys.WIRELESS_INTERFACE_TERMINAL,
+                (ip, host) -> new ContainerWirelessInterfaceTerminal(ip, (WirelessTerminalGuiObject) host),
+                (ip, host) -> new MUIWirelessInterfaceTermPanelImpl(ip, (WirelessTerminalGuiObject) host));
 
-        GuiBridge.GUI_WIRELESS_DUAL_INTERFACE_TERMINAL.setMuiGuiFactory(
-                (ip, te) -> new MUIWirelessDualInterfaceTerminalPanel(
-                        new ContainerWirelessDualInterfaceTerminal(ip, (WirelessTerminalGuiObject) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.WIRELESS_DUAL_INTERFACE_TERMINAL,
+                (ip, host) -> new ContainerWirelessDualInterfaceTerminal(ip, (WirelessTerminalGuiObject) host),
+                (ip, host) -> new MUIWirelessDualInterfaceTerminalPanel(
+                        new ContainerWirelessDualInterfaceTerminal(ip, (WirelessTerminalGuiObject) host)));
 
         // GUI_WIRELESS_FLUID_TERMINAL 暂不注册：
         // 该终端已标记 @Deprecated，且其 Container 不继承 ContainerMEMonitorable，
@@ -199,118 +229,149 @@ public final class AEMUIRegistration {
 
         // ========== 通用/合成/样板终端 ==========
 
-        GuiBridge.GUI_ME.setMuiGuiFactory(
-                (ip, te) -> new MUIMEMonitorablePanel(ip, (ITerminalHost) te));
+        AEMUIGuiFactory.register(AEGuiKeys.ME_TERMINAL,
+                (ip, host) -> new ContainerMEMonitorable(ip, (ITerminalHost) host),
+                (ip, host) -> new MUIMEMonitorablePanel(ip, (ITerminalHost) host));
 
-        GuiBridge.GUI_CRAFTING_TERMINAL.setMuiGuiFactory(
-                (ip, te) -> new MUICraftingTermPanel(ip, (PartCraftingTerminal) te));
+        AEMUIGuiFactory.register(AEGuiKeys.CRAFTING_TERMINAL,
+                (ip, host) -> new ContainerCraftingTerm(ip, (PartCraftingTerminal) host),
+                (ip, host) -> new MUICraftingTermPanel(ip, (PartCraftingTerminal) host));
 
-        GuiBridge.GUI_PATTERN_TERMINAL.setMuiGuiFactory(
-                (ip, te) -> new MUIPatternTermPanel(ip, (PartPatternTerminal) te));
+        AEMUIGuiFactory.register(AEGuiKeys.PATTERN_TERMINAL,
+                (ip, host) -> new ContainerPatternTerm(ip, (PartPatternTerminal) host),
+                (ip, host) -> new MUIPatternTermPanel(ip, (PartPatternTerminal) host));
 
-        GuiBridge.GUI_EXPANDED_PROCESSING_PATTERN_TERMINAL.setMuiGuiFactory(
-                (ip, te) -> new MUIExpandedProcessingPatternTermPanel(ip,
-                        (PartExpandedProcessingPatternTerminal) te));
+        AEMUIGuiFactory.register(AEGuiKeys.EXPANDED_PROCESSING_PATTERN_TERMINAL,
+                (ip, host) -> new ContainerExpandedProcessingPatternTerm(ip,
+                        (PartExpandedProcessingPatternTerminal) host),
+                (ip, host) -> new MUIExpandedProcessingPatternTermPanel(ip,
+                        (PartExpandedProcessingPatternTerminal) host));
 
-        GuiBridge.GUI_FLUID_TERMINAL.setMuiGuiFactory(
-                (ip, te) -> new MUIMEMonitorablePanel(ip, (ITerminalHost) te));
+        AEMUIGuiFactory.register(AEGuiKeys.FLUID_TERMINAL,
+                (ip, host) -> new ContainerMEMonitorable(ip, (ITerminalHost) host),
+                (ip, host) -> new MUIMEMonitorablePanel(ip, (ITerminalHost) host));
 
         // ========== 接口设置 ==========
 
-        GuiBridge.GUI_INTERFACE.setMuiGuiFactory(
-                (ip, te) -> new MUIInterfacePanel(
-                        new ContainerInterface(ip, (IInterfaceHost) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.INTERFACE,
+                (ip, host) -> new ContainerInterface(ip, (IInterfaceHost) host),
+                (ip, host) -> new MUIInterfacePanel(
+                        new ContainerInterface(ip, (IInterfaceHost) host)));
 
-        GuiBridge.GUI_FLUID_INTERFACE.setMuiGuiFactory(
-                (ip, te) -> new MUIFluidInterfacePanel(
-                        new ContainerFluidInterface(ip, (IFluidInterfaceHost) te),
-                        (IFluidInterfaceHost) te));
+        AEMUIGuiFactory.register(AEGuiKeys.FLUID_INTERFACE,
+                (ip, host) -> new ContainerFluidInterface(ip, (IFluidInterfaceHost) host),
+                (ip, host) -> new MUIFluidInterfacePanel(
+                        new ContainerFluidInterface(ip, (IFluidInterfaceHost) host),
+                        (IFluidInterfaceHost) host));
 
-        GuiBridge.GUI_DUAL_ITEM_INTERFACE.setMuiGuiFactory(
-                (ip, te) -> new MUIDualItemInterfacePanel(
-                        new ContainerDualItemInterface(ip, (IInterfaceHost) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.DUAL_ITEM_INTERFACE,
+                (ip, host) -> new ContainerDualItemInterface(ip, (IInterfaceHost) host),
+                (ip, host) -> new MUIDualItemInterfacePanel(
+                        new ContainerDualItemInterface(ip, (IInterfaceHost) host)));
 
-        GuiBridge.GUI_DUAL_FLUID_INTERFACE.setMuiGuiFactory(
-                (ip, te) -> new MUIDualFluidInterfacePanel(
-                        new ContainerDualFluidInterface(ip, (IFluidInterfaceHost) te),
-                        (IFluidInterfaceHost) te));
+        AEMUIGuiFactory.register(AEGuiKeys.DUAL_FLUID_INTERFACE,
+                (ip, host) -> new ContainerDualFluidInterface(ip, (IFluidInterfaceHost) host),
+                (ip, host) -> new MUIDualFluidInterfacePanel(
+                        new ContainerDualFluidInterface(ip, (IFluidInterfaceHost) host),
+                        (IFluidInterfaceHost) host));
 
         // ========== 总线/面板 ==========
 
-        GuiBridge.GUI_BUS.setMuiGuiFactory(
-                (ip, te) -> new MUIUpgradeablePanel(
-                        new ContainerUpgradeable(ip, (IUpgradeableHost) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.BUS,
+                (ip, host) -> new ContainerUpgradeable(ip, (IUpgradeableHost) host),
+                (ip, host) -> new MUIUpgradeablePanel(
+                        new ContainerUpgradeable(ip, (IUpgradeableHost) host)));
 
-        GuiBridge.GUI_BUS_FLUID.setMuiGuiFactory(
-                (ip, te) -> new MUIFluidIOPanel(
-                        new ContainerFluidIO(ip, (PartSharedFluidBus) te), (PartSharedFluidBus) te));
+        AEMUIGuiFactory.register(AEGuiKeys.BUS_FLUID,
+                (ip, host) -> new ContainerFluidIO(ip, (PartSharedFluidBus) host),
+                (ip, host) -> new MUIFluidIOPanel(
+                        new ContainerFluidIO(ip, (PartSharedFluidBus) host),
+                        (PartSharedFluidBus) host));
 
-        GuiBridge.GUI_STORAGEBUS.setMuiGuiFactory(
-                (ip, te) -> new MUIStorageBusPanel(
-                        new ContainerStorageBus(ip, (PartStorageBus) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.STORAGE_BUS,
+                (ip, host) -> new ContainerStorageBus(ip, (PartStorageBus) host),
+                (ip, host) -> new MUIStorageBusPanel(
+                        new ContainerStorageBus(ip, (PartStorageBus) host)));
 
-        GuiBridge.GUI_STORAGEBUS_FLUID.setMuiGuiFactory(
-                (ip, te) -> new MUIFluidStorageBusPanel(
-                        new ContainerFluidStorageBus(ip, (PartFluidStorageBus) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.STORAGE_BUS_FLUID,
+                (ip, host) -> new ContainerFluidStorageBus(ip, (PartFluidStorageBus) host),
+                (ip, host) -> new MUIFluidStorageBusPanel(
+                        new ContainerFluidStorageBus(ip, (PartFluidStorageBus) host)));
 
-        GuiBridge.GUI_FORMATION_PLANE.setMuiGuiFactory(
-                (ip, te) -> new MUIFormationPlanePanel(
-                        new ContainerFormationPlane(ip, (PartFormationPlane) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.FORMATION_PLANE,
+                (ip, host) -> new ContainerFormationPlane(ip, (PartFormationPlane) host),
+                (ip, host) -> new MUIFormationPlanePanel(
+                        new ContainerFormationPlane(ip, (PartFormationPlane) host)));
 
-        GuiBridge.GUI_FLUID_FORMATION_PLANE.setMuiGuiFactory(
-                (ip, te) -> new MUIFluidFormationPlanePanel(
-                        new ContainerFluidFormationPlane(ip, (PartFluidFormationPlane) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.FLUID_FORMATION_PLANE,
+                (ip, host) -> new ContainerFluidFormationPlane(ip, (PartFluidFormationPlane) host),
+                (ip, host) -> new MUIFluidFormationPlanePanel(
+                        new ContainerFluidFormationPlane(ip, (PartFluidFormationPlane) host)));
 
-        GuiBridge.GUI_LEVEL_EMITTER.setMuiGuiFactory(
-                (ip, te) -> new MUILevelEmitterPanel(
-                        new ContainerLevelEmitter(ip, (PartLevelEmitter) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.LEVEL_EMITTER,
+                (ip, host) -> new ContainerLevelEmitter(ip, (PartLevelEmitter) host),
+                (ip, host) -> new MUILevelEmitterPanel(
+                        new ContainerLevelEmitter(ip, (PartLevelEmitter) host)));
 
-        GuiBridge.GUI_FLUID_LEVEL_EMITTER.setMuiGuiFactory(
-                (ip, te) -> new MUIFluidLevelEmitterPanel(
-                        new ContainerFluidLevelEmitter(ip, (PartFluidLevelEmitter) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.FLUID_LEVEL_EMITTER,
+                (ip, host) -> new ContainerFluidLevelEmitter(ip, (PartFluidLevelEmitter) host),
+                (ip, host) -> new MUIFluidLevelEmitterPanel(
+                        new ContainerFluidLevelEmitter(ip, (PartFluidLevelEmitter) host)));
 
         // ========== IO/合成子系统 ==========
 
-        GuiBridge.GUI_IOPORT.setMuiGuiFactory(
-                (ip, te) -> new MUIIOPortPanel(
-                        new ContainerIOPort(ip, (TileIOPort) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.IO_PORT,
+                (ip, host) -> new ContainerIOPort(ip, (TileIOPort) host),
+                (ip, host) -> new MUIIOPortPanel(
+                        new ContainerIOPort(ip, (TileIOPort) host)));
 
-        GuiBridge.GUI_CRAFTING_CPU.setMuiGuiFactory(
-                (ip, te) -> new MUICraftingCPUPanel(ip, te));
+        AEMUIGuiFactory.register(AEGuiKeys.CRAFTING_CPU,
+                (ip, host) -> new ContainerCraftingCPU(ip, host),
+                (ip, host) -> new MUICraftingCPUPanel(ip, host));
 
-        GuiBridge.GUI_CRAFTING_AMOUNT.setMuiGuiFactory(
-                (ip, te) -> new MUICraftAmountPanel(ip, (ITerminalHost) te));
+        AEMUIGuiFactory.register(AEGuiKeys.CRAFTING_AMOUNT,
+                (ip, host) -> new ContainerCraftAmount(ip, (ITerminalHost) host),
+                (ip, host) -> new MUICraftAmountPanel(ip, (ITerminalHost) host));
 
-        GuiBridge.GUI_CRAFTING_CONFIRM.setMuiGuiFactory(
-                (ip, te) -> new MUICraftConfirmPanel(ip, (ITerminalHost) te));
+        AEMUIGuiFactory.register(AEGuiKeys.CRAFTING_CONFIRM,
+                (ip, host) -> new ContainerCraftConfirm(ip, (ITerminalHost) host),
+                (ip, host) -> new MUICraftConfirmPanel(ip, (ITerminalHost) host));
 
-        GuiBridge.GUI_CRAFTING_STATUS.setMuiGuiFactory(
-                (ip, te) -> new MUICraftingStatusPanel(ip, (ITerminalHost) te));
+        AEMUIGuiFactory.register(AEGuiKeys.CRAFTING_STATUS,
+                (ip, host) -> new ContainerCraftingStatus(ip, (ITerminalHost) host),
+                (ip, host) -> new MUICraftingStatusPanel(ip, (ITerminalHost) host));
 
         // ========== 接口终端 ==========
 
-        GuiBridge.GUI_INTERFACE_TERMINAL.setMuiGuiFactory(
-                (ip, te) -> new MUIInterfaceTerminalPanel(
-                        new ContainerInterfaceTerminal(ip, (PartInterfaceTerminal) te)));
+        AEMUIGuiFactory.register(AEGuiKeys.INTERFACE_TERMINAL,
+                (ip, host) -> new ContainerInterfaceTerminal(ip, (PartInterfaceTerminal) host),
+                (ip, host) -> new MUIInterfaceTerminalPanel(
+                        new ContainerInterfaceTerminal(ip, (PartInterfaceTerminal) host)));
 
-        GuiBridge.GUI_INTERFACE_CONFIGURATION_TERMINAL.setMuiGuiFactory(
-                (ip, te) -> new MUIInterfaceConfigurationTerminalPanel(
+        AEMUIGuiFactory.register(AEGuiKeys.INTERFACE_CONFIGURATION_TERMINAL,
+                (ip, host) -> new ContainerInterfaceConfigurationTerminal(ip,
+                        (PartInterfaceConfigurationTerminal) host),
+                (ip, host) -> new MUIInterfaceConfigurationTerminalPanel(
                         new ContainerInterfaceConfigurationTerminal(ip,
-                                (PartInterfaceConfigurationTerminal) te)));
+                                (PartInterfaceConfigurationTerminal) host)));
 
-        GuiBridge.GUI_FLUID_INTERFACE_CONFIGURATION_TERMINAL.setMuiGuiFactory(
-                (ip, te) -> new MUIFluidInterfaceConfigurationTerminalPanel(
+        AEMUIGuiFactory.register(AEGuiKeys.FLUID_INTERFACE_CONFIGURATION_TERMINAL,
+                (ip, host) -> new ContainerFluidInterfaceConfigurationTerminal(ip,
+                        (PartFluidInterfaceConfigurationTerminal) host),
+                (ip, host) -> new MUIFluidInterfaceConfigurationTerminalPanel(
                         new ContainerFluidInterfaceConfigurationTerminal(ip,
-                                (PartFluidInterfaceConfigurationTerminal) te)));
+                                (PartFluidInterfaceConfigurationTerminal) host)));
 
         // ========== 样板值设置 ==========
 
-        GuiBridge.GUI_PATTERN_VALUE_AMOUNT.setMuiGuiFactory(
-                (ip, te) -> new MUIPatternValueAmountPanel(ip, (ITerminalHost) te));
+        AEMUIGuiFactory.register(AEGuiKeys.PATTERN_VALUE_AMOUNT,
+                (ip, host) -> new ContainerPatternValueAmount(ip, (ITerminalHost) host),
+                (ip, host) -> new MUIPatternValueAmountPanel(ip, (ITerminalHost) host));
 
-        GuiBridge.GUI_PATTERN_VALUE_NAME.setMuiGuiFactory(
-                (ip, te) -> new MUIPatternValueNamePanel(ip, (ITerminalHost) te));
+        AEMUIGuiFactory.register(AEGuiKeys.PATTERN_VALUE_NAME,
+                (ip, host) -> new ContainerPatternValueName(ip, (ITerminalHost) host),
+                (ip, host) -> new MUIPatternValueNamePanel(ip, (ITerminalHost) host));
 
-        AELog.info("MUI: Registered all %d GUI panels.", 47);
+        AELog.info("MUI: Registered all %d GUI panels.", 52);
     }
 }

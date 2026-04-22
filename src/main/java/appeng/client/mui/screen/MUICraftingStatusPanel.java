@@ -45,8 +45,8 @@ import appeng.container.implementations.ContainerCraftingStatus;
 import appeng.container.implementations.CraftingCPUStatus;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.core.sync.packets.PacketValueConfig;
@@ -82,7 +82,7 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel {
     private GuiScrollbar cpuScrollbar;
 
     private GuiTabButton originalGuiBtn;
-    private GuiBridge originalGui;
+    private AEGuiKey originalGui;
     private ItemStack myIcon = ItemStack.EMPTY;
     private String selectedCPUName = "";
 
@@ -98,8 +98,9 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel {
 
         if (target instanceof WirelessTerminalGuiObject) {
             myIcon = ((WirelessTerminalGuiObject) target).getItemStack();
-            this.originalGui = (GuiBridge) AEApi.instance().registries().wireless()
-                    .getWirelessTerminalHandler(myIcon).getGuiHandler(myIcon);
+            this.originalGui = AEGuiKeys.fromLegacy(
+                    (appeng.core.sync.GuiBridge) AEApi.instance().registries().wireless()
+                            .getWirelessTerminalHandler(myIcon).getGuiHandler(myIcon));
         }
 
         if (target instanceof PartTerminal) {

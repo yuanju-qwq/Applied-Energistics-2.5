@@ -46,8 +46,8 @@ import appeng.container.implementations.ContainerCraftConfirm;
 import appeng.container.interfaces.ICraftConfirmGuiCallback;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.core.sync.packets.PacketValueConfig;
@@ -97,7 +97,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
 
     // ========== UI 控件 ==========
 
-    private GuiBridge originalGui;
+    private AEGuiKey originalGui;
     private GuiButton cancel;
     private GuiButton start;
     private GuiButton selectCPU;
@@ -119,8 +119,9 @@ public class MUICraftConfirmPanel extends AEBasePanel
         // 确定来源终端
         if (te instanceof WirelessTerminalGuiObject) {
             ItemStack itemStack = ((WirelessTerminalGuiObject) te).getItemStack();
-            this.originalGui = (GuiBridge) AEApi.instance().registries().wireless()
-                    .getWirelessTerminalHandler(itemStack).getGuiHandler(itemStack);
+            this.originalGui = AEGuiKeys.fromLegacy(
+                    (appeng.core.sync.GuiBridge) AEApi.instance().registries().wireless()
+                            .getWirelessTerminalHandler(itemStack).getGuiHandler(itemStack));
         }
 
         if (te instanceof PartTerminal) {

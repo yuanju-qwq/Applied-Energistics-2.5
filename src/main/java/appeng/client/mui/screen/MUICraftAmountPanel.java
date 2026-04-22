@@ -40,8 +40,8 @@ import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerCraftAmount;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketCraftRequest;
 import appeng.core.sync.packets.PacketSwitchGuis;
@@ -85,8 +85,8 @@ public class MUICraftAmountPanel extends AEBasePanel {
     private GuiButton minus100;
     private GuiButton minus1000;
 
-    /** 来源终端的 GuiBridge（用于返回按钮） */
-    private GuiBridge originalGui;
+    /** 来源终端的 AEGuiKey（用于返回按钮） */
+    private AEGuiKey originalGui;
 
     public MUICraftAmountPanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(new ContainerCraftAmount(inventoryPlayer, te));
@@ -126,8 +126,9 @@ public class MUICraftAmountPanel extends AEBasePanel {
 
         if (target instanceof WirelessTerminalGuiObject) {
             myIcon = ((WirelessTerminalGuiObject) target).getItemStack();
-            this.originalGui = (GuiBridge) AEApi.instance().registries().wireless().getWirelessTerminalHandler(myIcon)
-                    .getGuiHandler(myIcon);
+            this.originalGui = AEGuiKeys.fromLegacy(
+                    (appeng.core.sync.GuiBridge) AEApi.instance().registries().wireless()
+                            .getWirelessTerminalHandler(myIcon).getGuiHandler(myIcon));
         }
 
         if (target instanceof PartTerminal) {

@@ -34,7 +34,6 @@ import appeng.client.gui.widgets.GuiToggleButton;
 import appeng.container.implementations.ContainerPatternProvider;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketConfigButton;
 import appeng.core.sync.packets.PacketSwitchGuis;

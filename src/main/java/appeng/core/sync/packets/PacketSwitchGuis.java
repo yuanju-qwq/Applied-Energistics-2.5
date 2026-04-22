@@ -18,45 +18,85 @@
 
 package appeng.core.sync.packets;
 
+import java.nio.charset.StandardCharsets;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ResourceLocation;
 
 import appeng.api.networking.security.IActionHost;
 import appeng.container.AEBaseContainer;
 import appeng.container.ContainerOpenContext;
 import appeng.container.interfaces.IInventorySlotAware;
+import appeng.core.AELog;
+import appeng.core.sync.AEGuiKey;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.INetworkInfo;
 import appeng.util.Platform;
 
+/**
+ * GUI 切换网络包。
+ * <p>
+ * 客户端发送此包告知服务端切换到另一个 GUI。
+ * 网络编码使用 {@link ResourceLocation} 字符串标识目标 GUI。
+ *
+ * @see AEGuiKey
+ */
 public class PacketSwitchGuis extends AppEngPacket {
 
-    private final GuiBridge newGui;
+    private final AEGuiKey newGui;
 
-    // automatic.
+    // ========== 网络解码构造 ==========
+
     public PacketSwitchGuis(final ByteBuf stream) {
-        this.newGui = GuiBridge.values()[stream.readInt()];
+        final int len = stream.readInt();
+        final byte[] bytes = new byte[len];
+        stream.readBytes(bytes);
+        final ResourceLocation id = new ResourceLocation(new String(bytes, StandardCharsets.UTF_8));
+        final AEGuiKey resolved = AEGuiKeys.fromId(id);
+        if (resolved == null) {
+            AELog.warn("PacketSwitchGuis: unknown GUI id '%s', ignoring", id);
+        }
+        this.newGui = resolved;
     }
 
-    // api
-    public PacketSwitchGuis(final GuiBridge newGui) {
+    // ========== 新体系构造（AEGuiKey） ==========
+
+    /**
+     * 使用 {@link AEGuiKey} 构造 GUI 切换包（推荐）。
+     */
+    public PacketSwitchGuis(final AEGuiKey newGui) {
         this.newGui = newGui;
 
+        final byte[] idBytes = newGui.getId().toString().getBytes(StandardCharsets.UTF_8);
         final ByteBuf data = Unpooled.buffer();
-
         data.writeInt(this.getPacketID());
-        data.writeInt(newGui.ordinal());
-
+        data.writeInt(idBytes.length);
+        data.writeBytes(idBytes);
         this.configureWrite(data);
+    }
+
+    // ========== 旧体系兼容构造（GuiBridge） ==========
+
+    /**
+     * @deprecated 使用 {@link #PacketSwitchGuis(AEGuiKey)} 代替。
+     */
+    @Deprecated
+    public PacketSwitchGuis(final GuiBridge newGui) {
+        this(requireGuiKey(newGui));
     }
 
     @Override
     public void serverPacketData(final INetworkInfo manager, final AppEngPacket packet, final EntityPlayer player) {
+        if (this.newGui == null) {
+            return;
+        }
         final Container c = player.openContainer;
         if (c instanceof AEBaseContainer) {
             final AEBaseContainer bc = (AEBaseContainer) c;
@@ -79,5 +119,15 @@ public class PacketSwitchGuis extends AppEngPacket {
                 }
             }
         }
+    }
+
+    // ========== 内部辅助 ==========
+
+    private static AEGuiKey requireGuiKey(GuiBridge bridge) {
+        final AEGuiKey key = AEGuiKeys.fromLegacy(bridge);
+        if (key == null) {
+            throw new IllegalArgumentException("GuiBridge " + bridge + " has no AEGuiKey mapping");
+        }
+        return key;
     }
 }

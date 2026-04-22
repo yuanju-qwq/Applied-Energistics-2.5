@@ -28,7 +28,6 @@ import appeng.client.mui.AEBasePanel;
 import appeng.container.implementations.ContainerDrive;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.tile.storage.TileDrive;

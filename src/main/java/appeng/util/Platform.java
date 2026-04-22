@@ -112,6 +112,7 @@ import appeng.core.AELog;
 import appeng.core.AppEng;
 import appeng.core.features.AEFeature;
 import appeng.core.stats.Stats;
+import appeng.core.sync.AEGuiHandler;
 import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.GuiHostType;
@@ -203,12 +204,27 @@ public class Platform {
 
     public static void openGUI(@Nonnull final EntityPlayer p, @Nullable final TileEntity tile,
             @Nullable final AEPartLocation side, @Nonnull final GuiBridge type) {
+        final AEGuiKey guiKey = encodeLegacyGuiBridge(type);
+        if (guiKey == null) {
+            AELog.warn("GuiBridge %s has no AEGuiKey mapping, cannot open GUI", type);
+            return;
+        }
+        openGUI(p, tile, side, guiKey);
+    }
+
+    /**
+     * 使用 {@link AEGuiKey} 打开 GUI（新主入口）。
+     */
+    public static void openGUI(@Nonnull final EntityPlayer p, @Nullable final TileEntity tile,
+            @Nullable final AEPartLocation side, @Nonnull final AEGuiKey guiKey) {
         if (isClient()) {
             return;
         }
 
-        if (type.getExternalGui() != null) {
-            GuiWrapper.IExternalGui obj = type.getExternalGui();
+        // ExternalGui 仍需通过 legacy bridge 处理（过渡期）
+        final GuiBridge bridge = guiKey.getLegacyBridge();
+        if (bridge != null && bridge.getExternalGui() != null) {
+            GuiWrapper.IExternalGui obj = bridge.getExternalGui();
             GuiWrapper.Opener opener = GuiWrapper.INSTANCE.getOpener(obj.getID());
             if (opener == null) {
                 AELog.warn("External Gui with ID: %s is missing a opener.", obj.getID());
@@ -220,6 +236,8 @@ public class Platform {
             }
             return;
         }
+
+        final GuiHostType hostType = guiKey.getHostType();
 
         int x = 0;
         int y = 0;
@@ -238,58 +256,43 @@ public class Platform {
             }
         }
 
-        if ((type.getType().isItem() && tile == null) || type.hasPermissions(tile, x, y, z, side, p)) {
-            if (tile == null && type.getType() == GuiHostType.ITEM) {
-                p.openGui(AppEng.instance(), type.ordinal() << 4, p.getEntityWorld(), x, 0, 0);
-            } else if (tile == null || type.getType() == GuiHostType.ITEM) {
+        if ((hostType.isItem() && tile == null)
+                || AEGuiHandler.hasPermissions(guiKey, tile, x, y, z, side, p)) {
+            if (tile == null && hostType == GuiHostType.ITEM) {
+                p.openGui(AppEng.instance(),
+                        AEGuiHandler.allocateToken(guiKey, AEPartLocation.INTERNAL, false),
+                        p.getEntityWorld(), x, 0, 0);
+            } else if (tile == null || hostType == GuiHostType.ITEM) {
                 if (tile != null) {
-                    p.openGui(AppEng.instance(), type.ordinal() << 4 | (1 << 3), p.getEntityWorld(), x, y, z);
+                    p.openGui(AppEng.instance(),
+                            AEGuiHandler.allocateToken(guiKey, AEPartLocation.INTERNAL, true),
+                            p.getEntityWorld(), x, y, z);
                 } else {
-                    p.openGui(AppEng.instance(), type.ordinal() << 4, p.getEntityWorld(), x, y, z);
+                    p.openGui(AppEng.instance(),
+                            AEGuiHandler.allocateToken(guiKey, AEPartLocation.INTERNAL, false),
+                            p.getEntityWorld(), x, y, z);
                 }
             } else {
-                p.openGui(AppEng.instance(), type.ordinal() << 4 | (side.ordinal()), tile.getWorld(), x, y, z);
+                p.openGui(AppEng.instance(),
+                        AEGuiHandler.allocateToken(guiKey, side, false),
+                        tile.getWorld(), x, y, z);
             }
         }
     }
 
     /**
-     * 使用 {@link AEGuiKey} 打开 GUI（新接口）。
-     * <p>
-     * 通过 {@link AEGuiKey#getLegacyBridge()} 转换为 {@link GuiBridge}，
-     * 委托给旧的 {@link #openGUI(EntityPlayer, TileEntity, AEPartLocation, GuiBridge)}。
-     */
-    public static void openGUI(@Nonnull final EntityPlayer p, @Nullable final TileEntity tile,
-            @Nullable final AEPartLocation side, @Nonnull final AEGuiKey guiKey) {
-        final GuiBridge bridge = guiKey.getLegacyBridge();
-        if (bridge == null) {
-            AELog.warn("AEGuiKey %s has no legacy GuiBridge mapping, cannot open GUI", guiKey.getId());
-            return;
-        }
-        openGUI(p, tile, side, bridge);
-    }
-
-    /**
-     * 使用 {@link AEGuiKey} 在指定槽位打开 GUI（新接口）。
+     * 使用 {@link AEGuiKey} 在指定槽位打开 GUI（新主入口）。
      */
     public static void openGUI(@Nonnull final EntityPlayer p, int slot, @Nonnull final AEGuiKey guiKey,
-            boolean isBauble) {
-        final GuiBridge bridge = guiKey.getLegacyBridge();
-        if (bridge == null) {
-            AELog.warn("AEGuiKey %s has no legacy GuiBridge mapping, cannot open GUI", guiKey.getId());
-            return;
-        }
-        openGUI(p, slot, bridge, isBauble);
-    }
-
-    public static void openGUI(@Nonnull final EntityPlayer p, int slot, @Nonnull final GuiBridge type,
             boolean isBauble) {
         if (isClient()) {
             return;
         }
 
-        if (type.getExternalGui() != null) {
-            GuiWrapper.IExternalGui obj = type.getExternalGui();
+        // ExternalGui 仍需通过 legacy bridge 处理（过渡期）
+        final GuiBridge bridge = guiKey.getLegacyBridge();
+        if (bridge != null && bridge.getExternalGui() != null) {
+            GuiWrapper.IExternalGui obj = bridge.getExternalGui();
             GuiWrapper.Opener opener = GuiWrapper.INSTANCE.getOpener(obj.getID());
             if (opener == null) {
                 AELog.warn("External Gui with ID: %s is missing a opener.", obj.getID());
@@ -302,10 +305,57 @@ public class Platform {
             return;
         }
 
-        if (type.getType().isItem()) {
-            p.openGui(AppEng.instance(), type.ordinal() << 4, p.getEntityWorld(), slot, isBauble ? 1 : 0,
-                    Integer.MIN_VALUE);
+        if (guiKey.getHostType().isItem()) {
+            p.openGui(AppEng.instance(),
+                    AEGuiHandler.allocateToken(guiKey, AEPartLocation.INTERNAL, false),
+                    p.getEntityWorld(), slot, isBauble ? 1 : 0, Integer.MIN_VALUE);
         }
+    }
+
+    public static void openGUI(@Nonnull final EntityPlayer p, int slot, @Nonnull final GuiBridge type,
+            boolean isBauble) {
+        final AEGuiKey guiKey = encodeLegacyGuiBridge(type);
+        if (guiKey == null) {
+            AELog.warn("GuiBridge %s has no AEGuiKey mapping, cannot open GUI", type);
+            return;
+        }
+        openGUI(p, slot, guiKey, isBauble);
+    }
+
+    /**
+     * 将 {@link AEGuiKey} 编码为沿用旧协议格式的 GUI 网络标识。
+     *
+     * @deprecated 已不再使用，Token Map 方案取代了 ordinal 编码。
+     *             保留以备外部兼容，后续阶段清理。
+     */
+    @Deprecated
+    public static int encodeGuiNetworkId(@Nonnull final AEGuiKey guiKey, final boolean usingItemOnTile,
+            @Nullable final AEPartLocation side) {
+        final GuiBridge bridge = requireLegacyBridge(guiKey);
+        if (bridge == null) {
+            return 0;
+        }
+
+        final int sideBits = side == null ? 0 : side.ordinal();
+        return bridge.ordinal() << 4 | (usingItemOnTile ? 1 << 3 : 0) | sideBits;
+    }
+
+    @Nullable
+    private static AEGuiKey encodeLegacyGuiBridge(@Nonnull final GuiBridge type) {
+        return appeng.core.sync.AEGuiKeys.fromLegacy(type);
+    }
+
+    /**
+     * @deprecated 随 {@link #encodeGuiNetworkId} 一同废弃。
+     */
+    @Deprecated
+    @Nullable
+    private static GuiBridge requireLegacyBridge(@Nonnull final AEGuiKey guiKey) {
+        final GuiBridge bridge = guiKey.getLegacyBridge();
+        if (bridge == null) {
+            AELog.warn("AEGuiKey %s has no legacy GuiBridge mapping, cannot open GUI", guiKey.getId());
+        }
+        return bridge;
     }
 
     /*

@@ -20,6 +20,8 @@ package appeng.helpers;
 
 import net.minecraft.item.ItemStack;
 
+import appeng.core.sync.AEGuiKey;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 
 public interface IPriorityHost {
@@ -36,5 +38,19 @@ public interface IPriorityHost {
 
     ItemStack getItemStackRepresentation();
 
+    /**
+     * @deprecated 使用 {@link #getGuiKey()} 代替。
+     */
+    @Deprecated
     GuiBridge getGuiBridge();
+
+    /**
+     * 返回此宿主对应的 {@link AEGuiKey}（新体系）。
+     * <p>
+     * 默认实现通过 {@link #getGuiBridge()} 做旧体系兼容转换，
+     * 子类应优先覆写此方法以直接返回 {@link AEGuiKeys} 常量。
+     */
+    default AEGuiKey getGuiKey() {
+        return AEGuiKeys.fromLegacy(getGuiBridge());
+    }
 }

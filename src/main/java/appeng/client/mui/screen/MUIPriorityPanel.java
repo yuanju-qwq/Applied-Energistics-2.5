@@ -31,7 +31,7 @@ import appeng.container.implementations.ContainerPriority;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
-import appeng.core.sync.GuiBridge;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.core.sync.packets.PacketValueConfig;
@@ -59,7 +59,7 @@ public class MUIPriorityPanel extends AEBasePanel {
     private GuiButton minus100;
     private GuiButton minus1000;
 
-    private GuiBridge originalGui;
+    private AEGuiKey originalGui;
 
     public MUIPriorityPanel(final InventoryPlayer ip, final IPriorityHost te) {
         this(new ContainerPriority(ip, te));
@@ -97,7 +97,7 @@ public class MUIPriorityPanel extends AEBasePanel {
 
         final ContainerPriority con = (ContainerPriority) this.inventorySlots;
         final ItemStack myIcon = con.getPriorityHost().getItemStackRepresentation();
-        this.originalGui = con.getPriorityHost().getGuiBridge();
+        this.originalGui = con.getPriorityHost().getGuiKey();
 
         if (this.originalGui != null && !myIcon.isEmpty()) {
             this.buttonList.add(this.originalGuiBtn = new GuiTabButton(this.guiLeft + 154, this.guiTop, myIcon,
