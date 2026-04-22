@@ -6,7 +6,7 @@
  * <h3>核心类</h3>
  * <ul>
  *   <li>{@link appeng.client.mui.AEMUITheme} — 统一视觉主题（颜色、字体、贴图）</li>
- *   <li>{@link appeng.client.mui.AEBasePanel} — MUI 基础面板（替代旧 AEBaseGui）</li>
+ *   <li>{@link appeng.client.mui.AEBasePanel} — MUI 基础面板</li>
  *   <li>{@link appeng.client.mui.IMUIWidget} — 可组合的子控件接口</li>
  *   <li>{@link appeng.client.mui.AEMUIGuiFactory} — 可插拔的 GUI 工厂注册表</li>
  * </ul>

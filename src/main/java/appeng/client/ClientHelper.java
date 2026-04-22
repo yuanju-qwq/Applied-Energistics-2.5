@@ -50,14 +50,13 @@ import net.minecraftforge.fml.common.gameevent.InputEvent;
 import appeng.api.parts.CableRenderMode;
 import appeng.api.util.AEColor;
 import appeng.block.AEBaseBlock;
-import appeng.client.gui.AEBaseGui;
+import appeng.client.mui.AEBasePanel;
 import appeng.client.render.crafting.ItemEncodedPatternBakedModel;
 import appeng.client.render.crafting.ItemSpecialEncodedPatternBakedModel;
 import appeng.client.render.effects.*;
 import appeng.client.render.model.UVLModelLoader;
 import appeng.client.render.tesr.InscriberTESR;
 import appeng.client.render.textures.ParticleTextures;
-import appeng.container.interfaces.IJEIGhostIngredients;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
 import appeng.core.Api;
@@ -324,9 +323,9 @@ public class ClientHelper extends ServerHelper {
             return;
 
         final Minecraft mc = Minecraft.getMinecraft();
-        if (mc.currentScreen instanceof IJEIGhostIngredients) {
-            AEBaseGui gui = ((AEBaseGui) mc.currentScreen);
-            Object ingredient = gui.getBookmarkedIngredient();
+        if (mc.currentScreen instanceof AEBasePanel) {
+            AEBasePanel panel = ((AEBasePanel) mc.currentScreen);
+            Object ingredient = panel.getBookmarkedIngredient();
             if (ingredient != null) {
                 if (GuiScreen.isShiftKeyDown()) {
                     me.setCanceled(true);

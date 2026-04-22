@@ -20,7 +20,6 @@ package appeng.client.gui.widgets;
 
 import net.minecraft.client.renderer.GlStateManager;
 
-import appeng.client.gui.AEBaseGui;
 import appeng.client.mui.AEBasePanel;
 
 public class GuiScrollbar implements IScrollSource {
@@ -35,20 +34,8 @@ public class GuiScrollbar implements IScrollSource {
     private int minScroll = 0;
     private int currentScroll = 0;
 
-    public void draw(final AEBaseGui g) {
-        g.bindTexture("minecraft", "gui/container/creative_inventory/tabs.png");
-        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
-
-        if (this.getRange() == 0) {
-            g.drawTexturedModalRect(this.displayX, this.displayY, 232 + this.width, 0, this.width, 15);
-        } else {
-            final int offset = (this.currentScroll - this.minScroll) * (this.height - 15) / this.getRange();
-            g.drawTexturedModalRect(this.displayX, offset + this.displayY, 232, 0, this.width, 15);
-        }
-    }
-
     /**
-     * MUI 面板兼容的绘制方法。
+     * 绘制滚动条。
      */
     public void draw(final AEBasePanel g) {
         g.bindTexture("minecraft", "gui/container/creative_inventory/tabs.png");
@@ -129,23 +116,8 @@ public class GuiScrollbar implements IScrollSource {
         return this;
     }
 
-    public void click(final AEBaseGui aeBaseGui, final int x, final int y) {
-        if (this.getRange() == 0) {
-            return;
-        }
-
-        if (x > this.displayX && x <= this.displayX + this.width) {
-            if (y > this.displayY && y <= this.displayY + this.height) {
-                this.currentScroll = (y - this.displayY);
-                this.currentScroll = this.minScroll + ((this.currentScroll * 2 * this.getRange() / this.height));
-                this.currentScroll = (this.currentScroll + 1) >> 1;
-                this.applyRange();
-            }
-        }
-    }
-
     /**
-     * MUI 面板兼容的点击方法。
+     * 处理滚动条点击。
      */
     public void click(final AEBasePanel panel, final int x, final int y) {
         if (this.getRange() == 0) {

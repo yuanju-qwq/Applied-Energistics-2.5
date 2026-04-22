@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -18,6 +18,13 @@
 
 package appeng.client.gui;
 
+
+// ========================================================================
+// [MUI Migration] 此旧 GUI 基类已被 AEBasePanel / AEBaseMEPanel 完全替代。
+// 所有子类均已注释掉或迁移到 MUI 面板体系。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
@@ -168,3 +175,4 @@ public abstract class AEBaseMEGui extends AEBaseGui {
         super.drawTooltip(tooltip, mouseX, mouseY);
     }
 }
+*/

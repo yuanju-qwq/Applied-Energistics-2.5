@@ -19,7 +19,7 @@
 package appeng.client.gui.widgets;
 
 /**
- * AEBaseGui controlled Tooltip Interface.
+ * GUI 面板 Tooltip 接口，由 AEBasePanel / GuiContainer 统一管理。
  */
 public interface ITooltip {
 

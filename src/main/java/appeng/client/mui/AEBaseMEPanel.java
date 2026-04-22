@@ -50,7 +50,7 @@ import appeng.core.localization.ButtonToolTips;
  *   <li>AppEngSlot 的数量显示 tooltip</li>
  * </ul>
  * <p>
- * 对应旧 GUI 体系中的 {@link appeng.client.gui.AEBaseMEGui}。
+ * 对应旧 GUI 体系中已移除的 AEBaseMEGui。
  */
 @SideOnly(Side.CLIENT)
 public abstract class AEBaseMEPanel extends AEBasePanel {

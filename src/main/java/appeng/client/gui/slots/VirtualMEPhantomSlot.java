@@ -86,7 +86,7 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
     }
 
     /**
-     * 由 {@link appeng.client.gui.AEBaseGui} 的 mouseClicked 调用，桥接到 {@link #handleMouseClicked}。
+     * 由 {@link appeng.client.mui.AEBasePanel} 的 mouseClicked 调用，桥接到 {@link #handleMouseClicked}。
      */
     @Override
     public void slotClicked(final ItemStack clickStack, final int mouseButton) {

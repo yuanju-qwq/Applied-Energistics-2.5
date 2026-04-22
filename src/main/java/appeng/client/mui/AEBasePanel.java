@@ -99,7 +99,7 @@ import appeng.util.item.AEItemStack;
 /**
  * 基于 MUI 的 AE2 基础面板。
  * <p>
- * 提供统一的布局框架，同时完全兼容旧 {@link appeng.client.gui.AEBaseGui} 的功能：
+ * 提供统一的布局框架：
  * <ul>
  *   <li>标准化的初始化流程（initGui）</li>
  *   <li>主题色和贴图管理（通过 {@link AEMUITheme}）</li>
@@ -158,6 +158,13 @@ public abstract class AEBasePanel extends GuiContainer {
 
     /** 键盘事件是否已被处理（阻止 Forge 继续传播） */
     protected boolean keyHandled = false;
+
+    /** JEI 书签覆盖层当前悬停的物品（供 ClientHelper 事件取消逻辑使用） */
+    private Object bookmarkedIngredient;
+
+    public Object getBookmarkedIngredient() {
+        return this.bookmarkedIngredient;
+    }
 
     public AEBasePanel(Container container) {
         super(container);
@@ -243,6 +250,19 @@ public abstract class AEBasePanel extends GuiContainer {
             }
         }
         GlStateManager.enableDepth();
+
+        // 更新 JEI 书签悬停物品（供 ClientHelper 事件取消逻辑使用）
+        if (appeng.util.Platform.isModLoaded("jei") && !appeng.client.ClientHelper.isHei) {
+            updateBookmarkedIngredient();
+        }
+    }
+
+    @net.minecraftforge.fml.common.Optional.Method(modid = "jei")
+    private void updateBookmarkedIngredient() {
+        var rt = appeng.integration.modules.jei.JEIPlugin.runtime;
+        if (rt != null) {
+            this.bookmarkedIngredient = rt.getBookmarkOverlay().getIngredientUnderMouse();
+        }
     }
 
     @Override
@@ -323,7 +343,7 @@ public abstract class AEBasePanel extends GuiContainer {
     /**
      * 旧式背景绘制钩子。子类可覆写。
      * <p>
-     * 坐标参数与旧 {@code AEBaseGui.drawBG} 完全一致：
+     * 坐标参数说明：
      * offsetX/offsetY 是面板左上角的屏幕坐标。
      *
      * @param offsetX 面板左上角屏幕 X（= guiLeft）
