@@ -51,17 +51,12 @@ import appeng.util.inv.WrapperCursorItemHandler;
 import appeng.util.inv.WrapperFilteredItemHandler;
 import appeng.util.inv.WrapperRangeItemHandler;
 import appeng.util.inv.filter.IAEItemFilter;
-import gregtech.api.bridge.GTBridge;
-import gregtech.api.bridge.IGTMachineHelper;
-import gregtech.api.bridge.IGTMachineInfo;
-import gregtech.api.bridge.IGTPatternProviderInfo;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTUtil;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.items.IItemHandler;
@@ -177,81 +172,12 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                         total++;
                     }
                 }
-
-                // 遍历新的样板供应器（Tile）
-                for (final IGridNode gn : this.grid.getMachines(TilePatternProvider.class)) {
-                    if (gn.isActive()) {
-                        final IPatternProviderHost ph = (IPatternProviderHost) gn.getMachine();
-                        final PatternProviderLogic logic = ph.getPatternProviderLogic();
-                        if (logic.getConfigManager().getSetting(Settings.INTERFACE_TERMINAL) == YesNo.NO) {
-                            continue;
-                        }
-
-                        final InvTracker t = this.ppList.get(ph);
-                        if (t == null) {
-                            missing = true;
-                        } else {
-                            if (!t.unlocalizedName.equals(logic.getTermName())) {
-                                missing = true;
-                            }
-                        }
-                        total++;
-                    }
-                }
-
-                // 遍历新的样板供应器（Part）
-                for (final IGridNode gn : this.grid.getMachines(PartPatternProvider.class)) {
-                    if (gn.isActive()) {
-                        final IPatternProviderHost ph = (IPatternProviderHost) gn.getMachine();
-                        final PatternProviderLogic logic = ph.getPatternProviderLogic();
-                        if (logic.getConfigManager().getSetting(Settings.INTERFACE_TERMINAL) == YesNo.NO) {
-                            continue;
-                        }
-
-                        final InvTracker t = this.ppList.get(ph);
-                        if (t == null) {
-                            missing = true;
-                        } else {
-                            if (!t.unlocalizedName.equals(logic.getTermName())) {
-                                missing = true;
-                            }
-                        }
-                        total++;
-                    }
-                }
-
+                // GT 样板提供者检测 — 由 GregTech 通过 Mixin 注入实际逻辑
                 if (Platform.GTLoaded) {
-                    for (final IGridNode gn : this.grid.getMachineNodes(IGTPatternProviderInfo.class)) {
-                        if (gn.isActive()) {
-                            BlockPos pos = gn.getGridBlock().getLocation().getPos();
-                            World world = gn.getGridBlock().getLocation().getWorld();
-
-                            final IGTMachineHelper machineHelper = GTBridge.getMachineHelper();
-                            if (machineHelper != null) {
-                                TileEntity te = world.getTileEntity(pos);
-                                final IGTMachineInfo machineInfo = machineHelper.getMachineInfoFromTileEntity(te);
-                                if (machineInfo instanceof IGTPatternProviderInfo providerPart
-                                        && providerPart.getPatternSlot() != null) {
-                                    ProviderTracker t = null;
-                                    for (ProviderTracker pt : this.provider) {
-                                        if (pt.pos.equals(pos) && pt.dim == machineInfo.getWorld().provider.getDimension()) {
-                                            t = pt;
-                                            break;
-                                        }
-                                    }
-
-                                    if (t == null) {
-                                        missing = true;
-                                    } else {
-                                        String currentName = getProviderDisplayName(providerPart);
-                                        if (!t.unlocalizedName.equals(currentName)) {
-                                            missing = true;
-                                        }
-                                    }
-                                    total++;
-                                }
-                            }
-                        }
+                    int[] result = detectGTProviderChanges(this.grid, this.provider);
+                    total += result[0];
+                    if (result[1] != 0) {
+                        missing = true;
                     }
                 }
             }
@@ -604,42 +530,9 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                         this.diList.put(ih, new InvTracker(dual, dual.getPatterns(), dual.getTermName()));
                     }
                 }
-
-                // 遍历新的样板供应器（Tile）
-                for (final IGridNode gn : this.grid.getMachines(TilePatternProvider.class)) {
-                    if (gn.isActive()) {
-                        final IPatternProviderHost ph = (IPatternProviderHost) gn.getMachine();
-                        final PatternProviderLogic logic = ph.getPatternProviderLogic();
-                        if (logic.getConfigManager().getSetting(Settings.INTERFACE_TERMINAL) == YesNo.YES) {
-                            this.ppList.put(ph, new InvTracker(logic, logic.getPatterns(), logic.getTermName()));
-                        }
-                    }
-                }
-
-                // 遍历新的样板供应器（Part）
-                for (final IGridNode gn : this.grid.getMachines(PartPatternProvider.class)) {
-                    if (gn.isActive()) {
-                        final IPatternProviderHost ph = (IPatternProviderHost) gn.getMachine();
-                        final PatternProviderLogic logic = ph.getPatternProviderLogic();
-                        if (logic.getConfigManager().getSetting(Settings.INTERFACE_TERMINAL) == YesNo.YES) {
-                            this.ppList.put(ph, new InvTracker(logic, logic.getPatterns(), logic.getTermName()));
-                        }
-                    }
-                }
-
+                // GT 样板提供者收集 — 由 GregTech 通过 Mixin 注入实际逻辑
                 if (Platform.GTLoaded) {
-                    for (final IGridNode gn : this.grid.getMachineNodes(IGTPatternProviderInfo.class)) {
-                        BlockPos pos = gn.getGridBlock().getLocation().getPos();
-                        TileEntity te = gn.getGridBlock().getLocation().getWorld().getTileEntity(pos);
-                        final IGTMachineHelper machineHelper = GTBridge.getMachineHelper();
-                        if (machineHelper != null) {
-                            final IGTMachineInfo machineInfo = machineHelper.getMachineInfoFromTileEntity(te);
-                            if (machineInfo instanceof IGTPatternProviderInfo patternProvider
-                                    && patternProvider.getPatternSlot() != null) {
-                                provider.add(new ProviderTracker(patternProvider));
-                            }
-                        }
-                    }
+                    collectGTProviders(this.grid, this.provider);
                 }
             }
         }
@@ -761,27 +654,24 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         return super.transferStackInSlot(p, idx);
     }
 
-    private static class ProviderTracker {
-        private final BlockPos pos;
-        private final int dim;
-        private final int tier;
-        private final long which = autoBase++;
-        private final IItemHandler client;
-        private final IItemHandler server;
-        private final String unlocalizedName;
-        private final long sortBy;
+    public static class ProviderTracker {
+        public final BlockPos pos;
+        public final int dim;
+        public final int tier;
+        public final long which = autoBase++;
+        public final IItemHandler client;
+        public final IItemHandler server;
+        public final String unlocalizedName;
+        public final long sortBy;
 
-        public ProviderTracker(IGTPatternProviderInfo providerPart) {
-            final IGTMachineInfo machineInfo = providerPart.getMachineInfo();
-            this.pos = machineInfo.getPos();
-            this.dim = machineInfo.getWorld().provider.getDimension();
-            this.tier = providerPart.getTier();
-
-            this.server = providerPart.getPatternSlot();
+        public ProviderTracker(BlockPos pos, int dim, int tier, IItemHandler patternSlot, String displayName) {
+            this.pos = pos;
+            this.dim = dim;
+            this.tier = tier;
+            this.server = patternSlot;
             this.client = new AppEngInternalInventory(null, this.server.getSlots());
-            this.unlocalizedName = getProviderDisplayName(providerPart);
-
-            sortBy = getSortValue(pos);
+            this.unlocalizedName = displayName;
+            this.sortBy = getSortValue(pos);
         }
 
         private long getSortValue(BlockPos pos) {
@@ -789,13 +679,21 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         }
     }
 
-    private static String getProviderDisplayName(final IGTPatternProviderInfo providerPart) {
-        final IGTMachineInfo machineInfo = providerPart.getMachineInfo();
-        final IGTMachineInfo controller = providerPart.getController();
-        if (controller != null && providerPart.getShowName().equals(machineInfo.getMetaFullName())) {
-            return controller.getMetaFullName();
-        }
-        return providerPart.getShowName();
+    /**
+     * 检测 GT 样板提供者的变化。
+     * 基础实现返回 {0, 0}，由 GregTech 通过 Mixin 注入实际逻辑。
+     *
+     * @return int[2]，[0]=total count, [1]=非0表示有变化(missing)
+     */
+    protected int[] detectGTProviderChanges(IGrid grid, List<ProviderTracker> providerList) {
+        return new int[]{0, 0};
+    }
+
+    /**
+     * 收集 GT 样板提供者。
+     * 基础实现为空，由 GregTech 通过 Mixin 注入实际逻辑。
+     */
+    protected void collectGTProviders(IGrid grid, List<ProviderTracker> providerList) {
     }
 
 

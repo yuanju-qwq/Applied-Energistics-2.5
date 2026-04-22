@@ -45,10 +45,6 @@ import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
 
-import gregtech.api.bridge.GTBridge;
-import gregtech.api.bridge.IGTMachineHelper;
-import gregtech.api.bridge.IGTMachineInfo;
-
 import appeng.api.config.Actionable;
 import appeng.api.config.Settings;
 import appeng.api.config.Upgrades;
@@ -292,18 +288,11 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
                 final Block directedBlock = directedBlockState.getBlock();
                 ItemStack what = new ItemStack(directedBlock, 1, directedBlock.getMetaFromState(directedBlockState));
 
+                // GT 机器名获取 — 由 GregTech Mixin 注入实际逻辑
                 if (Platform.GTLoaded) {
-                    final IGTMachineHelper machineHelper = GTBridge.getMachineHelper();
-                    if (machineHelper != null && machineHelper.isGTMachineBlock(directedBlock)) {
-                        final IGTMachineInfo machineInfo = machineHelper.getMachineInfo(
-                                directedTile.getWorld(), directedTile.getPos());
-                        if (machineInfo != null) {
-                            final IGTMachineInfo controller = machineInfo.getMultiblockController();
-                            if (controller != null) {
-                                return controller.getMetaFullName();
-                            }
-                            return machineInfo.getMetaFullName();
-                        }
+                    String gtName = getGTMachineName(directedTile, directedBlock);
+                    if (gtName != null) {
+                        return gtName;
                     }
                 }
 
@@ -339,6 +328,14 @@ public class DualityFluidInterface implements IGridTickable, IStorageMonitorable
         }
 
         return "Nothing";
+    }
+
+    /**
+     * 获取 GT 机器的显示名称。
+     * 基础实现返回 null，由 GregTech 通过 Mixin 注入实际逻辑。
+     */
+    protected String getGTMachineName(TileEntity directedTile, Block directedBlock) {
+        return null;
     }
 
     public long getSortValue() {

@@ -144,10 +144,6 @@ repositories {
 }
 
 dependencies {
-    // gt-ae2-api: 共享 API 模块，提供 GT-AE2 桥接接口和能量 API
-    def localApiJar = file("../gt-ae2-api/build/libs/gt-ae2-api-1.0.0.jar")
-    implementation files(localApiJar.exists() ? localApiJar : "libs/gt-ae2-api-1.0.0.jar")
-
     compileOnlyApi 'org.jetbrains:annotations:24.1.0'
     annotationProcessor 'org.jetbrains:annotations:24.1.0'
     implementation(rfg.deobf("curse.maven:had-enough-items-557549:7515497"))

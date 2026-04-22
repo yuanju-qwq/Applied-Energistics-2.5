@@ -39,10 +39,6 @@ import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.util.FakePlayerFactory;
 
-import gregtech.api.bridge.GTBridge;
-import gregtech.api.bridge.IGTMachineHelper;
-import gregtech.api.bridge.IGTMachineInfo;
-
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
 import appeng.core.AELog;
@@ -181,11 +177,13 @@ public final class WorldHelper {
         return (float) (player.posY + player.getEyeHeight() - player.getDefaultEyeHeight());
     }
 
-    public static IGTMachineInfo getMetaTileEntity(IBlockAccess world, BlockPos pos) {
-        final IGTMachineHelper helper = GTBridge.getMachineHelper();
-        if (helper != null) {
-            return helper.getMachineInfo(world, pos);
-        }
+    /**
+     * 获取指定位置的 GT MetaTileEntity。
+     * 基础实现返回 null，由 GregTech 通过 Mixin 注入实际逻辑。
+     *
+     * @return MetaTileEntity 实例（Object 类型以避免编译时依赖 GT），如果该位置不是 GT 机器则返回 null
+     */
+    public static Object getMetaTileEntity(IBlockAccess world, BlockPos pos) {
         return null;
     }
 

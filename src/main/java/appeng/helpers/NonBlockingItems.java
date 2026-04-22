@@ -8,8 +8,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.oredict.OreDictionary;
 
-import gregtech.api.bridge.GTBridge;
-import gregtech.api.bridge.IGTItemHelper;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -43,33 +41,8 @@ public class NonBlockingItems {
                     }
 
                     if (ModItemMeta[0].equals("gregtech") && Platform.GTLoaded) {
-                        boolean found = false;
-                        final IGTItemHelper itemHelper = GTBridge.getItemHelper();
-                        if (itemHelper != null) {
-                            final boolean[] foundRef = {false};
-                            itemHelper.findMetaItem(ModItemMeta[1], (item, meta) -> {
-                                foundRef[0] = true;
-                                ItemStack itemStack = new ItemStack(item, 1, meta);
-                                NON_BLOCKING_MAP.get(modid).putIfAbsent(itemStack.getItem(), new IntOpenHashSet());
-                                NON_BLOCKING_MAP.get(modid).computeIfPresent(itemStack.getItem(), (it, intSet) -> {
-                                    intSet.add(itemStack.getItemDamage());
-                                    return intSet;
-                                });
-                            });
-                            found = foundRef[0];
-                        }
-                        if (!found) {
-                            ItemStack itemStack = GameRegistry.makeItemStack(ModItemMeta[0] + ":" + ModItemMeta[1],
-                                    ModItemMeta.length == 3 ? Integer.parseInt(ModItemMeta[2]) : 0, 1, null);
-                            if (!itemStack.isEmpty()) {
-                                NON_BLOCKING_MAP.get(modid).putIfAbsent(itemStack.getItem(), new IntOpenHashSet());
-                                NON_BLOCKING_MAP.get(modid).computeIfPresent(itemStack.getItem(),
-                                        (it, intSet) -> {
-                                            intSet.add(itemStack.getItemDamage());
-                                            return intSet;
-                                        });
-                            }
-                        }
+                        // GT MetaItem 查找 — 由 GregTech 通过 Mixin 注入实际逻辑
+                        boolean found = lookupGTMetaItem(modid, ModItemMeta, s);
                         if (!found) {
                             AELog.error("Item not found on nonBlocking config: " + s);
                         }
@@ -101,6 +74,19 @@ public class NonBlockingItems {
 
     public Map<String, Object2ObjectOpenHashMap<Item, IntSet>> getMap() {
         return NON_BLOCKING_MAP;
+    }
+
+    /**
+     * 查找 GT MetaItem 并注册到 NON_BLOCKING_MAP。
+     * 基础实现返回 false，由 GregTech 通过 Mixin 注入实际逻辑。
+     *
+     * @param modid 模组ID
+     * @param modItemMeta 拆分后的 mod:item:meta 数组
+     * @param rawEntry 原始配置字符串
+     * @return 是否找到了物品
+     */
+    protected boolean lookupGTMetaItem(String modid, String[] modItemMeta, String rawEntry) {
+        return false;
     }
 
     public void init() {
