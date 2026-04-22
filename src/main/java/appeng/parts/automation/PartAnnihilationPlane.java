@@ -323,7 +323,7 @@ public class PartAnnihilationPlane extends PartBasicState implements IGridTickab
             final IStorageGrid storage = this.getProxy().getStorage();
             final IEnergyGrid energy = this.getProxy().getEnergy();
             final IAEItemStack overflow = appeng.util.StorageHelper.poweredInsert(energy,
-                    storage.getInventory(AEItemStackType.INSTANCE.getStorageChannel()),
+                    storage.getInventory(AEItemStackType.INSTANCE),
                     itemToStore, this.mySrc);
 
             this.isAccepting = overflow == null;
@@ -532,7 +532,7 @@ public class PartAnnihilationPlane extends PartBasicState implements IGridTickab
             for (final ItemStack itemStack : itemStacks) {
                 final IAEItemStack itemToTest = AEItemStack.fromItemStack(itemStack);
                 final IAEItemStack overflow = storage
-                        .getInventory(AEItemStackType.INSTANCE.getStorageChannel())
+                        .getInventory(AEItemStackType.INSTANCE)
                         .injectItems(itemToTest, Actionable.SIMULATE, this.mySrc);
                 if (overflow != null) {
                     canStore = false;

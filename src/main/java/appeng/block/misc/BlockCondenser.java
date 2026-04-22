@@ -30,6 +30,7 @@ import net.minecraft.world.World;
 
 import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.misc.TileCondenser;
 import appeng.util.Platform;
@@ -51,7 +52,7 @@ public class BlockCondenser extends AEBaseTileBlock {
         if (Platform.isServer()) {
             final TileCondenser tc = this.getTileEntity(w, pos);
             if (tc != null && !player.isSneaking()) {
-                Platform.openGUI(player, tc, AEPartLocation.fromFacing(side), GuiBridge.GUI_CONDENSER);
+                Platform.openGUI(player, tc, AEPartLocation.fromFacing(side), AEGuiKeys.CONDENSER);
                 return true;
             }
         }

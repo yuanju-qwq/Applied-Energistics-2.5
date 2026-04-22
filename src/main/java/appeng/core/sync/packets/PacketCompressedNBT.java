@@ -33,10 +33,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import appeng.client.gui.implementations.GuiFluidInterfaceConfigurationTerminal;
-import appeng.client.gui.implementations.GuiInterfaceConfigurationTerminal;
-import appeng.client.gui.implementations.GuiInterfaceTerminal;
-import appeng.client.gui.implementations.GuiWirelessDualInterfaceTerminal;
+import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.network.INetworkInfo;
 
@@ -97,14 +94,8 @@ public class PacketCompressedNBT extends AppEngPacket {
     public void clientPacketData(final INetworkInfo network, final AppEngPacket packet, final EntityPlayer player) {
         final GuiScreen gs = Minecraft.getMinecraft().currentScreen;
 
-        if (gs instanceof GuiWirelessDualInterfaceTerminal) {
-            ((GuiWirelessDualInterfaceTerminal) gs).postUpdate(this.in);
-        } else if (gs instanceof GuiInterfaceTerminal) {
-            ((GuiInterfaceTerminal) gs).postUpdate(this.in);
-        } else if (gs instanceof GuiInterfaceConfigurationTerminal) {
-            ((GuiInterfaceConfigurationTerminal) gs).postUpdate(this.in);
-        } else if (gs instanceof GuiFluidInterfaceConfigurationTerminal) {
-            ((GuiFluidInterfaceConfigurationTerminal) gs).postUpdate(this.in);
+        if (gs instanceof IInterfaceTerminalGuiCallback callback) {
+            callback.postUpdate(this.in);
         }
     }
 }

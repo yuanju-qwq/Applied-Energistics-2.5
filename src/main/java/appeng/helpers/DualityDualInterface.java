@@ -40,7 +40,9 @@ import com.google.common.collect.ImmutableSet;
  * 两个 Duality 共享同一个 AENetworkProxy，只占用一个频道。
  *
  * @param <H> 宿主类型，需要同时实现 IInterfaceHost 和 IFluidInterfaceHost
+ * @deprecated 使用 {@link PatternProviderLogic} + {@link InterfaceLogic} 替代，二合一接口已被样板供应器和 ME 接口取代。
  */
+@Deprecated
 public class DualityDualInterface<H extends IInterfaceHost & IFluidInterfaceHost> {
 
     private final DualityInterface itemDuality;

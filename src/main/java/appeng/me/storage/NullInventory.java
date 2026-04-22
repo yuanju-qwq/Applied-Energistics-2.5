@@ -22,7 +22,6 @@ import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -46,8 +45,7 @@ public class NullInventory<T extends IAEStack<T>> implements IMEInventoryHandler
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
-    public IAEStackType getStackType() {
+    public IAEStackType<?> getStackType() {
         return AEItemStackType.INSTANCE;
     }
 

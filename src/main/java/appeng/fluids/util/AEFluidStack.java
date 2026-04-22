@@ -200,7 +200,7 @@ public final class AEFluidStack extends AEStack<IAEFluidStack> implements IAEFlu
 
     @Override
     public IStorageChannel<IAEFluidStack> getChannel() {
-        return AEFluidStackType.INSTANCE.getStorageChannel();
+        return AEFluidStackType.INSTANCE;
     }
 
     @Override

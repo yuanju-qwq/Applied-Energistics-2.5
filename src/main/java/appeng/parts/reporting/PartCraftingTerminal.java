@@ -28,6 +28,7 @@ import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.parts.IPartModel;
 import appeng.core.AppEng;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.Reflected;
 import appeng.items.parts.PartModels;
@@ -86,10 +87,10 @@ public class PartCraftingTerminal extends AbstractPartTerminal {
             z = this.getTile().getPos().getZ();
         }
 
-        if (GuiBridge.GUI_CRAFTING_TERMINAL.hasPermissions(this.getHost().getTile(), x, y, z, this.getSide(), p)) {
-            return GuiBridge.GUI_CRAFTING_TERMINAL;
+        if (AEGuiKeys.CRAFTING_TERMINAL.getLegacyBridge().hasPermissions(this.getHost().getTile(), x, y, z, this.getSide(), p)) {
+            return AEGuiKeys.CRAFTING_TERMINAL.getLegacyBridge();
         }
-        return GuiBridge.GUI_ME;
+        return AEGuiKeys.ME_TERMINAL.getLegacyBridge();
     }
 
     @Override

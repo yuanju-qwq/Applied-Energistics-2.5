@@ -29,7 +29,6 @@ import appeng.api.implementations.guiobjects.IPortableCell;
 import appeng.api.implementations.items.IAEItemPowerStorage;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
@@ -47,7 +46,7 @@ public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implement
 
     public PortableCellViewer(final ItemStack is, final int slot) {
         super(AEApi.instance().registries().cell().getCellInventory(is, null,
-                AEItemStackType.INSTANCE.getStorageChannel()));
+                AEItemStackType.INSTANCE));
         this.ips = (IAEItemPowerStorage) is.getItem();
         this.target = is;
         this.inventorySlot = slot;
@@ -103,8 +102,8 @@ public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implement
     }
 
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-        if (channel == AEItemStackType.INSTANCE.getStorageChannel()) {
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+        if (type == AEItemStackType.INSTANCE) {
             return (IMEMonitor<T>) this;
         }
         return null;

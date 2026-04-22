@@ -36,6 +36,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
@@ -44,13 +45,14 @@ import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
 import appeng.container.helper.WirelessContainerHelper;
 import appeng.container.interfaces.IInventorySlotAware;
+import appeng.container.interfaces.IPortableFluidCellGuiCallback;
 import appeng.container.slot.AppEngSlot;
 import appeng.container.slot.SlotPlayerHotBar;
 import appeng.container.slot.SlotPlayerInv;
 import appeng.container.slot.SlotRestrictedInput;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
-import appeng.core.sync.packets.PacketMEFluidInventoryUpdate;
+import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.core.sync.packets.PacketTargetFluidStack;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.fluids.util.AEFluidStack;
@@ -63,6 +65,11 @@ import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.InvOperation;
 import appeng.fluids.util.AEFluidStackType;
 
+/**
+ * @deprecated 便携流体单元 Container 将在后续版本统一到
+ *             {@link appeng.container.implementations.ContainerMEMonitorable} 体系。此类保留向后兼容。
+ */
+@Deprecated
 public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAEAppEngInventory, IConfigManagerHost,
         IConfigurableObject, IMEMonitorHandlerReceiver<IAEFluidStack>, IUpgradeableCellContainer, IInventorySlotAware {
 
@@ -106,7 +113,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
         if (Platform.isServer()) {
             this.serverCM = terminal.getConfigManager();
             this.monitor = terminal
-                    .getInventory(AEFluidStackType.INSTANCE.getStorageChannel());
+                    .getInventory(AEFluidStackType.INSTANCE);
 
             if (this.monitor != null) {
                 this.monitor.addListener(this, null);
@@ -144,7 +151,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
             this.wirelessHelper.tickWirelessStatus(this);
 
             if (this.monitor != this.terminal
-                    .getInventory(AEFluidStackType.INSTANCE.getStorageChannel())) {
+                    .getInventory(AEFluidStackType.INSTANCE)) {
                 this.setValidContainer(false);
             }
 
@@ -171,15 +178,15 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 try {
                     final IItemList<IAEFluidStack> monitorCache = this.monitor.getStorageList();
 
-                    final PacketMEFluidInventoryUpdate piu = new PacketMEFluidInventoryUpdate();
+                    final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
                     for (final IAEFluidStack is : this.fluids) {
                         final IAEFluidStack send = monitorCache.findPrecise(is);
                         if (send == null) {
                             is.setStackSize(0);
-                            piu.appendFluid(is);
+                            piu.appendStack(is);
                         } else {
-                            piu.appendFluid(send);
+                            piu.appendStack(send);
                         }
                     }
 
@@ -435,17 +442,17 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
     private void queueInventory(final IContainerListener c) {
         if (Platform.isServer() && c instanceof EntityPlayer && this.monitor != null) {
             try {
-                PacketMEFluidInventoryUpdate piu = new PacketMEFluidInventoryUpdate();
+                PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
                 final IItemList<IAEFluidStack> monitorCache = this.monitor.getStorageList();
 
                 for (final IAEFluidStack send : monitorCache) {
                     try {
-                        piu.appendFluid(send);
+                        piu.appendStack(send);
                     } catch (final BufferOverflowException boe) {
                         NetworkHandler.instance().sendTo(piu, (EntityPlayerMP) c);
 
-                        piu = new PacketMEFluidInventoryUpdate();
-                        piu.appendFluid(send);
+                        piu = new PacketMEInventoryUpdate();
+                        piu.appendStack(send);
                     }
                 }
 
@@ -534,5 +541,15 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
     @Override
     public boolean isBaubleSlot() {
         return this.wirelessHelper.isBaubleSlot();
+    }
+
+    /**
+     * 客户端接收流体库存更新包。
+     */
+    public void postUpdate(final List<IAEStack<?>> list) {
+        final IConfigManagerHost gui = this.getGui();
+        if (gui instanceof IPortableFluidCellGuiCallback callback) {
+            callback.postUpdate(list);
+        }
     }
 }

@@ -56,7 +56,6 @@ import appeng.api.implementations.items.IStorageCell;
 import appeng.api.implementations.tiles.IColorableTile;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -434,7 +433,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,
-                        AEItemStackType.INSTANCE.getStorageChannel());
+                        AEItemStackType.INSTANCE);
 
         AEApi.instance().client().addCellInformation(cdi, lines);
     }

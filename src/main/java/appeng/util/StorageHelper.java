@@ -63,7 +63,7 @@ public final class StorageHelper {
             retrieved = possible.getStackSize();
         }
 
-        final double energyFactor = Math.max(1.0, cell.getChannel().transferFactor());
+        final double energyFactor = Math.max(1.0, cell.getStackType().transferFactor());
         final double availablePower = energy.extractAEPower(retrieved / energyFactor, Actionable.SIMULATE,
                 PowerMultiplier.CONFIG);
         final long itemToExtract = Math.min((long) ((availablePower * energyFactor) + 0.9), retrieved);
@@ -106,7 +106,7 @@ public final class StorageHelper {
             stored -= possible.getStackSize();
         }
 
-        final double energyFactor = Math.max(1.0, cell.getChannel().transferFactor());
+        final double energyFactor = Math.max(1.0, cell.getStackType().transferFactor());
         final double availablePower = energy.extractAEPower(stored / energyFactor, Actionable.SIMULATE,
                 PowerMultiplier.CONFIG);
         final long itemToAdd = Math.min((long) ((availablePower * energyFactor) + 0.9), stored);
@@ -176,18 +176,12 @@ public final class StorageHelper {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static void getAvailableItemsInto(final IMEInventory<?> inv, final IItemList<?> out) {
-        ((IMEInventory) inv).getAvailableItems(out);
+        inv.getAvailableItemsGeneric(out);
     }
 
-    @SuppressWarnings("unchecked")
     public static IItemList<? extends IAEStack<?>> getAvailableItems(final IMEInventory<?> inv) {
-        return getAvailableItemsHelper((IMEInventory) inv);
-    }
-
-    private static <T extends IAEStack<T>> IItemList<T> getAvailableItemsHelper(final IMEInventory<T> inv) {
-        return inv.getAvailableItems(inv.getChannel().createList());
+        return inv.getAvailableItems();
     }
 
     public static <T extends IAEStack<T>> IItemList<T> getStorageView(final IMEInventory<T> inv) {
@@ -195,7 +189,7 @@ public final class StorageHelper {
             return getStorageViewFromMonitor(inv);
         }
 
-        return inv.getAvailableItems(inv.getChannel().createList());
+        return inv.getAvailableItems(inv.getStackType().createList());
     }
 
     @SuppressWarnings("unchecked")
@@ -213,19 +207,17 @@ public final class StorageHelper {
         return inv.extractItems(request, mode, src);
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     public static IAEStack<?> injectItems(final IMEInventory<?> inv, final IAEStack<?> input,
             final Actionable mode, final IActionSource src) {
-        return (IAEStack<?>) ((IMEInventory) inv).injectItems(input, mode, src);
+        return inv.injectItemsGeneric(input, mode, src);
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     public static IAEStack<?> extractItems(final IMEInventory<?> inv, final IAEStack<?> request,
             final Actionable mode, final IActionSource src) {
-        return (IAEStack<?>) ((IMEInventory) inv).extractItems(request, mode, src);
+        return inv.extractItemsGeneric(request, mode, src);
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings("unchecked")
     public static IAEStack<?> poweredInsertWildcard(final IEnergySource energy, final IMEInventory<?> inv,
             final IAEStack<?> input, final IActionSource src) {
         return (IAEStack<?>) poweredInsert(energy, (IMEInventory) inv, (IAEStack) input, src);

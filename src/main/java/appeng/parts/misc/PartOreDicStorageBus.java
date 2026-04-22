@@ -16,6 +16,7 @@ import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.core.AppEng;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.items.parts.PartModels;
 import appeng.me.GridAccessException;
@@ -68,14 +69,14 @@ public class PartOreDicStorageBus extends PartStorageBus {
     @Override
     public boolean onPartActivate(final EntityPlayer player, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), GuiBridge.GUI_OREDICTSTORAGEBUS);
+            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), AEGuiKeys.ORE_DICT_STORAGE_BUS);
         }
         return true;
     }
 
     @Override
     public GuiBridge getGuiBridge() {
-        return GuiBridge.GUI_OREDICTSTORAGEBUS;
+        return AEGuiKeys.ORE_DICT_STORAGE_BUS.getLegacyBridge();
     }
 
     @Override
@@ -112,7 +113,7 @@ public class PartOreDicStorageBus extends PartStorageBus {
 
             if (inv != null) {
                 this.handler = new MEInventoryHandler<>(inv,
-                        AEItemStackType.INSTANCE.getStorageChannel());
+                        AEItemStackType.INSTANCE);
 
                 this.handler.setBaseAccess((AccessRestriction) this.getConfigManager().getSetting(Settings.ACCESS));
                 this.handler.setWhitelist(this.getInstalledUpgrades(Upgrades.INVERTER) > 0 ? IncludeExclude.BLACKLIST

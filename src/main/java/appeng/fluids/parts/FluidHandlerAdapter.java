@@ -33,7 +33,6 @@ import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;

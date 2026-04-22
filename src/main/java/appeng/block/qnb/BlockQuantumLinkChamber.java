@@ -37,6 +37,7 @@ import net.minecraft.world.World;
 import appeng.api.util.AEPartLocation;
 import appeng.client.EffectType;
 import appeng.core.AppEng;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.AEGlassMaterial;
 import appeng.tile.qnb.TileQuantumBridge;
@@ -72,7 +73,7 @@ public class BlockQuantumLinkChamber extends BlockQuantumBase {
         final TileQuantumBridge tg = this.getTileEntity(w, pos);
         if (tg != null) {
             if (Platform.isServer()) {
-                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_QNB);
+                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.QNB);
             }
             return true;
         }

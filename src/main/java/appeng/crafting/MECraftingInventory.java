@@ -109,15 +109,13 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         return (IItemList<T>) list;
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     private static void addToTypedList(final IItemList<?> list, final IAEStack<?> stack) {
-        ((IItemList) list).add(stack);
+        list.addGeneric(stack);
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static Collection<IAEStack<?>> findFuzzyInTypedList(final IItemList<?> list,
+    private static Collection<? extends IAEStackBase> findFuzzyInTypedList(final IItemList<?> list,
             final IAEStack<?> stack, final FuzzyMode fuzzy) {
-        return (Collection<IAEStack<?>>) ((IItemList) list).findFuzzy(stack, fuzzy);
+        return list.findFuzzyGeneric(stack, fuzzy);
     }
 
     private IItemList<?> getList(final IAEStackType<?> type) {
@@ -128,9 +126,8 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         return castTypedList(this.getList(AEItemStackType.INSTANCE));
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T extends IAEStack<T>> T findPreciseStack(final IItemList<?> list, final IAEStack<?> stack) {
-        return ((IItemList<T>) list).findPrecise((T) stack);
+    private static IAEStack<?> findPreciseStack(final IItemList<?> list, final IAEStack<?> stack) {
+        return list.findPreciseGeneric(stack);
     }
 
     private IAEStack<?> findPreciseInternal(final IAEStack<?> stack) {
@@ -147,16 +144,14 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         return (StackType) asGenericStack(stackBase).copy();
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     private static IAEStack<?> injectToMonitor(final IMEMonitor<?> monitor, final IAEStack<?> stack,
             final Actionable mode, final IActionSource src) {
-        return (IAEStack<?>) ((IMEMonitor) monitor).injectItems(stack, mode, src);
+        return monitor.injectItemsGeneric(stack, mode, src);
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     private static IAEStack<?> extractFromMonitor(final IMEMonitor<?> monitor, final IAEStack<?> stack,
             final Actionable mode, final IActionSource src) {
-        return (IAEStack<?>) ((IMEMonitor) monitor).extractItems(stack, mode, src);
+        return monitor.extractItemsGeneric(stack, mode, src);
     }
 
     /**
@@ -452,7 +447,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     /**
      * 获取指定栈的模糊匹配。
      */
-    public Collection<IAEStack<?>> findFuzzyAny(final IAEStack<?> filter, final FuzzyMode fuzzy) {
+    public Collection<? extends IAEStackBase> findFuzzyAny(final IAEStack<?> filter, final FuzzyMode fuzzy) {
         if (filter == null) return null;
         return findFuzzyInTypedList(this.getList(filter.getStackType()), filter, fuzzy);
     }

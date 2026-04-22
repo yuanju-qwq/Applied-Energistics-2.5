@@ -49,6 +49,10 @@ import appeng.helpers.InventoryAction;
 import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 
+/**
+ * @deprecated 使用 {@link appeng.container.implementations.ContainerMEInterface} 替代。
+ */
+@Deprecated
 public class ContainerFluidInterface extends ContainerFluidConfigurable implements IConfigManagerHost {
     private final DualityFluidInterface myDuality;
     private final FluidSyncHelper tankSync;

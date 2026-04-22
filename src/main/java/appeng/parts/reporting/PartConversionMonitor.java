@@ -184,7 +184,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
             final IEnergySource energy = this.getProxy().getEnergy();
             final IMEMonitor<IAEItemStack> cell = this.getProxy()
                     .getStorage()
-                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
+                    .getInventory(AEItemStackType.INSTANCE);
 
             if (allItems) {
                 if (this.getDisplayed() != null && this.getDisplayed() instanceof IAEItemStack) {
@@ -232,7 +232,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
                 final IMEMonitor<IAEItemStack> cell = this.getProxy()
                         .getStorage()
                         .getInventory(
-                                AEItemStackType.INSTANCE.getStorageChannel());
+                                AEItemStackType.INSTANCE);
 
                 input.setStackSize(count);
 
@@ -283,7 +283,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
             final IMEMonitor<IAEFluidStack> cell = this.getProxy()
                     .getStorage()
                     .getInventory(
-                            AEFluidStackType.INSTANCE.getStorageChannel());
+                            AEFluidStackType.INSTANCE);
             final IAEFluidStack notStorable = appeng.util.StorageHelper.poweredInsert(energy, cell, AEFluidStack.fromFluidStack(extract),
                     new PlayerSource(player, this), Actionable.SIMULATE);
 
@@ -342,7 +342,7 @@ public class PartConversionMonitor extends AbstractPartMonitor {
             final IMEMonitor<IAEFluidStack> cell = this.getProxy()
                     .getStorage()
                     .getInventory(
-                            AEFluidStackType.INSTANCE.getStorageChannel());
+                            AEFluidStackType.INSTANCE);
             final IAEFluidStack canPull = appeng.util.StorageHelper.poweredExtraction(energy, cell, stack,
                     new PlayerSource(player, this), Actionable.SIMULATE);
             if (canPull == null || canPull.getStackSize() < 1) {

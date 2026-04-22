@@ -153,7 +153,7 @@ public class PacketJEIRecipe extends AppEngPacket {
 
         if (inv != null && this.recipe != null && security != null) {
             final IMEMonitor<IAEItemStack> storage = inv
-                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
+                    .getInventory(AEItemStackType.INSTANCE);
             final IPartitionList<IAEItemStack> filter = ItemViewCell.createFilter(cct.getViewCells());
 
             final boolean overwriteGhostSlots = !cct.useRealItems()
@@ -212,7 +212,7 @@ public class PacketJEIRecipe extends AppEngPacket {
                                         if (request.getItem().isDamageable()
                                                 || Platform.isGTDamageableItem(request.getItem())) {
                                             Collection<IAEItemStack> outList = inv
-                                                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel())
+                                                    .getInventory(AEItemStackType.INSTANCE)
                                                     .getStorageList().findFuzzy(request, FuzzyMode.IGNORE_ALL);
                                             for (IAEItemStack is : outList) {
                                                 if (is.getStackSize() == 0) {

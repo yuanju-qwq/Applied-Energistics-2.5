@@ -45,5 +45,7 @@ public interface ICraftingProviderHelper {
      * @deprecated 使用 {@link #setEmitable(IAEStack)} 替代
      */
     @Deprecated
-    void setEmitable(IAEItemStack what);
+    default void setEmitable(IAEItemStack what) {
+        setEmitable((IAEStack<?>) what);
+    }
 }

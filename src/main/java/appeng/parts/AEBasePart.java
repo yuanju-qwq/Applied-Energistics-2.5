@@ -55,6 +55,7 @@ import appeng.api.networking.security.IActionHost;
 import appeng.api.parts.*;
 import appeng.api.storage.StorageName;
 import appeng.api.util.*;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.IConfigurableFluidInventory;
 import appeng.fluids.parts.PartFluidLevelEmitter;
@@ -488,7 +489,7 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
         if (stack != null && stack.getItem() instanceof ToolQuartzCuttingKnife) {
             if (ForgeEventFactory.onItemUseStart(player, stack, 1) <= 0)
                 return false;
-            Platform.openGUI(player, tile, side, GuiBridge.GUI_RENAMER);
+            Platform.openGUI(player, tile, side, AEGuiKeys.RENAMER);
             return true;
         }
         return false;

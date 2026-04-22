@@ -18,20 +18,19 @@
 
 package appeng.client.gui;
 
+import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Container;
 
-public class GuiNull extends AEBaseGui {
+/**
+ * 空 GUI，用于错误回退场景（宿主解析失败时显示空白界面）。
+ */
+public class GuiNull extends GuiContainer {
 
     public GuiNull(final Container container) {
         super(container);
     }
 
     @Override
-    public void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-    }
-
-    @Override
-    public void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-
+    protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
     }
 }

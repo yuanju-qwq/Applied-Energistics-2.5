@@ -34,13 +34,10 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.me.storage.ItemWatcher;
-import appeng.util.item.AEItemStackType;
-import appeng.fluids.util.AEFluidStackType;
 
 public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     @Nonnull
@@ -60,8 +57,7 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     private final Object2ObjectMap<IMEMonitorHandlerReceiver<T>, Object> listeners;
 
     private boolean sendEvent = false;
-    private long gridItemCount;
-    private long gridFluidCount;
+    private long gridCount;
     public boolean forceUpdate;
 
     public NetworkMonitor(final GridStorageCache cache, final IAEStackType<T> type) {
@@ -112,20 +108,11 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     public long getGridCurrentCount() {
-        if (myStackType == AEItemStackType.INSTANCE) {
-            return gridItemCount;
-        } else if (myStackType == AEFluidStackType.INSTANCE) {
-            return gridFluidCount;
-        }
-        return 0;
+        return gridCount;
     }
 
     public void incGridCurrentCount(long count) {
-        if (myStackType == AEItemStackType.INSTANCE) {
-            gridItemCount += count;
-        } else if (myStackType == AEFluidStackType.INSTANCE) {
-            gridFluidCount += count;
-        }
+        gridCount += count;
     }
 
     @Nonnull
@@ -284,11 +271,7 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
             }
         }
 
-        if (myStackType == AEItemStackType.INSTANCE) {
-            gridItemCount = count;
-        } else if (myStackType == AEFluidStackType.INSTANCE) {
-            gridFluidCount = count;
-        }
+        gridCount = count;
 
         final Iterator<Entry<IMEMonitorHandlerReceiver<T>, Object>> i = this.getListeners();
         while (i.hasNext()) {

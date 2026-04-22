@@ -98,7 +98,6 @@ import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -113,6 +112,7 @@ import appeng.core.AELog;
 import appeng.core.AppEng;
 import appeng.core.features.AEFeature;
 import appeng.core.stats.Stats;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.GuiHostType;
 import appeng.core.sync.GuiWrapper;
@@ -251,6 +251,35 @@ public class Platform {
                 p.openGui(AppEng.instance(), type.ordinal() << 4 | (side.ordinal()), tile.getWorld(), x, y, z);
             }
         }
+    }
+
+    /**
+     * 使用 {@link AEGuiKey} 打开 GUI（新接口）。
+     * <p>
+     * 通过 {@link AEGuiKey#getLegacyBridge()} 转换为 {@link GuiBridge}，
+     * 委托给旧的 {@link #openGUI(EntityPlayer, TileEntity, AEPartLocation, GuiBridge)}。
+     */
+    public static void openGUI(@Nonnull final EntityPlayer p, @Nullable final TileEntity tile,
+            @Nullable final AEPartLocation side, @Nonnull final AEGuiKey guiKey) {
+        final GuiBridge bridge = guiKey.getLegacyBridge();
+        if (bridge == null) {
+            AELog.warn("AEGuiKey %s has no legacy GuiBridge mapping, cannot open GUI", guiKey.getId());
+            return;
+        }
+        openGUI(p, tile, side, bridge);
+    }
+
+    /**
+     * 使用 {@link AEGuiKey} 在指定槽位打开 GUI（新接口）。
+     */
+    public static void openGUI(@Nonnull final EntityPlayer p, int slot, @Nonnull final AEGuiKey guiKey,
+            boolean isBauble) {
+        final GuiBridge bridge = guiKey.getLegacyBridge();
+        if (bridge == null) {
+            AELog.warn("AEGuiKey %s has no legacy GuiBridge mapping, cannot open GUI", guiKey.getId());
+            return;
+        }
+        openGUI(p, slot, bridge, isBauble);
     }
 
     public static void openGUI(@Nonnull final EntityPlayer p, int slot, @Nonnull final GuiBridge type,

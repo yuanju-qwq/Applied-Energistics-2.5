@@ -54,7 +54,6 @@ import appeng.api.networking.events.MENetworkSecurityChange;
 import appeng.api.networking.security.ISecurityProvider;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -241,8 +240,8 @@ public class TileSecurityStation extends AENetworkTile implements ITerminalHost,
     }
 
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-        if (channel == AEItemStackType.INSTANCE.getStorageChannel()) {
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+        if (type == AEItemStackType.INSTANCE) {
             return (IMEMonitor<T>) this.securityMonitor;
         }
         return null;

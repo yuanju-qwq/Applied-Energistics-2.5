@@ -47,6 +47,8 @@ public enum GuiText {
     StoredItems,
     StoredFluids,
     Patterns,
+    PatternProvider,
+    MEInterface,
     ImportBus,
     ImportBusFluids,
     ExportBus,

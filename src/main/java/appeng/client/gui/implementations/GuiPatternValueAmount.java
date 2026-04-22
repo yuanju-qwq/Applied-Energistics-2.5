@@ -18,6 +18,14 @@
 
 package appeng.client.gui.implementations;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import java.io.IOException;
 
 import org.lwjgl.input.Keyboard;
@@ -38,6 +46,7 @@ import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerPatternValueAmount;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketPatternValueSet;
@@ -108,12 +117,12 @@ public class GuiPatternValueAmount extends AEBaseGui {
 
         if (target instanceof PartPatternTerminal) {
             myIcon = parts.patternTerminal().maybeStack(1).orElse(ItemStack.EMPTY);
-            this.originalGui = GuiBridge.GUI_PATTERN_TERMINAL;
+            this.originalGui = AEGuiKeys.PATTERN_TERMINAL;
         }
 
         if (target instanceof PartExpandedProcessingPatternTerminal) {
             myIcon = parts.expandedProcessingPatternTerminal().maybeStack(1).orElse(ItemStack.EMPTY);
-            this.originalGui = GuiBridge.GUI_EXPANDED_PROCESSING_PATTERN_TERMINAL;
+            this.originalGui = AEGuiKeys.EXPANDED_PROCESSING_PATTERN_TERMINAL;
         }
 
         if (this.originalGui != null && !myIcon.isEmpty()) {
@@ -237,3 +246,5 @@ public class GuiPatternValueAmount extends AEBaseGui {
         }
     }
 }
+
+*/

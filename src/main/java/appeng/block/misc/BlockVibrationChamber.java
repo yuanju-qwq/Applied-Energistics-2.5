@@ -38,6 +38,7 @@ import net.minecraft.world.World;
 import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
 import appeng.core.AEConfig;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.AEBaseTile;
 import appeng.tile.misc.TileVibrationChamber;
@@ -79,7 +80,7 @@ public final class BlockVibrationChamber extends AEBaseTileBlock {
         if (Platform.isServer()) {
             final TileVibrationChamber tc = this.getTileEntity(w, pos);
             if (tc != null && !player.isSneaking()) {
-                Platform.openGUI(player, tc, AEPartLocation.fromFacing(side), GuiBridge.GUI_VIBRATION_CHAMBER);
+                Platform.openGUI(player, tc, AEPartLocation.fromFacing(side), AEGuiKeys.VIBRATION_CHAMBER);
                 return true;
             }
         }

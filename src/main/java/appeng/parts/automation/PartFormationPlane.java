@@ -50,13 +50,13 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.parts.IPartItem;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.core.AEConfig;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.items.parts.PartModels;
 import appeng.me.GridAccessException;
@@ -78,7 +78,7 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
     }
 
     private final MEInventoryHandler<IAEItemStack> myHandler = new MEInventoryHandler<>(this,
-            AEItemStackType.INSTANCE.getStorageChannel());
+            AEItemStackType.INSTANCE);
     private final AppEngInternalAEInventory Config = new AppEngInternalAEInventory(this, 63);
 
     public PartFormationPlane(final ItemStack is) {
@@ -168,7 +168,7 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
     @Override
     public boolean onPartActivate(final EntityPlayer player, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), GuiBridge.GUI_FORMATION_PLANE);
+            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), AEGuiKeys.FORMATION_PLANE);
         }
         return true;
     }
@@ -329,7 +329,7 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
 
     @Override
     public GuiBridge getGuiBridge() {
-        return GuiBridge.GUI_FORMATION_PLANE;
+        return AEGuiKeys.FORMATION_PLANE.getLegacyBridge();
     }
 
     private int countEntitesAround(World world, BlockPos pos) {

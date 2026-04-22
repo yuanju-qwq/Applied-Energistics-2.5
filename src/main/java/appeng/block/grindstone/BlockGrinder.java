@@ -30,6 +30,7 @@ import net.minecraft.world.World;
 
 import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.grindstone.TileGrinder;
 import appeng.util.Platform;
@@ -48,7 +49,7 @@ public class BlockGrinder extends AEBaseTileBlock {
             final float hitZ) {
         final TileGrinder tg = this.getTileEntity(w, pos);
         if (tg != null && !p.isSneaking()) {
-            Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_GRINDER);
+            Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.GRINDER);
             return true;
         }
         return false;

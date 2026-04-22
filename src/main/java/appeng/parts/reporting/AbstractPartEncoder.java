@@ -15,6 +15,7 @@ import appeng.api.parts.IPartModel;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.inventory.AppEngInternalInventory;
 import appeng.tile.inventory.IAEStackInventory;
@@ -171,7 +172,7 @@ public abstract class AbstractPartEncoder extends AbstractPartTerminal implement
         if (getGuiBridge().hasPermissions(this.getHost().getTile(), x, y, z, this.getSide(), p)) {
             return getGuiBridge();
         }
-        return GuiBridge.GUI_ME;
+        return AEGuiKeys.ME_TERMINAL.getLegacyBridge();
     }
 
     abstract public GuiBridge getGuiBridge();

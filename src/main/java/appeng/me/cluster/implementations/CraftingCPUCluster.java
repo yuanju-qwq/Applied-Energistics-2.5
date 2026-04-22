@@ -236,27 +236,12 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         }
     }
 
-    /**
-     * IAEItemStack 重载 — 供 CraftingGridCache 等旧接口调用。
-     */
-    public boolean canAccept(final IAEItemStack input) {
-        return canAccept((IAEStack<?>) input);
-    }
-
     public boolean canAccept(final IAEStack<?> input) {
         if (input != null) {
             final IAEStack<?> is = this.waitingFor.findPrecise(input);
             return is != null && is.getStackSize() > 0;
         }
         return false;
-    }
-
-    /**
-     * IAEItemStack 重载 — 供 CraftingGridCache 等旧接口调用。
-     */
-    public IAEItemStack injectItems(final IAEItemStack input, final Actionable type, final IActionSource src) {
-        IAEStack<?> result = injectItems((IAEStack<?>) input, type, src);
-        return result instanceof IAEItemStack ? (IAEItemStack) result : null;
     }
 
     @SuppressWarnings("unchecked")
@@ -1205,55 +1190,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         }
     }
 
-    @Deprecated
-    public void getListOfItem(final IItemList<IAEItemStack> list, final CraftingItemList whichList) {
-        switch (whichList) {
-            case ACTIVE:
-                for (final IAEStackBase stackBase : this.waitingFor) {
-                    if (stackBase instanceof IAEItemStack ais) {
-                        list.add(ais);
-                    }
-                }
-                break;
-            case PENDING:
-                for (final Entry<ICraftingPatternDetails, TaskProgress> t : this.tasks.entrySet()) {
-                    for (IAEStack<?> aeOut : t.getKey().getCondensedAEOutputs()) {
-                        if (aeOut instanceof IAEItemStack ais) {
-                            ais = ais.copy();
-                            ais.setStackSize(ais.getStackSize() * t.getValue().value);
-                            list.add(ais);
-                        }
-                    }
-                }
-                break;
-            case STORAGE:
-                this.inventory.getAvailableItems(list);
-                break;
-            default:
-            case ALL:
-                this.inventory.getAvailableItems(list);
-
-                for (final IAEStackBase stackBase : this.waitingFor) {
-                    if (stackBase instanceof IAEItemStack ais) {
-                        list.add(ais);
-                    }
-                }
-
-                for (final Entry<ICraftingPatternDetails, TaskProgress> t : this.tasks.entrySet()) {
-                    for (IAEStack<?> aeOut : t.getKey().getCondensedAEOutputs()) {
-                        if (aeOut instanceof IAEItemStack ais) {
-                            ais = ais.copy();
-                            ais.setStackSize(ais.getStackSize() * t.getValue().value);
-                            list.add(ais);
-                        }
-                    }
-                }
-                break;
-        }
-    }
-
     /**
-     * 泛型版本的 getListOfItem，支持物品/流体等所有类型。
+     * 获取指定类别的物品列表（支持物品/流体等所有类型）。
      */
     @SuppressWarnings("unchecked")
     public void getGenericListOfItem(final IItemList<IAEStackBase> list, final CraftingItemList whichList) {
@@ -1294,25 +1232,10 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         }
     }
 
-    public void addStorage(final IAEItemStack extractItems) {
-        this.inventory.injectItems(extractItems, Actionable.MODULATE, null);
-    }
-
-    /**
-     * 泛型版本，支持物品/流体等
-     */
     public void addStorage(final IAEStack<?> stack) {
         this.inventory.injectItems(stack, Actionable.MODULATE);
     }
 
-    public void addEmitable(final IAEItemStack i) {
-        this.waitingFor.add(i);
-        this.postCraftingStatusChange(i);
-    }
-
-    /**
-     * 泛型版本，支持物品/流体等
-     */
     public void addEmitable(final IAEStack<?> stack) {
         this.waitingFor.add(stack);
         this.postCraftingStatusChange(stack);
@@ -1328,47 +1251,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         i.value += crafts;
     }
 
-    @Deprecated
-    public IAEItemStack getItemStack(final IAEItemStack what, final CraftingItemList storage2) {
-        IAEItemStack is;
-
-        switch (storage2) {
-            case STORAGE:
-                is = this.inventory.findPreciseItem(what);
-                break;
-            case ACTIVE:
-                is = this.asItemStack(this.waitingFor.findPrecise(what));
-                break;
-            case PENDING:
-
-                is = what.copy();
-                is.setStackSize(0);
-
-                for (final Entry<ICraftingPatternDetails, TaskProgress> t : this.tasks.entrySet()) {
-                    for (final IAEStack<?> aeOut : t.getKey().getCondensedAEOutputs()) {
-                        if (aeOut instanceof IAEItemStack ais && ais.isSameType(is)) {
-                            is.setStackSize(is.getStackSize() + ais.getStackSize() * t.getValue().value);
-                        }
-                    }
-                }
-
-                break;
-            default:
-            case ALL:
-                throw new IllegalStateException("Invalid Operation");
-        }
-
-        if (is != null) {
-            return is.copy();
-        }
-
-        is = what.copy();
-        is.setStackSize(0);
-        return is;
-    }
-
     /**
-     * 泛型版本的 getItemStack，支持物品/流体等所有类型。
+     * 获取指定栈在指定类别中的数据（支持物品/流体等所有类型）。
      */
     public IAEStack<?> getItemStack(final IAEStack<?> what, final CraftingItemList storage2) {
         IAEStack<?> is;
@@ -1560,14 +1444,6 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
     private World getWorld() {
         return this.getCore().getWorld();
-    }
-
-    public IAEItemStack making(final IAEItemStack what) {
-        return this.asItemStack(this.waitingFor.findPrecise(what));
-    }
-
-    private IAEItemStack asItemStack(final IAEStack<?> stack) {
-        return stack instanceof IAEItemStack itemStack ? itemStack : null;
     }
 
     public void breakCluster() {

@@ -48,7 +48,6 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.storage.ICellInventoryHandler;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -144,7 +143,7 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,
-                        AEItemStackType.INSTANCE.getStorageChannel());
+                        AEItemStackType.INSTANCE);
 
         AEApi.instance().client().addCellInformation(cdi, lines);
     }
@@ -164,7 +163,7 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
                     .registries()
                     .cell()
                     .getCellInventory(p.getHeldItem(hand), null,
-                            AEItemStackType.INSTANCE.getStorageChannel());
+                            AEItemStackType.INSTANCE);
             if (inv != null) {
                 final IItemList<IAEItemStack> itemList = inv
                         .getAvailableItems(

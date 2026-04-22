@@ -52,7 +52,7 @@ public class ApiClientHelper implements IClientHelper {
                     .getFormattedText());
         }
 
-        IItemList<T> itemList = cellInventory.getChannel().createList();
+        IItemList<T> itemList = cellInventory.getStackType().createList();
 
         if (handler.isPreformatted()) {
             final String list = (handler.getIncludeExcludeMode() == IncludeExclude.WHITELIST ? GuiText.Included
@@ -75,7 +75,7 @@ public class ApiClientHelper implements IClientHelper {
                 for (int i = 0; i < inv.getSlots(); i++) {
                     final ItemStack is = inv.getStackInSlot(i);
                     if (!is.isEmpty()) {
-                        if (cellInventory.getChannel().getStackType() == AEItemStackType.INSTANCE) {
+                        if (cellInventory.getStackType() == AEItemStackType.INSTANCE) {
                             @SuppressWarnings("unchecked")
                             IItemList<IAEItemStack> itemItemList = (IItemList<IAEItemStack>) (IItemList<?>) itemList;
                             if (!handler.isFuzzy()) {
@@ -105,7 +105,7 @@ public class ApiClientHelper implements IClientHelper {
                                             + ReadableNumberConverter.INSTANCE.toWideReadableForm(size));
                                 }
                             }
-                        } else if (cellInventory.getChannel().getStackType() == AEFluidStackType.INSTANCE) {
+                        } else if (cellInventory.getStackType() == AEFluidStackType.INSTANCE) {
                             @SuppressWarnings("unchecked")
                             IItemList<IAEFluidStack> fluidItemList = (IItemList<IAEFluidStack>) (IItemList<?>) itemList;
                             final AEFluidStack ais;

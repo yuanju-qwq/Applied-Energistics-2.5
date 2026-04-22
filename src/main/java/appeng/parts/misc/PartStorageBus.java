@@ -67,6 +67,7 @@ import appeng.api.util.IConfigManager;
 import appeng.capabilities.Capabilities;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.IPriorityHost;
 import appeng.helpers.Reflected;
@@ -321,7 +322,7 @@ public class PartStorageBus extends PartUpgradeable
     @Override
     public boolean onPartActivate(final EntityPlayer player, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), GuiBridge.GUI_STORAGEBUS);
+            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), AEGuiKeys.STORAGE_BUS);
         }
         return true;
     }
@@ -399,7 +400,7 @@ public class PartStorageBus extends PartUpgradeable
         if (accessor != null) {
             IStorageMonitorable inventory = accessor.getInventory(this.mySrc);
             if (inventory != null) {
-                return inventory.getInventory(AEItemStackType.INSTANCE.getStorageChannel());
+                return inventory.getInventory(AEItemStackType.INSTANCE);
             }
 
             // So this could / can be a design decision. If the tile does support our custom capability,
@@ -440,7 +441,7 @@ public class PartStorageBus extends PartUpgradeable
                 IStorageMonitorable inventory = accessor.getInventory(this.mySrc);
                 if (inventory != null) {
                     return Objects.hash(target, inventory
-                            .getInventory(AEItemStackType.INSTANCE.getStorageChannel()));
+                            .getInventory(AEItemStackType.INSTANCE));
                 }
             }
             return Objects.hash(target, target.getCapability(Capabilities.STORAGE_MONITORABLE_ACCESSOR, targetSide));
@@ -489,7 +490,7 @@ public class PartStorageBus extends PartUpgradeable
 
             if (inv != null) {
                 this.handler = new MEInventoryHandler<>(inv,
-                        AEItemStackType.INSTANCE.getStorageChannel());
+                        AEItemStackType.INSTANCE);
 
                 this.handler.setBaseAccess((AccessRestriction) this.getConfigManager().getSetting(Settings.ACCESS));
                 this.handler.setWhitelist(this.getInstalledUpgrades(Upgrades.INVERTER) > 0 ? IncludeExclude.BLACKLIST
@@ -611,7 +612,7 @@ public class PartStorageBus extends PartUpgradeable
 
     @Override
     public GuiBridge getGuiBridge() {
-        return GuiBridge.GUI_STORAGEBUS;
+        return AEGuiKeys.STORAGE_BUS.getLegacyBridge();
     }
 
     // TODO: 1/28/2024 Unify both methods.

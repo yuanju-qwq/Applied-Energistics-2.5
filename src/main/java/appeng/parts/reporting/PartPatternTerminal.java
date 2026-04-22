@@ -29,6 +29,7 @@ import net.minecraft.util.ResourceLocation;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.StorageName;
 import appeng.core.AppEng;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.Reflected;
 import appeng.items.parts.PartModels;
@@ -72,7 +73,7 @@ public class PartPatternTerminal extends AbstractPartEncoder {
 
     @Override
     public GuiBridge getGuiBridge() {
-        return GuiBridge.GUI_PATTERN_TERMINAL;
+        return AEGuiKeys.PATTERN_TERMINAL.getLegacyBridge();
     }
 
     @Nonnull

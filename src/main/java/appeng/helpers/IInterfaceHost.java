@@ -28,6 +28,10 @@ import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.storage.data.IAEStack;
 
+/**
+ * @deprecated 使用 {@link appeng.helpers.IPatternProviderHost} 或 {@link appeng.helpers.IInterfaceLogicHost} 替代。
+ */
+@Deprecated
 public interface IInterfaceHost extends ICraftingProvider, IUpgradeableHost, ICraftingRequester {
 
     DualityInterface getInterfaceDuality();

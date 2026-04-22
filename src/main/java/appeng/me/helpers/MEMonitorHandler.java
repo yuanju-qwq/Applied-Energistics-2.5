@@ -54,7 +54,7 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
 
     public MEMonitorHandler(final IMEInventoryHandler<T> t) {
         this.internalHandler = t;
-        this.cachedList = t.getChannel().createList();
+        this.cachedList = t.getStackType().createList();
     }
 
     public MEMonitorHandler(final IMEInventoryHandler<T> t, final IAEStackType<T> type) {

@@ -40,7 +40,6 @@ import appeng.api.definitions.IMaterials;
 import appeng.api.implementations.items.IStorageComponent;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.IStorageMonitorableAccessor;
 import appeng.api.storage.data.IAEFluidStack;
@@ -283,7 +282,7 @@ public class TileCondenser extends AEBaseInvTile implements IConfigManagerHost, 
         @Override
         public int fill(FluidStack resource, boolean doFill) {
             if (doFill) {
-                final IStorageChannel<IAEFluidStack> chan = AEFluidStackType.INSTANCE.getStorageChannel();
+                final IAEStackType<IAEFluidStack> chan = AEFluidStackType.INSTANCE;
                 TileCondenser.this
                         .addPower((resource == null ? 0.0 : (double) resource.amount) / chan.transferFactor());
             }
@@ -323,11 +322,11 @@ public class TileCondenser extends AEBaseInvTile implements IConfigManagerHost, 
         }
 
         @Override
-        public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-            if (channel == AEItemStackType.INSTANCE.getStorageChannel()) {
+        public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+            if (type == AEItemStackType.INSTANCE) {
                 return (IMEMonitor<T>) this.itemInventory;
             } else {
-                return new CondenserVoidInventory<>(TileCondenser.this, channel);
+                return new CondenserVoidInventory<>(TileCondenser.this, type);
             }
         }
     }

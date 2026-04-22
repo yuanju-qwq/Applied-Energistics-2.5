@@ -48,6 +48,7 @@ import appeng.api.util.DimensionalCoord;
 import appeng.api.util.INetworkToolAgent;
 import appeng.container.AEBaseContainer;
 import appeng.core.AppEng;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketClick;
@@ -144,9 +145,9 @@ public class ToolNetworkTool extends AEBaseItem implements IGuiItem, IAEWrench, 
                 final TileEntity te = w.getTileEntity(pos);
 
                 if (te instanceof IGridHost) {
-                    Platform.openGUI(p, te, AEPartLocation.fromFacing(side), GuiBridge.GUI_NETWORK_STATUS);
+                    Platform.openGUI(p, te, AEPartLocation.fromFacing(side), AEGuiKeys.NETWORK_STATUS);
                 } else {
-                    Platform.openGUI(p, null, AEPartLocation.INTERNAL, GuiBridge.GUI_NETWORK_TOOL);
+                    Platform.openGUI(p, null, AEPartLocation.INTERNAL, AEGuiKeys.NETWORK_TOOL);
                 }
 
                 return true;
@@ -154,7 +155,7 @@ public class ToolNetworkTool extends AEBaseItem implements IGuiItem, IAEWrench, 
                 b.onBlockActivated(w, pos, w.getBlockState(pos), p, hand, side, hitX, hitY, hitZ);
             }
         } else {
-            Platform.openGUI(p, null, AEPartLocation.INTERNAL, GuiBridge.GUI_NETWORK_TOOL);
+            Platform.openGUI(p, null, AEPartLocation.INTERNAL, AEGuiKeys.NETWORK_TOOL);
         }
 
         return false;

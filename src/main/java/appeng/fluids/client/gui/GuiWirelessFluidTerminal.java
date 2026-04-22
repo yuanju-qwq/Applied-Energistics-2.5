@@ -30,6 +30,11 @@ import appeng.client.gui.widgets.UniversalTerminalButtons;
 import appeng.fluids.container.ContainerWirelessFluidTerminal;
 import appeng.helpers.WirelessTerminalGuiObject;
 
+/**
+ * @deprecated 无线流体终端将在后续版本统一到 {@link appeng.client.gui.implementations.GuiMEMonitorable}
+ *             + TypeToggle 系统。此 GUI 保留向后兼容。
+ */
+@Deprecated
 public class GuiWirelessFluidTerminal extends GuiMEPortableFluidCell {
 
     private UniversalTerminalButtons universalButtons;

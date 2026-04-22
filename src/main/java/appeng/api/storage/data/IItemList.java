@@ -23,10 +23,12 @@
 
 package appeng.api.storage.data;
 
+import java.util.Collection;
 import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
+import appeng.api.config.FuzzyMode;
 import appeng.api.storage.IStorageChannel;
 
 /**
@@ -102,5 +104,68 @@ public interface IItemList<T extends IAEStackBase> extends IItemContainer<T>, It
      */
     default boolean isEmpty() {
         return size() == 0;
+    }
+
+    // ===================== 通配符安全桥接方法 =====================
+
+    /**
+     * 类型安全地向此列表添加一个通配符类型的栈。
+     * <p>
+     * 当调用方持有 {@code IAEStack<?>} 而列表的具体类型 {@code T} 在编译时未知时使用此方法，
+     * 以避免 raw type cast。调用方负责确保栈的类型与列表匹配。
+     */
+    @SuppressWarnings("unchecked")
+    default void addGeneric(final IAEStack<?> option) {
+        add((T) option);
+    }
+
+    /**
+     * 类型安全地向此列表添加存储栈。
+     * @see #addGeneric(IAEStack)
+     */
+    @SuppressWarnings("unchecked")
+    default void addStorageGeneric(final IAEStack<?> option) {
+        addStorage((T) option);
+    }
+
+    /**
+     * 类型安全地向此列表添加可合成栈。
+     * @see #addGeneric(IAEStack)
+     */
+    @SuppressWarnings("unchecked")
+    default void addCraftingGeneric(final IAEStack<?> option) {
+        addCrafting((T) option);
+    }
+
+    /**
+     * 类型安全地向此列表添加可请求栈。
+     * @see #addGeneric(IAEStack)
+     */
+    @SuppressWarnings("unchecked")
+    default void addRequestableGeneric(final IAEStack<?> option) {
+        addRequestable((T) option);
+    }
+
+    /**
+     * 通配符安全的精确查找。
+     * <p>
+     * 当调用方持有 {@code IAEStack<?>} 而列表的具体类型 {@code T} 在编译时未知时使用此方法。
+     *
+     * @return 匹配的栈，或 null
+     */
+    @SuppressWarnings("unchecked")
+    @Nullable
+    default IAEStack<?> findPreciseGeneric(final IAEStack<?> i) {
+        return (IAEStack<?>) findPrecise((T) i);
+    }
+
+    /**
+     * 通配符安全的模糊查找。
+     *
+     * @return 匹配的栈集合
+     */
+    @SuppressWarnings("unchecked")
+    default Collection<? extends IAEStackBase> findFuzzyGeneric(final IAEStack<?> input, final FuzzyMode fuzzy) {
+        return findFuzzy((T) input, fuzzy);
     }
 }

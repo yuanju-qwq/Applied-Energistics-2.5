@@ -18,6 +18,14 @@
 
 package appeng.fluids.client.gui;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -38,6 +46,7 @@ import net.minecraftforge.fml.common.Loader;
 import appeng.api.config.Settings;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.client.gui.AEBaseMEGui;
@@ -48,6 +57,7 @@ import appeng.client.gui.widgets.MEGuiTextField;
 import appeng.client.me.FluidRepo;
 import appeng.client.me.InternalFluidSlotME;
 import appeng.client.me.SlotFluidME;
+import appeng.container.interfaces.IPortableFluidCellGuiCallback;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
@@ -63,8 +73,11 @@ import appeng.util.Platform;
  * @author BrockWS
  * @version rv6 - 12/05/2018
  * @since rv6 12/05/2018
+ * @deprecated 使用 {@link appeng.client.gui.implementations.GuiMEMonitorable} 替代，
+ *             该终端已支持物品+流体的统一显示和桶交互。
  */
-public class GuiFluidTerminal extends AEBaseMEGui implements ISortSource, IConfigManagerHost {
+@Deprecated
+public class GuiFluidTerminal extends AEBaseMEGui implements ISortSource, IConfigManagerHost, IPortableFluidCellGuiCallback {
     private final List<SlotFluidME> meFluidSlots = new LinkedList<>();
     private final FluidRepo repo;
     private final IConfigManager configSrc;
@@ -278,8 +291,8 @@ public class GuiFluidTerminal extends AEBaseMEGui implements ISortSource, IConfi
         super.mouseClicked(xCoord, yCoord, btn);
     }
 
-    public void postUpdate(final List<IAEFluidStack> list) {
-        for (final IAEFluidStack is : list) {
+    public void postUpdate(final List<IAEStack<?>> list) {
+        for (final IAEStack<?> is : list) {
             this.repo.postUpdate(is);
         }
 
@@ -334,3 +347,5 @@ public class GuiFluidTerminal extends AEBaseMEGui implements ISortSource, IConfi
         return "guis/terminal.png";
     }
 }
+
+*/

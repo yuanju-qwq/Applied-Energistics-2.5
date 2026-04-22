@@ -199,8 +199,8 @@ public class ContainerCellWorkbench extends ContainerUpgradeable {
 
         final ItemStack is = this.getUpgradeable().getInventoryByName("cell").getStackInSlot(0);
         final IStorageChannel channel = is.getItem() instanceof IStorageCell
-                ? ((IStorageCell) is.getItem()).getChannel()
-                : AEItemStackType.INSTANCE.getStorageChannel();
+                ? ((IStorageCell) is.getItem()).getStackType()
+                : AEItemStackType.INSTANCE;
 
         final IMEInventory<?> cellInv = AEApi.instance().registries().cell().getCellInventory(is, null, channel);
 

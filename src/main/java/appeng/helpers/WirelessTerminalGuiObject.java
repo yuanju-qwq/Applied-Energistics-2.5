@@ -42,7 +42,6 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
@@ -106,7 +105,7 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
                     this.sg = this.targetGrid.getCache(IStorageGrid.class);
                     if (this.sg != null) {
                         this.itemStorage = this.sg
-                                .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
+                                .getInventory(AEItemStackType.INSTANCE);
                     }
                 }
             }
@@ -122,8 +121,8 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
     }
 
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-        return this.sg.getInventory(channel);
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+        return this.sg.getInventory(type);
     }
 
     @Override

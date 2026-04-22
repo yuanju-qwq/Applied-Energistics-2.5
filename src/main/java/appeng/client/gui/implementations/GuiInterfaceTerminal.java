@@ -18,6 +18,14 @@
 
 package appeng.client.gui.implementations;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import static appeng.client.render.BlockPosHighlighter.hilightBlock;
 import static appeng.helpers.ItemStackHelper.stackFromNBT;
 
@@ -54,6 +62,7 @@ import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.container.implementations.ContainerInterfaceTerminal;
 import appeng.container.implementations.ContainerWirelessInterfaceTerminal;
+import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
 import appeng.container.slot.AppEngSlot;
 import appeng.core.AEConfig;
 import appeng.core.AppEng;
@@ -68,7 +77,7 @@ import appeng.util.BlockPosUtils;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
 
-public class GuiInterfaceTerminal extends AEBaseGui {
+public class GuiInterfaceTerminal extends AEBaseGui implements IInterfaceTerminalGuiCallback {
 
     private static final int OFFSET_X = 21;
     private final GuiText guiTitle;
@@ -798,7 +807,7 @@ public class GuiInterfaceTerminal extends AEBaseGui {
             final ItemStack parsedItemStack = new ItemStack(tag.getCompoundTagAt(i));
             if (!parsedItemStack.isEmpty()) {
                 final String displayName = Platform
-                        .getItemDisplayName(AEItemStackType.INSTANCE.getStorageChannel()
+                        .getItemDisplayName(AEItemStackType.INSTANCE
                                 .createStack(parsedItemStack))
                         .toLowerCase();
 
@@ -873,3 +882,5 @@ public class GuiInterfaceTerminal extends AEBaseGui {
         return o;
     }
 }
+
+*/

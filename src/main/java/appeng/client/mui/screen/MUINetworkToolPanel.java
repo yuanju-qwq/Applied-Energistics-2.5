@@ -1,0 +1,105 @@
+/*
+ * This file is part of Applied Energistics 2.
+ * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
+ *
+ * Applied Energistics 2 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Applied Energistics 2 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
+ */
+
+package appeng.client.mui.screen;
+
+import java.io.IOException;
+
+import net.minecraft.client.gui.GuiButton;
+import net.minecraft.entity.player.InventoryPlayer;
+
+import appeng.api.implementations.guiobjects.INetworkTool;
+
+import appeng.client.gui.widgets.GuiToggleButton;
+import appeng.client.mui.AEBasePanel;
+import appeng.container.implementations.ContainerNetworkTool;
+import appeng.core.AELog;
+import appeng.core.localization.GuiText;
+import appeng.core.sync.network.NetworkHandler;
+import appeng.core.sync.packets.PacketValueConfig;
+
+/**
+ * MUI 版网络工具 GUI 面板。
+ *
+ * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiNetworkTool}。
+ * 提供 3×3 的工具箱物品栏及透明伪装板切换按钮。
+ */
+public class MUINetworkToolPanel extends AEBasePanel {
+
+    // ========== 按钮 ==========
+    private GuiToggleButton tFacades;
+
+    public MUINetworkToolPanel(final InventoryPlayer ip, final INetworkTool te) {
+        this(new ContainerNetworkTool(ip, te));
+    }
+
+    public MUINetworkToolPanel(final ContainerNetworkTool container) {
+        super(container);
+        this.ySize = 166;
+    }
+
+    // ========== 初始化 ==========
+
+    @Override
+    protected void setupWidgets() {
+        // initGui 处理按钮初始化
+    }
+
+    @Override
+    public void initGui() {
+        super.initGui();
+
+        this.tFacades = new GuiToggleButton(this.guiLeft - 18, this.guiTop + 8, 23, 22,
+                GuiText.TransparentFacades.getLocal(), GuiText.TransparentFacadesHint.getLocal());
+
+        this.buttonList.add(this.tFacades);
+    }
+
+    // ========== 渲染 ==========
+
+    @Override
+    protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
+        if (this.tFacades != null) {
+            this.tFacades.setState(((ContainerNetworkTool) this.inventorySlots).isFacadeMode());
+        }
+
+        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.NetworkTool.getLocal()), 8, 6, 4210752);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
+    }
+
+    @Override
+    protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
+        this.bindTexture("guis/toolbox.png");
+        this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
+    }
+
+    // ========== 按钮事件 ==========
+
+    @Override
+    protected void actionPerformed(final GuiButton btn) throws IOException {
+        super.actionPerformed(btn);
+
+        try {
+            if (btn == this.tFacades) {
+                NetworkHandler.instance().sendToServer(new PacketValueConfig("NetworkTool", "Toggle"));
+            }
+        } catch (final IOException e) {
+            AELog.debug(e);
+        }
+    }
+}

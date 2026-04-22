@@ -18,6 +18,14 @@
 
 package appeng.client.gui.implementations;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import java.io.IOException;
 
 import net.minecraft.client.gui.GuiTextField;
@@ -81,3 +89,5 @@ public class GuiQuartzKnife extends AEBaseGui {
         }
     }
 }
+
+*/

@@ -31,10 +31,15 @@ import net.minecraft.world.World;
 
 import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.tile.TileFluidInterface;
 import appeng.util.Platform;
 
+/**
+ * @deprecated 使用新的 ME 接口方块替代，新的 ME 接口统一处理物品和流体。
+ */
+@Deprecated
 public class BlockFluidInterface extends AEBaseTileBlock {
     public BlockFluidInterface() {
         super(Material.IRON);
@@ -51,7 +56,7 @@ public class BlockFluidInterface extends AEBaseTileBlock {
         final TileEntity tg = this.getTileEntity(w, pos);
         if (tg instanceof TileFluidInterface) {
             if (Platform.isServer()) {
-                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_FLUID_INTERFACE);
+                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.FLUID_INTERFACE);
             }
             return true;
         }

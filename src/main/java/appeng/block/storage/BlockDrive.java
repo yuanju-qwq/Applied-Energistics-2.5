@@ -38,6 +38,7 @@ import net.minecraftforge.common.property.IUnlistedProperty;
 import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
 import appeng.client.UnlistedProperty;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.storage.TileDrive;
 import appeng.util.Platform;
@@ -84,7 +85,7 @@ public class BlockDrive extends AEBaseTileBlock {
         final TileDrive tg = this.getTileEntity(w, pos);
         if (tg != null) {
             if (Platform.isServer()) {
-                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_DRIVE);
+                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.DRIVE);
             }
             return true;
         }

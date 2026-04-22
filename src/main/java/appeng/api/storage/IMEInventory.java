@@ -96,4 +96,40 @@ public interface IMEInventory<T extends IAEStackBase> {
      * @return 此 inventory 对应的 {@link IAEStackType}
      */
     IAEStackType<?> getStackType();
+
+    // ===================== 通配符安全桥接方法 =====================
+
+    /**
+     * 通配符安全的注入操作。
+     * <p>
+     * 当调用方持有 {@code IMEInventory<?>} 和 {@code IAEStack<?>} 时使用此方法，
+     * 以避免 raw type cast。调用方负责确保栈的类型与 inventory 匹配。
+     *
+     * @return 未注入的部分，或 null 表示全部注入成功
+     */
+    @SuppressWarnings("unchecked")
+    default IAEStack<?> injectItemsGeneric(final IAEStack<?> input, final Actionable type, final IActionSource src) {
+        return ((IMEInventory) this).injectItems(input, type, src);
+    }
+
+    /**
+     * 通配符安全的提取操作。
+     *
+     * @return 提取出的栈，或 null
+     */
+    @SuppressWarnings("unchecked")
+    default IAEStack<?> extractItemsGeneric(final IAEStack<?> request, final Actionable mode, final IActionSource src) {
+        return ((IMEInventory) this).extractItems(request, mode, src);
+    }
+
+    /**
+     * 通配符安全地获取可用物品列表。
+     *
+     * @param out 接收结果的列表（类型必须与此 inventory 匹配）
+     * @return 传入的列表
+     */
+    @SuppressWarnings("unchecked")
+    default IItemList<?> getAvailableItemsGeneric(final IItemList<?> out) {
+        return ((IMEInventory) this).getAvailableItems(out);
+    }
 }

@@ -18,6 +18,14 @@
 
 package appeng.client.gui.implementations;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import java.io.IOException;
 
 import org.lwjgl.input.Mouse;
@@ -34,12 +42,17 @@ import appeng.client.gui.widgets.GuiTabButton;
 import appeng.client.gui.widgets.GuiToggleButton;
 import appeng.container.implementations.ContainerInterface;
 import appeng.core.localization.GuiText;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketConfigButton;
 import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.helpers.IInterfaceHost;
 
+/**
+ * @deprecated 使用 {@link appeng.client.mui.screen.MUIPatternProviderPanel} 或 {@link appeng.client.mui.screen.MUIMEInterfacePanel} 替代。
+ */
+@Deprecated
 public class GuiInterface extends GuiUpgradeable {
 
     private GuiTabButton priority;
@@ -128,7 +141,7 @@ public class GuiInterface extends GuiUpgradeable {
         final boolean backwards = Mouse.isButtonDown(1);
 
         if (btn == this.priority) {
-            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(GuiBridge.GUI_PRIORITY));
+            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
         }
 
         if (btn == this.interfaceMode) {
@@ -145,3 +158,5 @@ public class GuiInterface extends GuiUpgradeable {
     }
 
 }
+
+*/

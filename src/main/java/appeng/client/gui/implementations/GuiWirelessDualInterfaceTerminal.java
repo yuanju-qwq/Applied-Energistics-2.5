@@ -18,6 +18,14 @@
 
 package appeng.client.gui.implementations;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import static appeng.client.render.BlockPosHighlighter.hilightBlock;
 import static appeng.helpers.PatternHelper.CRAFTING_GRID_DIMENSION;
 import static appeng.helpers.ItemStackHelper.stackFromNBT;
@@ -75,6 +83,7 @@ import appeng.client.me.ItemRepo;
 import appeng.client.me.SlotDisconnected;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerWirelessDualInterfaceTerminal;
+import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
 import appeng.container.slot.AppEngSlot;
 import appeng.container.slot.SlotFake;
 import appeng.container.slot.SlotFakeCraftingMatrix;
@@ -87,6 +96,7 @@ import appeng.core.AppEng;
 import appeng.core.localization.ButtonToolTips;
 import appeng.core.localization.GuiText;
 import appeng.core.localization.PlayerMessages;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
@@ -117,7 +127,7 @@ import appeng.util.item.AEItemStackType;
  */
 public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         implements ContainerWirelessDualInterfaceTerminal.IMEInventoryUpdateReceiver,
-        ISortSource, IConfigManagerHost {
+        ISortSource, IConfigManagerHost, IInterfaceTerminalGuiCallback {
 
     private static final int CRAFTING_INPUT_SLOTS = CRAFTING_GRID_DIMENSION * CRAFTING_GRID_DIMENSION;
 
@@ -829,7 +839,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
 
         // Crafting Status 閹稿鎸?
         if (btn == this.craftingStatusBtn) {
-            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(GuiBridge.GUI_CRAFTING_STATUS));
+            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.CRAFTING_STATUS));
             return;
         }
 
@@ -2108,7 +2118,7 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
             final ItemStack parsedItemStack = new ItemStack(tag.getCompoundTagAt(i));
             if (!parsedItemStack.isEmpty()) {
                 final String displayName = Platform
-                        .getItemDisplayName(AEItemStackType.INSTANCE.getStorageChannel()
+                        .getItemDisplayName(AEItemStackType.INSTANCE
                                 .createStack(parsedItemStack))
                         .toLowerCase();
 
@@ -2335,3 +2345,5 @@ public class GuiWirelessDualInterfaceTerminal extends AEBaseMEGui
         }
     }
 }
+
+*/

@@ -95,7 +95,7 @@ public class PartFluidImportBus extends PartSharedFluidBus {
             try {
                 final IFluidHandler fh = te.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY,
                         this.getSide().getFacing().getOpposite());
-                final IMEMonitor<IAEFluidStack> inv = this.getProxy().getStorage().getInventory(this.getChannel());
+                final IMEMonitor<IAEFluidStack> inv = this.getProxy().getStorage().getInventory(this.getStackType());
 
                 if (fh != null) {
                     final FluidStack fluidStack = fh.drain(this.calculateAmountToSend(), false);

@@ -48,6 +48,7 @@ import appeng.container.slot.SlotFake;
 import appeng.core.AELog;
 import appeng.core.AppEng;
 import appeng.core.sync.AppEngPacket;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.INetworkInfo;
 import appeng.core.sync.network.NetworkHandler;
@@ -171,7 +172,7 @@ public class PacketInventoryAction extends AppEngPacket {
                 if (context != null) {
                     final TileEntity te = context.getTile();
                     Platform.openGUI(sender, te, baseContainer.getOpenContext().getSide(),
-                            GuiBridge.GUI_CRAFTING_AMOUNT);
+                            AEGuiKeys.CRAFTING_AMOUNT);
 
                     if (sender.openContainer instanceof ContainerCraftAmount) {
                         final ContainerCraftAmount cca = (ContainerCraftAmount) sender.openContainer;
@@ -192,13 +193,13 @@ public class PacketInventoryAction extends AppEngPacket {
                     final TileEntity te = context.getTile();
                     if (te != null) {
                         Platform.openGUI(sender, te, context.getSide(),
-                                GuiBridge.GUI_PATTERN_VALUE_AMOUNT);
+                                AEGuiKeys.PATTERN_VALUE_AMOUNT);
                     } else {
                         final Object target = baseContainer.getTarget();
                         if (target instanceof IInventorySlotAware) {
                             IInventorySlotAware i = (IInventorySlotAware) target;
                             Platform.openGUI(sender, i.getInventorySlot(),
-                                    GuiBridge.GUI_PATTERN_VALUE_AMOUNT, i.isBaubleSlot());
+                                    AEGuiKeys.PATTERN_VALUE_AMOUNT, i.isBaubleSlot());
                         }
                     }
                     if (sender.openContainer instanceof ContainerPatternValueAmount) {
@@ -219,13 +220,13 @@ public class PacketInventoryAction extends AppEngPacket {
                     final TileEntity te = context.getTile();
                     if (te != null) {
                         Platform.openGUI(sender, te, context.getSide(),
-                                GuiBridge.GUI_PATTERN_VALUE_NAME);
+                                AEGuiKeys.PATTERN_VALUE_NAME);
                     } else {
                         final Object target = baseContainer.getTarget();
                         if (target instanceof IInventorySlotAware) {
                             IInventorySlotAware i = (IInventorySlotAware) target;
                             Platform.openGUI(sender, i.getInventorySlot(),
-                                    GuiBridge.GUI_PATTERN_VALUE_NAME, i.isBaubleSlot());
+                                    AEGuiKeys.PATTERN_VALUE_NAME, i.isBaubleSlot());
                         }
                     }
                     if (sender.openContainer instanceof ContainerPatternValueName) {

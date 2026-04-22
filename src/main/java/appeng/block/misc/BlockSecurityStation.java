@@ -35,6 +35,7 @@ import net.minecraft.world.World;
 
 import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.misc.TileSecurityStation;
 import appeng.util.Platform;
@@ -85,7 +86,7 @@ public class BlockSecurityStation extends AEBaseTileBlock {
                 return true;
             }
 
-            Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_SECURITY);
+            Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.SECURITY);
             return true;
         }
         return false;

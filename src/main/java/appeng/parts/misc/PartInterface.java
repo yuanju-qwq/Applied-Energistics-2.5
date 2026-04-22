@@ -55,7 +55,6 @@ import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -63,6 +62,7 @@ import appeng.api.util.AECableType;
 import appeng.api.util.IConfigManager;
 import appeng.core.AppEng;
 import appeng.core.localization.PlayerMessages;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.DualityInterface;
 import appeng.helpers.IInterfaceHost;
@@ -80,6 +80,10 @@ import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.IInventoryDestination;
 import appeng.util.inv.InvOperation;
 
+/**
+ * @deprecated 使用 {@link appeng.parts.misc.PartPatternProvider} 或 {@link appeng.parts.misc.PartMEInterface} 替代。
+ */
+@Deprecated
 public class PartInterface extends PartBasicState implements IGridTickable, IStorageMonitorable, IInventoryDestination,
         IInterfaceHost, IAEAppEngInventory, IPriorityHost {
 
@@ -173,7 +177,7 @@ public class PartInterface extends PartBasicState implements IGridTickable, ISto
     @Override
     public boolean onPartActivate(final EntityPlayer p, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(p, this.getTileEntity(), this.getSide(), GuiBridge.GUI_INTERFACE);
+            Platform.openGUI(p, this.getTileEntity(), this.getSide(), AEGuiKeys.INTERFACE);
         }
         return true;
     }
@@ -184,8 +188,8 @@ public class PartInterface extends PartBasicState implements IGridTickable, ISto
     }
 
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-        return this.duality.getInventory(channel);
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+        return this.duality.getInventory(type);
     }
 
     @Override
@@ -300,7 +304,7 @@ public class PartInterface extends PartBasicState implements IGridTickable, ISto
 
     @Override
     public GuiBridge getGuiBridge() {
-        return GuiBridge.GUI_INTERFACE;
+        return AEGuiKeys.INTERFACE.getLegacyBridge();
     }
 
     @Override

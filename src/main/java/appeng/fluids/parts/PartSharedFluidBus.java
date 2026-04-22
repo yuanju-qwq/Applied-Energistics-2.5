@@ -35,9 +35,10 @@ import appeng.api.config.Upgrades;
 import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.parts.IPartCollisionHelper;
-import appeng.api.storage.IStorageChannel;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.util.AECableType;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.IConfigurableFluidInventory;
 import appeng.fluids.util.AEFluidInventory;
@@ -92,7 +93,7 @@ public abstract class PartSharedFluidBus extends PartUpgradeable implements IGri
     @Override
     public boolean onPartActivate(final EntityPlayer player, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), GuiBridge.GUI_BUS_FLUID);
+            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), AEGuiKeys.BUS_FLUID);
         }
 
         return true;
@@ -121,7 +122,7 @@ public abstract class PartSharedFluidBus extends PartUpgradeable implements IGri
     }
 
     protected int calculateAmountToSend() {
-        double amount = this.getChannel().transferFactor();
+        double amount = this.getStackType().transferFactor();
         switch (this.getInstalledUpgrades(Upgrades.SPEED)) {
             case 4:
                 amount = amount * 1.5;
@@ -161,8 +162,8 @@ public abstract class PartSharedFluidBus extends PartUpgradeable implements IGri
         return null;
     }
 
-    protected IStorageChannel<IAEFluidStack> getChannel() {
-        return AEFluidStackType.INSTANCE.getStorageChannel();
+    protected IAEStackType<IAEFluidStack> getStackType() {
+        return AEFluidStackType.INSTANCE;
     }
 
     @Override

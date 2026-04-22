@@ -104,7 +104,7 @@ public final class AEStackSerialization {
             if (stack == null) {
                 final ItemStack legacyStack = ItemStackHelper.stackFromNBT(tag);
                 if (!legacyStack.isEmpty()) {
-                    stack = AEItemStackType.INSTANCE.getStorageChannel().createStack(legacyStack);
+                    stack = AEItemStackType.INSTANCE.createStack(legacyStack);
                 }
             }
             if (stack != null) {
@@ -120,7 +120,7 @@ public final class AEStackSerialization {
             if (stack == null) {
                 final ItemStack legacyStack = ItemStackHelper.stackFromNBT(tag);
                 if (!legacyStack.isEmpty()) {
-                    stack = AEItemStackType.INSTANCE.getStorageChannel().createStack(legacyStack);
+                    stack = AEItemStackType.INSTANCE.createStack(legacyStack);
                 }
             }
             if (stack != null) {

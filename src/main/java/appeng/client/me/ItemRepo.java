@@ -104,17 +104,16 @@ public class ItemRepo {
     /**
      * 更新一个 AE 栈（任意类型：物品、流体等）。
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public void postUpdate(final IAEStack<?> is) {
         IAEStackType<?> type = is.getStackType();
-        IItemList<IAEStackBase> list = (IItemList<IAEStackBase>) this.lists.computeIfAbsent(type, t -> t.createList());
+        IItemList<?> list = this.lists.computeIfAbsent(type, t -> t.createList());
 
-        final IAEStack<?> st = (IAEStack<?>) list.findPrecise(is);
+        final IAEStack<?> st = list.findPreciseGeneric(is);
         if (st != null) {
             st.reset();
-            ((IAEStack) st).add(is);
+            st.addGeneric(is);
         } else {
-            list.add(is);
+            list.addGeneric(is);
         }
 
         changed = true;

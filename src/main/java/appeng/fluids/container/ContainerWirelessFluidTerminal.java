@@ -22,6 +22,11 @@ import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.helpers.WirelessTerminalGuiObject;
 
+/**
+ * @deprecated 无线流体终端 Container 将在后续版本统一到
+ *             {@link appeng.container.implementations.ContainerMEMonitorable} 体系。此类保留向后兼容。
+ */
+@Deprecated
 public class ContainerWirelessFluidTerminal extends ContainerMEPortableFluidCell {
 
     public ContainerWirelessFluidTerminal(final InventoryPlayer ip, final WirelessTerminalGuiObject gui) {

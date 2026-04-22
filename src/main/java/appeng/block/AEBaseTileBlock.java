@@ -55,6 +55,7 @@ import appeng.api.util.AEColor;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IOrientable;
 import appeng.block.networking.BlockCableBus;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.ICustomCollision;
 import appeng.items.tools.quartz.ToolQuartzCuttingKnife;
@@ -325,7 +326,7 @@ public abstract class AEBaseTileBlock extends AEBaseBlock implements ITileEntity
                 final AEBaseTile tile = this.getTileEntity(world, pos);
                 if (tile == null)
                     return false;
-                Platform.openGUI(player, tile, AEPartLocation.fromFacing(facing), GuiBridge.GUI_RENAMER);
+                Platform.openGUI(player, tile, AEPartLocation.fromFacing(facing), AEGuiKeys.RENAMER);
                 return true;
             }
         }

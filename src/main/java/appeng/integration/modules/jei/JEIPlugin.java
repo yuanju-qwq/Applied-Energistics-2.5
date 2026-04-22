@@ -43,7 +43,7 @@ import appeng.api.definitions.IItemDefinition;
 import appeng.api.definitions.IMaterials;
 import appeng.api.features.IGrinderRecipe;
 import appeng.api.features.IInscriberRecipe;
-import appeng.client.gui.AEGuiHandler;
+import appeng.client.mui.AEBasePanelGuiHandler;
 import appeng.container.implementations.*;
 import appeng.core.AEConfig;
 import appeng.core.features.AEFeature;
@@ -54,7 +54,7 @@ import appeng.items.parts.ItemFacade;
 @mezz.jei.api.JEIPlugin
 public class JEIPlugin implements IModPlugin {
     public static IJeiRuntime runtime;
-    public static AEGuiHandler aeGuiHandler;
+    public static AEBasePanelGuiHandler muiGuiHandler;
 
     @Override
     public void registerItemSubtypes(ISubtypeRegistry subtypeRegistry) {
@@ -102,9 +102,10 @@ public class JEIPlugin implements IModPlugin {
                 new RecipeTransferHandler<>(ContainerWirelessDualInterfaceTerminal.class),
                 Constants.UNIVERSAL_RECIPE_TRANSFER_UID);
 
-        aeGuiHandler = new AEGuiHandler();
-        registry.addAdvancedGuiHandlers(aeGuiHandler);
-        registry.addGhostIngredientHandler(aeGuiHandler.getGuiContainerClass(), aeGuiHandler);
+        // MUI 面板的 JEI 集成
+        muiGuiHandler = new AEBasePanelGuiHandler();
+        registry.addAdvancedGuiHandlers(muiGuiHandler);
+        registry.addGhostIngredientHandler(muiGuiHandler.getGuiContainerClass(), muiGuiHandler);
     }
 
     private void registerDescriptions(IDefinitions definitions, IModRegistry registry) {

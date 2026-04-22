@@ -4,6 +4,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.common.network.IGuiHandler;
 
 import appeng.api.AEApi;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 
 public class ToolWirelessInterfaceTerminal extends ToolWirelessTerminal {
@@ -14,6 +15,6 @@ public class ToolWirelessInterfaceTerminal extends ToolWirelessTerminal {
 
     @Override
     public IGuiHandler getGuiHandler(ItemStack is) {
-        return GuiBridge.GUI_WIRELESS_INTERFACE_TERMINAL;
+        return AEGuiKeys.WIRELESS_INTERFACE_TERMINAL;
     }
 }

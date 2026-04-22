@@ -56,8 +56,10 @@ public interface ICraftingGrid extends IGridCache {
      * @deprecated 使用 {@link #getCraftingFor(IAEStack, ICraftingPatternDetails, int, World)} 替代
      */
     @Deprecated
-    ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEItemStack whatToCraft,
-            ICraftingPatternDetails details, int slot, World world);
+    default ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEItemStack whatToCraft,
+            ICraftingPatternDetails details, int slot, World world) {
+        return getCraftingFor((IAEStack<?>) whatToCraft, details, slot, world);
+    }
 
     /**
      * 获取所有可合成物品/流体的多类型 pattern 映射。
@@ -83,8 +85,10 @@ public interface ICraftingGrid extends IGridCache {
      * @deprecated 使用 {@link #beginCraftingJob(World, IGrid, IActionSource, IAEStack, ICraftingCallback)} 替代
      */
     @Deprecated
-    Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc, IAEItemStack craftWhat,
-            ICraftingCallback callback);
+    default Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc, IAEItemStack craftWhat,
+            ICraftingCallback callback) {
+        return beginCraftingJob(world, grid, actionSrc, (IAEStack<?>) craftWhat, callback);
+    }
 
     /**
      * Submit the job to the Crafting system for processing.
@@ -123,7 +127,9 @@ public interface ICraftingGrid extends IGridCache {
      * @deprecated 使用 {@link #canEmitFor(IAEStack)} 替代
      */
     @Deprecated
-    boolean canEmitFor(IAEItemStack what);
+    default boolean canEmitFor(IAEItemStack what) {
+        return canEmitFor((IAEStack<?>) what);
+    }
 
     /**
      * 检查指定栈（物品/流体等）是否正在被合成。
@@ -137,7 +143,9 @@ public interface ICraftingGrid extends IGridCache {
      * @deprecated 使用 {@link #isRequesting(IAEStack)} 替代
      */
     @Deprecated
-    boolean isRequesting(IAEItemStack what);
+    default boolean isRequesting(IAEItemStack what) {
+        return isRequesting((IAEStack<?>) what);
+    }
 
     /**
      * 获取网格中所有合成 CPU 正在请求的指定栈的总量。
@@ -151,5 +159,7 @@ public interface ICraftingGrid extends IGridCache {
      * @deprecated 使用 {@link #requesting(IAEStack)} 替代
      */
     @Deprecated
-    long requesting(IAEItemStack what);
+    default long requesting(IAEItemStack what) {
+        return requesting((IAEStack<?>) what);
+    }
 }

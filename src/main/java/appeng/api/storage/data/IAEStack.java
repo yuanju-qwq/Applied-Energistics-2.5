@@ -46,6 +46,17 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
      */
     void add(T is);
 
+    /**
+     * 通配符安全的 add 操作。
+     * <p>
+     * 当调用方持有 {@code IAEStack<?>} 时使用此方法以避免 raw type cast。
+     * 调用方负责确保传入的栈类型匹配。
+     */
+    @SuppressWarnings("unchecked")
+    default void addGeneric(final IAEStack<?> is) {
+        add((T) is);
+    }
+
     @Override
     long getStackSize();
 

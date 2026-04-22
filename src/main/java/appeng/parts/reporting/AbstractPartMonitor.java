@@ -45,7 +45,6 @@ import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -247,7 +246,7 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
 
                 this.updateReportingValue(
                         this.getProxy().getStorage()
-                                .getInventory(AEItemStackType.INSTANCE.getStorageChannel()));
+                                .getInventory(AEItemStackType.INSTANCE));
             } else if (this.configuredFluid != null) {
                 if (this.myWatcher != null) {
                     this.myWatcher.add(this.configuredFluid);
@@ -255,7 +254,7 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
 
                 this.updateReportingValue(
                         this.getProxy().getStorage().getInventory(
-                                AEFluidStackType.INSTANCE.getStorageChannel()));
+                                AEFluidStackType.INSTANCE));
             }
         } catch (final GridAccessException e) {
             // >.>

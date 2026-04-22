@@ -45,6 +45,7 @@ import appeng.api.util.AECableType;
 import appeng.core.AELog;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.MultiCraftingTracker;
 import appeng.helpers.Reflected;
@@ -115,7 +116,7 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
         try {
             final InventoryAdaptor destination = this.getHandler();
             final IMEMonitor<IAEItemStack> inv = this.getProxy().getStorage()
-                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
+                    .getInventory(AEItemStackType.INSTANCE);
             final IEnergyGrid energy = this.getProxy().getEnergy();
             final ICraftingGrid cg = this.getProxy().getCrafting();
             final FuzzyMode fzMode = (FuzzyMode) this.getConfigManager().getSetting(Settings.FUZZY_MODE);
@@ -193,7 +194,7 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
     @Override
     public boolean onPartActivate(final EntityPlayer player, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), GuiBridge.GUI_BUS);
+            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), AEGuiKeys.BUS);
         }
         return true;
     }

@@ -52,6 +52,11 @@ import appeng.fluids.util.AEFluidStack;
  * @version rv6 - 22/05/2018
  * @since rv6 22/05/2018
  */
+/**
+ * @deprecated 使用 {@link PacketMEInventoryUpdate} 替代。
+ * 该包已由 PacketMEInventoryUpdate 的泛型序列化机制取代。
+ */
+@Deprecated
 public class PacketMEFluidInventoryUpdate extends AppEngPacket {
     private static final int UNCOMPRESSED_PACKET_BYTE_LIMIT = 16 * 1024 * 1024;
     private static final int OPERATION_BYTE_LIMIT = 2 * 1024;

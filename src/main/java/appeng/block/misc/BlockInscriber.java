@@ -32,6 +32,7 @@ import net.minecraft.world.World;
 
 import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.misc.TileInscriber;
 import appeng.util.Platform;
@@ -56,7 +57,7 @@ public class BlockInscriber extends AEBaseTileBlock {
         final TileInscriber tg = this.getTileEntity(w, pos);
         if (tg != null) {
             if (Platform.isServer()) {
-                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_INSCRIBER);
+                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.INSCRIBER);
             }
             return true;
         }

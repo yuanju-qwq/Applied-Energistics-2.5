@@ -45,6 +45,7 @@ import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
 import appeng.api.util.IConfigManager;
 import appeng.core.localization.PlayerMessages;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.DualityFluidInterface;
 import appeng.fluids.helper.IConfigurableFluidInventory;
@@ -63,8 +64,10 @@ import appeng.util.inv.InvOperation;
 
 /**
  * 浜屽悎涓€鎺ュ彛鏂瑰潡 TileEntity銆?
- * 鍚屾椂鎷ユ湁鐗╁搧鎺ュ彛鍜屾祦浣撴帴鍙ｇ殑鍔熻兘锛屽叡浜竴涓閬撱€?
+ * 鍚屾椂鎷ユ湁鐗╁搧鎺ュ彛鍜屾祦浣撴帴鍙ｇ殑鍔熻兘锛屽叡浜竴涓閬撱€?
+ * @deprecated 使用 {@link TilePatternProvider} + {@link TileMEInterface} 替代，二合一接口已被样板供应器和 ME 接口取代。
  */
+@Deprecated
 public class TileDualInterface extends AENetworkInvTile
         implements IGridTickable, IInventoryDestination, IInterfaceHost, IFluidInterfaceHost, IConfigurableFluidInventory, IPriorityHost {
 
@@ -321,7 +324,7 @@ public class TileDualInterface extends AENetworkInvTile
 
     @Override
     public GuiBridge getGuiBridge() {
-        return GuiBridge.GUI_DUAL_ITEM_INTERFACE;
+        return AEGuiKeys.DUAL_ITEM_INTERFACE.getLegacyBridge();
     }
 
     public IFluidHandler getFluidInventoryByName(final String name) {

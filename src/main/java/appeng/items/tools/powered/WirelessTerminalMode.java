@@ -18,29 +18,31 @@
 
 package appeng.items.tools.powered;
 
+import appeng.core.sync.AEGuiKey;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 
 /**
  * 通用无线终端的模式枚举。
- * 每个模式对应一种无线终端类型，关联其 GuiBridge。
+ * 每个模式对应一种无线终端类型，关联其 {@link AEGuiKey}。
  */
 public enum WirelessTerminalMode {
 
-    TERMINAL((byte) 0, "terminal", GuiBridge.GUI_WIRELESS_TERM),
-    CRAFTING((byte) 1, "crafting", GuiBridge.GUI_WIRELESS_CRAFTING_TERMINAL),
-    FLUID((byte) 2, "fluid", GuiBridge.GUI_WIRELESS_FLUID_TERMINAL),
-    PATTERN((byte) 3, "pattern", GuiBridge.GUI_WIRELESS_PATTERN_TERMINAL),
-    INTERFACE((byte) 4, "interface", GuiBridge.GUI_WIRELESS_INTERFACE_TERMINAL),
-    DUAL_INTERFACE((byte) 5, "dual_interface", GuiBridge.GUI_WIRELESS_DUAL_INTERFACE_TERMINAL);
+    TERMINAL((byte) 0, "terminal", AEGuiKeys.WIRELESS_TERM),
+    CRAFTING((byte) 1, "crafting", AEGuiKeys.WIRELESS_CRAFTING_TERMINAL),
+    FLUID((byte) 2, "fluid", AEGuiKeys.WIRELESS_FLUID_TERMINAL),
+    PATTERN((byte) 3, "pattern", AEGuiKeys.WIRELESS_PATTERN_TERMINAL),
+    INTERFACE((byte) 4, "interface", AEGuiKeys.WIRELESS_INTERFACE_TERMINAL),
+    DUAL_INTERFACE((byte) 5, "dual_interface", AEGuiKeys.WIRELESS_DUAL_INTERFACE_TERMINAL);
 
     private final byte id;
     private final String name;
-    private final GuiBridge guiBridge;
+    private final AEGuiKey guiKey;
 
-    WirelessTerminalMode(byte id, String name, GuiBridge guiBridge) {
+    WirelessTerminalMode(byte id, String name, AEGuiKey guiKey) {
         this.id = id;
         this.name = name;
-        this.guiBridge = guiBridge;
+        this.guiKey = guiKey;
     }
 
     public byte getId() {
@@ -51,8 +53,18 @@ public enum WirelessTerminalMode {
         return name;
     }
 
+    /**
+     * 获取此模式关联的 {@link AEGuiKey}。
+     */
+    public AEGuiKey getGuiKey() {
+        return guiKey;
+    }
+
+    /**
+     * 获取此模式关联的旧 {@link GuiBridge}（兼容用）。
+     */
     public GuiBridge getGuiBridge() {
-        return guiBridge;
+        return guiKey.getLegacyBridge();
     }
 
     /**

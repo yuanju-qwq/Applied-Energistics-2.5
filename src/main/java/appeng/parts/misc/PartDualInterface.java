@@ -39,13 +39,13 @@ import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.IConfigManager;
 import appeng.core.AppEng;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.DualityFluidInterface;
 import appeng.fluids.helper.IConfigurableFluidInventory;
@@ -67,7 +67,9 @@ import appeng.util.inv.InvOperation;
 
 /**
  * 二合一接口面板（同时支持物品和流体）。
+ * @deprecated 使用 {@link PartPatternProvider} + {@link PartMEInterface} 替代，二合一接口已被样板供应器和 ME 接口取代。
  */
+@Deprecated
 public class PartDualInterface extends PartBasicState implements IGridTickable, IStorageMonitorable,
         IInventoryDestination, IInterfaceHost, IFluidInterfaceHost, IConfigurableFluidInventory,
         IAEAppEngInventory, IPriorityHost {
@@ -164,7 +166,7 @@ public class PartDualInterface extends PartBasicState implements IGridTickable, 
     @Override
     public boolean onPartActivate(final EntityPlayer p, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(p, this.getTileEntity(), this.getSide(), GuiBridge.GUI_DUAL_ITEM_INTERFACE);
+            Platform.openGUI(p, this.getTileEntity(), this.getSide(), AEGuiKeys.DUAL_ITEM_INTERFACE);
         }
         return true;
     }
@@ -175,8 +177,8 @@ public class PartDualInterface extends PartBasicState implements IGridTickable, 
     }
 
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-        return this.duality.getItemInterface().getInventory(channel);
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+        return this.duality.getItemInterface().getInventory(type);
     }
 
     @Override
@@ -294,7 +296,7 @@ public class PartDualInterface extends PartBasicState implements IGridTickable, 
 
     @Override
     public GuiBridge getGuiBridge() {
-        return GuiBridge.GUI_DUAL_ITEM_INTERFACE;
+        return AEGuiKeys.DUAL_ITEM_INTERFACE.getLegacyBridge();
     }
 
     @Nonnull

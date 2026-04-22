@@ -773,7 +773,7 @@ public abstract class AEBaseContainer extends Container {
                 final ItemStack isg = player.inventory.getItemStack();
 
                 if (!isg.isEmpty() && releaseQty > 0) {
-                    IAEItemStack ais = AEItemStackType.INSTANCE.getStorageChannel()
+                    IAEItemStack ais = AEItemStackType.INSTANCE
                             .createStack(isg);
                     ais.setStackSize(1);
                     final IAEItemStack extracted = ais.copy();
@@ -852,7 +852,7 @@ public abstract class AEBaseContainer extends Container {
                         this.updateHeld(player);
                     }
                 } else {
-                    IAEItemStack ais = AEItemStackType.INSTANCE.getStorageChannel()
+                    IAEItemStack ais = AEItemStackType.INSTANCE
                             .createStack(player.inventory.getItemStack());
                     ais = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
                             this.getActionSource());
@@ -892,7 +892,7 @@ public abstract class AEBaseContainer extends Container {
                         this.updateHeld(player);
                     }
                 } else {
-                    IAEItemStack ais = AEItemStackType.INSTANCE.getStorageChannel()
+                    IAEItemStack ais = AEItemStackType.INSTANCE
                             .createStack(player.inventory.getItemStack());
                     ais.setStackSize(1);
                     ais = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
@@ -1140,7 +1140,7 @@ public abstract class AEBaseContainer extends Container {
             return input;
         }
         final IAEItemStack ais = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(),
-                AEItemStackType.INSTANCE.getStorageChannel().createStack(input),
+                AEItemStackType.INSTANCE.createStack(input),
                 this.getActionSource());
         if (ais == null) {
             return ItemStack.EMPTY;

@@ -26,6 +26,7 @@ import net.minecraft.util.math.Vec3d;
 
 import appeng.api.parts.IPartModel;
 import appeng.core.AppEng;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.items.parts.PartModels;
 import appeng.parts.PartModel;
@@ -54,7 +55,7 @@ public class PartFluidInterfaceConfigurationTerminal extends AbstractPartDisplay
         if (!super.onPartActivate(player, hand, pos)) {
             if (Platform.isServer()) {
                 Platform.openGUI(player, this.getHost().getTile(), this.getSide(),
-                        GuiBridge.GUI_FLUID_INTERFACE_CONFIGURATION_TERMINAL);
+                        AEGuiKeys.FLUID_INTERFACE_CONFIGURATION_TERMINAL);
             }
         }
         return true;

@@ -33,10 +33,10 @@ import appeng.api.config.SortOrder;
 import appeng.api.config.ViewItems;
 import appeng.api.implementations.tiles.IViewCellStorage;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.me.GridAccessException;
 import appeng.tile.inventory.AppEngInternalInventory;
@@ -112,13 +112,13 @@ public abstract class AbstractPartTerminal extends AbstractPartDisplay
     }
 
     public GuiBridge getGui(final EntityPlayer player) {
-        return GuiBridge.GUI_ME;
+        return AEGuiKeys.ME_TERMINAL.getLegacyBridge();
     }
 
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
         try {
-            return this.getProxy().getStorage().getInventory(channel);
+            return this.getProxy().getStorage().getInventory(type);
         } catch (final GridAccessException e) {
             // err nope?
         }

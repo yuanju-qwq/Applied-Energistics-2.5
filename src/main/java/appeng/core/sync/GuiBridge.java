@@ -21,41 +21,21 @@ package appeng.core.sync;
 import java.lang.reflect.Constructor;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.network.IGuiHandler;
-import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
-import baubles.api.BaublesApi;
-
-import appeng.api.AEApi;
 import appeng.api.config.SecurityPermissions;
 import appeng.api.exceptions.AppEngException;
-import appeng.api.features.IWirelessTermHandler;
 import appeng.api.implementations.IUpgradeableHost;
-import appeng.api.implementations.guiobjects.IGuiItem;
 import appeng.api.implementations.guiobjects.INetworkTool;
 import appeng.api.implementations.guiobjects.IPortableCell;
-import appeng.api.networking.IGrid;
-import appeng.api.networking.IGridNode;
-import appeng.api.networking.energy.IEnergyGrid;
-import appeng.api.networking.security.IActionHost;
-import appeng.api.networking.security.ISecurityGrid;
-import appeng.api.parts.IPart;
-import appeng.api.parts.IPartHost;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.util.AEPartLocation;
-import appeng.api.util.DimensionalCoord;
-import appeng.client.gui.AEBaseGui;
-import appeng.client.gui.GuiNull;
-import appeng.container.AEBaseContainer;
-import appeng.container.ContainerNull;
-import appeng.container.ContainerOpenContext;
 import appeng.container.implementations.*;
 import appeng.fluids.container.*;
 import appeng.fluids.helper.IFluidInterfaceHost;
@@ -93,7 +73,6 @@ import appeng.tile.storage.TileChest;
 import appeng.tile.storage.TileDrive;
 import appeng.tile.storage.TileIOPort;
 import appeng.tile.storage.TileSkyChest;
-import appeng.util.Platform;
 
 public enum GuiBridge implements IGuiHandler {
     GUI_Handler(),
@@ -144,7 +123,7 @@ public enum GuiBridge implements IGuiHandler {
     GUI_FLUID_INTERFACE(ContainerFluidInterface.class, IFluidInterfaceHost.class, GuiHostType.WORLD,
             SecurityPermissions.BUILD),
 
-    // 浜屽悎涓€鎺ュ彛锛堢墿鍝侀潰 + 娴佷綋闈級
+    // 二合一接口（物品面 + 流体面）
     GUI_DUAL_ITEM_INTERFACE(ContainerDualItemInterface.class, IInterfaceHost.class, GuiHostType.WORLD,
             SecurityPermissions.BUILD),
 
@@ -185,7 +164,7 @@ public enum GuiBridge implements IGuiHandler {
     GUI_EXPANDED_PROCESSING_PATTERN_TERMINAL(ContainerExpandedProcessingPatternTerm.class,
             PartExpandedProcessingPatternTerminal.class, GuiHostType.WORLD, SecurityPermissions.CRAFT),
 
-    @Deprecated // 娴佷綋缁堢宸查泦鎴愬埌閫氱敤缁堢锛屾鏋氫妇淇濈暀鍚戝悗鍏煎
+    @Deprecated // 流体终端已集成到通用终端，此枚举保留向后兼容
     GUI_FLUID_TERMINAL(ContainerMEMonitorable.class, ITerminalHost.class, GuiHostType.WORLD, SecurityPermissions.BUILD),
 
     // extends (Container/Gui) + Bus
@@ -231,16 +210,19 @@ public enum GuiBridge implements IGuiHandler {
 
     private final Class tileClass;
     private final Class containerClass;
-    private Class guiClass;
     private GuiHostType type;
     private SecurityPermissions requiredPermission;
     private GuiWrapper.IExternalGui externalGui = null;
     private final Map<Class<?>, Constructor<?>> containerConstructors = new ConcurrentHashMap<>();
-    private final Map<Class<?>, Constructor<?>> guiConstructors = new ConcurrentHashMap<>();
+
+    /**
+     * MUI GUI 工厂 Lambda，设置后 {@link #ConstructGui} 将使用此工厂直接创建 GUI。
+     * 参数：(InventoryPlayer, tileEntity/part/guiObject) → GUI 对象
+     */
+    private BiFunction<InventoryPlayer, Object, Object> muiGuiFactory;
 
     GuiBridge() {
         this.tileClass = null;
-        this.guiClass = null;
         this.containerClass = null;
     }
 
@@ -254,32 +236,19 @@ public enum GuiBridge implements IGuiHandler {
         return this.externalGui;
     }
 
+    /**
+     * 注册 MUI GUI 工厂 Lambda。注册后 {@link #ConstructGui} 将优先使用此工厂直接创建 GUI，不走反射。
+     *
+     * @param factory (InventoryPlayer, tileEntity/part/guiObject) → MUI Panel 实例
+     */
+    public void setMuiGuiFactory(final BiFunction<InventoryPlayer, Object, Object> factory) {
+        this.muiGuiFactory = factory;
+    }
+
     GuiBridge(final Class containerClass, final SecurityPermissions requiredPermission) {
         this.requiredPermission = requiredPermission;
         this.containerClass = containerClass;
         this.tileClass = null;
-        this.getGui();
-    }
-
-    /**
-     * I honestly wish I could just use the GuiClass Names myself, but I can't access them without MC's Server
-     * Exploding.
-     */
-    private void getGui() {
-        if (Platform.isClient()) {
-            AEBaseGui.class.getName();
-
-            final String start = this.containerClass.getName();
-            final String guiClass = start.replaceFirst("container.", "client.gui.").replace(".Container", ".Gui");
-
-            if (start.equals(guiClass)) {
-                throw new IllegalStateException("Unable to find gui class");
-            }
-            this.guiClass = ReflectionHelper.getClass(this.getClass().getClassLoader(), guiClass);
-            if (this.guiClass == null) {
-                throw new IllegalStateException("Cannot Load class: " + guiClass);
-            }
-        }
     }
 
     GuiBridge(final Class containerClass, final Class tileClass, final GuiHostType type,
@@ -288,62 +257,12 @@ public enum GuiBridge implements IGuiHandler {
         this.containerClass = containerClass;
         this.type = type;
         this.tileClass = tileClass;
-        this.getGui();
     }
 
     @Override
     public Object getServerGuiElement(final int ordinal, final EntityPlayer player, final World w, final int x,
             final int y, final int z) {
-        final AEPartLocation side = AEPartLocation.fromOrdinal(ordinal & 0x07);
-        final GuiBridge ID = values()[ordinal >> 4];
-        final boolean usingItemOnTile = ((ordinal >> 3) & 1) == 1;
-        if (ID.type.isItem()) {
-            ItemStack it = ItemStack.EMPTY;
-            if (usingItemOnTile) {
-                it = player.inventory.getCurrentItem();
-            } else if (y == 0) {
-                if (x >= 0 && x < player.inventory.mainInventory.size()) {
-                    it = player.inventory.getStackInSlot(x);
-                }
-            } else if (y == 1 && z == Integer.MIN_VALUE) {
-                it = BaublesApi.getBaublesHandler(player).getStackInSlot(x);
-            }
-            final Object myItem = this.getGuiObject(it, player, w, x, y, z);
-            if (myItem != null && ID.CorrectTileOrPart(myItem)) {
-                return this.updateGui(ID.ConstructContainer(player.inventory, side, myItem), w, x, y, z, side, myItem);
-            }
-        }
-        if (ID.type.isTile()) {
-            final TileEntity TE = w.getTileEntity(new BlockPos(x, y, z));
-            if (TE instanceof IPartHost) {
-                ((IPartHost) TE).getPart(side);
-                final IPart part = ((IPartHost) TE).getPart(side);
-                if (ID.CorrectTileOrPart(part)) {
-                    return this.updateGui(ID.ConstructContainer(player.inventory, side, part), w, x, y, z, side, part);
-                }
-            } else {
-                if (ID.CorrectTileOrPart(TE)) {
-                    return this.updateGui(ID.ConstructContainer(player.inventory, side, TE), w, x, y, z, side, TE);
-                }
-            }
-        }
-        return new ContainerNull();
-    }
-
-    private Object getGuiObject(final ItemStack it, final EntityPlayer player, final World w, final int x, final int y,
-            final int z) {
-        if (!it.isEmpty()) {
-            if (it.getItem() instanceof IGuiItem) {
-                return ((IGuiItem) it.getItem()).getGuiObject(it, w, new BlockPos(x, y, z));
-            }
-
-            final IWirelessTermHandler wh = AEApi.instance().registries().wireless().getWirelessTerminalHandler(it);
-            if (wh != null) {
-                return new WirelessTerminalGuiObject(wh, it, player, w, x, y, z);
-            }
-        }
-
-        return null;
+        return AEGuiHandler.INSTANCE.getServerGuiElement(ordinal, player, w, x, y, z);
     }
 
     public boolean CorrectTileOrPart(final Object tE) {
@@ -352,21 +271,6 @@ public enum GuiBridge implements IGuiHandler {
         }
 
         return this.tileClass.isInstance(tE);
-    }
-
-    private Object updateGui(final Object newContainer, final World w, final int x, final int y, final int z,
-            final AEPartLocation side, final Object myItem) {
-        if (newContainer instanceof AEBaseContainer) {
-            final AEBaseContainer bc = (AEBaseContainer) newContainer;
-            bc.setOpenContext(new ContainerOpenContext(myItem));
-            bc.getOpenContext().setWorld(w);
-            bc.getOpenContext().setX(x);
-            bc.getOpenContext().setY(y);
-            bc.getOpenContext().setZ(z);
-            bc.getOpenContext().setSide(side);
-        }
-
-        return newContainer;
     }
 
     public Object ConstructContainer(final InventoryPlayer inventory, final AEPartLocation side, final Object tE) {
@@ -402,51 +306,15 @@ public enum GuiBridge implements IGuiHandler {
     @Override
     public Object getClientGuiElement(final int ordinal, final EntityPlayer player, final World w, final int x,
             final int y, final int z) {
-        final AEPartLocation side = AEPartLocation.fromOrdinal(ordinal & 0x07);
-        final GuiBridge ID = values()[ordinal >> 4];
-        final boolean usingItemOnTile = ((ordinal >> 3) & 1) == 1;
-
-        if (ID.type.isItem()) {
-            ItemStack it = ItemStack.EMPTY;
-            if (usingItemOnTile) {
-                it = player.inventory.getCurrentItem();
-            } else if (y == 0) {
-                if (x >= 0 && x < player.inventory.mainInventory.size()) {
-                    it = player.inventory.getStackInSlot(x);
-                }
-            }
-            if (y == 1 && z == Integer.MIN_VALUE) {
-                it = BaublesApi.getBaublesHandler(player).getStackInSlot(x);
-            }
-            final Object myItem = this.getGuiObject(it, player, w, x, y, z);
-            if (myItem != null && ID.CorrectTileOrPart(myItem)) {
-                return ID.ConstructGui(player.inventory, side, myItem);
-            }
-        }
-        if (ID.type.isTile()) {
-            final TileEntity TE = w.getTileEntity(new BlockPos(x, y, z));
-            if (TE instanceof IPartHost) {
-                ((IPartHost) TE).getPart(side);
-                final IPart part = ((IPartHost) TE).getPart(side);
-                if (ID.CorrectTileOrPart(part)) {
-                    return ID.ConstructGui(player.inventory, side, part);
-                }
-            } else {
-                if (ID.CorrectTileOrPart(TE)) {
-                    return ID.ConstructGui(player.inventory, side, TE);
-                }
-            }
-        }
-        return new GuiNull(new ContainerNull());
+        return AEGuiHandler.INSTANCE.getClientGuiElement(ordinal, player, w, x, y, z);
     }
 
     public Object ConstructGui(final InventoryPlayer inventory, final AEPartLocation side, final Object tE) {
-        try {
-            final Constructor target = this.resolveConstructor(this.guiClass, this.guiConstructors, inventory, tE);
-            return target.newInstance(inventory, tE);
-        } catch (final Throwable t) {
-            throw new IllegalStateException(t);
+        if (this.muiGuiFactory != null) {
+            return this.muiGuiFactory.apply(inventory, tE);
         }
+        throw new IllegalStateException("No MUI GUI factory registered for " + this.name()
+                + ". All GUIs must be registered via setMuiGuiFactory().");
     }
 
     private Constructor<?> resolveConstructor(final Class targetClass, final Map<Class<?>, Constructor<?>> cache,
@@ -469,66 +337,20 @@ public enum GuiBridge implements IGuiHandler {
 
     public boolean hasPermissions(final TileEntity te, final int x, final int y, final int z, final AEPartLocation side,
             final EntityPlayer player) {
-        final World w = player.getEntityWorld();
-        final BlockPos pos = new BlockPos(x, y, z);
-
-        if (appeng.util.WorldHelper.hasPermissions(te != null ? new DimensionalCoord(te) : new DimensionalCoord(player.world, pos),
-                player)) {
-            if (this.type.isItem()) {
-                final ItemStack it = player.inventory.getCurrentItem();
-                if (!it.isEmpty() && it.getItem() instanceof IGuiItem) {
-                    final Object myItem = ((IGuiItem) it.getItem()).getGuiObject(it, w, pos);
-                    if (this.CorrectTileOrPart(myItem)) {
-                        return true;
-                    }
-                }
-            }
-
-            if (this.type.isTile()) {
-                final TileEntity TE = w.getTileEntity(pos);
-                if (TE instanceof IPartHost) {
-                    ((IPartHost) TE).getPart(side);
-                    final IPart part = ((IPartHost) TE).getPart(side);
-                    if (this.CorrectTileOrPart(part)) {
-                        return this.securityCheck(part, player);
-                    }
-                } else {
-                    if (this.CorrectTileOrPart(TE)) {
-                        return this.securityCheck(TE, player);
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean securityCheck(final Object te, final EntityPlayer player) {
-        if (te instanceof IActionHost && this.requiredPermission != null) {
-
-            final IGridNode gn = ((IActionHost) te).getActionableNode();
-            if (gn != null) {
-                final IGrid g = gn.getGrid();
-                if (g != null) {
-                    final boolean requirePower = false;
-                    if (requirePower) {
-                        final IEnergyGrid eg = g.getCache(IEnergyGrid.class);
-                        if (!eg.isNetworkPowered()) {
-                            return false;
-                        }
-                    }
-
-                    final ISecurityGrid sg = g.getCache(ISecurityGrid.class);
-                    return sg.hasPermission(player, this.requiredPermission);
-                }
-            }
-
-            return false;
-        }
-        return true;
+        return AEGuiHandler.hasPermissions(this, te, x, y, z, side, player);
     }
 
     public GuiHostType getType() {
         return this.type;
+    }
+
+    /**
+     * 获取打开此 GUI 所需的安全权限。
+     *
+     * @return 权限要求，如果不需要权限检查则返回 {@code null}
+     */
+    public SecurityPermissions getRequiredPermission() {
+        return this.requiredPermission;
     }
 
 }

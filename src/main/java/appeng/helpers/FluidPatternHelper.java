@@ -111,7 +111,7 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
                 // 回退：当作普通物品
                 final ItemStack gs = ItemStackHelper.stackFromNBT(tag);
                 if (!gs.isEmpty()) {
-                    IAEItemStack aeItem = AEItemStackType.INSTANCE.getStorageChannel().createStack(gs);
+                    IAEItemStack aeItem = AEItemStackType.INSTANCE.createStack(gs);
                     if (aeItem != null) {
                         inGeneric.add(aeItem);
                         inItems.add(aeItem);
@@ -168,7 +168,7 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
             } else {
                 final ItemStack gs = ItemStackHelper.stackFromNBT(tag);
                 if (!gs.isEmpty()) {
-                    IAEItemStack aeItem = AEItemStackType.INSTANCE.getStorageChannel().createStack(gs);
+                    IAEItemStack aeItem = AEItemStackType.INSTANCE.createStack(gs);
                     if (aeItem != null) {
                         outGeneric.add(aeItem);
                         outItems.add(aeItem);
@@ -227,26 +227,6 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
     @Override
     public boolean isCraftable() {
         return false;
-    }
-
-    @Override
-    public IAEItemStack[] getInputs() {
-        return this.inputs;
-    }
-
-    @Override
-    public IAEItemStack[] getCondensedInputs() {
-        return this.condensedInputs;
-    }
-
-    @Override
-    public IAEItemStack[] getCondensedOutputs() {
-        return this.condensedOutputs;
-    }
-
-    @Override
-    public IAEItemStack[] getOutputs() {
-        return this.outputs;
     }
 
     @Override

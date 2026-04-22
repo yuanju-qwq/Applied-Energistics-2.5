@@ -46,7 +46,6 @@ import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -333,12 +332,12 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
         try {
             if (this.configuredItem != null) {
                 final IMEMonitor<IAEItemStack> inv = this.getProxy().getStorage()
-                        .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
+                        .getInventory(AEItemStackType.INSTANCE);
                 final IAEItemStack found = inv.getStorageList().findPrecise(this.configuredItem);
                 this.currentAmount = found != null ? found.getStackSize() : 0;
             } else if (this.configuredFluid != null) {
                 final IMEMonitor<IAEFluidStack> inv = this.getProxy().getStorage()
-                        .getInventory(AEFluidStackType.INSTANCE.getStorageChannel());
+                        .getInventory(AEFluidStackType.INSTANCE);
                 final IAEFluidStack found = inv.getStorageList().findPrecise(this.configuredFluid);
                 this.currentAmount = found != null ? found.getStackSize() : 0;
             }

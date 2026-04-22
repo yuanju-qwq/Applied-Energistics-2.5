@@ -31,6 +31,7 @@ import appeng.api.implementations.guiobjects.IGuiItem;
 import appeng.api.implementations.guiobjects.IGuiItemObject;
 import appeng.api.util.AEPartLocation;
 import appeng.core.features.AEFeature;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.items.AEBaseItem;
 import appeng.items.contents.QuartzKnifeObj;
@@ -49,7 +50,7 @@ public class ToolQuartzCuttingKnife extends AEBaseItem implements IGuiItem {
     public EnumActionResult onItemUse(final EntityPlayer p, final World worldIn, final BlockPos pos,
             final EnumHand hand, final EnumFacing side, final float hitX, final float hitY, final float hitZ) {
         if (Platform.isServer()) {
-            Platform.openGUI(p, null, AEPartLocation.INTERNAL, GuiBridge.GUI_QUARTZ_KNIFE);
+            Platform.openGUI(p, null, AEPartLocation.INTERNAL, AEGuiKeys.QUARTZ_KNIFE);
         }
         return EnumActionResult.SUCCESS;
     }
@@ -57,7 +58,7 @@ public class ToolQuartzCuttingKnife extends AEBaseItem implements IGuiItem {
     @Override
     public ActionResult<ItemStack> onItemRightClick(final World w, final EntityPlayer p, final EnumHand hand) {
         if (Platform.isServer()) {
-            Platform.openGUI(p, null, AEPartLocation.INTERNAL, GuiBridge.GUI_QUARTZ_KNIFE);
+            Platform.openGUI(p, null, AEPartLocation.INTERNAL, AEGuiKeys.QUARTZ_KNIFE);
         }
         p.swingArm(hand);
         return new ActionResult<>(EnumActionResult.SUCCESS, p.getHeldItem(hand));

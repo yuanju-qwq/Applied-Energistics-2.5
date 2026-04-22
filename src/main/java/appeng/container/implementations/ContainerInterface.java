@@ -28,6 +28,10 @@ import appeng.helpers.DualityInterface;
 import appeng.helpers.IInterfaceHost;
 import appeng.util.Platform;
 
+/**
+ * @deprecated 使用 {@link ContainerPatternProvider} 或 {@link ContainerMEInterface} 替代。
+ */
+@Deprecated
 public class ContainerInterface extends ContainerUpgradeable implements IOptionalSlotHost {
 
     private final DualityInterface myDuality;

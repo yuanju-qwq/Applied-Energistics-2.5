@@ -75,7 +75,7 @@ public class ItemCreativeStorageCell extends AEBaseItem implements ICellWorkbenc
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,
-                        AEItemStackType.INSTANCE.getStorageChannel());
+                        AEItemStackType.INSTANCE);
 
         if (inventory instanceof ICellInventoryHandler) {
             final CellConfig cc = new CellConfig(stack);

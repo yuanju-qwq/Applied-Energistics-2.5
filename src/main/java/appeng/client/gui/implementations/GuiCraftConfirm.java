@@ -18,6 +18,14 @@
 
 package appeng.client.gui.implementations;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.*;
@@ -41,8 +49,10 @@ import appeng.api.storage.data.IItemList;
 import appeng.client.gui.AEBaseGui;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.container.implementations.ContainerCraftConfirm;
+import appeng.container.interfaces.ICraftConfirmGuiCallback;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketSwitchGuis;
@@ -56,7 +66,7 @@ import appeng.util.Platform;
 import appeng.util.item.IMixedStackList;
 import appeng.util.item.IAEStackList;
 
-public class GuiCraftConfirm extends AEBaseGui {
+public class GuiCraftConfirm extends AEBaseGui implements ICraftConfirmGuiCallback {
 
     private final ContainerCraftConfirm ccc;
 
@@ -92,19 +102,19 @@ public class GuiCraftConfirm extends AEBaseGui {
         }
 
         if (te instanceof PartTerminal) {
-            this.OriginalGui = GuiBridge.GUI_ME;
+            this.OriginalGui = AEGuiKeys.ME_TERMINAL;
         }
 
         if (te instanceof PartCraftingTerminal) {
-            this.OriginalGui = GuiBridge.GUI_CRAFTING_TERMINAL;
+            this.OriginalGui = AEGuiKeys.CRAFTING_TERMINAL;
         }
 
         if (te instanceof PartPatternTerminal) {
-            this.OriginalGui = GuiBridge.GUI_PATTERN_TERMINAL;
+            this.OriginalGui = AEGuiKeys.PATTERN_TERMINAL;
         }
 
         if (te instanceof PartExpandedProcessingPatternTerminal) {
-            this.OriginalGui = GuiBridge.GUI_EXPANDED_PROCESSING_PATTERN_TERMINAL;
+            this.OriginalGui = AEGuiKeys.EXPANDED_PROCESSING_PATTERN_TERMINAL;
         }
     }
 
@@ -402,15 +412,6 @@ public class GuiCraftConfirm extends AEBaseGui {
         this.getScrollBar().setRange(0, (size + 2) / 3 - this.rows, 1);
     }
 
-    public void postUpdate(final List<IAEItemStack> list, final byte ref) {
-        // 旧接口兼容：转为泛型版本
-        final List<IAEStack<?>> genericList = new ArrayList<>(list.size());
-        for (IAEItemStack item : list) {
-            genericList.add(item);
-        }
-        postGenericUpdate(genericList, ref);
-    }
-
     /**
      * 泛型版本：接收包含物品和流体的合成计划更新。
      */
@@ -560,3 +561,5 @@ public class GuiCraftConfirm extends AEBaseGui {
         return this.rows;
     }
 }
+
+*/

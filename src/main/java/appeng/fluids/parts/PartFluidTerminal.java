@@ -24,6 +24,7 @@ import net.minecraft.util.ResourceLocation;
 
 import appeng.api.parts.IPartModel;
 import appeng.core.AppEng;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.items.parts.PartModels;
 import appeng.parts.PartModel;
@@ -51,7 +52,7 @@ public class PartFluidTerminal extends AbstractPartTerminal {
 
     @Override
     public GuiBridge getGui(EntityPlayer player) {
-        return GuiBridge.GUI_ME;
+        return AEGuiKeys.ME_TERMINAL.getLegacyBridge();
     }
 
     @Override

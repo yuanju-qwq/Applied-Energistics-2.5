@@ -45,12 +45,12 @@ import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.IConfigManager;
 import appeng.core.AppEng;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.DualityFluidInterface;
 import appeng.fluids.helper.IConfigurableFluidInventory;
@@ -62,6 +62,10 @@ import appeng.parts.PartBasicState;
 import appeng.parts.PartModel;
 import appeng.util.Platform;
 
+/**
+ * @deprecated 使用 {@link appeng.parts.misc.PartMEInterface} 替代，新的 ME 接口统一处理物品和流体。
+ */
+@Deprecated
 public class PartFluidInterface extends PartBasicState
         implements IGridTickable, IStorageMonitorable, IFluidInterfaceHost, IPriorityHost, IConfigurableFluidInventory {
     public static final ResourceLocation MODEL_BASE = new ResourceLocation(AppEng.MOD_ID, "part/fluid_interface_base");
@@ -138,15 +142,15 @@ public class PartFluidInterface extends PartBasicState
     @Override
     public boolean onPartActivate(final EntityPlayer p, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(p, this.getTileEntity(), this.getSide(), GuiBridge.GUI_FLUID_INTERFACE);
+            Platform.openGUI(p, this.getTileEntity(), this.getSide(), AEGuiKeys.FLUID_INTERFACE);
         }
 
         return true;
     }
 
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-        return this.duality.getInventory(channel);
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+        return this.duality.getInventory(type);
     }
 
     @Override
@@ -227,6 +231,6 @@ public class PartFluidInterface extends PartBasicState
 
     @Override
     public GuiBridge getGuiBridge() {
-        return GuiBridge.GUI_FLUID_INTERFACE;
+        return AEGuiKeys.FLUID_INTERFACE.getLegacyBridge();
     }
 }

@@ -27,7 +27,6 @@ import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
@@ -36,6 +35,7 @@ import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
 import appeng.core.AppEng;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.IConfigurableFluidInventory;
 import appeng.fluids.util.AEFluidInventory;
@@ -175,7 +175,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     @Override
     public void onListUpdate() {
         try {
-            final IStorageChannel<IAEFluidStack> channel = AEFluidStackType.INSTANCE.getStorageChannel();
+            final IAEStackType<IAEFluidStack> channel = AEFluidStackType.INSTANCE;
             final IMEMonitor<IAEFluidStack> inventory = this.getProxy().getStorage().getInventory(channel);
 
             this.updateReportingValue(inventory);
@@ -196,7 +196,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     }
 
     private void configureWatchers() {
-        final IStorageChannel<IAEFluidStack> channel = AEFluidStackType.INSTANCE.getStorageChannel();
+        final IAEStackType<IAEFluidStack> channel = AEFluidStackType.INSTANCE;
 
         if (this.stackWatcher != null) {
             this.stackWatcher.reset();
@@ -292,7 +292,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     @Override
     public boolean onPartActivate(final EntityPlayer player, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), GuiBridge.GUI_FLUID_LEVEL_EMITTER);
+            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), AEGuiKeys.FLUID_LEVEL_EMITTER);
         }
         return true;
     }

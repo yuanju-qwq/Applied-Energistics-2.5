@@ -36,6 +36,7 @@ import net.minecraft.world.World;
 import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
 import appeng.core.localization.PlayerMessages;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.storage.TileChest;
 import appeng.util.Platform;
@@ -91,7 +92,7 @@ public class BlockChest extends AEBaseTileBlock {
             }
 
             if (side != tg.getUp()) {
-                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_CHEST);
+                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.CHEST);
             } else {
                 if (!tg.openGui(p)) {
                     p.sendMessage(PlayerMessages.ChestCannotReadStorageCell.get());

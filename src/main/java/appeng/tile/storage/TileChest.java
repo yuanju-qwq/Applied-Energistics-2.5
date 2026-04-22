@@ -64,6 +64,7 @@ import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEColor;
 import appeng.api.util.IConfigManager;
 import appeng.capabilities.Capabilities;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.IPriorityHost;
@@ -198,7 +199,7 @@ public class TileChest extends AENetworkPowerTile
                     this.accessor = new Accessor();
 
                     if (this.cellHandler != null && this.cellHandler
-                            .getChannel() == AEFluidStackType.INSTANCE.getStorageChannel()) {
+                            .getStackType() == AEFluidStackType.INSTANCE) {
                         this.fluidHandler = new FluidHandler();
                     }
                 }
@@ -211,11 +212,11 @@ public class TileChest extends AENetworkPowerTile
             return null;
         }
 
-        final MEInventoryHandler<T> ih = new MEInventoryHandler<T>(h, h.getChannel());
+        final MEInventoryHandler<T> ih = new MEInventoryHandler<T>(h, h.getStackType());
         ih.setPriority(this.priority);
 
         final ChestMonitorHandler<T> g = new ChestMonitorHandler<T>(ih);
-        g.addListener(new ChestNetNotifier<T>(h.getChannel()), g);
+        g.addListener(new ChestNetNotifier<T>(h.getStackType()), g);
 
         return g;
     }
@@ -389,10 +390,10 @@ public class TileChest extends AENetworkPowerTile
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
         this.updateHandler();
 
-        if (this.cellHandler != null && this.cellHandler.getChannel() == channel) {
+        if (this.cellHandler != null && this.cellHandler.getStackType() == type) {
             return this.cellHandler;
         }
         return null;
@@ -443,7 +444,7 @@ public class TileChest extends AENetworkPowerTile
         if (!ItemHandlerUtil.isEmpty(this.inputInventory)) {
             this.updateHandler();
 
-            if (this.cellHandler != null && this.cellHandler.getChannel() == AEItemStackType.INSTANCE.getStorageChannel()) {
+            if (this.cellHandler != null && this.cellHandler.getStackType() == AEItemStackType.INSTANCE) {
                 final IAEItemStack returns = appeng.util.StorageHelper.poweredInsert(this, this.cellHandler,
                         AEItemStack.fromItemStack(this.inputInventory.getStackInSlot(0)), this.mySrc);
 
@@ -516,9 +517,9 @@ public class TileChest extends AENetworkPowerTile
 
             if (ch != null) {
                 final ICellGuiHandler chg = AEApi.instance().registries().cell()
-                        .getGuiHandler(this.cellHandler.getChannel(), this.getCell());
+                        .getGuiHandler(this.cellHandler.getStackType(), this.getCell());
                 if (chg != null) {
-                    chg.openChestGui(p, this, ch, this.cellHandler, this.getCell(), this.cellHandler.getChannel());
+                    chg.openChestGui(p, this, ch, this.cellHandler, this.getCell(), this.cellHandler.getStackType());
                     return true;
                 }
             }
@@ -555,16 +556,16 @@ public class TileChest extends AENetworkPowerTile
 
     private class ChestNetNotifier<T extends IAEStack<T>> implements IMEMonitorHandlerReceiver<T> {
 
-        private final IStorageChannel<T> chan;
+        private final IAEStackType<T> chan;
 
-        public ChestNetNotifier(final IStorageChannel<T> chan) {
+        public ChestNetNotifier(final IAEStackType<T> chan) {
             this.chan = chan;
         }
 
         @Override
         public boolean isValid(final Object verificationToken) {
             TileChest.this.updateHandler();
-            if (TileChest.this.cellHandler != null && this.chan == TileChest.this.cellHandler.getChannel()) {
+            if (TileChest.this.cellHandler != null && this.chan == TileChest.this.cellHandler.getStackType()) {
                 return verificationToken == TileChest.this.cellHandler;
             }
             return false;
@@ -574,7 +575,7 @@ public class TileChest extends AENetworkPowerTile
         public void postChange(final IBaseMonitor<T> monitor, final Iterable<T> change, final IActionSource source) {
             try {
                 if (TileChest.this.getProxy().isActive()) {
-                    TileChest.this.getProxy().getStorage().postAlterationOfStoredItems(this.chan.getStackType(), change,
+                    TileChest.this.getProxy().getStorage().postAlterationOfStoredItems(this.chan, change,
                             TileChest.this.mySrc);
                 }
             } catch (final GridAccessException e) {
@@ -710,7 +711,7 @@ public class TileChest extends AENetworkPowerTile
         public int fill(final FluidStack resource, final boolean doFill) {
             TileChest.this.updateHandler();
             if (TileChest.this.cellHandler != null && TileChest.this.cellHandler
-                    .getChannel() == AEFluidStackType.INSTANCE.getStorageChannel()) {
+                    .getStackType() == AEFluidStackType.INSTANCE) {
                 final IAEFluidStack results = appeng.util.StorageHelper.poweredInsert(TileChest.this, TileChest.this.cellHandler,
                         AEFluidStack.fromFluidStack(resource),
                         TileChest.this.mySrc, doFill ? Actionable.MODULATE : Actionable.SIMULATE);
@@ -738,7 +739,7 @@ public class TileChest extends AENetworkPowerTile
             TileChest.this.updateHandler();
 
             if (TileChest.this.cellHandler != null && TileChest.this.cellHandler
-                    .getChannel() == AEFluidStackType.INSTANCE.getStorageChannel()) {
+                    .getStackType() == AEFluidStackType.INSTANCE) {
                 return this.TANK_PROPS;
             }
             return null;
@@ -756,7 +757,7 @@ public class TileChest extends AENetworkPowerTile
             if (TileChest.this.isPowered()) {
                 TileChest.this.updateHandler();
                 return TileChest.this.cellHandler != null && TileChest.this.cellHandler
-                        .getChannel() == AEItemStackType.INSTANCE.getStorageChannel();
+                        .getStackType() == AEItemStackType.INSTANCE;
             }
             return false;
         }
@@ -785,11 +786,11 @@ public class TileChest extends AENetworkPowerTile
     public GuiBridge getGuiBridge() {
         this.updateHandler();
         if (this.cellHandler != null) {
-            if (this.cellHandler.getChannel() == AEItemStackType.INSTANCE.getStorageChannel()) {
-                return GuiBridge.GUI_ME;
+            if (this.cellHandler.getStackType() == AEItemStackType.INSTANCE) {
+                return AEGuiKeys.ME_TERMINAL.getLegacyBridge();
             }
-            if (this.cellHandler.getChannel() == AEFluidStackType.INSTANCE.getStorageChannel()) {
-                return GuiBridge.GUI_ME;
+            if (this.cellHandler.getStackType() == AEFluidStackType.INSTANCE) {
+                return AEGuiKeys.ME_TERMINAL.getLegacyBridge();
             }
         }
         return null;

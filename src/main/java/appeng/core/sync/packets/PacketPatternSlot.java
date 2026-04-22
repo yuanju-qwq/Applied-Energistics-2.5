@@ -79,7 +79,7 @@ public class PacketPatternSlot extends AppEngPacket {
 
         this.writeItem(slotItem, data);
         for (int x = 0; x < 9; x++) {
-            this.pattern[x] = AEItemStackType.INSTANCE.getStorageChannel()
+            this.pattern[x] = AEItemStackType.INSTANCE
                     .createStack(pat.getStackInSlot(x));
             this.writeItem(this.pattern[x], data);
         }

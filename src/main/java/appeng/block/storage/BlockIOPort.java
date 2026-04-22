@@ -36,6 +36,7 @@ import net.minecraft.world.World;
 import appeng.api.config.Upgrades;
 import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.storage.TileIOPort;
 import appeng.util.Platform;
@@ -84,7 +85,7 @@ public class BlockIOPort extends AEBaseTileBlock {
         final TileIOPort tg = this.getTileEntity(w, pos);
         if (tg != null) {
             if (Platform.isServer()) {
-                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_IOPORT);
+                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.IO_PORT);
             }
             return true;
         }

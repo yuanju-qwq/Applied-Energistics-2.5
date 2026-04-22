@@ -38,7 +38,6 @@ import net.minecraftforge.fml.common.network.internal.FMLProxyPacket;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.container.implementations.ContainerCraftConfirm;
 import appeng.container.implementations.ContainerCraftingCPU;
@@ -48,7 +47,8 @@ import appeng.container.implementations.ContainerWirelessDualInterfaceTerminal;
 import appeng.core.AELog;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.network.INetworkInfo;
-import appeng.util.item.AEItemStack;
+import appeng.fluids.container.ContainerFluidTerminal;
+import appeng.fluids.container.ContainerMEPortableFluidCell;
 
 public class PacketMEInventoryUpdate extends AppEngPacket {
     private static final int UNCOMPRESSED_PACKET_BYTE_LIMIT = 16 * 1024 * 1024;
@@ -58,9 +58,7 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
 
     // input.
     @Nullable
-    private final List<IAEItemStack> list;
-    @Nullable
-    private final List<IAEStack<?>> genericList;
+    private final List<IAEStack<?>> list;
     // output...
     private final byte ref;
 
@@ -77,10 +75,7 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
         this.data = null;
         this.compressFrame = null;
         this.list = new ArrayList<>();
-        this.genericList = new ArrayList<>();
         this.ref = stream.readByte();
-
-        // int originalBytes = stream.readableBytes();
 
         try (GZIPInputStream gzReader = new GZIPInputStream(new InputStream() {
             @Override
@@ -104,19 +99,14 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
             }
 
             while (uncompressed.readableBytes() > 0) {
-                // 先尝试用泛型方式读取（带类型ID前缀）
                 IAEStack<?> stack = IAEStack.fromPacketGeneric(uncompressed);
                 if (stack != null) {
-                    this.genericList.add(stack);
-                    if (stack instanceof IAEItemStack) {
-                        this.list.add((IAEItemStack) stack);
-                    }
+                    this.list.add(stack);
                 }
             }
         }
 
-        this.empty = this.list.isEmpty() && this.genericList.isEmpty();
-
+        this.empty = this.list.isEmpty();
     }
 
     // api
@@ -139,7 +129,6 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
         });
 
         this.list = null;
-        this.genericList = null;
     }
 
     @Override
@@ -148,23 +137,31 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
         final Container c = player.openContainer;
 
         if (c instanceof ContainerCraftConfirm) {
-            ((ContainerCraftConfirm) c).postGenericUpdate(this.genericList, this.ref);
+            ((ContainerCraftConfirm) c).postGenericUpdate(this.list, this.ref);
         }
 
         if (c instanceof ContainerCraftingCPU) {
-            ((ContainerCraftingCPU) c).postGenericUpdate(this.genericList, this.ref);
+            ((ContainerCraftingCPU) c).postGenericUpdate(this.list, this.ref);
         }
 
         if (c instanceof ContainerMEMonitorable) {
-            ((ContainerMEMonitorable) c).postUpdate(this.genericList);
+            ((ContainerMEMonitorable) c).postUpdate(this.list);
         }
 
         if (c instanceof ContainerWirelessDualInterfaceTerminal) {
-            ((ContainerWirelessDualInterfaceTerminal) c).postUpdate(this.genericList);
+            ((ContainerWirelessDualInterfaceTerminal) c).postUpdate(this.list);
         }
 
         if (c instanceof ContainerNetworkStatus) {
             ((ContainerNetworkStatus) c).postUpdate(this.list);
+        }
+
+        if (c instanceof ContainerFluidTerminal) {
+            ((ContainerFluidTerminal) c).postUpdate(this.list);
+        }
+
+        if (c instanceof ContainerMEPortableFluidCell) {
+            ((ContainerMEPortableFluidCell) c).postUpdate(this.list);
         }
     }
 
@@ -181,14 +178,6 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
         }
 
         return null;
-    }
-
-    /**
-     * 追加一个物品栈（保持向后兼容）。
-     * 注意：此方法现在内部使用泛型方式写入（带类型ID前缀）。
-     */
-    public void appendItem(final IAEItemStack is) throws IOException, BufferOverflowException {
-        appendStack(is);
     }
 
     /**
@@ -217,10 +206,10 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
     }
 
     /**
-     * @return 所有反序列化出的泛型栈（包括物品、流体等所有类型）
+     * @return 所有反序列化出的栈（包括物品、流体等所有类型）
      */
     @Nullable
-    public List<IAEStack<?>> getGenericList() {
-        return this.genericList;
+    public List<IAEStack<?>> getList() {
+        return this.list;
     }
 }

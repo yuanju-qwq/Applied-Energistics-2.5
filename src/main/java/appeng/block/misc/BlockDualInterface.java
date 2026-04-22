@@ -19,13 +19,16 @@ import net.minecraft.world.World;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IOrientable;
 import appeng.block.AEBaseTileBlock;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.misc.TileDualInterface;
 import appeng.util.Platform;
 
 /**
  * 二合一接口方块（同时支持物品和流体）。
+ * @deprecated 使用新的样板供应器方块或 ME 接口方块替代，二合一接口已被取代。
  */
+@Deprecated
 public class BlockDualInterface extends AEBaseTileBlock {
 
     private static final PropertyBool OMNIDIRECTIONAL = PropertyBool.create("omnidirectional");
@@ -62,7 +65,7 @@ public class BlockDualInterface extends AEBaseTileBlock {
         final TileDualInterface tg = this.getTileEntity(w, pos);
         if (tg != null) {
             if (Platform.isServer()) {
-                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_DUAL_ITEM_INTERFACE);
+                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.DUAL_ITEM_INTERFACE);
             }
             return true;
         }

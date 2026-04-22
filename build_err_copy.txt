@@ -1,0 +1,465 @@
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\tile\misc\TileCondenser.java:325: 错误: 找不到符号
+        public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+                                                                  ^
+  符号:   类 IAEStackType
+  位置: 类 TileCondenser.MEHandler
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\container\implementations\ContainerMEMonitorable.java:676: 错误: 找不到符号
+    public void doAction(final EntityPlayerMP player, final InventoryAction action, final int slot,
+                                                            ^
+  符号:   类 InventoryAction
+  位置: 类 ContainerMEMonitorable
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\container\implementations\ContainerMEMonitorable.java:691: 错误: 找不到符号
+    private void doFluidBucketAction(final EntityPlayerMP player, final InventoryAction action,
+                                                                        ^
+  符号:   类 InventoryAction
+  位置: 类 ContainerMEMonitorable
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\container\implementations\ContainerMEMonitorable.java:749: 错误: 已在类 ContainerMEMonitorable中定义了方法 transferStackInSlot(EntityPlayer,int)
+    public ItemStack transferStackInSlot(final EntityPlayer player, final int idx) {
+                     ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\DualityInterface.java:1010: 错误: 找不到符号
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+                                                              ^
+  符号:   类 IAEStackType
+  位置: 类 DualityInterface
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\parts\reporting\AbstractPartTerminal.java:118: 错误: 找不到符号
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+                                                              ^
+  符号:   类 IAEStackType
+  位置: 类 AbstractPartTerminal
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:26: 错误: 找不到符号
+import appeng.api.implementations.parts.IFluidInterfaceHost;
+                                       ^
+  符号:   类 IFluidInterfaceHost
+  位置: 程序包 appeng.api.implementations.parts
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:37: 错误: 找不到符号
+import appeng.parts.automation.PartFluidFormationPlane;
+                              ^
+  符号:   类 PartFluidFormationPlane
+  位置: 程序包 appeng.parts.automation
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:38: 错误: 找不到符号
+import appeng.parts.automation.PartFluidLevelEmitter;
+                              ^
+  符号:   类 PartFluidLevelEmitter
+  位置: 程序包 appeng.parts.automation
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:52: 错误: 找不到符号
+import appeng.tile.misc.TileIOPort;
+                       ^
+  符号:   类 TileIOPort
+  位置: 程序包 appeng.tile.misc
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:61: 错误: 找不到符号
+import appeng.api.parts.IUpgradeableHost;
+                       ^
+  符号:   类 IUpgradeableHost
+  位置: 程序包 appeng.api.parts
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\fluids\helper\DualityFluidInterface.java:169: 错误: 找不到符号
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+                                                              ^
+  符号:   类 IAEStackType
+  位置: 类 DualityFluidInterface
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\InterfaceLogic.java:105: 错误: 找不到符号
+        IConfigManagerHost, IUpgradeableHost, IConfigurableFluidInventory, IAEFluidInventory,
+                                              ^
+  符号: 类 IConfigurableFluidInventory
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\tile\misc\TileSecurityStation.java:243: 错误: 找不到符号
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+                                                              ^
+  符号:   类 IAEStackType
+  位置: 类 TileSecurityStation
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\fluids\container\ContainerFluidTerminal.java:520: 错误: 找不到符号
+    public void postUpdate(final List<IAEStack<?>> list) {
+                                 ^
+  符号:   类 List
+  位置: 类 ContainerFluidTerminal
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\fluids\container\ContainerMEPortableFluidCell.java:549: 错误: 找不到符号
+    public void postUpdate(final List<IAEStack<?>> list) {
+                                 ^
+  符号:   类 List
+  位置: 类 ContainerMEPortableFluidCell
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\fluids\parts\PartFluidInterface.java:151: 错误: 找不到符号
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+                                                              ^
+  符号:   类 IAEStackType
+  位置: 类 PartFluidInterface
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\InterfaceLogic.java:952: 错误: 找不到符号
+    private static class ItemInterfaceInventory extends appeng.me.storage.MEMonitorIInventoryHandler {
+                                                                         ^
+  符号:   类 MEMonitorIInventoryHandler
+  位置: 程序包 appeng.me.storage
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\items\contents\PortableCellViewer.java:105: 错误: 找不到符号
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+                                                              ^
+  符号:   类 IAEStackType
+  位置: 类 PortableCellViewer
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\parts\misc\PartDualInterface.java:179: 错误: 找不到符号
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+                                                              ^
+  符号:   类 IAEStackType
+  位置: 类 PartDualInterface
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\parts\misc\PartInterface.java:190: 错误: 找不到符号
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+                                                              ^
+  符号:   类 IAEStackType
+  位置: 类 PartInterface
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\parts\misc\PartMEInterface.java:200: 错误: 找不到符号
+    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+                                                              ^
+  符号:   类 IAEStackType
+  位置: 类 PartMEInterface
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\api\storage\IMEInventory.java:112: 错误: 不兼容的类型: IAEStackBase无法转换为IAEStack<?>
+        return ((IMEInventory) this).injectItems(input, type, src);
+                                                ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\api\storage\IMEInventory.java:122: 错误: 不兼容的类型: IAEStackBase无法转换为IAEStack<?>
+        return ((IMEInventory) this).extractItems(request, mode, src);
+                                                 ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\container\implementations\ContainerCellWorkbench.java:202: 错误: 不兼容的类型: 条件表达式中的类型错误
+                ? ((IStorageCell) is.getItem()).getStackType()
+                                                            ^
+    IAEStackType无法转换为IStorageChannel
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\container\implementations\ContainerCellWorkbench.java:203: 错误: 不兼容的类型: 条件表达式中的类型错误
+                : AEItemStackType.INSTANCE;
+                                 ^
+    AEItemStackType无法转换为IStorageChannel
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\tile\storage\TileChest.java:214: 错误: 对于MEInventoryHandler(IMEInventoryHandler<T>,IAEStackType<CAP#1>), 找不到合适的构造器
+        final MEInventoryHandler<T> ih = new MEInventoryHandler<T>(h, h.getStackType());
+                                         ^
+    构造器 MEInventoryHandler.MEInventoryHandler(IMEInventory<T>,IAEStackType<T>)不适用
+      (参数不匹配; IAEStackType<CAP#2>无法转换为IAEStackType<T>)
+    构造器 MEInventoryHandler.MEInventoryHandler(IMEInventory<T>,IStorageChannel<T>)不适用
+      (参数不匹配; IAEStackType<CAP#2>无法转换为IStorageChannel<T>)
+  其中, T是类型变量:
+    T扩展已在方法 <T>wrap(IMEInventoryHandler<T>)中声明的IAEStack<T>
+  其中, CAP#1,CAP#2是新类型变量:
+    CAP#1从?的捕获扩展IAEStack<CAP#1>
+    CAP#2从?的捕获扩展IAEStack<CAP#2>
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\tile\storage\TileChest.java:218: 错误: 不兼容的类型: IAEStackType<CAP#1>无法转换为IAEStackType<T>
+        g.addListener(new ChestNetNotifier<T>(h.getStackType()), g);
+                                                            ^
+  其中, T是类型变量:
+    T扩展已在方法 <T>wrap(IMEInventoryHandler<T>)中声明的IAEStack<T>
+  其中, CAP#1是新类型变量:
+    CAP#1从?的捕获扩展IAEStack<CAP#1>
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\me\helpers\MEMonitorHandler.java:57: 错误: 不兼容的类型: IItemList<CAP#1>无法转换为IItemList<T>
+        this.cachedList = t.getStackType().createList();
+                                                     ^
+  其中, T是类型变量:
+    T扩展已在类 MEMonitorHandler中声明的IAEStack<T>
+  其中, CAP#1是新类型变量:
+    CAP#1从?的捕获扩展IAEStack<CAP#1>
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\tile\misc\TileCondenser.java:285: 错误: 找不到符号
+                final IAEStackType<IAEFluidStack> chan = AEFluidStackType.INSTANCE;
+                      ^
+  符号:   类 IAEStackType
+  位置: 类 TileCondenser.FluidHandler
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\tile\misc\TileCondenser.java:320: 错误: 名称冲突: class MEHandler 的两种方法具有相同的疑符, 但两者均不覆盖对方
+        public IStorageMonitorable getInventory(IActionSource src) {
+                                   ^
+  第一种方法: TileCondenser.MEHandler 中的 getInventory(<any>)
+  第二种方法: IStorageMonitorable 中的 getInventory(IAEStackType<T>)
+  其中, T是类型变量:
+    T扩展已在方法 <T>getInventory(IAEStackType<T>)中声明的IAEStack<T>
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\tile\misc\TileCondenser.java:325: 错误: 名称冲突: TileCondenser.MEHandler 中的 getInventory(<any>) 和 IStorageMonitorableAccessor 中的 getInventory(IActionSource) 具有相同疑符, 但两者均不覆盖对方
+        public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+                                                     ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\container\implementations\ContainerMEMonitorable.java:678: 错误: 找不到符号
+        if (action == InventoryAction.FILL_ITEM || action == InventoryAction.EMPTY_ITEM) {
+                      ^
+  符号:   变量 InventoryAction
+  位置: 类 ContainerMEMonitorable
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\container\implementations\ContainerMEMonitorable.java:678: 错误: 找不到符号
+        if (action == InventoryAction.FILL_ITEM || action == InventoryAction.EMPTY_ITEM) {
+                                                             ^
+  符号:   变量 InventoryAction
+  位置: 类 ContainerMEMonitorable
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\container\implementations\ContainerMEMonitorable.java:708: 错误: 找不到符号
+        if (action == InventoryAction.FILL_ITEM) {
+                      ^
+  符号:   变量 InventoryAction
+  位置: 类 ContainerMEMonitorable
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\container\implementations\ContainerMEMonitorable.java:727: 错误: 找不到符号
+        } else if (action == InventoryAction.EMPTY_ITEM) {
+                             ^
+  符号:   变量 InventoryAction
+  位置: 类 ContainerMEMonitorable
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\me\storage\DriveWatcher.java:45: 错误: 对于MEInventoryHandler(ICellInventoryHandler<T>,IAEStackType<CAP#1>), 找不到合适的构造器
+        super(i, i.getStackType());
+        ^
+    构造器 MEInventoryHandler.MEInventoryHandler(IMEInventory<T>,IAEStackType<T>)不适用
+      (参数不匹配; IAEStackType<CAP#2>无法转换为IAEStackType<T>)
+    构造器 MEInventoryHandler.MEInventoryHandler(IMEInventory<T>,IStorageChannel<T>)不适用
+      (参数不匹配; IAEStackType<CAP#2>无法转换为IStorageChannel<T>)
+  其中, T是类型变量:
+    T扩展已在类 DriveWatcher中声明的IAEStack<T>
+  其中, CAP#1,CAP#2是新类型变量:
+    CAP#1从?的捕获扩展IAEStack<CAP#1>
+    CAP#2从?的捕获扩展IAEStack<CAP#2>
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\DualityInterface.java:1089: 错误: 找不到符号
+            public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+                                                                      ^
+  符号: 类 IAEStackType
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\PatternProviderLogic.java:591: 错误: sameGrid(IGrid) 在 DualityInterface 中是 private 访问控制
+                if (!targetTE.getInterfaceDuality().sameGrid(this.gridProxy.getGrid())) {
+                                                   ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\PatternProviderLogic.java:596: 错误: gridProxy 在 DualityInterface 中是 private 访问控制
+                        if (sm != null && Platform.canAccess(targetTE.getInterfaceDuality().gridProxy, this.mySource)) {
+                                                                                           ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\PatternProviderLogic.java:860: 错误: sameGrid(IGrid) 在 DualityInterface 中是 private 访问控制
+                        if (targetTE.getInterfaceDuality().sameGrid(this.gridProxy.getGrid())) {
+                                                          ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\PatternProviderLogic.java:867: 错误: gridProxy 在 DualityInterface 中是 private 访问控制
+                                if (sm != null && Platform.canAccess(targetTE.getInterfaceDuality().gridProxy,
+                                                                                                   ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\PatternProviderLogic.java:1143: 错误: sameGrid(IGrid) 在 DualityInterface 中是 private 访问控制
+                    if (((IInterfaceHost) directedTile).getInterfaceDuality().sameGrid(this.gridProxy.getGrid())) {
+                                                                             ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\PatternProviderLogic.java:1381: 错误: 找不到符号
+                final IStorageGrid storage = gridProxy.getStorage();
+                      ^
+  符号:   类 IStorageGrid
+  位置: 类 PatternProviderLogic.ReturnItemHandler
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\PatternProviderLogic.java:1435: 错误: 找不到符号
+                final IStorageGrid storage = gridProxy.getStorage();
+                      ^
+  符号:   类 IStorageGrid
+  位置: 类 PatternProviderLogic.ReturnFluidHandler
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIGuiFactory.java:153: 错误: 不兼容的类型: Exception无法转换为String
+            AELog.warn(e, "Failed to create MUI container for key: %s", key.name());
+                       ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIGuiFactory.java:174: 错误: 不兼容的类型: Exception无法转换为String
+            AELog.warn(e, "Failed to create MUI GUI for key: %s", key.name());
+                       ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:220: 错误: 无法将类 MUIInterfacePanel中的构造器 MUIInterfacePanel应用到给定类型;
+                (ip, te) -> new MUIInterfacePanel(ip, (IInterfaceHost) te));
+                            ^
+  需要: ContainerInterface
+  找到:    InventoryPlayer,IInterfaceHost
+  原因: 实际参数列表和形式参数列表长度不同
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:223: 错误: 找不到符号
+                (ip, te) -> new MUIFluidInterfacePanel(ip, (IFluidInterfaceHost) te));
+                                                            ^
+  符号:   类 IFluidInterfaceHost
+  位置: 类 AEMUIRegistration
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:226: 错误: 无法将类 MUIDualItemInterfacePanel中的构造器 MUIDualItemInterfacePanel应用到给定类型;
+                (ip, te) -> new MUIDualItemInterfacePanel(ip, (IInterfaceHost) te));
+                            ^
+  需要: ContainerDualItemInterface
+  找到:    InventoryPlayer,IInterfaceHost
+  原因: 实际参数列表和形式参数列表长度不同
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:229: 错误: 找不到符号
+                (ip, te) -> new MUIDualFluidInterfacePanel(ip, (IFluidInterfaceHost) te));
+                                                                ^
+  符号:   类 IFluidInterfaceHost
+  位置: 类 AEMUIRegistration
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:235: 错误: 找不到符号
+                        new ContainerUpgradeable(ip, (IUpgradeableHost) te)));
+                                                      ^
+  符号:   类 IUpgradeableHost
+  位置: 类 AEMUIRegistration
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:239: 错误: 找不到符号
+                        new ContainerFluidIO(ip, (PartSharedFluidBus) te), (PartSharedFluidBus) te));
+                            ^
+  符号:   类 ContainerFluidIO
+  位置: 类 AEMUIRegistration
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:242: 错误: 无法将类 MUIStorageBusPanel中的构造器 MUIStorageBusPanel应用到给定类型;
+                (ip, te) -> new MUIStorageBusPanel(ip, (PartStorageBus) te));
+                            ^
+  需要: ContainerStorageBus
+  找到:    InventoryPlayer,PartStorageBus
+  原因: 实际参数列表和形式参数列表长度不同
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:245: 错误: 无法将类 MUIFluidStorageBusPanel中的构造器 MUIFluidStorageBusPanel应用到给定类型;
+                (ip, te) -> new MUIFluidStorageBusPanel(ip, (PartFluidStorageBus) te));
+                            ^
+  需要: ContainerFluidStorageBus
+  找到:    InventoryPlayer,PartFluidStorageBus
+  原因: 实际参数列表和形式参数列表长度不同
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:248: 错误: 无法将类 MUIFormationPlanePanel中的构造器 MUIFormationPlanePanel应用到给定类型;
+                (ip, te) -> new MUIFormationPlanePanel(ip, (PartFormationPlane) te));
+                            ^
+  需要: ContainerFormationPlane
+  找到:    InventoryPlayer,PartFormationPlane
+  原因: 实际参数列表和形式参数列表长度不同
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:251: 错误: 找不到符号
+                (ip, te) -> new MUIFluidFormationPlanePanel(ip, (PartFluidFormationPlane) te));
+                                                                 ^
+  符号:   类 PartFluidFormationPlane
+  位置: 类 AEMUIRegistration
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:254: 错误: 无法将类 MUILevelEmitterPanel中的构造器 MUILevelEmitterPanel应用到给定类型;
+                (ip, te) -> new MUILevelEmitterPanel(ip, (PartLevelEmitter) te));
+                            ^
+  需要: ContainerLevelEmitter
+  找到:    InventoryPlayer,PartLevelEmitter
+  原因: 实际参数列表和形式参数列表长度不同
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:257: 错误: 找不到符号
+                (ip, te) -> new MUIFluidLevelEmitterPanel(ip, (PartFluidLevelEmitter) te));
+                                                               ^
+  符号:   类 PartFluidLevelEmitter
+  位置: 类 AEMUIRegistration
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\AEMUIRegistration.java:262: 错误: 找不到符号
+                (ip, te) -> new MUIIOPortPanel(ip, (TileIOPort) te));
+                                                    ^
+  符号:   类 TileIOPort
+  位置: 类 AEMUIRegistration
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\module\InterfaceListModule.java:506: 错误: 对于drawTooltip(MEGuiTooltipTextField,int,int), 找不到合适的方法
+        panel.drawTooltip(searchFieldInputs, mouseX, mouseY);
+             ^
+    方法 AEBasePanel.drawTooltip(ITooltip,int,int)不适用
+      (drawTooltip(ITooltip,int,int) 在 AEBasePanel 中是 protected 访问控制)
+    方法 AEBasePanel.drawTooltip(int,int,String)不适用
+      (参数不匹配; MEGuiTooltipTextField无法转换为int)
+    方法 AEBasePanel.drawTooltip(int,int,List<String>)不适用
+      (参数不匹配; MEGuiTooltipTextField无法转换为int)
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\module\InterfaceListModule.java:507: 错误: 对于drawTooltip(MEGuiTooltipTextField,int,int), 找不到合适的方法
+        panel.drawTooltip(searchFieldOutputs, mouseX, mouseY);
+             ^
+    方法 AEBasePanel.drawTooltip(ITooltip,int,int)不适用
+      (drawTooltip(ITooltip,int,int) 在 AEBasePanel 中是 protected 访问控制)
+    方法 AEBasePanel.drawTooltip(int,int,String)不适用
+      (参数不匹配; MEGuiTooltipTextField无法转换为int)
+    方法 AEBasePanel.drawTooltip(int,int,List<String>)不适用
+      (参数不匹配; MEGuiTooltipTextField无法转换为int)
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\module\InterfaceListModule.java:508: 错误: 对于drawTooltip(MEGuiTooltipTextField,int,int), 找不到合适的方法
+        panel.drawTooltip(searchFieldNames, mouseX, mouseY);
+             ^
+    方法 AEBasePanel.drawTooltip(ITooltip,int,int)不适用
+      (drawTooltip(ITooltip,int,int) 在 AEBasePanel 中是 protected 访问控制)
+    方法 AEBasePanel.drawTooltip(int,int,String)不适用
+      (参数不匹配; MEGuiTooltipTextField无法转换为int)
+    方法 AEBasePanel.drawTooltip(int,int,List<String>)不适用
+      (参数不匹配; MEGuiTooltipTextField无法转换为int)
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\module\MEItemBrowserModule.java:249: 错误: guiSlots 在 AEBasePanel 中是 protected 访问控制
+        host.getPanel().guiSlots.removeIf(s -> s instanceof VirtualMEMonitorableSlot);
+                       ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\module\MEItemBrowserModule.java:257: 错误: guiSlots 在 AEBasePanel 中是 protected 访问控制
+                host.getPanel().guiSlots.add(new VirtualMEMonitorableSlot(
+                               ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\screen\MUIUpgradeablePanel.java:234: 错误: 方法不会覆盖或实现超类型的方法
+    @Override
+    ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\screen\MUICraftingStatusPanel.java:283: 错误: 方法不会覆盖或实现超类型的方法
+    @Override
+    ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\screen\MUIFluidInterfaceConfigurationTerminalPanel.java:78: 错误: MUIFluidInterfaceConfigurationTerminalPanel不是抽象的, 并且未覆盖AEBasePanel中的抽象方法setupWidgets()
+public class MUIFluidInterfaceConfigurationTerminalPanel extends AEBasePanel
+       ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\screen\MUIInterfaceConfigurationTerminalPanel.java:74: 错误: MUIInterfaceConfigurationTerminalPanel不是抽象的, 并且未覆盖AEBasePanel中的抽象方法setupWidgets()
+public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
+       ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\screen\MUIInterfaceTerminalPanel.java:75: 错误: MUIInterfaceTerminalPanel不是抽象的, 并且未覆盖AEBasePanel中的抽象方法setupWidgets()
+public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterfaceTerminalGuiCallback {
+       ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\screen\MUIInterfaceTerminalPanel.java:222: 错误: 方法不会覆盖或实现超类型的方法
+    @Override
+    ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\InterfaceLogic.java:172: 错误: 不兼容的类型: IInterfaceLogicHost无法转换为ICraftingRequester
+        this.craftingTracker = new MultiCraftingTracker(this.iHost, NUMBER_OF_CONFIG_SLOTS);
+                                                            ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\InterfaceLogic.java:668: 错误: 不兼容的类型: ItemInterfaceInventory无法转换为IMEMonitor<IAEItemStack>
+                    itemConfigCachedHandler = new ItemInterfaceInventory(this);
+                                              ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\InterfaceLogic.java:870: 错误: 方法不会覆盖或实现超类型的方法
+    @Override
+    ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\InterfaceLogic.java:957: 错误: 方法不会覆盖或实现超类型的方法
+        @Override
+        ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\InterfaceLogic.java:964: 错误: 无法从静态上下文中引用非静态 变量 super
+            return super.injectItems(input, type, src);
+                   ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\InterfaceLogic.java:964: 错误: 找不到符号
+            return super.injectItems(input, type, src);
+                        ^
+  符号: 方法 injectItems(IAEItemStack,Actionable,IActionSource)
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\InterfaceLogic.java:967: 错误: 方法不会覆盖或实现超类型的方法
+        @Override
+        ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\InterfaceLogic.java:975: 错误: 无法从静态上下文中引用非静态 变量 super
+            return super.extractItems(request, type, src);
+                   ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\helpers\InterfaceLogic.java:975: 错误: 找不到符号
+            return super.extractItems(request, type, src);
+                        ^
+  符号: 方法 extractItems(IAEItemStack,Actionable,IActionSource)
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\screen\MUIPatternValueAmountPanel.java:59: 错误: MUIPatternValueAmountPanel不是抽象的, 并且未覆盖AEBasePanel中的抽象方法setupWidgets()
+public class MUIPatternValueAmountPanel extends AEBasePanel {
+       ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\screen\MUIPatternValueNamePanel.java:56: 错误: MUIPatternValueNamePanel不是抽象的, 并且未覆盖AEBasePanel中的抽象方法setupWidgets()
+public class MUIPatternValueNamePanel extends AEBasePanel {
+       ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\screen\MUIWirelessDualInterfaceTerminalPanel.java:63: 错误: MUIWirelessDualInterfaceTerminalPanel不是抽象的, 并且未覆盖Host中的抽象方法getFontRenderer()
+public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
+       ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\screen\MUIWirelessDualInterfaceTerminalPanel.java:413: 错误: 方法不会覆盖或实现超类型的方法
+    @Override
+    ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\widgets\MUIItemRepo.java:166: 错误: setSearch(String)在ItemRepo中不是公共的; 无法从外部程序包中对其进行访问
+        this.repo.setSearch(search);
+                 ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\client\mui\widgets\MUIStackRenderer.java:237: 错误: 找不到符号
+            lines.add("\u00a7e" + GuiText.Craftable.getLocal());
+                                         ^
+  符号:   变量 Craftable
+  位置: 类 GuiText
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\core\api\ApiClientHelper.java:55: 错误: 不兼容的类型: IItemList<CAP#1>无法转换为IItemList<T>
+        IItemList<T> itemList = cellInventory.getStackType().createList();
+                                                                       ^
+  其中, T是类型变量:
+    T扩展已在方法 <T>addCellInformation(ICellInventoryHandler<T>,List<String>)中声明的IAEStack<T>
+  其中, CAP#1是新类型变量:
+    CAP#1从?的捕获扩展IAEStack<CAP#1>
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\core\sync\packets\PacketMEFluidInventoryUpdate.java:147: 错误: 不兼容的类型: List<IAEFluidStack>无法转换为List<IAEStack<?>>
+            ((GuiFluidTerminal) gs).postUpdate(this.list);
+                                                   ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\core\sync\packets\PacketMEFluidInventoryUpdate.java:149: 错误: 不兼容的类型: List<IAEFluidStack>无法转换为List<IAEStack<?>>
+            ((GuiWirelessFluidTerminal) gs).postUpdate(this.list);
+                                                           ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\fluids\util\AEFluidStack.java:203: 错误: 不兼容的类型: AEFluidStackType无法转换为IStorageChannel<IAEFluidStack>
+        return AEFluidStackType.INSTANCE;
+                               ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\util\item\AEItemStack.java:185: 错误: 不兼容的类型: AEItemStackType无法转换为IStorageChannel<IAEItemStack>
+        return AEItemStackType.INSTANCE;
+                              ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\fluids\client\gui\GuiFluidTerminal.java:288: 错误: 不兼容的类型: IAEStack<CAP#1>无法转换为IAEFluidStack
+            this.repo.postUpdate(is);
+                                 ^
+  其中, CAP#1是新类型变量:
+    CAP#1从?的捕获扩展IAEStack<CAP#1>
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\fluids\client\gui\GuiMEPortableFluidCell.java:283: 错误: 不兼容的类型: IAEStack<CAP#1>无法转换为IAEFluidStack
+            this.repo.postUpdate(is);
+                                 ^
+  其中, CAP#1是新类型变量:
+    CAP#1从?的捕获扩展IAEStack<CAP#1>
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\fluids\items\BasicFluidStorageCell.java:82: 错误: 不兼容的类型: AEFluidStackType无法转换为IStorageChannel<IAEFluidStack>
+        return AEFluidStackType.INSTANCE;
+                               ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\items\storage\BasicItemStorageCell.java:74: 错误: 不兼容的类型: AEItemStackType无法转换为IStorageChannel<IAEItemStack>
+        return AEItemStackType.INSTANCE;
+                              ^
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\util\StorageHelper.java:184: 错误: 不兼容的类型: IItemList<CAP#1>无法转换为IItemList<? extends IAEStack<?>>
+        return inv.getAvailableItems();
+                                    ^
+  其中, CAP#1是新类型变量:
+    CAP#1从?的捕获扩展IAEStackBase
+D:\github\Applied-Energistics-2.5\src\main\java\appeng\util\StorageHelper.java:192: 错误: 不兼容的类型: IItemList<CAP#1>无法转换为IItemList<T>
+        return inv.getAvailableItems(inv.getStackType().createList());
+                                                                  ^
+  其中, T是类型变量:
+    T扩展已在方法 <T>getStorageView(IMEInventory<T>)中声明的IAEStack<T>
+  其中, CAP#1是新类型变量:
+    CAP#1从?的捕获扩展IAEStack<CAP#1>
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+注: 某些消息已经过简化; 请使用 -Xdiags:verbose 重新编译以获得完整输出
+97 个错误
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
+> Run with --scan to get full insights.
+
+BUILD FAILED in 28s

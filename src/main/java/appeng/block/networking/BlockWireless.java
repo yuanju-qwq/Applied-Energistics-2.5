@@ -37,6 +37,7 @@ import net.minecraft.world.World;
 
 import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.AEGlassMaterial;
 import appeng.helpers.ICustomCollision;
@@ -101,7 +102,7 @@ public class BlockWireless extends AEBaseTileBlock implements ICustomCollision {
 
         if (tg != null && !player.isSneaking()) {
             if (Platform.isServer()) {
-                Platform.openGUI(player, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_WIRELESS);
+                Platform.openGUI(player, tg, AEPartLocation.fromFacing(side), AEGuiKeys.WIRELESS);
             }
             return true;
         }

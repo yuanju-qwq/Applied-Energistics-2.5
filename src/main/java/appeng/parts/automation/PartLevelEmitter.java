@@ -50,7 +50,6 @@ import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -60,6 +59,7 @@ import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
 import appeng.core.AppEng;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.Reflected;
 import appeng.items.parts.PartModels;
@@ -204,7 +204,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     }
 
     @Override
-    public void onRequestChange(final ICraftingGrid craftingGrid, final IAEItemStack what) {
+    public void onRequestChange(final ICraftingGrid craftingGrid, final IAEStack<?> what) {
         this.updateState();
     }
 
@@ -250,7 +250,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
 
                 // no more item stuff..
                 this.getProxy().getStorage()
-                        .getInventory(AEItemStackType.INSTANCE.getStorageChannel())
+                        .getInventory(AEItemStackType.INSTANCE)
                         .removeListener(this);
             } catch (final GridAccessException e) {
                 // :P
@@ -263,12 +263,12 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
             if (this.getInstalledUpgrades(Upgrades.FUZZY) > 0 || myStack == null) {
                 this.getProxy()
                         .getStorage()
-                        .getInventory(AEItemStackType.INSTANCE.getStorageChannel())
+                        .getInventory(AEItemStackType.INSTANCE)
                         .addListener(this,
                                 this.getProxy().getGrid());
             } else {
                 this.getProxy().getStorage()
-                        .getInventory(AEItemStackType.INSTANCE.getStorageChannel())
+                        .getInventory(AEItemStackType.INSTANCE)
                         .removeListener(this);
 
                 if (this.myWatcher != null) {
@@ -277,7 +277,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
             }
 
             this.updateReportingValue(this.getProxy().getStorage()
-                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel()));
+                    .getInventory(AEItemStackType.INSTANCE));
         } catch (final GridAccessException e) {
             // >.>
         }
@@ -353,7 +353,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     public void onListUpdate() {
         try {
             this.updateReportingValue(this.getProxy().getStorage()
-                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel()));
+                    .getInventory(AEItemStackType.INSTANCE));
         } catch (final GridAccessException e) {
             // ;P
         }
@@ -401,7 +401,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     @Override
     public boolean onPartActivate(final EntityPlayer player, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), GuiBridge.GUI_LEVEL_EMITTER);
+            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), AEGuiKeys.LEVEL_EMITTER);
         }
         return true;
     }

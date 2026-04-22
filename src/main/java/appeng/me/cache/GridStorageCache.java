@@ -36,7 +36,6 @@ import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.*;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
@@ -145,12 +144,6 @@ public class GridStorageCache implements IStorageGrid {
         return (IMEMonitor<T>) this.storageMonitors.get(type);
     }
 
-    @SuppressWarnings("deprecation")
-    @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-        return this.getInventory(channel.getStackType());
-    }
-
     @SuppressWarnings("unchecked")
     private <T extends IAEStack<T>> void addCellArrayForType(
             final ICellProvider cc, final IAEStackType<T> type,
@@ -234,9 +227,10 @@ public class GridStorageCache implements IStorageGrid {
         this.storageMonitors.forEach((channel, monitor) -> monitor.setForceUpdate(true));
     }
 
+    @SuppressWarnings("unchecked")
     private <T extends IAEStack<T>> void postChangesToNetwork(final IAEStackType<T> type,
             final int upOrDown, final IItemList<T> availableItems, final IActionSource src) {
-        this.storageMonitors.get(type).postChange(upOrDown > 0, (Iterable) availableItems, src);
+        ((NetworkMonitor<T>) this.storageMonitors.get(type)).postChange(upOrDown > 0, availableItems, src);
     }
 
     private <T extends IAEStack<T>> NetworkInventoryHandler<T> buildNetworkStorage(
@@ -257,13 +251,32 @@ public class GridStorageCache implements IStorageGrid {
     @Override
     public void postAlterationOfStoredItems(final IAEStackType<?> type, final Iterable<? extends IAEStackBase> input,
             final IActionSource src) {
-        this.storageMonitors.get(type).postChange(true, (Iterable) input, src);
+        postAlterationHelper(type, input, src);
     }
 
     @Override
     public void postCraftablesChanges(IAEStackType<?> type, Iterable<? extends IAEStackBase> input,
             IActionSource src) {
-        this.storageMonitors.get(type).updateCraftables((Iterable) input, src);
+        postCraftablesHelper(type, input, src);
+    }
+
+    /**
+     * 类型安全的 helper：利用 capture 将通配符 {@code IAEStackType<?>} 转为具体泛型参数 {@code T}。
+     */
+    @SuppressWarnings("unchecked")
+    private <T extends IAEStack<T>> void postAlterationHelper(IAEStackType<?> rawType,
+            Iterable<? extends IAEStackBase> input, IActionSource src) {
+        IAEStackType<T> type = (IAEStackType<T>) rawType;
+        NetworkMonitor<T> monitor = (NetworkMonitor<T>) this.storageMonitors.get(type);
+        monitor.postChange(true, (Iterable<T>) input, src);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends IAEStack<T>> void postCraftablesHelper(IAEStackType<?> rawType,
+            Iterable<? extends IAEStackBase> input, IActionSource src) {
+        IAEStackType<T> type = (IAEStackType<T>) rawType;
+        NetworkMonitor<T> monitor = (NetworkMonitor<T>) this.storageMonitors.get(type);
+        monitor.updateCraftables((Iterable<T>) input, src);
     }
 
     @Override

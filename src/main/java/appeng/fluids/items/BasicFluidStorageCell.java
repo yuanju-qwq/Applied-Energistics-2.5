@@ -79,7 +79,7 @@ public final class BasicFluidStorageCell extends AbstractStorageCell<IAEFluidSta
 
     @Override
     public IStorageChannel<IAEFluidStack> getChannel() {
-        return AEFluidStackType.INSTANCE.getStorageChannel();
+        return AEFluidStackType.INSTANCE;
     }
 
     @Override

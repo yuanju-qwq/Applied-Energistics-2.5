@@ -34,6 +34,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.crafting.TileMolecularAssembler;
 import appeng.util.Platform;
@@ -91,7 +92,7 @@ public class BlockMolecularAssembler extends AEBaseTileBlock {
             final EnumHand hand, final EnumFacing side, final float hitX, final float hitY, final float hitZ) {
         final TileMolecularAssembler tg = this.getTileEntity(w, pos);
         if (tg != null && !p.isSneaking()) {
-            Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_MAC);
+            Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.MAC);
             return true;
         }
 

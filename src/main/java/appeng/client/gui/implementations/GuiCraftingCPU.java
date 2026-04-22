@@ -18,6 +18,14 @@
 
 package appeng.client.gui.implementations;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -43,6 +51,7 @@ import appeng.client.gui.AEBaseGui;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.gui.widgets.ISortSource;
 import appeng.container.implementations.ContainerCraftingCPU;
+import appeng.container.interfaces.ICraftingCPUGuiCallback;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
@@ -53,7 +62,7 @@ import appeng.util.ReadableNumberConverter;
 import appeng.util.item.IMixedStackList;
 import appeng.util.item.IAEStackList;
 
-public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
+public class GuiCraftingCPU extends AEBaseGui implements ISortSource, ICraftingCPUGuiCallback {
     private static final int GUI_HEIGHT = 210;
     private static final int GUI_WIDTH = 238;
 
@@ -369,15 +378,6 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
     }
 
-    public void postUpdate(final List<IAEItemStack> list, final byte ref) {
-        // 旧接口兼容：转为泛型版本
-        final List<IAEStack<?>> genericList = new ArrayList<>(list.size());
-        for (IAEItemStack item : list) {
-            genericList.add(item);
-        }
-        postGenericUpdate(genericList, ref);
-    }
-
     /**
      * 泛型版本：接收包含物品和流体的合成状态更新。
      */
@@ -505,3 +505,5 @@ public class GuiCraftingCPU extends AEBaseGui implements ISortSource {
         return DISPLAYED_ROWS;
     }
 }
+
+*/

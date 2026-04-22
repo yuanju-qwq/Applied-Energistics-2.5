@@ -30,12 +30,12 @@ import appeng.api.networking.events.MENetworkPowerStatusChange;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.IConfigurableFluidInventory;
 import appeng.fluids.util.AEFluidInventory;
@@ -61,7 +61,7 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
     }
 
     private final MEInventoryHandler<IAEFluidStack> myHandler = new MEInventoryHandler<>(this,
-            AEFluidStackType.INSTANCE.getStorageChannel());
+            AEFluidStackType.INSTANCE);
     private final AEFluidInventory config = new AEFluidInventory(this, 63);
 
     public PartFluidFormationPlane(final ItemStack is) {
@@ -165,7 +165,7 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
     @Override
     public boolean onPartActivate(final EntityPlayer player, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), GuiBridge.GUI_FLUID_FORMATION_PLANE);
+            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), AEGuiKeys.FLUID_FORMATION_PLANE);
         }
 
         return true;
@@ -211,6 +211,6 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
 
     @Override
     public GuiBridge getGuiBridge() {
-        return GuiBridge.GUI_FLUID_FORMATION_PLANE;
+        return AEGuiKeys.FLUID_FORMATION_PLANE.getLegacyBridge();
     }
 }

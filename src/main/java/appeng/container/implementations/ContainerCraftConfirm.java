@@ -53,8 +53,10 @@ import appeng.api.storage.data.IItemList;
 import appeng.client.gui.implementations.GuiCraftConfirm;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
+import appeng.container.interfaces.ICraftConfirmGuiCallback;
 import appeng.container.interfaces.IInventorySlotAware;
 import appeng.core.AELog;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
@@ -88,7 +90,7 @@ public class ContainerCraftConfirm extends AEBaseContainer {
     public boolean noCPU = true;
     @GuiSync(7)
     public String myName = "";
-    private GuiCraftConfirm guiCraftConfirm;
+    private ICraftConfirmGuiCallback guiCallback;
 
     public ContainerCraftConfirm(final InventoryPlayer ip, final ITerminalHost te) {
         super(ip, te);
@@ -295,19 +297,19 @@ public class ContainerCraftConfirm extends AEBaseContainer {
         }
 
         if (ah instanceof PartTerminal) {
-            originalGui = GuiBridge.GUI_ME;
+            originalGui = AEGuiKeys.ME_TERMINAL;
         }
 
         if (ah instanceof PartCraftingTerminal) {
-            originalGui = GuiBridge.GUI_CRAFTING_TERMINAL;
+            originalGui = AEGuiKeys.CRAFTING_TERMINAL;
         }
 
         if (ah instanceof PartPatternTerminal) {
-            originalGui = GuiBridge.GUI_PATTERN_TERMINAL;
+            originalGui = AEGuiKeys.PATTERN_TERMINAL;
         }
 
         if (ah instanceof PartExpandedProcessingPatternTerminal) {
-            originalGui = GuiBridge.GUI_EXPANDED_PROCESSING_PATTERN_TERMINAL;
+            originalGui = AEGuiKeys.EXPANDED_PROCESSING_PATTERN_TERMINAL;
         }
 
         final IActionHost h = ((IActionHost) this.getTarget());
@@ -443,18 +445,28 @@ public class ContainerCraftConfirm extends AEBaseContainer {
         this.job = job;
     }
 
-    public void postUpdate(final List<IAEItemStack> list, final byte ref) {
-        this.guiCraftConfirm.postUpdate(list, ref);
-    }
-
     /**
      * 泛型版本：接收包含物品和流体的合成计划更新。
      */
     public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
-        this.guiCraftConfirm.postGenericUpdate(list, ref);
+        if (this.guiCallback != null) {
+            this.guiCallback.postGenericUpdate(list, ref);
+        }
     }
 
+    /**
+     * 设置 GUI 回调（兼容旧 GUI 和新 MUI 面板）。
+     */
+    public void setGui(ICraftConfirmGuiCallback callback) {
+        this.guiCallback = callback;
+    }
+
+    /**
+     * 设置旧 GUI 回调（向后兼容）。
+     * @deprecated 使用 {@link #setGui(ICraftConfirmGuiCallback)} 代替
+     */
+    @Deprecated
     public void setGui(GuiCraftConfirm guiCraftConfirm) {
-        this.guiCraftConfirm = guiCraftConfirm;
+        this.guiCallback = guiCraftConfirm;
     }
 }

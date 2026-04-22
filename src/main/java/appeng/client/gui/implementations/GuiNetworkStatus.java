@@ -18,6 +18,14 @@
 
 package appeng.client.gui.implementations;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import java.io.IOException;
 import java.util.List;
 
@@ -48,7 +56,7 @@ import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
 import appeng.util.Platform;
 
-public class GuiNetworkStatus extends AEBaseGui implements ISortSource {
+public class GuiNetworkStatus extends AEBaseGui implements ISortSource, ContainerNetworkStatus.INetworkStatusGuiCallback {
 
     private final ItemRepo repo;
     private final int rows = 4;
@@ -212,10 +220,10 @@ public class GuiNetworkStatus extends AEBaseGui implements ISortSource {
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
     }
 
-    public void postUpdate(final List<IAEItemStack> list) {
+    public void postUpdate(final List<IAEStack<?>> list) {
         this.repo.clear();
 
-        for (final IAEItemStack is : list) {
+        for (final IAEStack<?> is : list) {
             this.repo.postUpdate(is);
         }
 
@@ -278,3 +286,5 @@ public class GuiNetworkStatus extends AEBaseGui implements ISortSource {
         return ViewItems.ALL;
     }
 }
+
+*/

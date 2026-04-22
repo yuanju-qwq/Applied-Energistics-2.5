@@ -37,6 +37,7 @@ import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AECableType;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.Reflected;
 import appeng.items.parts.PartModels;
@@ -83,11 +84,10 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
         try {
             final IMEMonitor<IAEItemStack> inv = this.getProxy()
                     .getStorage()
-                    .getInventory(
-                            AEItemStackType.INSTANCE.getStorageChannel());
+                    .getInventory(AEItemStackType.INSTANCE);
 
             final IAEItemStack out = inv.injectItems(
-                    AEItemStackType.INSTANCE.getStorageChannel().createStack(stack),
+                    AEItemStackType.INSTANCE.createStack(stack),
                     Actionable.SIMULATE,
                     this.source);
             if (out == null) {
@@ -114,7 +114,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
     @Override
     public boolean onPartActivate(final EntityPlayer player, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), GuiBridge.GUI_BUS);
+            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), AEGuiKeys.BUS);
         }
         return true;
     }
@@ -136,8 +136,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
 
                 final IMEMonitor<IAEItemStack> inv = this.getProxy()
                         .getStorage()
-                        .getInventory(
-                                AEItemStackType.INSTANCE.getStorageChannel());
+                        .getInventory(AEItemStackType.INSTANCE);
                 final IEnergyGrid energy = this.getProxy().getEnergy();
 
                 boolean Configured = false;
@@ -189,7 +188,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
         }
 
         if (!newItems.isEmpty()) {
-            final IAEItemStack aeStack = AEItemStackType.INSTANCE.getStorageChannel()
+            final IAEItemStack aeStack = AEItemStackType.INSTANCE
                     .createStack(newItems);
             final IAEItemStack failed = appeng.util.StorageHelper.poweredInsert(energy, inv, aeStack, this.source);
 

@@ -32,7 +32,7 @@ public class AENetworkFluidInventory extends AEFluidInventory {
         if (storage != null) {
             int originAmt = fluid.amount;
             IMEInventory<IAEFluidStack> dest = storage
-                    .getInventory(AEFluidStackType.INSTANCE.getStorageChannel());
+                    .getInventory(AEFluidStackType.INSTANCE);
             IAEFluidStack overflow = dest.injectItems(AEFluidStack.fromFluidStack(fluid),
                     doFill ? Actionable.MODULATE : Actionable.SIMULATE, this.source);
             if (overflow != null && overflow.getStackSize() == originAmt) {

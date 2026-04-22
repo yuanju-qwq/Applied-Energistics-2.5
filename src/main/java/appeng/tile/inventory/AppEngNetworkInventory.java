@@ -36,7 +36,7 @@ public class AppEngNetworkInventory extends AppEngInternalOversizedInventory {
         if (storage != null) {
             int originAmt = stack.getCount();
             IMEInventory<IAEItemStack> dest = storage
-                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
+                    .getInventory(AEItemStackType.INSTANCE);
             IAEItemStack overflow = dest.injectItems(AEItemStack.fromItemStack(stack),
                     simulate ? Actionable.SIMULATE : Actionable.MODULATE, this.source);
             if (overflow != null && overflow.getStackSize() == originAmt) {

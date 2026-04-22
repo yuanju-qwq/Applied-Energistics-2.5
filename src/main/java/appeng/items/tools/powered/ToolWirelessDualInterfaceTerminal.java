@@ -23,6 +23,7 @@ import net.minecraftforge.fml.common.network.IGuiHandler;
 
 import appeng.api.AEApi;
 import appeng.api.features.IWirelessTermHandler;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 
 /**
@@ -42,6 +43,6 @@ public class ToolWirelessDualInterfaceTerminal extends ToolWirelessTerminal impl
 
     @Override
     public IGuiHandler getGuiHandler(ItemStack is) {
-        return GuiBridge.GUI_WIRELESS_DUAL_INTERFACE_TERMINAL;
+        return AEGuiKeys.WIRELESS_DUAL_INTERFACE_TERMINAL;
     }
 }

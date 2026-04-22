@@ -17,7 +17,7 @@ import net.minecraftforge.items.SlotItemHandler;
  * A proxy for a slot that will always return an itemstack with size 1, if there is an item in the slot. Used to prevent
  * the default item count from rendering.
  */
-class Size1Slot extends SlotItemHandler {
+public class Size1Slot extends SlotItemHandler {
 
     private final SlotItemHandler delegate;
 

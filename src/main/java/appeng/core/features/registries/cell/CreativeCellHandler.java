@@ -23,7 +23,6 @@ import net.minecraft.item.ItemStack;
 import appeng.api.storage.ICellHandler;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.ISaveProvider;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.items.storage.ItemCreativeStorageCell;

@@ -55,6 +55,7 @@ import appeng.api.features.IWirelessTermHandler;
 import appeng.api.util.IConfigManager;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.items.contents.CellConfig;
 import appeng.items.contents.CellUpgrades;
@@ -165,7 +166,7 @@ public class ToolWirelessTerminal extends AEBasePoweredItem implements IWireless
 
     @Override
     public IGuiHandler getGuiHandler(ItemStack is) {
-        return GuiBridge.GUI_WIRELESS_TERM;
+        return AEGuiKeys.WIRELESS_TERM;
     }
 
     @Optional.Method(modid = "baubles")

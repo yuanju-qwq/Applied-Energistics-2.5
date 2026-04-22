@@ -37,10 +37,15 @@ import net.minecraft.world.World;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IOrientable;
 import appeng.block.AEBaseTileBlock;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.misc.TileInterface;
 import appeng.util.Platform;
 
+/**
+ * @deprecated 使用新的样板供应器方块或 ME 接口方块替代。
+ */
+@Deprecated
 public class BlockInterface extends AEBaseTileBlock {
 
     private static final PropertyBool OMNIDIRECTIONAL = PropertyBool.create("omnidirectional");
@@ -78,7 +83,7 @@ public class BlockInterface extends AEBaseTileBlock {
         final TileInterface tg = this.getTileEntity(w, pos);
         if (tg != null) {
             if (Platform.isServer()) {
-                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_INTERFACE);
+                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.INTERFACE);
             }
             return true;
         }

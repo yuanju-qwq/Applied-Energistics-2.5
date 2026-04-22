@@ -26,6 +26,7 @@ import net.minecraft.util.math.Vec3d;
 
 import appeng.api.parts.IPartModel;
 import appeng.core.AppEng;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.items.parts.PartModels;
 import appeng.parts.PartModel;
@@ -50,7 +51,7 @@ public class PartInterfaceTerminal extends AbstractPartDisplay {
     public boolean onPartActivate(final EntityPlayer player, final EnumHand hand, final Vec3d pos) {
         if (!super.onPartActivate(player, hand, pos)) {
             if (Platform.isServer()) {
-                Platform.openGUI(player, this.getHost().getTile(), this.getSide(), GuiBridge.GUI_INTERFACE_TERMINAL);
+                Platform.openGUI(player, this.getHost().getTile(), this.getSide(), AEGuiKeys.INTERFACE_TERMINAL);
             }
         }
         return true;

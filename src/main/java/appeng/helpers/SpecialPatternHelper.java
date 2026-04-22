@@ -112,7 +112,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
                     inItems.add(null);
                     inGeneric.add(null);
                 } else {
-                    IAEItemStack aeItem = AEItemStackType.INSTANCE.getStorageChannel().createStack(gs);
+                    IAEItemStack aeItem = AEItemStackType.INSTANCE.createStack(gs);
                     inItems.add(aeItem);
                     inGeneric.add(aeItem);
                 }
@@ -148,7 +148,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
                     throw new IllegalArgumentException("Invalid output at slot " + x);
                 }
                 if (!gs.isEmpty()) {
-                    IAEItemStack aeItem = AEItemStackType.INSTANCE.getStorageChannel().createStack(gs);
+                    IAEItemStack aeItem = AEItemStackType.INSTANCE.createStack(gs);
                     if (aeItem != null) {
                         outItems.add(aeItem);
                         outGeneric.add(aeItem);
@@ -231,26 +231,6 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
     @Override
     public boolean isCraftable() {
         return false; // 特殊模板仅用于加工
-    }
-
-    @Override
-    public IAEItemStack[] getInputs() {
-        return inputs.clone(); // 防御性复制
-    }
-
-    @Override
-    public IAEItemStack[] getCondensedInputs() {
-        return condensedInputs.clone();
-    }
-
-    @Override
-    public IAEItemStack[] getOutputs() {
-        return outputs.clone();
-    }
-
-    @Override
-    public IAEItemStack[] getCondensedOutputs() {
-        return condensedOutputs.clone();
     }
 
     // ========== 泛型主入口方法（支持物品+流体等多种类型） ==========

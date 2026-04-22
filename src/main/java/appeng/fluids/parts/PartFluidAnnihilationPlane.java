@@ -253,13 +253,13 @@ public class PartFluidAnnihilationPlane extends PartBasicState implements IGridT
         try {
             final IStorageGrid storage = this.getProxy().getStorage();
             final IMEInventory<IAEFluidStack> inv = storage
-                    .getInventory(AEFluidStackType.INSTANCE.getStorageChannel());
+                    .getInventory(AEFluidStackType.INSTANCE);
 
             if (modulate) {
                 final IEnergyGrid energy = this.getProxy().getEnergy();
                 return appeng.util.StorageHelper.poweredInsert(energy, inv, stack, this.mySrc) == null;
             } else {
-                final float requiredPower = stack.getStackSize() / Math.min(1.0f, stack.getChannel().transferFactor());
+                final float requiredPower = stack.getStackSize() / Math.min(1.0f, stack.getStackType().transferFactor());
                 final IEnergyGrid energy = this.getProxy().getEnergy();
 
                 if (energy.extractAEPower(requiredPower, Actionable.SIMULATE, PowerMultiplier.CONFIG) < requiredPower) {

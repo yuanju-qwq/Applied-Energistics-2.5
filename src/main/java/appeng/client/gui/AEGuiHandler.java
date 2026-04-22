@@ -1,5 +1,13 @@
 package appeng.client.gui;
 
+// ========================================================================
+// [MUI Migration] 此旧 JEI 处理器已被 AEBasePanelGuiHandler 完全替代。
+// 所有 JEI 集成功能（排除区域、鼠标下物品识别、幽灵槽位拖拽）
+// 现由 appeng.client.mui.AEBasePanelGuiHandler 提供。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
 import java.awt.*;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -197,3 +205,4 @@ public class AEGuiHandler implements IAdvancedGuiHandler<AEBaseGui>, IGhostIngre
     }
 
 }
+*/

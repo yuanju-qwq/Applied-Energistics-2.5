@@ -18,6 +18,14 @@
 
 package appeng.fluids.client.gui;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import java.io.IOException;
 
 import net.minecraft.client.gui.GuiButton;
@@ -28,6 +36,7 @@ import appeng.client.gui.implementations.GuiUpgradeable;
 import appeng.client.gui.widgets.GuiCustomSlot;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.core.localization.GuiText;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketSwitchGuis;
@@ -39,6 +48,10 @@ import appeng.fluids.helper.IFluidInterfaceHost;
 import appeng.fluids.util.IAEFluidTank;
 import appeng.util.IConfigManagerHost;
 
+/**
+ * @deprecated 使用 {@link appeng.client.mui.screen.MUIMEInterfacePanel} 替代。
+ */
+@Deprecated
 public class GuiFluidInterface extends GuiUpgradeable implements IConfigManagerHost {
     public final static int ID_BUTTON_TANK = 222;
 
@@ -96,7 +109,7 @@ public class GuiFluidInterface extends GuiUpgradeable implements IConfigManagerH
         super.actionPerformed(btn);
 
         if (btn == this.priority) {
-            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(GuiBridge.GUI_PRIORITY));
+            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
         }
     }
 
@@ -125,3 +138,5 @@ public class GuiFluidInterface extends GuiUpgradeable implements IConfigManagerH
 
     }
 }
+
+*/

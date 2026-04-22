@@ -37,6 +37,7 @@ import appeng.container.implementations.ContainerCraftConfirm;
 import appeng.container.interfaces.IInventorySlotAware;
 import appeng.core.AELog;
 import appeng.core.sync.AppEngPacket;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.INetworkInfo;
 import appeng.util.Platform;
@@ -95,11 +96,11 @@ public class PacketCraftRequest extends AppEngPacket {
                         final TileEntity te = context.getTile();
                         if (te != null) {
                             Platform.openGUI(player, te, cca.getOpenContext().getSide(),
-                                    GuiBridge.GUI_CRAFTING_CONFIRM);
+                                    AEGuiKeys.CRAFTING_CONFIRM);
                         } else {
                             if (ah instanceof IInventorySlotAware) {
                                 IInventorySlotAware i = ((IInventorySlotAware) ah);
-                                Platform.openGUI(player, i.getInventorySlot(), GuiBridge.GUI_CRAFTING_CONFIRM,
+                                Platform.openGUI(player, i.getInventorySlot(), AEGuiKeys.CRAFTING_CONFIRM,
                                         i.isBaubleSlot());
                             }
                         }

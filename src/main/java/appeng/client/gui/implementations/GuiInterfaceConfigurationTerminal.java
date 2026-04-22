@@ -18,6 +18,14 @@
 
 package appeng.client.gui.implementations;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import static appeng.client.render.BlockPosHighlighter.hilightBlock;
 import static appeng.helpers.ItemStackHelper.stackFromNBT;
 
@@ -53,6 +61,7 @@ import appeng.client.gui.widgets.MEGuiTextField;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.container.implementations.ContainerInterfaceConfigurationTerminal;
+import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
 import appeng.container.interfaces.IJEIGhostIngredients;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
@@ -65,7 +74,7 @@ import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
-public class GuiInterfaceConfigurationTerminal extends AEBaseGui implements IJEIGhostIngredients {
+public class GuiInterfaceConfigurationTerminal extends AEBaseGui implements IJEIGhostIngredients, IInterfaceTerminalGuiCallback {
 
     private static final int LINES_ON_PAGE = 6;
 
@@ -419,7 +428,7 @@ public class GuiInterfaceConfigurationTerminal extends AEBaseGui implements IJEI
 
         final String displayName = Platform
                 .getItemDisplayName(
-                        AEItemStackType.INSTANCE.getStorageChannel().createStack(itemStack))
+                        AEItemStackType.INSTANCE.createStack(itemStack))
                 .toLowerCase();
 
         for (String term : searchTerm.split(" ")) {
@@ -522,3 +531,5 @@ public class GuiInterfaceConfigurationTerminal extends AEBaseGui implements IJEI
         return IJEIGhostIngredients.super.getFakeSlotTargetMap();
     }
 }
+
+*/

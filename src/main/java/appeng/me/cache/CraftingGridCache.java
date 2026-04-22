@@ -51,8 +51,6 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.ICellProvider;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -65,10 +63,9 @@ import appeng.me.helpers.BaseActionSource;
 import appeng.me.helpers.GenericInterestManager;
 import appeng.tile.crafting.TileCraftingStorageTile;
 import appeng.tile.crafting.TileCraftingTile;
-import appeng.util.item.AEItemStackType;
 
 public class CraftingGridCache
-        implements ICraftingGrid, ICraftingProviderHelper, ICellProvider, IMEInventoryHandler<IAEItemStack> {
+        implements ICraftingGrid, ICraftingProviderHelper, ICellProvider {
 
     private static final ExecutorService CRAFTING_POOL;
     private static final Comparator<ICraftingPatternDetails> COMPARATOR = (firstDetail,
@@ -83,6 +80,8 @@ public class CraftingGridCache
 
         CRAFTING_POOL = Executors.newCachedThreadPool(factory);
     }
+
+    private final Map<IAEStackType<?>, CraftingInventoryHandler<?>> handlers = new HashMap<>();
 
     private final Set<CraftingCPUCluster> craftingCPUClusters = new HashSet<>();
     private final Set<ICraftingProvider> craftingProviders = new HashSet<>();
@@ -220,6 +219,7 @@ public class CraftingGridCache
         this.craftingMethods.clear();
         this.craftableItems.clear();
         this.emitableItems.clear();
+        this.handlers.clear();
 
         // re-create list..
         for (final ICraftingProvider provider : this.craftingProviders) {
@@ -245,6 +245,8 @@ public class CraftingGridCache
                 }
 
                 methods.add(details);
+
+                ensureHandlerForType(out.getStackType());
             }
         }
 
@@ -253,46 +255,59 @@ public class CraftingGridCache
             this.craftableItems.put(e.getKey(), ImmutableList.copyOf(e.getValue()));
         }
 
-        List<IAEItemStack> craftablesChanged = new ArrayList<>();
+        // 按类型分组 craftables 变更
+        Map<IAEStackType<?>, List<IAEStack<?>>> craftablesChangedByType = new HashMap<>();
 
         for (Entry<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> ais : oldItems.entrySet()) {
-            if (!this.craftableItems.containsKey(ais.getKey()) && ais.getKey() instanceof IAEItemStack) {
-                IAEItemStack changedStack = ((IAEItemStack) ais.getKey()).copy();
+            if (!this.craftableItems.containsKey(ais.getKey())) {
+                var changedStack = ais.getKey().copy();
                 changedStack.reset();
                 changedStack.setCraftable(false);
-                craftablesChanged.add(changedStack);
+                craftablesChangedByType.computeIfAbsent(changedStack.getStackType(), k -> new ArrayList<>())
+                        .add(changedStack);
             }
         }
 
         for (Entry<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> ais : this.craftableItems.entrySet()) {
-            if (!oldItems.containsKey(ais.getKey()) && ais.getKey() instanceof IAEItemStack) {
-                IAEItemStack changedStack = ((IAEItemStack) ais.getKey()).copy();
+            if (!oldItems.containsKey(ais.getKey())) {
+                var changedStack = ais.getKey().copy();
                 changedStack.reset();
                 changedStack.setCraftable(true);
-                craftablesChanged.add(changedStack);
+                craftablesChangedByType.computeIfAbsent(changedStack.getStackType(), k -> new ArrayList<>())
+                        .add(changedStack);
             }
         }
 
         for (final IAEStack<?> st : oldEmitableItems) {
-            if (!emitableItems.contains(st) && st instanceof IAEItemStack) {
-                IAEItemStack changedStack = ((IAEItemStack) st).copy();
+            if (!emitableItems.contains(st)) {
+                var changedStack = st.copy();
                 changedStack.reset();
                 changedStack.setCraftable(false);
-                craftablesChanged.add(changedStack);
+                craftablesChangedByType.computeIfAbsent(changedStack.getStackType(), k -> new ArrayList<>())
+                        .add(changedStack);
             }
         }
 
         for (final IAEStack<?> st : this.emitableItems) {
-            if (!oldEmitableItems.contains(st) && st instanceof IAEItemStack) {
-                IAEItemStack changedStack = ((IAEItemStack) st).copy();
+            if (!oldEmitableItems.contains(st)) {
+                var changedStack = st.copy();
                 changedStack.reset();
                 changedStack.setCraftable(true);
-                craftablesChanged.add(changedStack);
+                craftablesChangedByType.computeIfAbsent(changedStack.getStackType(), k -> new ArrayList<>())
+                        .add(changedStack);
             }
         }
 
-        this.storageGrid.postCraftablesChanges(AEItemStackType.INSTANCE,
-                craftablesChanged, new BaseActionSource());
+        // 按类型通知存储系统
+        var src = new BaseActionSource();
+        for (var entry : craftablesChangedByType.entrySet()) {
+            this.storageGrid.postCraftablesChanges(entry.getKey(), entry.getValue(), src);
+        }
+
+        // 确保所有出现过的类型都有 handler
+        for (var type : craftablesChangedByType.keySet()) {
+            ensureHandlerForType(type);
+        }
     }
 
     private void updateCPUClusters() {
@@ -351,122 +366,35 @@ public class CraftingGridCache
     }
 
     @Override
-    public void setEmitable(final IAEItemStack someItem) {
-        this.emitableItems.add(someItem.copy());
-    }
-
-    @Override
     public void setEmitable(final IAEStack<?> someItem) {
         this.emitableItems.add(someItem.copy());
+        this.ensureHandlerForType(someItem.getStackType());
+    }
+
+    private void ensureHandlerForType(IAEStackType<?> type) {
+        this.handlers.computeIfAbsent(type,
+                t -> new CraftingInventoryHandler<>(t, this));
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
-        final List<IMEInventoryHandler<T>> list = new ArrayList<>(1);
-
-        if (type == AEItemStackType.INSTANCE) {
-            list.add((IMEInventoryHandler<T>) this);
+        var handler = this.handlers.get(type);
+        if (handler != null) {
+            return Collections.singletonList((IMEInventoryHandler<T>) handler);
         }
+        return Collections.emptyList();
+    }
 
-        return list;
+    @SuppressWarnings("unchecked")
+    private <T extends IAEStack<T>> CraftingInventoryHandler<T> getOrCreateHandler(IAEStackType<T> type) {
+        return (CraftingInventoryHandler<T>) this.handlers.computeIfAbsent(type,
+                t -> new CraftingInventoryHandler<>((IAEStackType<T>) t, this));
     }
 
     @Override
     public int getPriority() {
         return Integer.MAX_VALUE;
-    }
-
-    @Override
-    public AccessRestriction getAccess() {
-        return AccessRestriction.WRITE;
-    }
-
-    @Override
-    public boolean isPrioritized(final IAEItemStack input) {
-        return true;
-    }
-
-    @Override
-    public boolean canAccept(final IAEItemStack input) {
-        for (final CraftingCPUCluster cpu : this.craftingCPUClusters) {
-            if (cpu.canAccept(input)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * 泛型版本：检查任意类型的栈是否可被某个 CPU 接受。
-     */
-    @Override
-    public int getSlot() {
-        return 0;
-    }
-
-    @Override
-    public boolean validForPass(final int i) {
-        return i == 1;
-    }
-
-    @Override
-    public IAEItemStack injectItems(IAEItemStack input, final Actionable type, final IActionSource src) {
-        for (final CraftingCPUCluster cpu : this.craftingCPUClusters) {
-            input = cpu.injectItems(input, type, src);
-        }
-
-        return input;
-    }
-
-    /**
-     * 泛型版本：向合成 CPU 注入任意类型的栈。
-     */
-    @Override
-    public IAEItemStack extractItems(final IAEItemStack request, final Actionable mode, final IActionSource src) {
-        return null;
-    }
-
-    @Override
-    public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
-        // add craftable items!
-        for (final IAEStack<?> stack : this.craftableItems.keySet()) {
-            if (stack instanceof IAEItemStack) {
-                out.addCrafting((IAEItemStack) stack);
-            }
-        }
-
-        for (final IAEStack<?> st : this.emitableItems) {
-            if (st instanceof IAEItemStack) {
-                out.addCrafting((IAEItemStack) st);
-            }
-        }
-
-        return out;
-    }
-
-    @Override
-    public IAEStackType<IAEItemStack> getStackType() {
-        return AEItemStackType.INSTANCE;
-    }
-
-    @Override
-    public ImmutableCollection<ICraftingPatternDetails> getCraftingFor(final IAEItemStack whatToCraft,
-            final ICraftingPatternDetails details, final int slotIndex, final World world) {
-        return getCraftingFor((IAEStack<?>) whatToCraft, details, slotIndex, world);
-    }
-
-    @Override
-    public Future<ICraftingJob> beginCraftingJob(final World world, final IGrid grid, final IActionSource actionSrc,
-            final IAEItemStack slotItem, final ICraftingCallback cb) {
-        if (world == null || grid == null || actionSrc == null || slotItem == null) {
-            throw new IllegalArgumentException("Invalid Crafting Job Request");
-        }
-
-        final CraftingJobV2<IAEItemStack> job = new CraftingJobV2<>(
-                slotItem, grid, actionSrc, cb, world, CraftingMode.STANDARD);
-        return (Future) job.schedule();
     }
 
     @Override
@@ -550,28 +478,13 @@ public class CraftingGridCache
     }
 
     @Override
-    public boolean canEmitFor(final IAEItemStack someItem) {
-        return this.emitableItems.contains(someItem);
-    }
-
-    @Override
     public boolean canEmitFor(final IAEStack<?> someItem) {
         return this.emitableItems.contains(someItem);
     }
 
     @Override
-    public boolean isRequesting(final IAEItemStack what) {
-        return this.requesting(what) > 0;
-    }
-
-    @Override
     public boolean isRequesting(final IAEStack<?> what) {
         return this.requesting(what) > 0;
-    }
-
-    @Override
-    public long requesting(IAEItemStack what) {
-        return requesting((IAEStack<?>) what);
     }
 
     @SuppressWarnings("unchecked")
@@ -606,6 +519,95 @@ public class CraftingGridCache
 
     public GenericInterestManager<CraftingWatcher> getInterestManager() {
         return this.interestManager;
+    }
+
+    /**
+     * 泛型合成库存处理器。
+     * <p>
+     * 每个 {@link IAEStackType} 对应一个实例，向网络暴露该类型的可合成物品列表，
+     * 并将注入操作转发给合成 CPU。
+     */
+    private static class CraftingInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHandler<T> {
+
+        private final IAEStackType<T> type;
+        private final CraftingGridCache cache;
+
+        CraftingInventoryHandler(IAEStackType<?> type, CraftingGridCache cache) {
+            @SuppressWarnings("unchecked")
+            var t = (IAEStackType<T>) type;
+            this.type = t;
+            this.cache = cache;
+        }
+
+        @Override
+        public AccessRestriction getAccess() {
+            return AccessRestriction.WRITE;
+        }
+
+        @Override
+        public boolean isPrioritized(T input) {
+            return true;
+        }
+
+        @Override
+        public boolean canAccept(T input) {
+            for (final CraftingCPUCluster cpu : this.cache.craftingCPUClusters) {
+                if (cpu.canAccept(input)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public int getPriority() {
+            return Integer.MAX_VALUE;
+        }
+
+        @Override
+        public int getSlot() {
+            return 0;
+        }
+
+        @Override
+        public boolean validForPass(int i) {
+            return i == 1;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public T injectItems(T input, Actionable type, IActionSource src) {
+            for (final CraftingCPUCluster cpu : this.cache.craftingCPUClusters) {
+                IAEStack<?> result = cpu.injectItems((IAEStack<?>) input, type, src);
+                input = (T) result;
+            }
+            return input;
+        }
+
+        @Override
+        public T extractItems(T request, Actionable mode, IActionSource src) {
+            return null;
+        }
+
+        @Override
+        public IItemList<T> getAvailableItems(IItemList<T> out) {
+            for (final IAEStack<?> stack : this.cache.craftableItems.keySet()) {
+                if (stack.getStackType() == this.type) {
+                    out.addCraftingGeneric(stack);
+                }
+            }
+            for (final IAEStack<?> st : this.cache.emitableItems) {
+                if (st.getStackType() == this.type) {
+                    out.addCraftingGeneric(st);
+                }
+            }
+            return out;
+        }
+
+        @Override
+        public IAEStackType<T> getStackType() {
+            return this.type;
+        }
     }
 
     private static class ActiveCpuIterator implements Iterator<ICraftingCPU> {

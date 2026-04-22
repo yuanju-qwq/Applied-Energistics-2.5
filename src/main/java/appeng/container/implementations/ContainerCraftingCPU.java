@@ -40,6 +40,7 @@ import appeng.api.storage.data.IItemList;
 import appeng.client.gui.implementations.GuiCraftingCPU;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
+import appeng.container.interfaces.ICraftingCPUGuiCallback;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
@@ -59,7 +60,7 @@ public class ContainerCraftingCPU extends AEBaseContainer
 
     @GuiSync(0)
     public long eta = -1;
-    private GuiCraftingCPU guiCraftingCPU;
+    private ICraftingCPUGuiCallback guiCallback;
 
     public ContainerCraftingCPU(final InventoryPlayer ip, final Object te) {
         super(ip, te);
@@ -253,18 +254,28 @@ public class ContainerCraftingCPU extends AEBaseContainer
         this.network = network;
     }
 
-    public void postUpdate(final List<IAEItemStack> list, final byte ref) {
-        this.guiCraftingCPU.postUpdate(list, ref);
-    }
-
     /**
      * 泛型版本：接收包含物品和流体的合成状态更新。
      */
     public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
-        this.guiCraftingCPU.postGenericUpdate(list, ref);
+        if (this.guiCallback != null) {
+            this.guiCallback.postGenericUpdate(list, ref);
+        }
     }
 
+    /**
+     * 设置 GUI 回调（兼容旧 GUI 和新 MUI 面板）。
+     */
+    public void setGui(ICraftingCPUGuiCallback callback) {
+        this.guiCallback = callback;
+    }
+
+    /**
+     * 设置旧 GUI 回调（向后兼容）。
+     * @deprecated 使用 {@link #setGui(ICraftingCPUGuiCallback)} 代替
+     */
+    @Deprecated
     public void setGui(GuiCraftingCPU guiCraftingCPU) {
-        this.guiCraftingCPU = guiCraftingCPU;
+        this.guiCallback = guiCraftingCPU;
     }
 }

@@ -35,6 +35,7 @@ import net.minecraft.world.World;
 
 import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.spatial.TileSpatialIOPort;
 import appeng.util.Platform;
@@ -80,7 +81,7 @@ public class BlockSpatialIOPort extends AEBaseTileBlock {
         final TileSpatialIOPort tg = this.getTileEntity(w, pos);
         if (tg != null) {
             if (Platform.isServer()) {
-                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_SPATIAL_IO_PORT);
+                Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.SPATIAL_IO_PORT);
             }
             return true;
         }

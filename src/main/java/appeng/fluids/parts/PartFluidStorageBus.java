@@ -66,6 +66,7 @@ import appeng.api.util.IConfigManager;
 import appeng.capabilities.Capabilities;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.IConfigurableFluidInventory;
 import appeng.fluids.tile.TileFluidInterface;
@@ -310,7 +311,7 @@ public class PartFluidStorageBus extends PartUpgradeable implements IGridTickabl
     @Override
     public boolean onPartActivate(final EntityPlayer player, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), GuiBridge.GUI_STORAGEBUS_FLUID);
+            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), AEGuiKeys.STORAGE_BUS_FLUID);
         }
         return true;
     }
@@ -383,7 +384,7 @@ public class PartFluidStorageBus extends PartUpgradeable implements IGridTickabl
         if (accessor != null) {
             IStorageMonitorable inventory = accessor.getInventory(this.source);
             if (inventory != null) {
-                return inventory.getInventory(AEFluidStackType.INSTANCE.getStorageChannel());
+                return inventory.getInventory(AEFluidStackType.INSTANCE);
             }
 
             // So this could / can be a design decision. If the tile does support our custom capability,
@@ -455,7 +456,7 @@ public class PartFluidStorageBus extends PartUpgradeable implements IGridTickabl
 
             if (inv != null) {
                 this.handler = new MEInventoryHandler<>(inv,
-                        AEFluidStackType.INSTANCE.getStorageChannel());
+                        AEFluidStackType.INSTANCE);
 
                 this.handler.setBaseAccess((AccessRestriction) this.getConfigManager().getSetting(Settings.ACCESS));
                 this.handler.setWhitelist(this.getInstalledUpgrades(Upgrades.INVERTER) > 0 ? IncludeExclude.BLACKLIST
@@ -575,7 +576,7 @@ public class PartFluidStorageBus extends PartUpgradeable implements IGridTickabl
 
     @Override
     public GuiBridge getGuiBridge() {
-        return GuiBridge.GUI_STORAGEBUS_FLUID;
+        return AEGuiKeys.STORAGE_BUS_FLUID.getLegacyBridge();
     }
 
     // TODO: 1/28/2024 Unify both methods.

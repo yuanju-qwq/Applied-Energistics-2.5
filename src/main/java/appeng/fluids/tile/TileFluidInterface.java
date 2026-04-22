@@ -46,6 +46,7 @@ import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
 import appeng.api.util.IConfigManager;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.DualityFluidInterface;
 import appeng.fluids.helper.IConfigurableFluidInventory;
@@ -53,6 +54,10 @@ import appeng.fluids.helper.IFluidInterfaceHost;
 import appeng.helpers.IPriorityHost;
 import appeng.tile.grid.AENetworkTile;
 
+/**
+ * @deprecated 使用 {@link appeng.tile.misc.TileMEInterface} 替代，新的 ME 接口统一处理物品和流体。
+ */
+@Deprecated
 public class TileFluidInterface extends AENetworkTile
         implements IGridTickable, IFluidInterfaceHost, IPriorityHost, IConfigurableFluidInventory {
     private final DualityFluidInterface duality = new DualityFluidInterface(this.getProxy(), this);
@@ -176,6 +181,6 @@ public class TileFluidInterface extends AENetworkTile
 
     @Override
     public GuiBridge getGuiBridge() {
-        return GuiBridge.GUI_FLUID_INTERFACE;
+        return AEGuiKeys.FLUID_INTERFACE.getLegacyBridge();
     }
 }

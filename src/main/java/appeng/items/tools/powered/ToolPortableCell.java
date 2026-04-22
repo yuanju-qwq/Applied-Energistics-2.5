@@ -40,12 +40,12 @@ import appeng.api.implementations.guiobjects.IGuiItemObject;
 import appeng.api.implementations.items.IItemGroup;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.storage.ICellInventoryHandler;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEPartLocation;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.items.contents.CellConfig;
 import appeng.items.contents.CellUpgrades;
@@ -61,7 +61,7 @@ public class ToolPortableCell extends AEBasePoweredItem implements IStorageCell<
 
     @Override
     public ActionResult<ItemStack> onItemRightClick(final World w, final EntityPlayer player, final EnumHand hand) {
-        Platform.openGUI(player, null, AEPartLocation.INTERNAL, GuiBridge.GUI_PORTABLE_CELL);
+        Platform.openGUI(player, null, AEPartLocation.INTERNAL, AEGuiKeys.PORTABLE_CELL);
         return new ActionResult<>(EnumActionResult.SUCCESS, player.getHeldItem(hand));
     }
 
@@ -81,7 +81,7 @@ public class ToolPortableCell extends AEBasePoweredItem implements IStorageCell<
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,
-                        AEItemStackType.INSTANCE.getStorageChannel());
+                        AEItemStackType.INSTANCE);
 
         AEApi.instance().client().addCellInformation(cdi, lines);
     }

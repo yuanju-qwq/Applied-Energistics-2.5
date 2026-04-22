@@ -33,9 +33,9 @@ import appeng.api.networking.IGridHost;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
-import appeng.client.gui.implementations.GuiNetworkStatus;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
 import appeng.core.sync.network.NetworkHandler;
@@ -56,7 +56,14 @@ public class ContainerNetworkStatus extends AEBaseContainer {
     public long maxPower;
     private IGrid network;
     private int delay = 40;
-    private GuiNetworkStatus guiNetworkStatus;
+    /**
+     * GUI 回调接口，用于接收网络状态更新。
+     */
+    public interface INetworkStatusGuiCallback {
+        void postUpdate(List<IAEStack<?>> list);
+    }
+
+    private INetworkStatusGuiCallback guiNetworkStatus;
 
     public ContainerNetworkStatus(final InventoryPlayer ip, final INetworkTool te) {
         super(ip, null, null);
@@ -114,7 +121,7 @@ public class ContainerNetworkStatus extends AEBaseContainer {
                     }
 
                     for (final IAEItemStack ais : list) {
-                        piu.appendItem(ais);
+                        piu.appendStack(ais);
                     }
                 }
 
@@ -162,11 +169,11 @@ public class ContainerNetworkStatus extends AEBaseContainer {
         this.powerUsage = powerUsage;
     }
 
-    public void postUpdate(final List<IAEItemStack> list) {
+    public void postUpdate(final List<IAEStack<?>> list) {
         this.guiNetworkStatus.postUpdate(list);
     }
 
-    public void setGui(GuiNetworkStatus guiNetworkStatus) {
+    public void setGui(INetworkStatusGuiCallback guiNetworkStatus) {
         this.guiNetworkStatus = guiNetworkStatus;
     }
 }

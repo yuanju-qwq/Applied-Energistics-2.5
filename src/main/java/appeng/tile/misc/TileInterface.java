@@ -61,6 +61,7 @@ import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
 import appeng.api.util.IConfigManager;
 import appeng.core.localization.PlayerMessages;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.DualityInterface;
 import appeng.helpers.IInterfaceHost;
@@ -73,6 +74,10 @@ import appeng.util.SettingsFrom;
 import appeng.util.inv.IInventoryDestination;
 import appeng.util.inv.InvOperation;
 
+/**
+ * @deprecated 使用 {@link appeng.tile.misc.TilePatternProvider} 或 {@link appeng.tile.misc.TileMEInterface} 替代。
+ */
+@Deprecated
 public class TileInterface extends AENetworkInvTile
         implements IGridTickable, IInventoryDestination, IInterfaceHost, IPriorityHost {
 
@@ -328,7 +333,7 @@ public class TileInterface extends AENetworkInvTile
 
     @Override
     public GuiBridge getGuiBridge() {
-        return GuiBridge.GUI_INTERFACE;
+        return AEGuiKeys.INTERFACE.getLegacyBridge();
     }
 
     @Override

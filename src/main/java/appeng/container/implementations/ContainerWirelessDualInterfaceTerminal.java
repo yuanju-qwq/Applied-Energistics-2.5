@@ -1524,8 +1524,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                         }
                         IItemList<?> storageList = mon.getStorageList();
                         for (IAEStack<?> aes : entry.getValue()) {
-                            @SuppressWarnings("rawtypes")
-                            final IAEStack<?> send = (IAEStack<?>) ((IItemList) storageList).findPrecise(aes);
+                            final IAEStack<?> send = storageList.findPreciseGeneric(aes);
                             if (send == null) {
                                 aes.setStackSize(0);
                                 piu.appendStack(aes);

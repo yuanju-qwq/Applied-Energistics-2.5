@@ -71,7 +71,7 @@ public final class BasicItemStorageCell extends AbstractStorageCell<IAEItemStack
 
     @Override
     public IStorageChannel<IAEItemStack> getChannel() {
-        return AEItemStackType.INSTANCE.getStorageChannel();
+        return AEItemStackType.INSTANCE;
     }
 
     @Override

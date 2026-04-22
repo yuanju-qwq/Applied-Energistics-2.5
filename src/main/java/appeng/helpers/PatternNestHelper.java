@@ -37,6 +37,7 @@ import net.minecraftforge.common.crafting.IShapedRecipe;
 import appeng.api.AEApi;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.container.ContainerNull;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
@@ -112,7 +113,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                             NBTTagCompound nestedIngredient = nestedIn.getCompoundTagAt(i);
                             ItemStack nestedGs = stackFromNBT(nestedIngredient);
                             if (!nestedIngredient.isEmpty() && !nestedGs.isEmpty()) {
-                                in.add(AEItemStackType.INSTANCE.getStorageChannel()
+                                in.add(AEItemStackType.INSTANCE
                                         .createStack(nestedGs));
                             }
                         }
@@ -124,7 +125,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                                 NBTTagCompound nestedResult = nestedOut.getCompoundTagAt(i);
                                 ItemStack nestedGs = stackFromNBT(nestedResult);
                                 if (!nestedResult.isEmpty() && !nestedGs.isEmpty()) {
-                                    out.add(AEItemStackType.INSTANCE.getStorageChannel()
+                                    out.add(AEItemStackType.INSTANCE
                                             .createStack(nestedGs));
                                 }
                             }
@@ -135,7 +136,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
 
                 // 普通物品加入输入
                 if (!gs.isEmpty()) {
-                    in.add(AEItemStackType.INSTANCE.getStorageChannel().createStack(gs));
+                    in.add(AEItemStackType.INSTANCE.createStack(gs));
                 }
             }
         } else {
@@ -154,7 +155,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                     this.markItemAs(x, gs, TestStatus.ACCEPT);
                 }
 
-                in.add(AEItemStackType.INSTANCE.getStorageChannel().createStack(gs));
+                in.add(AEItemStackType.INSTANCE.createStack(gs));
                 this.testFrame.setInventorySlotContents(x, gs);
             }
         }
@@ -165,7 +166,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
             this.standardRecipe = CraftingManager.findMatchingRecipe(this.crafting, w);
             if (this.standardRecipe != null) {
                 this.correctOutput = this.standardRecipe.getCraftingResult(this.crafting);
-                out.add(AEItemStackType.INSTANCE.getStorageChannel()
+                out.add(AEItemStackType.INSTANCE
                         .createStack(this.correctOutput));
             } else {
                 throw new IllegalStateException("No pattern here!");
@@ -185,7 +186,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                 }
 
                 if (!gs.isEmpty()) {
-                    out.add(AEItemStackType.INSTANCE.getStorageChannel().createStack(gs));
+                    out.add(AEItemStackType.INSTANCE.createStack(gs));
                 }
             }
         }
@@ -337,22 +338,22 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
     }
 
     @Override
-    public IAEItemStack[] getInputs() {
+    public IAEStack<?>[] getAEInputs() {
         return this.inputs;
     }
 
     @Override
-    public IAEItemStack[] getCondensedInputs() {
+    public IAEStack<?>[] getCondensedAEInputs() {
         return this.condensedInputs;
     }
 
     @Override
-    public IAEItemStack[] getCondensedOutputs() {
+    public IAEStack<?>[] getCondensedAEOutputs() {
         return this.condensedOutputs;
     }
 
     @Override
-    public IAEItemStack[] getOutputs() {
+    public IAEStack<?>[] getAEOutputs() {
         return this.outputs;
     }
 

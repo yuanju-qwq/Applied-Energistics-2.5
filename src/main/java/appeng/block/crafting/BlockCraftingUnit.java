@@ -41,6 +41,7 @@ import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
 import appeng.client.UnlistedProperty;
 import appeng.client.render.crafting.CraftingCubeState;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.tile.crafting.TileCraftingTile;
 import appeng.util.Platform;
@@ -140,7 +141,7 @@ public class BlockCraftingUnit extends AEBaseTileBlock {
                 return true;
             }
 
-            Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), GuiBridge.GUI_CRAFTING_CPU);
+            Platform.openGUI(p, tg, AEPartLocation.fromFacing(side), AEGuiKeys.CRAFTING_CPU);
             return true;
         }
 

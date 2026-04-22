@@ -1,5 +1,13 @@
 package appeng.client.gui.implementations;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import java.io.IOException;
 import java.util.regex.Pattern;
 
@@ -19,6 +27,7 @@ import appeng.client.gui.widgets.MEGuiTextField;
 import appeng.container.implementations.ContainerOreDictStorageBus;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketConfigButton;
@@ -94,7 +103,7 @@ public class GuiOreDictStorageBus extends GuiUpgradeable {
 
         try {
             if (btn == this.priority) {
-                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(GuiBridge.GUI_PRIORITY));
+                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
             } else if (btn == this.partition) {
                 NetworkHandler.instance().sendToServer(new PacketValueConfig("StorageBus.Action", "Partition"));
             } else if (btn == this.rwMode) {
@@ -174,3 +183,5 @@ public class GuiOreDictStorageBus extends GuiUpgradeable {
     }
 
 }
+
+*/

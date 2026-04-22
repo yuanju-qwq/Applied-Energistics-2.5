@@ -584,7 +584,7 @@ public class TileMolecularAssembler extends AENetworkInvTile
             IStorageMonitorable inventory = (IStorageMonitorable) capability;
             IAEItemStack toInsert = AEItemStack.fromItemStack(output);
             IMEMonitor<IAEItemStack> inv = inventory
-                    .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
+                    .getInventory(AEItemStackType.INSTANCE);
             IAEItemStack remainder = inv.injectItems(toInsert, Actionable.SIMULATE, this.mySrc);
             if (remainder == null) {
                 inv.injectItems(toInsert, Actionable.MODULATE, this.mySrc);

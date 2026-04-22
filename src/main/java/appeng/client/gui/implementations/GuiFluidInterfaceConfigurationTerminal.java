@@ -18,6 +18,14 @@
 
 package appeng.client.gui.implementations;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import static appeng.client.render.BlockPosHighlighter.hilightBlock;
 
 import java.awt.*;
@@ -61,6 +69,7 @@ import appeng.client.gui.widgets.MEGuiTextField;
 import appeng.client.me.ClientDCInternalFluidInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.container.implementations.ContainerFluidInterfaceConfigurationTerminal;
+import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
 import appeng.container.interfaces.IJEIGhostIngredients;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
@@ -74,7 +83,7 @@ import appeng.util.BlockPosUtils;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 
-public class GuiFluidInterfaceConfigurationTerminal extends AEBaseGui implements IJEIGhostIngredients {
+public class GuiFluidInterfaceConfigurationTerminal extends AEBaseGui implements IJEIGhostIngredients, IInterfaceTerminalGuiCallback {
 
     private static final int LINES_ON_PAGE = 6;
 
@@ -523,3 +532,5 @@ public class GuiFluidInterfaceConfigurationTerminal extends AEBaseGui implements
         return IJEIGhostIngredients.super.getFakeSlotTargetMap();
     }
 }
+
+*/

@@ -18,6 +18,14 @@
 
 package appeng.client.gui.implementations;
 
+// ========================================================================
+// [MUI Migration] 此旧 GUI 类已被 MUI 面板完全替代，运行时不再被实例化。
+// 全部 GUI 创建已通过 AEMUIRegistration 中注册的 MUI 工厂完成。
+// 如需恢复，取消下方块注释即可。
+// ========================================================================
+/*
+
+
 import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -59,6 +67,7 @@ import appeng.client.me.ItemRepo;
 import appeng.client.me.SlotME;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerMEMonitorable;
+import appeng.container.interfaces.IMEMonitorableGuiCallback;
 import appeng.container.slot.AppEngSlot;
 import appeng.container.slot.SlotCraftingMatrix;
 import appeng.container.slot.SlotFakeCraftingMatrix;
@@ -66,6 +75,7 @@ import appeng.core.AEConfig;
 import appeng.core.AELog;
 import appeng.core.AppEng;
 import appeng.core.localization.GuiText;
+import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
@@ -79,7 +89,7 @@ import appeng.tile.misc.TileSecurityStation;
 import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 
-public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfigManagerHost {
+public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfigManagerHost, IMEMonitorableGuiCallback {
 
     private static int craftingGridOffsetX;
     private static int craftingGridOffsetY;
@@ -191,7 +201,7 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
     @Override
     protected void actionPerformed(final GuiButton btn) throws java.io.IOException {
         if (btn == this.craftingStatusBtn) {
-            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(GuiBridge.GUI_CRAFTING_STATUS));
+            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.CRAFTING_STATUS));
         }
 
         // 婢跺嫮鎮婄猾璇茬€锋潻鍥ㄦ姢閹稿鎸抽悙鐟板毊
@@ -689,3 +699,5 @@ public class GuiMEMonitorable extends AEBaseMEGui implements ISortSource, IConfi
         this.xSize = standardSize;
     }
 }
+
+*/

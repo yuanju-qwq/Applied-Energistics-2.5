@@ -927,10 +927,10 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             IMEMonitor<IAEItemStack> storage = null;
             if (getPart() != null) {
                 storage = this.getPart()
-                        .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
+                        .getInventory(AEItemStackType.INSTANCE);
             } else if (iGuiItemObject != null) {
                 storage = ((ITerminalHost) iGuiItemObject)
-                        .getInventory(AEItemStackType.INSTANCE.getStorageChannel());
+                        .getInventory(AEItemStackType.INSTANCE);
             }
 
             final IItemList<IAEItemStack> all = storage.getStorageList();

@@ -1,0 +1,127 @@
+/*
+ * This file is part of Applied Energistics 2.
+ * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
+ *
+ * Applied Energistics 2 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Applied Energistics 2 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
+ */
+
+package appeng.client.mui.screen;
+
+import java.io.IOException;
+
+import org.lwjgl.input.Mouse;
+
+import net.minecraft.client.gui.GuiButton;
+import net.minecraft.entity.player.InventoryPlayer;
+
+import appeng.api.config.Settings;
+import appeng.client.gui.widgets.GuiImgButton;
+import appeng.client.mui.AEBasePanel;
+import appeng.container.implementations.ContainerSpatialIOPort;
+import appeng.core.AEConfig;
+import appeng.core.localization.GuiText;
+import appeng.tile.spatial.TileSpatialIOPort;
+import appeng.util.Platform;
+
+/**
+ * MUI 版空间 IO 端口 GUI 面板。
+ *
+ * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiSpatialIOPort}。
+ * 显示存储/最大功率、所需功率、效率、SCS 尺寸等信息，以及电源单位切换按钮。
+ */
+public class MUISpatialIOPortPanel extends AEBasePanel {
+
+    private final ContainerSpatialIOPort container;
+
+    // ========== 按钮 ==========
+    private GuiImgButton units;
+
+    public MUISpatialIOPortPanel(final InventoryPlayer ip, final TileSpatialIOPort te) {
+        this(new ContainerSpatialIOPort(ip, te));
+    }
+
+    public MUISpatialIOPortPanel(final ContainerSpatialIOPort container) {
+        super(container);
+        this.container = container;
+        this.ySize = 199;
+    }
+
+    // ========== 初始化 ==========
+
+    @Override
+    protected void setupWidgets() {
+        // initGui 处理初始化
+    }
+
+    @Override
+    public void initGui() {
+        super.initGui();
+
+        this.units = new GuiImgButton(this.guiLeft - 18, this.guiTop + 8, Settings.POWER_UNITS,
+                AEConfig.instance().selectedPowerUnit());
+        this.buttonList.add(this.units);
+    }
+
+    // ========== 渲染 ==========
+
+    @Override
+    protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
+        this.fontRenderer.drawString(
+                GuiText.StoredPower.getLocal() + ": "
+                        + Platform.formatPowerLong(this.container.getCurrentPower(), false),
+                13, 21, 4210752);
+        this.fontRenderer.drawString(
+                GuiText.MaxPower.getLocal() + ": " + Platform.formatPowerLong(this.container.getMaxPower(), false), 13,
+                31, 4210752);
+        this.fontRenderer.drawString(
+                GuiText.RequiredPower.getLocal() + ": "
+                        + Platform.formatPowerLong(this.container.getRequiredPower(), false),
+                13, 73, 4210752);
+        this.fontRenderer.drawString(
+                GuiText.Efficiency.getLocal() + ": " + (((float) this.container.getEfficency()) / 100) + '%', 13, 83,
+                4210752);
+
+        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.SpatialIOPort.getLocal()), 8, 6, 4210752);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96, 4210752);
+
+        if (this.container.xSize != 0 && this.container.ySize != 0 && this.container.zSize != 0) {
+            final String text = GuiText.SCSSize.getLocal() + ": " + this.container.xSize + "x" + this.container.ySize
+                    + "x" + this.container.zSize;
+            this.fontRenderer.drawString(text, 13, 93, 4210752);
+        } else {
+            this.fontRenderer.drawString(GuiText.SCSSize.getLocal() + ": " + GuiText.SCSInvalid.getLocal(), 13, 93,
+                    4210752);
+        }
+    }
+
+    @Override
+    protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
+        this.bindTexture("guis/spatialio.png");
+        this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
+    }
+
+    // ========== 按钮事件 ==========
+
+    @Override
+    protected void actionPerformed(final GuiButton btn) throws IOException {
+        super.actionPerformed(btn);
+
+        final boolean backwards = Mouse.isButtonDown(1);
+
+        if (btn == this.units) {
+            AEConfig.instance().nextPowerUnit(backwards);
+            this.units.set(AEConfig.instance().selectedPowerUnit());
+        }
+    }
+}

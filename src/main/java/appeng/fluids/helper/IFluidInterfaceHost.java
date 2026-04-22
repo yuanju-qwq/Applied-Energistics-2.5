@@ -28,6 +28,10 @@ import appeng.api.networking.security.IActionHost;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.me.helpers.IGridProxyable;
 
+/**
+ * @deprecated 使用 {@link appeng.helpers.IInterfaceLogicHost} 替代，新的 ME 接口统一处理物品和流体。
+ */
+@Deprecated
 public interface IFluidInterfaceHost extends IActionHost, IGridProxyable, IUpgradeableHost {
     DualityFluidInterface getDualityFluidInterface();
 

@@ -36,6 +36,7 @@ import net.minecraftforge.common.crafting.IShapedRecipe;
 
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.container.ContainerNull;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
@@ -107,7 +108,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
                 this.markItemAs(x, gs, TestStatus.ACCEPT);
             }
 
-            in.add(AEItemStackType.INSTANCE.getStorageChannel().createStack(gs));
+            in.add(AEItemStackType.INSTANCE.createStack(gs));
             this.testFrame.setInventorySlotContents(x, gs);
         }
 
@@ -116,7 +117,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
 
             if (this.standardRecipe != null) {
                 this.correctOutput = this.standardRecipe.getCraftingResult(this.crafting);
-                out.add(AEItemStackType.INSTANCE.getStorageChannel()
+                out.add(AEItemStackType.INSTANCE
                         .createStack(this.correctOutput));
             } else {
                 throw new IllegalStateException("No pattern here!");
@@ -138,7 +139,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
                 }
 
                 if (!gs.isEmpty()) {
-                    out.add(AEItemStackType.INSTANCE.getStorageChannel().createStack(gs));
+                    out.add(AEItemStackType.INSTANCE.createStack(gs));
                 } else {
                     out.add(null);
                 }
@@ -269,22 +270,22 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     }
 
     @Override
-    public IAEItemStack[] getInputs() {
+    public IAEStack<?>[] getAEInputs() {
         return this.inputs;
     }
 
     @Override
-    public IAEItemStack[] getCondensedInputs() {
+    public IAEStack<?>[] getCondensedAEInputs() {
         return this.condensedInputs;
     }
 
     @Override
-    public IAEItemStack[] getCondensedOutputs() {
+    public IAEStack<?>[] getCondensedAEOutputs() {
         return this.condensedOutputs;
     }
 
     @Override
-    public IAEItemStack[] getOutputs() {
+    public IAEStack<?>[] getAEOutputs() {
         return this.outputs;
     }
 

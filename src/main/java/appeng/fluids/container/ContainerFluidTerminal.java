@@ -45,6 +45,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
@@ -56,9 +57,10 @@ import appeng.container.slot.SlotPlayerHotBar;
 import appeng.container.slot.SlotPlayerInv;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
-import appeng.core.sync.packets.PacketMEFluidInventoryUpdate;
+import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.core.sync.packets.PacketTargetFluidStack;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.container.interfaces.IPortableFluidCellGuiCallback;
 import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.InventoryAction;
 import appeng.me.helpers.ChannelPowerSrc;
@@ -71,7 +73,10 @@ import appeng.fluids.util.AEFluidStackType;
  * @author BrockWS
  * @version rv6 - 12/05/2018
  * @since rv6 12/05/2018
+ * @deprecated 使用 {@link appeng.container.implementations.ContainerMEMonitorable} 替代，
+ *             该终端已支持物品+流体的统一浏览和桶交互。
  */
+@Deprecated
 public class ContainerFluidTerminal extends AEBaseContainer
         implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver<IAEFluidStack> {
     private final IConfigManager clientCM;
@@ -97,7 +102,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
         if (Platform.isServer()) {
             this.serverCM = terminal.getConfigManager();
             this.monitor = terminal
-                    .getInventory(AEFluidStackType.INSTANCE.getStorageChannel());
+                    .getInventory(AEFluidStackType.INSTANCE);
 
             if (this.monitor != null) {
                 this.monitor.addListener(this, null);
@@ -167,17 +172,17 @@ public class ContainerFluidTerminal extends AEBaseContainer
     private void queueInventory(final IContainerListener c) {
         if (Platform.isServer() && c instanceof EntityPlayer && this.monitor != null) {
             try {
-                PacketMEFluidInventoryUpdate piu = new PacketMEFluidInventoryUpdate();
+                PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
                 final IItemList<IAEFluidStack> monitorCache = this.monitor.getStorageList();
 
                 for (final IAEFluidStack send : monitorCache) {
                     try {
-                        piu.appendFluid(send);
+                        piu.appendStack(send);
                     } catch (final BufferOverflowException boe) {
                         NetworkHandler.instance().sendTo(piu, (EntityPlayerMP) c);
 
-                        piu = new PacketMEFluidInventoryUpdate();
-                        piu.appendFluid(send);
+                        piu = new PacketMEInventoryUpdate();
+                        piu.appendStack(send);
                     }
                 }
 
@@ -222,7 +227,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
     public void detectAndSendChanges() {
         if (Platform.isServer()) {
             if (this.monitor != this.terminal
-                    .getInventory(AEFluidStackType.INSTANCE.getStorageChannel())) {
+                    .getInventory(AEFluidStackType.INSTANCE)) {
                 this.setValidContainer(false);
             }
 
@@ -249,15 +254,15 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 try {
                     final IItemList<IAEFluidStack> monitorCache = this.monitor.getStorageList();
 
-                    final PacketMEFluidInventoryUpdate piu = new PacketMEFluidInventoryUpdate();
+                    final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
                     for (final IAEFluidStack is : this.fluids) {
                         final IAEFluidStack send = monitorCache.findPrecise(is);
                         if (send == null) {
                             is.setStackSize(0);
-                            piu.appendFluid(is);
+                            piu.appendStack(is);
                         } else {
-                            piu.appendFluid(send);
+                            piu.appendStack(send);
                         }
                     }
 
@@ -507,5 +512,15 @@ public class ContainerFluidTerminal extends AEBaseContainer
 
     private void setPowered(final boolean isPowered) {
         this.hasPower = isPowered;
+    }
+
+    /**
+     * 客户端接收流体库存更新包。
+     */
+    public void postUpdate(final List<IAEStack<?>> list) {
+        final IConfigManagerHost gui = this.getGui();
+        if (gui instanceof IPortableFluidCellGuiCallback callback) {
+            callback.postUpdate(list);
+        }
     }
 }
