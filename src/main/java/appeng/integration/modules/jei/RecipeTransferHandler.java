@@ -62,11 +62,10 @@ import appeng.core.sync.packets.PacketVirtualSlot;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.fluids.items.ItemFluidDrop;
 import appeng.fluids.util.AEFluidStack;
+import appeng.integration.modules.gregtech.CircuitHelper;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
-import gregtech.api.bridge.GTBridge;
-import gregtech.api.bridge.IGTItemHelper;
 
 class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandler<T> {
 
@@ -257,10 +256,10 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             outputSlots.put(i, null);
         }
 
-        final IGTItemHelper itemHelper = GTBridge.getItemHelper();
         final boolean preserveLayout = recipeType.equals(VanillaRecipeCategoryUid.CRAFTING);
-        final boolean shouldApplyToolkitRules = hasToolkitInInventory(player, itemHelper) &&
-                itemHelper != null && itemHelper.getProgrammableCircuitStack() != null;
+        final CircuitHelper circuitHelper = CircuitHelper.getInstance();
+        final boolean shouldApplyToolkitRules = circuitHelper.hasToolkitInInventory(player) &&
+                circuitHelper.isProgrammableCircuitAvailable();
         boolean wrappedCircuitAdded = false;
         boolean hasProgrammableCircuitInput = false;
         int craftingIndex = 0;
@@ -275,13 +274,13 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             if (ingredient.input) {
                 IAEStack<?> transferStack = ingredient.stack == null ? null : ingredient.stack.copy();
                 final ItemStack itemStack = toItemStack(transferStack);
-                if (itemStack != null && isProgrammableCircuit(itemStack, itemHelper)) {
+                if (itemStack != null && circuitHelper.isProgrammableCircuit(itemStack)) {
                     hasProgrammableCircuitInput = true;
                 }
                 if (shouldApplyToolkitRules && !wrappedCircuitAdded && itemStack != null
-                        && !isProgrammableCircuit(itemStack, itemHelper)
-                        && (ingredient.notConsumed || (itemHelper != null && itemHelper.isIntegratedCircuit(itemStack)))) {
-                    transferStack = wrapItemAsProgrammable(itemStack, itemHelper);
+                        && !circuitHelper.isProgrammableCircuit(itemStack)
+                        && (ingredient.notConsumed || circuitHelper.isIntegratedCircuit(itemStack))) {
+                    transferStack = circuitHelper.wrapItemAsProgrammable(itemStack);
                     wrappedCircuitAdded = transferStack != null;
                     if (wrappedCircuitAdded) {
                         hasProgrammableCircuitInput = true;
@@ -301,10 +300,10 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
 
         if (shouldApplyToolkitRules && !wrappedCircuitAdded && !hasProgrammableCircuitInput) {
             final int firstEmptySlot = findFirstEmptyInputSlot(craftingSlots, craftingInv.getSizeInventory());
-            if (firstEmptySlot >= 0 && itemHelper != null) {
-                final ItemStack programmable = itemHelper.getProgrammableCircuitStack();
-                if (programmable != null) {
-                    craftingSlots.put(firstEmptySlot, toAEStack(programmable));
+            if (firstEmptySlot >= 0) {
+                final ItemStack pcStack = circuitHelper.getProgrammableCircuitStack();
+                if (pcStack != null) {
+                    craftingSlots.put(firstEmptySlot, toAEStack(pcStack));
                 }
             }
         }
@@ -326,40 +325,6 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         return itemStack.isEmpty() ? null : itemStack;
     }
 
-    @Nullable
-    private static IAEStack<?> wrapItemAsProgrammable(ItemStack sourceItem, @Nullable IGTItemHelper itemHelper) {
-        if (sourceItem.isEmpty() || itemHelper == null) {
-            return toAEStack(sourceItem);
-        }
-
-        if (itemHelper.getProgrammableCircuitStack() == null) {
-            return toAEStack(sourceItem);
-        }
-
-        final ItemStack wrappedItem;
-        if (itemHelper.isIntegratedCircuit(sourceItem)) {
-            final int config = itemHelper.getCircuitConfiguration(sourceItem);
-            wrappedItem = itemHelper.getIntegratedCircuit(config);
-        } else {
-            wrappedItem = sourceItem.copy();
-            wrappedItem.setCount(1);
-        }
-
-        final ItemStack programmable = itemHelper.wrapAsProgrammableCircuit(wrappedItem);
-        return programmable != null ? toAEStack(programmable) : toAEStack(wrappedItem);
-    }
-
-    private static boolean isProgrammableCircuit(ItemStack stack, @Nullable IGTItemHelper itemHelper) {
-        if (itemHelper == null) {
-            return false;
-        }
-        final ItemStack programmable = itemHelper.getProgrammableCircuitStack();
-        return programmable != null
-                && !stack.isEmpty()
-                && programmable.getItem() == stack.getItem()
-                && programmable.getItemDamage() == stack.getItemDamage();
-    }
-
     private static int findFirstEmptyInputSlot(Int2ObjectMap<IAEStack<?>> craftingSlots, int size) {
         for (int i = 0; i < size; i++) {
             if (craftingSlots.get(i) == null) {
@@ -367,32 +332,6 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             }
         }
         return -1;
-    }
-
-    private static boolean hasToolkitInInventory(@Nullable EntityPlayer player, @Nullable IGTItemHelper itemHelper) {
-        if (player == null || itemHelper == null) {
-            return false;
-        }
-
-        // 通过 IGTItemHelper 查找编程工具包
-        // 如果 itemHelper 没有提供 getProgrammableCircuitStack()，则工具包功能不可用
-        final ItemStack programmable = itemHelper.getProgrammableCircuitStack();
-        if (programmable == null) {
-            return false;
-        }
-
-        // 查找玩家背包中是否有编程工具包
-        final boolean[] found = {false};
-        itemHelper.findMetaItem("programming_toolkit", (item, meta) -> {
-            for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
-                final ItemStack invStack = player.inventory.getStackInSlot(i);
-                if (!invStack.isEmpty() && invStack.getItem() == item && invStack.getItemDamage() == meta) {
-                    found[0] = true;
-                    return;
-                }
-            }
-        });
-        return found[0];
     }
 
     @Nullable

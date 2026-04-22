@@ -131,6 +131,9 @@ public class ClientHelper extends ServerHelper {
                 .ifPresent(pattern -> Minecraft.getMinecraft().getItemColors()
                         .registerItemColorHandler(ItemSpecialEncodedPatternBakedModel.PATTERN_ITEM_COLOR_HANDLER,
                                 pattern));
+
+        // MUI 面板注册
+        appeng.client.mui.AEMUIRegistration.registerAll();
     }
 
     @SubscribeEvent

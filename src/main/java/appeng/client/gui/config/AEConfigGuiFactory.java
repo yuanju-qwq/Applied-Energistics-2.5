@@ -24,6 +24,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraftforge.fml.client.IModGuiFactory;
 
+import appeng.client.mui.config.MUIConfigGui;
+
 public class AEConfigGuiFactory implements IModGuiFactory {
 
     @Override
@@ -38,7 +40,7 @@ public class AEConfigGuiFactory implements IModGuiFactory {
      */
     @Override
     public boolean hasConfigGui() {
-        return false;
+        return true;
     }
 
     /**
@@ -57,7 +59,7 @@ public class AEConfigGuiFactory implements IModGuiFactory {
      */
     @Override
     public GuiScreen createConfigGui(GuiScreen parentScreen) {
-        return new AEConfigGui(parentScreen);
+        return new MUIConfigGui(parentScreen);
     }
 
     @Override

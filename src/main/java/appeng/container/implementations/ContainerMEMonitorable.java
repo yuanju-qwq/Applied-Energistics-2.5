@@ -31,6 +31,9 @@ import net.minecraft.inventory.IContainerListener;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidUtil;
+import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.AEApi;
@@ -63,9 +66,9 @@ import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
-import appeng.client.gui.implementations.GuiMEMonitorable;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
+import appeng.container.interfaces.IMEMonitorableGuiCallback;
 import appeng.container.slot.SlotPlayerHotBar;
 import appeng.container.slot.SlotPlayerInv;
 import appeng.container.slot.SlotRestrictedInput;
@@ -73,13 +76,17 @@ import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.core.sync.packets.PacketPinsUpdate;
+import appeng.core.sync.packets.PacketTargetFluidStack;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.fluids.util.AEFluidStack;
+import appeng.fluids.util.AEFluidStackType;
 import appeng.helpers.IPinsHandler;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.items.contents.PinList;
 import appeng.items.contents.PinsHandler;
 import appeng.items.contents.PinsHolder;
 import appeng.me.helpers.ChannelPowerSrc;
+import appeng.me.helpers.PlayerSource;
 import appeng.util.ConfigManager;
 import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
@@ -93,18 +100,26 @@ public class ContainerMEMonitorable extends AEBaseContainer
     public final IItemList<IAEItemStack> items = AEItemStackType.INSTANCE.createList();
 
     /**
-     * 澶氱被鍨?Monitor 鏄犲皠锛氭瘡绉嶅凡娉ㄥ唽鐨?IAEStackType 瀵瑰簲涓€涓?IMEMonitor銆?
-     * 鐗╁搧鍜屾祦浣擄紙浠ュ強鏈潵鎵╁睍鐨勫叾浠栫被鍨嬶級閮藉湪鍚屼竴涓粓绔腑鐩戞帶銆?
+     * 多类型 Monitor 映射：每种已注册的 IAEStackType 对应一个 IMEMonitor。
+     * 物品和流体（以及未来扩展的其他类型）都在同一个终端中监控。
      */
     private final Map<IAEStackType<?>, IMEMonitor<?>> monitors = new IdentityHashMap<>();
 
     /**
-     * 澶氱被鍨嬫洿鏂伴槦鍒楋細鏈嶅姟绔敹鍒板彉鍖栭€氱煡鍚庯紝鎸夌被鍨嬫殏瀛樺緟鍙戦€佺殑鍙樻洿銆?
+     * 多类型更新队列：服务端收到变更通知后，按类型暂存待发送的变更。
      */
     private final Map<IAEStackType<?>, Set<IAEStack<?>>> updateQueue = new IdentityHashMap<>();
 
     private final IConfigManager clientCM;
     private final ITerminalHost host;
+
+    /**
+     * 获取终端宿主实例。
+     * 用于 MUI 面板子类在不需要显式传入 host 的情况下获取 host 引用。
+     */
+    public ITerminalHost getHost() {
+        return this.host;
+    }
     @GuiSync(99)
     public boolean canAccessViewCells = false;
     @GuiSync(98)
@@ -115,13 +130,13 @@ public class ContainerMEMonitorable extends AEBaseContainer
     protected int jeiOffset = Platform.isModLoaded("jei") ? 24 : 0;
 
     /**
-     * 褰?onListUpdate 瑙﹀彂鏃舵爣璁颁负 true锛屼笅娆?detectAndSendChanges 鏃跺彂閫佸叏閲忋€?
+     * 当 onListUpdate 触发时标记为 true，下次 detectAndSendChanges 时发送全量。
      */
     private boolean needListUpdate = false;
 
-    // 鏈嶅姟绔?Pins 澶勭悊鍣?
+    // 服务端 Pins 处理器
     private PinsHandler serverPinsHandler;
-    // 鏍囪鏄惁闇€瑕佸湪涓嬫 detectAndSendChanges 鏃跺彂閫佸垵濮?Pins 鏁版嵁
+    // 标记是否需要在下次 detectAndSendChanges 时发送初始 Pins 数据
     private boolean needsInitialPinsSync = true;
 
     public ContainerMEMonitorable(final InventoryPlayer ip, final ITerminalHost monitorable) {
@@ -334,8 +349,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
                         }
                         IItemList<?> storageList = mon.getStorageList();
                         for (IAEStack<?> aes : entry.getValue()) {
-                            @SuppressWarnings("rawtypes")
-                            final IAEStack<?> send = (IAEStack<?>) ((IItemList) storageList).findPrecise(aes);
+                            final IAEStack<?> send = storageList.findPreciseGeneric(aes);
                             if (send == null) {
                                 aes.setStackSize(0);
                                 piu.appendStack(aes);
@@ -566,7 +580,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
                 }
             }
         }
-        if (this.gui instanceof GuiMEMonitorable guiMonitorable) {
+        if (this.gui instanceof IMEMonitorableGuiCallback guiMonitorable) {
             guiMonitorable.postUpdate(list);
         }
     }
@@ -655,4 +669,118 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     // endregion
+
+    // ========== 流体桶交互逻辑 ==========
+
+    @Override
+    public void doAction(final EntityPlayerMP player, final InventoryAction action, final int slot,
+            final long id) {
+        if (action == InventoryAction.FILL_ITEM || action == InventoryAction.EMPTY_ITEM) {
+            doFluidBucketAction(player, action, slot, id);
+            return;
+        }
+        super.doAction(player, action, slot, id);
+    }
+
+    /**
+     * 处理流体桶的装/取操作。
+     * <p>
+     * FILL_ITEM：从网络提取流体，装入玩家手持的桶/容器。
+     * EMPTY_ITEM：从玩家手持的桶/容器中提取流体，注入网络。
+     */
+    private void doFluidBucketAction(final EntityPlayerMP player, final InventoryAction action,
+            final int slot, final long id) {
+        @SuppressWarnings("unchecked")
+        final IMEMonitor<IAEFluidStack> fluidMonitor =
+                (IMEMonitor<IAEFluidStack>) this.monitors.get(AEFluidStackType.INSTANCE);
+        if (fluidMonitor == null) {
+            return;
+        }
+
+        final ItemStack held = player.inventory.getItemStack();
+        if (held.isEmpty()) {
+            return;
+        }
+
+        final IActionSource src = new PlayerSource(player, (IActionHost) this.host);
+        final IAEFluidStack targetFluid = this.getTargetFluidStack();
+
+        if (action == InventoryAction.FILL_ITEM) {
+            if (targetFluid != null) {
+                final IAEFluidStack extracted = fluidMonitor.extractItems(
+                        targetFluid, Actionable.SIMULATE, src);
+                if (extracted != null) {
+                    final FluidStack fluidStack = extracted.getFluidStack();
+                    final IFluidHandlerItem fh = FluidUtil.getFluidHandler(held);
+                    if (fh != null) {
+                        final int filled = fh.fill(fluidStack, true);
+                        if (filled > 0) {
+                            final IAEFluidStack toExtract = targetFluid.copy();
+                            toExtract.setStackSize(filled);
+                            fluidMonitor.extractItems(toExtract, Actionable.MODULATE, src);
+                            player.inventory.setItemStack(fh.getContainer());
+                            this.updateHeld(player);
+                        }
+                    }
+                }
+            }
+        } else if (action == InventoryAction.EMPTY_ITEM) {
+            final IFluidHandlerItem fh = FluidUtil.getFluidHandler(held);
+            if (fh != null) {
+                final FluidStack drained = fh.drain(Integer.MAX_VALUE, false);
+                if (drained != null && drained.amount > 0) {
+                    final IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(drained);
+                    final IAEFluidStack notInserted = fluidMonitor.injectItems(aeFluid, Actionable.SIMULATE, src);
+                    if (notInserted == null || notInserted.getStackSize() == 0) {
+                        fh.drain(drained.amount, true);
+                        fluidMonitor.injectItems(aeFluid, Actionable.MODULATE, src);
+                        player.inventory.setItemStack(fh.getContainer());
+                        this.updateHeld(player);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Shift-click 传输时，如果手持流体容器（桶），自动执行 EMPTY_ITEM 操作。
+     */
+    @Override
+    public ItemStack transferStackInSlot(final EntityPlayer player, final int idx) {
+        if (Platform.isClient()) {
+            return ItemStack.EMPTY;
+        }
+
+        if (player instanceof EntityPlayerMP playerMP) {
+            final Slot clickedSlot = this.inventorySlots.get(idx);
+            if (clickedSlot != null && clickedSlot.getHasStack()) {
+                final ItemStack tis = clickedSlot.getStack();
+                final IFluidHandlerItem fh = FluidUtil.getFluidHandler(tis.copy());
+                if (fh != null) {
+                    final FluidStack drained = fh.drain(Integer.MAX_VALUE, false);
+                    if (drained != null && drained.amount > 0) {
+                        @SuppressWarnings("unchecked")
+                        final IMEMonitor<IAEFluidStack> fluidMonitor =
+                                (IMEMonitor<IAEFluidStack>) this.monitors.get(
+                                        AEFluidStackType.INSTANCE);
+                        if (fluidMonitor != null) {
+                            final IActionSource src = new PlayerSource(playerMP, (IActionHost) this.host);
+                            final IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(drained);
+                            final IAEFluidStack notInserted = fluidMonitor.injectItems(
+                                    aeFluid, Actionable.SIMULATE, src);
+                            if (notInserted == null || notInserted.getStackSize() == 0) {
+                                fh.drain(drained.amount, true);
+                                fluidMonitor.injectItems(aeFluid, Actionable.MODULATE, src);
+                                clickedSlot.putStack(fh.getContainer());
+                                this.detectAndSendChanges();
+                                return ItemStack.EMPTY;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return super.transferStackInSlot(player, idx);
+    }
 }

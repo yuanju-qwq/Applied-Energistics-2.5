@@ -72,37 +72,25 @@ public interface ICraftingPatternDetails {
 
     /**
      * 获取原始输入（支持物品+流体等多种类型），包含 null 占位以保持槽位位置一致。
-     * 默认委托到 {@link #getInputs()}。
      */
-    default IAEStack<?>[] getAEInputs() {
-        return getInputs();
-    }
+    IAEStack<?>[] getAEInputs();
 
     /**
      * 获取精简后的输入（支持物品+流体等多种类型），合并相同栈，不含 null。
-     * 默认委托到 {@link #getCondensedInputs()}。
      */
-    default IAEStack<?>[] getCondensedAEInputs() {
-        return getCondensedInputs();
-    }
+    IAEStack<?>[] getCondensedAEInputs();
 
     /**
      * 获取精简后的输出（支持物品+流体等多种类型），合并相同栈，不含 null。
-     * 默认委托到 {@link #getCondensedOutputs()}。
      */
-    default IAEStack<?>[] getCondensedAEOutputs() {
-        return getCondensedOutputs();
-    }
+    IAEStack<?>[] getCondensedAEOutputs();
 
     /**
      * 获取原始输出（支持物品+流体等多种类型）。
-     * 默认委托到 {@link #getOutputs()}。
      */
-    default IAEStack<?>[] getAEOutputs() {
-        return getOutputs();
-    }
+    IAEStack<?>[] getAEOutputs();
 
-    // ========== 旧版物品类型方法（已弃用，保留向后兼容） ==========
+    // ========== 旧版物品类型方法（已弃用，默认从泛型方法转换） ==========
 
     /**
      * 获取原始输入（物品类型），包含 null 占位以保持槽位位置一致。
@@ -110,7 +98,9 @@ public interface ICraftingPatternDetails {
      * @deprecated 使用 {@link #getAEInputs()} 替代
      */
     @Deprecated
-    IAEItemStack[] getInputs();
+    default IAEItemStack[] getInputs() {
+        return filterItemStacks(getAEInputs());
+    }
 
     /**
      * 获取精简后的输入（物品类型），合并相同物品，不含 null。
@@ -118,7 +108,9 @@ public interface ICraftingPatternDetails {
      * @deprecated 使用 {@link #getCondensedAEInputs()} 替代
      */
     @Deprecated
-    IAEItemStack[] getCondensedInputs();
+    default IAEItemStack[] getCondensedInputs() {
+        return filterItemStacks(getCondensedAEInputs());
+    }
 
     /**
      * 获取精简后的输出（物品类型），合并相同物品，不含 null。
@@ -126,7 +118,9 @@ public interface ICraftingPatternDetails {
      * @deprecated 使用 {@link #getCondensedAEOutputs()} 替代
      */
     @Deprecated
-    IAEItemStack[] getCondensedOutputs();
+    default IAEItemStack[] getCondensedOutputs() {
+        return filterItemStacks(getCondensedAEOutputs());
+    }
 
     /**
      * 获取原始输出（物品类型）。
@@ -134,7 +128,22 @@ public interface ICraftingPatternDetails {
      * @deprecated 使用 {@link #getAEOutputs()} 替代
      */
     @Deprecated
-    IAEItemStack[] getOutputs();
+    default IAEItemStack[] getOutputs() {
+        return filterItemStacks(getAEOutputs());
+    }
+
+    /**
+     * 从泛型栈数组中过滤出物品类型的栈，保持数组大小和 null 位置。
+     */
+    static IAEItemStack[] filterItemStacks(IAEStack<?>[] stacks) {
+        IAEItemStack[] result = new IAEItemStack[stacks.length];
+        for (int i = 0; i < stacks.length; i++) {
+            if (stacks[i] instanceof IAEItemStack) {
+                result[i] = (IAEItemStack) stacks[i];
+            }
+        }
+        return result;
+    }
 
     /**
      * 是否允许使用替代材料。

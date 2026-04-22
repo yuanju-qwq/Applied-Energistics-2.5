@@ -48,6 +48,7 @@ import appeng.core.crash.IntegrationCrashEnhancement;
 import appeng.core.crash.ModCrashEnhancement;
 import appeng.core.features.AEFeature;
 import appeng.core.stats.AdvancementTriggers;
+import appeng.core.sync.AEGuiHandler;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.worlddata.WorldData;
@@ -229,7 +230,7 @@ public final class AppEng {
 
         NonBlockingItems.INSTANCE.init();
 
-        NetworkRegistry.INSTANCE.registerGuiHandler(this, GuiBridge.GUI_Handler);
+        NetworkRegistry.INSTANCE.registerGuiHandler(this, AEGuiHandler.INSTANCE);
         NetworkHandler.init("AE2");
 
         AELog.info("Post Initialization ( ended after " + start.elapsed(TimeUnit.MILLISECONDS) + "ms )");
