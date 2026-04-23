@@ -49,6 +49,7 @@ import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
 import appeng.api.util.IConfigManager;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.IInterfaceLogicHost;
@@ -312,8 +313,14 @@ public class TileMEInterface extends AENetworkInvTile
     }
 
     @Override
+    public AEGuiKey getGuiKey() {
+        // TODO: 等 B4（Container/GUI）完成后替换为 GUI_ME_INTERFACE
+        return AEGuiKeys.INTERFACE;
+    }
+
+    @Override
     public GuiBridge getGuiBridge() {
         // TODO: 等 B4（Container/GUI）完成后替换为 GUI_ME_INTERFACE
-        return AEGuiKeys.INTERFACE.getLegacyBridge();
+        return getGuiKey().getLegacyBridge();
     }
 }

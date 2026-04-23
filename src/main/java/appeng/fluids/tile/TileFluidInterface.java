@@ -46,6 +46,7 @@ import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
 import appeng.api.util.IConfigManager;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.DualityFluidInterface;
@@ -180,7 +181,12 @@ public class TileFluidInterface extends AENetworkTile
     }
 
     @Override
+    public AEGuiKey getGuiKey() {
+        return AEGuiKeys.FLUID_INTERFACE;
+    }
+
+    @Override
     public GuiBridge getGuiBridge() {
-        return AEGuiKeys.FLUID_INTERFACE.getLegacyBridge();
+        return getGuiKey().getLegacyBridge();
     }
 }

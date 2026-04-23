@@ -45,6 +45,7 @@ import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
 import appeng.api.util.IConfigManager;
 import appeng.core.localization.PlayerMessages;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.DualityFluidInterface;
@@ -323,8 +324,13 @@ public class TileDualInterface extends AENetworkInvTile
     }
 
     @Override
+    public AEGuiKey getGuiKey() {
+        return AEGuiKeys.DUAL_ITEM_INTERFACE;
+    }
+
+    @Override
     public GuiBridge getGuiBridge() {
-        return AEGuiKeys.DUAL_ITEM_INTERFACE.getLegacyBridge();
+        return getGuiKey().getLegacyBridge();
     }
 
     public IFluidHandler getFluidInventoryByName(final String name) {

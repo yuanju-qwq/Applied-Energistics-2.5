@@ -67,6 +67,7 @@ import appeng.api.util.IConfigManager;
 import appeng.capabilities.Capabilities;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.IPriorityHost;
@@ -611,8 +612,13 @@ public class PartStorageBus extends PartUpgradeable
     }
 
     @Override
+    public AEGuiKey getGuiKey() {
+        return AEGuiKeys.STORAGE_BUS;
+    }
+
+    @Override
     public GuiBridge getGuiBridge() {
-        return AEGuiKeys.STORAGE_BUS.getLegacyBridge();
+        return getGuiKey().getLegacyBridge();
     }
 
     // TODO: 1/28/2024 Unify both methods.

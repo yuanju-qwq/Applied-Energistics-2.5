@@ -62,6 +62,7 @@ import appeng.api.util.AECableType;
 import appeng.api.util.IConfigManager;
 import appeng.core.AppEng;
 import appeng.core.localization.PlayerMessages;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.DualityInterface;
@@ -303,8 +304,13 @@ public class PartInterface extends PartBasicState implements IGridTickable, ISto
     }
 
     @Override
+    public AEGuiKey getGuiKey() {
+        return AEGuiKeys.INTERFACE;
+    }
+
+    @Override
     public GuiBridge getGuiBridge() {
-        return AEGuiKeys.INTERFACE.getLegacyBridge();
+        return getGuiKey().getLegacyBridge();
     }
 
     @Override

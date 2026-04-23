@@ -64,6 +64,7 @@ import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEColor;
 import appeng.api.util.IConfigManager;
 import appeng.capabilities.Capabilities;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.util.AEFluidStack;
@@ -783,17 +784,23 @@ public class TileChest extends AENetworkPowerTile
     }
 
     @Override
-    public GuiBridge getGuiBridge() {
+    public AEGuiKey getGuiKey() {
         this.updateHandler();
         if (this.cellHandler != null) {
             if (this.cellHandler.getStackType() == AEItemStackType.INSTANCE) {
-                return AEGuiKeys.ME_TERMINAL.getLegacyBridge();
+                return AEGuiKeys.ME_TERMINAL;
             }
             if (this.cellHandler.getStackType() == AEFluidStackType.INSTANCE) {
-                return AEGuiKeys.ME_TERMINAL.getLegacyBridge();
+                return AEGuiKeys.ME_TERMINAL;
             }
         }
         return null;
+    }
+
+    @Override
+    public GuiBridge getGuiBridge() {
+        final AEGuiKey key = getGuiKey();
+        return key != null ? key.getLegacyBridge() : null;
     }
 
 }

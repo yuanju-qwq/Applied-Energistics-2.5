@@ -43,6 +43,7 @@ import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.IPriorityHost;
@@ -306,7 +307,12 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
     }
 
     @Override
+    public AEGuiKey getGuiKey() {
+        return AEGuiKeys.DRIVE;
+    }
+
+    @Override
     public GuiBridge getGuiBridge() {
-        return AEGuiKeys.DRIVE.getLegacyBridge();
+        return getGuiKey().getLegacyBridge();
     }
 }
