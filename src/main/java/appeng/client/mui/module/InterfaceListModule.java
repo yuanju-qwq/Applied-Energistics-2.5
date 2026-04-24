@@ -54,7 +54,7 @@ import appeng.core.AppEng;
 import appeng.core.localization.ButtonToolTips;
 import appeng.core.localization.GuiText;
 import appeng.core.localization.PlayerMessages;
-import appeng.helpers.DualityInterface;
+import appeng.helpers.PatternProviderLogic;
 import appeng.helpers.PatternHelper;
 import appeng.util.BlockPosUtils;
 import appeng.util.Platform;
@@ -937,7 +937,7 @@ public class InterfaceListModule {
 
         if (o == null) {
             this.byId.put(id,
-                    o = new ClientDCInternalInv(DualityInterface.NUMBER_OF_PATTERN_SLOTS, id, sortBy, string));
+                    o = new ClientDCInternalInv(PatternProviderLogic.NUMBER_OF_PATTERN_SLOTS, id, sortBy, string));
             this.refreshList = true;
         }
 

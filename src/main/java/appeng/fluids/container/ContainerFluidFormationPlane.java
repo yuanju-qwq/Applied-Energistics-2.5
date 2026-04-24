@@ -5,12 +5,13 @@ import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.SecurityPermissions;
 import appeng.api.config.Upgrades;
-import appeng.api.storage.data.IAEFluidStack;
+import appeng.container.implementations.ContainerUpgradeable;
 import appeng.container.slot.SlotRestrictedInput;
 import appeng.fluids.parts.PartFluidFormationPlane;
-import appeng.fluids.util.IAEFluidTank;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.util.Platform;
 
-public class ContainerFluidFormationPlane extends ContainerFluidConfigurable {
+public class ContainerFluidFormationPlane extends ContainerUpgradeable {
     private final PartFluidFormationPlane plane;
 
     public ContainerFluidFormationPlane(final InventoryPlayer ip, final PartFluidFormationPlane te) {
@@ -21,11 +22,6 @@ public class ContainerFluidFormationPlane extends ContainerFluidConfigurable {
     @Override
     protected int getHeight() {
         return 251;
-    }
-
-    @Override
-    public IAEFluidTank getFluidConfigInventory() {
-        return this.plane.getConfig();
     }
 
     @Override
@@ -55,21 +51,23 @@ public class ContainerFluidFormationPlane extends ContainerFluidConfigurable {
     @Override
     public void detectAndSendChanges() {
         this.verifyPermissions(SecurityPermissions.BUILD, false);
-        this.checkToolbox();
-        this.standardDetectAndSendChanges();
-    }
 
-    @Override
-    protected boolean isValidForConfig(int slot, IAEFluidStack fs) {
-        if (this.supportCapacity()) {
-            final int upgrades = this.getUpgradeable().getInstalledUpgrades(Upgrades.CAPACITY);
-
-            final int y = slot / 9;
-
-            return y < upgrades + 2;
+        if (Platform.isServer()) {
+            // Clear config slots that exceed current capacity (e.g. capacity upgrade removed)
+            final IAEStackInventory cfg = this.getConfig();
+            if (cfg != null) {
+                final int upgrades = this.getUpgradeable().getInstalledUpgrades(Upgrades.CAPACITY);
+                final int maxSlots = 18 + (9 * upgrades);
+                for (int i = maxSlots; i < cfg.getSizeInventory(); i++) {
+                    if (cfg.getAEStackInSlot(i) != null) {
+                        cfg.putAEStackInSlot(i, null);
+                    }
+                }
+            }
         }
 
-        return true;
+        this.checkToolbox();
+        this.standardDetectAndSendChanges();
     }
 
     @Override

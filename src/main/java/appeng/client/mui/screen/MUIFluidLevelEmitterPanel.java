@@ -24,6 +24,8 @@ import net.minecraft.client.gui.GuiButton;
 
 import appeng.api.config.RedstoneMode;
 import appeng.api.config.Settings;
+import appeng.api.storage.data.IAEStackType;
+import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiNumberBox;
 import appeng.core.AEConfig;
@@ -31,20 +33,19 @@ import appeng.core.AELog;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
-import appeng.fluids.client.gui.widgets.GuiFluidSlot;
 import appeng.fluids.container.ContainerFluidLevelEmitter;
-import appeng.fluids.parts.PartFluidLevelEmitter;
+import appeng.fluids.util.AEFluidStackType;
+import appeng.tile.inventory.IAEStackInventory;
 
 /**
  * MUI 版流体级别发射器 GUI 面板。
  *
  * 包含数字输入框（阈值设置，单位为 millibucket）、±增减按钮、
- * 红石发射模式按钮，以及 1 个 GuiFluidSlot 配置槽。
+ * 红石发射模式按钮，以及 1 个 VirtualMEPhantomSlot 配置槽（fluid-only）。
  */
 public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
 
     private final ContainerFluidLevelEmitter container;
-    private final PartFluidLevelEmitter levelEmitter;
 
     // ========== 数字输入框 ==========
     private GuiNumberBox level;
@@ -62,7 +63,6 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
     public MUIFluidLevelEmitterPanel(final ContainerFluidLevelEmitter container) {
         super(container);
         this.container = container;
-        this.levelEmitter = (PartFluidLevelEmitter) container.getTarget();
     }
 
     // ========== 初始化 ==========
@@ -80,9 +80,15 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
         this.level.setFocused(true);
         this.container.setTextField(this.level);
 
+        // VirtualMEPhantomSlot for fluid config (fluid-only)
         final int y = 40;
         final int x = 80 + 44;
-        this.guiSlots.add(new GuiFluidSlot(this.levelEmitter.getConfig(), 0, 0, x, y));
+        final IAEStackInventory configInv = this.container.getConfig();
+        this.guiSlots.add(new VirtualMEPhantomSlot(0, x, y, configInv, 0, this::acceptType));
+    }
+
+    private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
+        return type == AEFluidStackType.INSTANCE;
     }
 
     // ========== 按钮管理 ==========

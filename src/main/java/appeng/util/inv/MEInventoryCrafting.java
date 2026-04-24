@@ -32,7 +32,7 @@ import appeng.api.storage.data.IAEStack;
  * <p>
  * 这样做的目的是让合成执行链路能够在保持与 MC 原生 {@link InventoryCrafting} 兼容的同时，
  * 携带完整的泛型栈信息（物品/流体等），使下游的 {@code ICraftingMedium} 实现
- * 可以通过强转来获取原始的 {@link IAEStack}，从而避免对 {@code ItemFluidDrop} 的依赖。
+ * Can be cast to obtain the original {@link IAEStack}, avoiding dependency on {@code FluidDummyItem}.
  * <p>
  * 对于不感知此扩展的消费者，它的行为与普通 {@link InventoryCrafting} 完全一致，
  * 父类槽位中会存放经过适当转换后的 {@link ItemStack}。

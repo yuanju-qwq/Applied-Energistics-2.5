@@ -42,7 +42,6 @@ import appeng.helpers.WirelessTerminalGuiObject;
 /**
  * MUI 版无线合成终端面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiWirelessCraftingTerminal}。
  * 继承 {@link MUIMEMonitorablePanel}，添加 3×3 合成网格 + 清除按钮 +
  * 无线升级图标 + 终端模式切换按钮。
  */

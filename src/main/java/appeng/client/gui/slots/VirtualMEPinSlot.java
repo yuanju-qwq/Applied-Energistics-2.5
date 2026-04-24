@@ -21,35 +21,55 @@ package appeng.client.gui.slots;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
+
+import org.lwjgl.opengl.GL11;
 
 import appeng.api.storage.data.IAEStack;
+import appeng.core.AppEng;
 import appeng.items.contents.PinList;
 
 /**
- * Pins 区域使用的虚拟槽位。
+ * Virtual slot for the terminal Pin (pin/favorite) area.
  * <p>
- * 从 {@link PinList} 中按索引获取被钉选的栈。
- * Pins 槽位始终显示数量，且标记有特殊背景。
+ * Displays pinned items from {@link PinList} with a tinted background and
+ * a semi-transparent pin icon overlay.
  */
 public class VirtualMEPinSlot extends VirtualMESlot {
 
-    private final PinList pinList;
-    private final boolean isCraftingPin;
+    // Pin icon location in states.png: row 5 (0-indexed), column 14
+    private static final int PIN_ICON_INDEX = 5 * 16 + 14;
+    private static final int UV_Y = PIN_ICON_INDEX / 16;
+    private static final int UV_X = PIN_ICON_INDEX - UV_Y * 16;
+    private static final int ICON_SIZE = 16;
+    private static final int SLOT_SIZE = 18;
+    private static final float PIN_ICON_OPACITY = 0.4f;
+    private static final ResourceLocation TEXTURE = new ResourceLocation(AppEng.MOD_ID, "textures/guis/states.png");
 
-    /**
-     * @param id        槽位 ID
-     * @param x         屏幕 X 坐标
-     * @param y         屏幕 Y 坐标
-     * @param pinList   Pins 数据来源
-     * @param slotIndex 在 PinList 中的索引
-     */
-    public VirtualMEPinSlot(int id, int x, int y, PinList pinList, int slotIndex) {
-        super(id, x, y, slotIndex);
+    // Background colors (ARGB)
+    private static final int CRAFTING_PIN_BG = 0x30FF6600;
+    private static final int PLAYER_PIN_BG = 0x300066FF;
+
+    private final PinList pinList;
+    private final boolean isCraftingSlot;
+
+    public VirtualMEPinSlot(int x, int y, PinList pinList, int slotIndex, boolean isCraftingSlot) {
+        super(-1, x, y, slotIndex);
         this.pinList = pinList;
-        this.isCraftingPin = slotIndex < PinList.PLAYER_OFFSET;
+        this.isCraftingSlot = isCraftingSlot;
         this.showAmountAlways = true;
         this.showCraftableText = true;
+        this.showCraftableIcon = true;
+    }
+
+    public boolean isCraftingSlot() {
+        return this.isCraftingSlot;
     }
 
     @Override
@@ -58,37 +78,69 @@ public class VirtualMEPinSlot extends VirtualMESlot {
         return this.pinList.getPin(this.slotIndex);
     }
 
-    /**
-     * @return 是否为合成 Pin（false = 玩家手动 Pin）
-     */
-    public boolean isCraftingPin() {
-        return this.isCraftingPin;
+    @Override
+    public boolean isVisible() {
+        return true;
     }
 
     @Override
-    public void drawContent(Minecraft mc, int mouseX, int mouseY, float partialTicks) {
-        IAEStack<?> stack = this.getAEStack();
-        if (stack == null) {
+    public void slotClicked(final ItemStack clickStack, final int mouseButton) {
+        // Pin slots do not handle normal clicks; pin/unpin is handled by the panel
+    }
+
+    /**
+     * Draw tinted backgrounds and pin icon overlays for all given pin slots.
+     */
+    public static void drawSlotsBackground(VirtualMEPinSlot[] slots, Minecraft mc, float z) {
+        if (slots == null || slots.length == 0) {
             return;
         }
 
-        // 绘制特殊背景色以区分 Pin 区域
-        GlStateManager.disableLighting();
-        GlStateManager.disableDepth();
-
-        if (this.isCraftingPin) {
-            // 合成 Pin：淡蓝色背景
-            drawRect(this.xPos(), this.yPos(), this.xPos() + 16, this.yPos() + 16, 0x1800AAFF);
-        } else {
-            // 玩家 Pin：淡绿色背景
-            drawRect(this.xPos(), this.yPos(), this.xPos() + 16, this.yPos() + 16, 0x1800FF00);
+        // Draw colored backgrounds
+        for (VirtualMEPinSlot slot : slots) {
+            int color = slot.isCraftingSlot() ? CRAFTING_PIN_BG : PLAYER_PIN_BG;
+            if (color != 0) {
+                Gui.drawRect(
+                        slot.xPos() - 1,
+                        slot.yPos() - 1,
+                        slot.xPos() - 1 + SLOT_SIZE,
+                        slot.yPos() - 1 + SLOT_SIZE,
+                        color);
+            }
         }
 
-        GlStateManager.enableDepth();
-        GlStateManager.enableLighting();
+        // Draw semi-transparent pin icons
+        GlStateManager.pushAttrib();
+        GlStateManager.enableBlend();
+        GlStateManager.disableLighting();
+        GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
 
-        // 调用父类绘制图标和数量
-        this.drawStackIcon(mc, stack, this.xPos(), this.yPos());
-        this.drawStackOverlay(mc, stack, this.xPos(), this.yPos());
+        GlStateManager.enableTexture2D();
+        mc.getTextureManager().bindTexture(TEXTURE);
+
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.getBuffer();
+        buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX_COLOR);
+
+        for (VirtualMEPinSlot slot : slots) {
+            final double x = slot.xPos();
+            final double y = slot.yPos();
+            final double uvX = UV_X * 16;
+            final double uvY = UV_Y * 16;
+            final double f = 1.0 / 256.0;
+            int alpha = (int) (PIN_ICON_OPACITY * 255);
+
+            buffer.pos(x, y + ICON_SIZE, z).tex((uvX) * f, (uvY + ICON_SIZE) * f)
+                    .color(255, 255, 255, alpha).endVertex();
+            buffer.pos(x + ICON_SIZE, y + ICON_SIZE, z).tex((uvX + ICON_SIZE) * f, (uvY + ICON_SIZE) * f)
+                    .color(255, 255, 255, alpha).endVertex();
+            buffer.pos(x + ICON_SIZE, y, z).tex((uvX + ICON_SIZE) * f, (uvY) * f)
+                    .color(255, 255, 255, alpha).endVertex();
+            buffer.pos(x, y, z).tex((uvX) * f, (uvY) * f)
+                    .color(255, 255, 255, alpha).endVertex();
+        }
+
+        tessellator.draw();
+        GlStateManager.popAttrib();
     }
 }

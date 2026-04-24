@@ -190,7 +190,10 @@ public enum ButtonToolTips {
 
     CombineMode,
     CombineModeYes,
-    CombineModeNo;
+    CombineModeNo,
+
+    Pins,
+    PinsDesc;
 
     private final String root;
 

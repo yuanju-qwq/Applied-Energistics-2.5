@@ -49,7 +49,6 @@ import appeng.util.Platform;
 /**
  * MUI 版网络状态 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiNetworkStatus}。
  * 显示 ME 网络中所有设备的概览（5列×4行网格），包括：
  * <ul>
  *   <li>存储功率 / 最大功率</li>

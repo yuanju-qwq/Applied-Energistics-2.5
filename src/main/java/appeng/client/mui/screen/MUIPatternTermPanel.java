@@ -62,7 +62,6 @@ import appeng.util.item.AEItemStackType;
 /**
  * MUI 版样板终端面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiPatternTerm}。
  * 继承 {@link MUIMEMonitorablePanel}，增加样板编码功能：
  * <ul>
  *   <li>合成/处理双模式切换</li>

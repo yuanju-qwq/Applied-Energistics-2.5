@@ -63,6 +63,9 @@ import appeng.fluids.util.AEFluidStackType;
 import appeng.fluids.util.AENetworkFluidInventory;
 import appeng.fluids.util.IAEFluidInventory;
 import appeng.fluids.util.IAEFluidTank;
+import appeng.helpers.iface.IInterfaceSlotHandler;
+import appeng.helpers.iface.InterfaceSlotContext;
+import appeng.helpers.iface.InterfaceSlotHandlerRegistry;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.MachineSource;
@@ -103,7 +106,7 @@ import appeng.util.item.AEItemStackType;
 public class InterfaceLogic
         implements IGridTickable, IStorageMonitorable, IInventoryDestination, IAEAppEngInventory,
         IConfigManagerHost, IUpgradeableHost, IConfigurableFluidInventory, IAEFluidInventory,
-        IIAEStackInventory {
+        IIAEStackInventory, InterfaceSlotContext {
 
     // ========== 常量 ==========
     public static final int NUMBER_OF_CONFIG_SLOTS = 18;
@@ -147,6 +150,7 @@ public class InterfaceLogic
     private final MultiCraftingTracker craftingTracker;
 
     // --- 状态 ---
+    private final java.util.Set<IAEStackType<?>> configuredTypes = new java.util.HashSet<>();
     private boolean hasItemConfig = false;
     private boolean hasFluidConfig = false;
     private int isWorkingSlot = -1;
@@ -283,10 +287,10 @@ public class InterfaceLogic
                 this.gridProxy.getTick().alertDevice(this.gridProxy.getNode());
             } catch (GridAccessException ignored) {
             }
-            // 容量升级变化时，重算所有流体槽的 Plan
+            // Capacity upgrade change: recalculate plans for types that depend on capacity
             for (int x = 0; x < NUMBER_OF_CONFIG_SLOTS; x++) {
                 IAEStack<?> cfg = this.config.getAEStackInSlot(x);
-                if (cfg instanceof IAEFluidStack) {
+                if (cfg != null && InterfaceSlotHandlerRegistry.hasHandler(cfg.getStackTypeBase())) {
                     this.updatePlan(x);
                 }
             }
@@ -345,13 +349,18 @@ public class InterfaceLogic
     private void readConfig() {
         this.hasItemConfig = false;
         this.hasFluidConfig = false;
+        this.configuredTypes.clear();
 
         for (int i = 0; i < NUMBER_OF_CONFIG_SLOTS; i++) {
             IAEStack<?> cfg = this.config.getAEStackInSlot(i);
-            if (cfg instanceof IAEItemStack) {
-                this.hasItemConfig = true;
-            } else if (cfg instanceof IAEFluidStack) {
-                this.hasFluidConfig = true;
+            if (cfg != null) {
+                IAEStackType<?> type = cfg.getStackTypeBase();
+                this.configuredTypes.add(type);
+                if (type == AEItemStackType.INSTANCE) {
+                    this.hasItemConfig = true;
+                } else if (type == AEFluidStackType.INSTANCE) {
+                    this.hasFluidConfig = true;
+                }
             }
         }
 
@@ -376,15 +385,20 @@ public class InterfaceLogic
 
     // ========== Plan 计划（统一） ==========
 
+    @SuppressWarnings("unchecked")
     private void updatePlan(final int slot) {
         final IAEStack<?> cfg = this.config.getAEStackInSlot(slot);
 
-        if (cfg instanceof IAEItemStack itemCfg) {
-            updateItemPlan(slot, itemCfg);
-        } else if (cfg instanceof IAEFluidStack fluidCfg) {
-            updateFluidPlan(slot, fluidCfg);
+        if (cfg != null) {
+            // Dispatch to the registered handler for this type
+            IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(cfg);
+            if (handler != null) {
+                this.requireWork[slot] = handler.computePlan(slot, cfg, this);
+            } else {
+                this.requireWork[slot] = null;
+            }
         } else {
-            // Config 为空：清理 Storage 中残留的物品和流体
+            // Config is empty: clean up any residual items or fluids in this slot
             final ItemStack storedItem = this.itemStorage.getStackInSlot(slot);
             final IAEFluidStack storedFluid = this.fluidTanks.getFluidInSlot(slot);
 
@@ -400,70 +414,27 @@ public class InterfaceLogic
         }
     }
 
-    // --- 物品 Plan ---
-    private void updateItemPlan(final int slot, IAEItemStack req) {
-        if (req.getStackSize() <= 0) {
-            this.config.putAEStackInSlot(slot, null);
-            // 递归重算（此时 cfg 变为 null，走清理逻辑）
-            this.updatePlan(slot);
-            return;
-        }
-
-        final ItemStack stored = this.itemStorage.getStackInSlot(slot);
-
-        if (stored.isEmpty()) {
-            this.requireWork[slot] = req.copy();
-        } else if (req.isSameType(stored)) {
-            if (req.getStackSize() == stored.getCount()) {
-                this.requireWork[slot] = null;
-            } else {
-                this.requireWork[slot] = req.copy();
-                ((IAEItemStack) this.requireWork[slot]).setStackSize(req.getStackSize() - stored.getCount());
-            }
-        } else {
-            // 类型不匹配：先退回旧物品
-            final IAEItemStack work = AEItemStackType.INSTANCE.createStack(stored);
-            this.requireWork[slot] = work.setStackSize(-work.getStackSize());
-        }
-    }
-
-    // --- 流体 Plan ---
-    private void updateFluidPlan(final int slot, IAEFluidStack req) {
-        final IAEFluidStack stored = this.fluidTanks.getFluidInSlot(slot);
-        final int tankSize = getFluidTankCapacity();
-
-        if (stored == null || stored.getStackSize() == 0) {
-            this.requireWork[slot] = req.copy();
-            ((IAEFluidStack) this.requireWork[slot]).setStackSize(tankSize);
-        } else if (req.equals(stored)) {
-            if (stored.getStackSize() == tankSize) {
-                this.requireWork[slot] = null;
-            } else {
-                this.requireWork[slot] = req.copy();
-                ((IAEFluidStack) this.requireWork[slot]).setStackSize(tankSize - stored.getStackSize());
-            }
-        } else {
-            // 类型不匹配：先退回旧流体
-            final IAEFluidStack work = stored.copy();
-            this.requireWork[slot] = work.setStackSize(-work.getStackSize());
-        }
-    }
-
     private int getFluidTankCapacity() {
         return (int) (Math.pow(4, this.getInstalledUpgrades(Upgrades.CAPACITY) + 1) * Fluid.BUCKET_VOLUME);
     }
 
     // ========== Storage 执行 ==========
 
+    @SuppressWarnings("unchecked")
     private boolean updateStorage() {
         boolean didSomething = false;
 
         for (int x = 0; x < NUMBER_OF_CONFIG_SLOTS; x++) {
             if (this.requireWork[x] != null) {
-                if (this.requireWork[x] instanceof IAEItemStack itemWork) {
-                    didSomething = this.useItemPlan(x, itemWork) || didSomething;
-                } else if (this.requireWork[x] instanceof IAEFluidStack) {
-                    didSomething = this.useFluidPlan(x) || didSomething;
+                IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(this.requireWork[x]);
+                if (handler != null) {
+                    this.isWorkingSlot = x;
+                    boolean changed = handler.executePlan(x, this.requireWork[x], this);
+                    if (changed) {
+                        this.updatePlan(x);
+                    }
+                    this.isWorkingSlot = -1;
+                    didSomething = didSomething || changed;
                 }
             }
         }
@@ -471,162 +442,90 @@ public class InterfaceLogic
         return didSomething;
     }
 
-    private boolean useItemPlan(final int x, final IAEItemStack itemStack) {
-        final InventoryAdaptor adaptor = this.getItemAdaptor(x);
-        this.isWorkingSlot = x;
+    // ========== InterfaceSlotContext Implementation ==========
 
-        boolean changed = false;
-        try {
-            this.destination = this.gridProxy.getStorage().getInventory(AEItemStackType.INSTANCE);
-            final IEnergySource src = this.gridProxy.getEnergy();
-
-            if (itemStack.getStackSize() < 0) {
-                IAEItemStack toStore = itemStack.copy();
-                toStore.setStackSize(-toStore.getStackSize());
-                long diff = toStore.getStackSize();
-
-                final ItemStack canExtract = adaptor.simulateRemove((int) diff, toStore.getDefinition(), null);
-                if (canExtract.isEmpty()) {
-                    changed = true;
-                    throw new GridAccessException();
-                }
-
-                toStore = appeng.util.StorageHelper.poweredInsert(src, this.destination, toStore,
-                        this.interfaceRequestSource);
-                if (toStore != null) {
-                    diff -= toStore.getStackSize();
-                }
-
-                if (diff != 0) {
-                    changed = true;
-                    final ItemStack removed = adaptor.removeItems((int) diff, ItemStack.EMPTY, null);
-                    if (removed.isEmpty()) {
-                        throw new IllegalStateException("bad attempt at managing inventory. ( removeItems )");
-                    }
-                }
-            }
-
-            if (this.craftingTracker.isBusy(x)) {
-                changed = this.handleCrafting(x, adaptor, itemStack) || changed;
-            } else if (itemStack.getStackSize() > 0) {
-                ItemStack inputStack = itemStack.getCachedItemStack(itemStack.getStackSize());
-                ItemStack remaining = adaptor.simulateAdd(inputStack);
-
-                if (!remaining.isEmpty()) {
-                    itemStack.setCachedItemStack(remaining);
-                    changed = true;
-                    throw new GridAccessException();
-                }
-
-                IAEItemStack storedStack = this.gridProxy.getStorage()
-                        .getInventory(AEItemStackType.INSTANCE)
-                        .getStorageList().findPrecise(itemStack);
-                if (storedStack != null) {
-                    final IAEItemStack acquired = appeng.util.StorageHelper.poweredExtraction(src, this.destination,
-                            itemStack, this.interfaceRequestSource);
-                    if (acquired != null) {
-                        changed = true;
-                        inputStack.setCount(Ints.saturatedCast(acquired.getStackSize()));
-                        final ItemStack issue = adaptor.addItems(inputStack);
-                        if (!issue.isEmpty()) {
-                            throw new IllegalStateException("bad attempt at managing inventory. ( addItems )");
-                        }
-                    } else if (storedStack.isCraftable()) {
-                        itemStack.setCachedItemStack(inputStack);
-                        changed = this.handleCrafting(x, adaptor, itemStack) || changed;
-                    }
-                    if (acquired == null) {
-                        itemStack.setCachedItemStack(inputStack);
-                    }
-                }
-            }
-        } catch (final GridAccessException e) {
-            // :P
-        }
-
-        if (changed) {
-            this.updatePlan(x);
-        }
-
-        this.isWorkingSlot = -1;
-        return changed;
+    @Override
+    public AENetworkProxy getProxy() {
+        return this.gridProxy;
     }
 
-    private boolean useFluidPlan(final int slot) {
-        IAEFluidStack work = (IAEFluidStack) this.requireWork[slot];
-        this.isWorkingSlot = slot;
-
-        boolean changed = false;
-        try {
-            final IMEInventory<IAEFluidStack> dest = this.gridProxy.getStorage()
-                    .getInventory(AEFluidStackType.INSTANCE);
-            final IEnergySource src = this.gridProxy.getEnergy();
-
-            if (work.getStackSize() > 0) {
-                if (this.fluidTanks.fill(slot, work.getFluidStack(), false) != work.getStackSize()) {
-                    changed = true;
-                } else if (this.gridProxy.getStorage()
-                        .getInventory(AEFluidStackType.INSTANCE)
-                        .getStorageList().findPrecise(work) != null) {
-                    final IAEFluidStack acquired = appeng.util.StorageHelper.poweredExtraction(src, dest, work,
-                            this.interfaceRequestSource);
-                    if (acquired != null) {
-                        changed = true;
-                        final int filled = this.fluidTanks.fill(slot, acquired.getFluidStack(), true);
-                        if (filled != acquired.getStackSize()) {
-                            throw new IllegalStateException("bad attempt at managing tanks. ( fill )");
-                        }
-                    }
-                }
-            } else if (work.getStackSize() < 0) {
-                IAEFluidStack toStore = work.copy();
-                toStore.setStackSize(-toStore.getStackSize());
-
-                final FluidStack canExtract = this.fluidTanks.drain(slot, toStore.getFluidStack(), false);
-                if (canExtract == null || canExtract.amount != toStore.getStackSize()) {
-                    changed = true;
-                } else {
-                    IAEFluidStack notStored = appeng.util.StorageHelper.poweredInsert(src, dest, toStore,
-                            this.interfaceRequestSource);
-                    toStore.setStackSize(
-                            toStore.getStackSize() - (notStored == null ? 0 : notStored.getStackSize()));
-
-                    if (toStore.getStackSize() > 0) {
-                        changed = true;
-                        final FluidStack removed = this.fluidTanks.drain(slot, toStore.getFluidStack(), true);
-                        if (removed == null || toStore.getStackSize() != removed.amount) {
-                            throw new IllegalStateException("bad attempt at managing tanks. ( drain )");
-                        }
-                    }
-                }
-            }
-        } catch (final GridAccessException e) {
-            // :P
-        }
-
-        if (changed) {
-            this.updatePlan(slot);
-        }
-
-        this.isWorkingSlot = -1;
-        return changed;
+    @Override
+    public IActionSource getRequestSource() {
+        return this.interfaceRequestSource;
     }
 
-    private InventoryAdaptor getItemAdaptor(final int slot) {
+    @Override
+    public IActionSource getActionSource() {
+        return this.mySource;
+    }
+
+    @Override
+    public int getPriority() {
+        return this.priority;
+    }
+
+    @Override
+    public net.minecraft.world.World getWorld() {
+        return this.iHost.getTileEntity().getWorld();
+    }
+
+    @Override
+    public IItemHandler getItemStorage() {
+        return this.itemStorage;
+    }
+
+    @Override
+    public AdaptorItemHandler getItemAdaptor(int slot) {
         return new AdaptorItemHandler(((AppEngNetworkInventory) this.itemStorage).getBufferWrapper(slot));
     }
 
-    private boolean handleCrafting(final int x, final InventoryAdaptor d, final IAEItemStack itemStack) {
+    @Override
+    public IAEFluidTank getFluidTanks() {
+        return this.fluidTanks;
+    }
+
+    @Override
+    public boolean handleCrafting(int slot, IAEStack<?> stack) {
         try {
-            if (this.getInstalledUpgrades(Upgrades.CRAFTING) > 0 && itemStack != null) {
-                return this.craftingTracker.handleCrafting(x, itemStack.getStackSize(), itemStack, d,
-                        this.iHost.getTileEntity().getWorld(), this.gridProxy.getGrid(), this.gridProxy.getCrafting(),
-                        this.mySource);
+            if (this.getInstalledUpgrades(Upgrades.CRAFTING) > 0 && stack != null) {
+                // Determine if the physical storage has room for the crafted result.
+                // Each stack type uses a different storage model.
+                final boolean hasSpace;
+                if (stack instanceof IAEItemStack) {
+                    final AdaptorItemHandler adaptor = this.getItemAdaptor(slot);
+                    final ItemStack inputStack = ((IAEItemStack) stack).createItemStack();
+                    hasSpace = adaptor.simulateAdd(inputStack).isEmpty();
+                } else if (stack instanceof IAEFluidStack) {
+                    final IAEFluidTank tanks = this.getFluidTanks();
+                    final FluidStack fluidStack = ((IAEFluidStack) stack).getFluidStack();
+                    hasSpace = tanks.fill(slot, fluidStack, false) == fluidStack.amount;
+                } else {
+                    // Unknown type: assume space is available, let the system handle it
+                    hasSpace = true;
+                }
+                return this.craftingTracker.handleCrafting(slot, stack.getStackSize(), stack,
+                        hasSpace, this.iHost.getTileEntity().getWorld(), this.gridProxy.getGrid(),
+                        this.gridProxy.getCrafting(), this.mySource);
             }
         } catch (final GridAccessException e) {
             // :P
         }
         return false;
+    }
+
+    @Override
+    public boolean isCraftingBusy(int slot) {
+        return this.craftingTracker.isBusy(slot);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends IAEStack<T>> IMEMonitor<T> getNetworkInventory(IAEStackType<T> type) {
+        try {
+            return this.gridProxy.getStorage().getInventory(type);
+        } catch (final GridAccessException e) {
+            return (IMEMonitor<T>) new NullInventory<>();
+        }
     }
 
     // ========== IGridTickable ==========
@@ -660,24 +559,32 @@ public class InterfaceLogic
     // ========== IStorageMonitorable ==========
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
-        if (type == AEItemStackType.INSTANCE) {
-            if (this.hasItemConfig()) {
-                if (resetItemConfigCache) {
-                    resetItemConfigCache = false;
-                    itemConfigCachedHandler = new ItemInterfaceInventory(this);
+        // Check if there's a config for this type and use handler-provided monitor
+        if (this.configuredTypes.contains(type)) {
+            IInterfaceSlotHandler<T> handler = InterfaceSlotHandlerRegistry.getHandler(type);
+            if (handler != null) {
+                if (type == AEItemStackType.INSTANCE) {
+                    if (resetItemConfigCache) {
+                        resetItemConfigCache = false;
+                        itemConfigCachedHandler = (IMEMonitor<IAEItemStack>) handler.createConfiguredMonitor(this);
+                    }
+                    return (IMEMonitor<T>) itemConfigCachedHandler;
+                } else if (type == AEFluidStackType.INSTANCE) {
+                    if (resetFluidConfigCache) {
+                        resetFluidConfigCache = false;
+                        fluidConfigCachedHandler = (IMEMonitor<IAEFluidStack>) handler.createConfiguredMonitor(this);
+                    }
+                    return (IMEMonitor<T>) fluidConfigCachedHandler;
                 }
-                return (IMEMonitor<T>) itemConfigCachedHandler;
             }
+        }
+
+        // No config for this type: pass through to network
+        if (type == AEItemStackType.INSTANCE) {
             return (IMEMonitor<T>) this.items;
         } else if (type == AEFluidStackType.INSTANCE) {
-            if (this.hasFluidConfig()) {
-                if (resetFluidConfigCache) {
-                    resetFluidConfigCache = false;
-                    fluidConfigCachedHandler = new FluidInterfaceInventory(this);
-                }
-                return (IMEMonitor<T>) fluidConfigCachedHandler;
-            }
             return (IMEMonitor<T>) this.fluids;
         }
         return null;
@@ -947,61 +854,4 @@ public class InterfaceLogic
         }
     }
 
-    // ========== 内部类：物品配置模式的 MEInventory 包装 ==========
-
-    private static class ItemInterfaceInventory extends appeng.me.storage.MEMonitorIInventoryHandler {
-        ItemInterfaceInventory(final InterfaceLogic logic) {
-            super(logic.itemStorage);
-        }
-
-        @Override
-        public IAEItemStack injectItems(final IAEItemStack input, final Actionable type, final IActionSource src) {
-            final Optional<InterfaceRequestContext> context = src.context(InterfaceRequestContext.class);
-            final boolean isInterface = context.isPresent();
-            if (isInterface) {
-                return input;
-            }
-            return super.injectItems(input, type, src);
-        }
-
-        @Override
-        public IAEItemStack extractItems(final IAEItemStack request, final Actionable type, final IActionSource src) {
-            final Optional<InterfaceRequestContext> context = src.context(InterfaceRequestContext.class);
-            final boolean hasLowerOrEqualPriority = context
-                    .map(c -> c.compareTo(0) <= 0).orElse(false);
-            if (hasLowerOrEqualPriority) {
-                return null;
-            }
-            return super.extractItems(request, type, src);
-        }
-    }
-
-    // ========== 内部类：流体配置模式的 MEInventory 包装 ==========
-
-    private class FluidInterfaceInventory extends MEMonitorIFluidHandler {
-        FluidInterfaceInventory(final InterfaceLogic logic) {
-            super(logic.fluidTanks);
-        }
-
-        @Override
-        public IAEFluidStack injectItems(final IAEFluidStack input, final Actionable type, final IActionSource src) {
-            final Optional<InterfaceRequestContext> context = src.context(InterfaceRequestContext.class);
-            final boolean isInterface = context.isPresent();
-            if (isInterface) {
-                return input;
-            }
-            return super.injectItems(input, type, src);
-        }
-
-        @Override
-        public IAEFluidStack extractItems(final IAEFluidStack request, final Actionable type, final IActionSource src) {
-            final Optional<InterfaceRequestContext> context = src.context(InterfaceRequestContext.class);
-            final boolean hasLowerOrEqualPriority = context
-                    .map(c -> c.compareTo(InterfaceLogic.this.priority) <= 0).orElse(false);
-            if (hasLowerOrEqualPriority) {
-                return null;
-            }
-            return super.extractItems(request, type, src);
-        }
-    }
 }

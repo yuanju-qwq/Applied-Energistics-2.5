@@ -55,23 +55,23 @@ import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.parts.IPart;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.StorageName;
+import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.me.SlotME;
 import appeng.container.guisync.GuiSync;
 import appeng.container.guisync.SyncData;
-import appeng.container.implementations.ContainerInterface;
+import appeng.container.implementations.ContainerPatternProvider;
 import appeng.container.slot.*;
 import appeng.container.slot.SlotRestrictedInput.PlacableItemType;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
-import appeng.core.sync.packets.PacketTargetFluidStack;
-import appeng.core.sync.packets.PacketTargetItemStack;
 import appeng.core.sync.packets.PacketValueConfig;
-import appeng.fluids.util.AEFluidStack;
 import appeng.fluids.items.FluidDummyItem;
+import appeng.fluids.util.AEFluidStack;
+import appeng.fluids.util.AEFluidStackType;
 import appeng.helpers.ICustomNameObject;
 import appeng.helpers.InventoryAction;
 import appeng.me.helpers.PlayerSource;
@@ -100,8 +100,10 @@ public abstract class AEBaseContainer extends Container {
     private IEnergySource powerSrc;
     private boolean sentCustomName;
     private int ticksSinceCheck = 900;
-    private IAEItemStack clientRequestedTargetItem = null;
-    private IAEFluidStack clientRequestedTargetFluid = null;
+    /**
+     * Unified target stack for all types. Replaces the old separate item/fluid fields.
+     */
+    private IAEStack<?> clientRequestedTargetStack = null;
 
     public AEBaseContainer(final InventoryPlayer ip, final TileEntity myTile, final IPart myPart) {
         this(ip, myTile, myPart, null);
@@ -188,59 +190,64 @@ public abstract class AEBaseContainer extends Container {
         this.prepareSync();
     }
 
+    /**
+     * @deprecated Use {@link #getTargetGenericStack()} for type-agnostic access.
+     */
+    @Deprecated
     public IAEItemStack getTargetStack() {
-        return this.clientRequestedTargetItem;
+        return this.clientRequestedTargetStack instanceof IAEItemStack item ? item : null;
     }
 
+    /**
+     * @deprecated Use {@link #setTargetStack(IAEStack)} instead.
+     */
+    @Deprecated
     public void setTargetStack(final IAEItemStack stack) {
-        // client doesn't need to re-send, makes for lower overhead rapid packets.
-        if (Platform.isClient()) {
-            if (stack == null && this.clientRequestedTargetItem == null) {
-                return;
-            }
-            if (stack != null && stack.isSameType(this.clientRequestedTargetItem)) {
-                return;
-            }
-
-            NetworkHandler.instance().sendToServer(new PacketTargetItemStack((AEItemStack) stack));
-        }
-
-        this.clientRequestedTargetItem = stack == null ? null : stack.copy();
-        if (stack != null) {
-            this.clientRequestedTargetFluid = null;
-        }
+        this.setTargetStack((IAEStack<?>) stack);
     }
 
+    /**
+     * @deprecated Use {@link #getTargetGenericStack()} for type-agnostic access.
+     */
+    @Deprecated
     public IAEFluidStack getTargetFluidStack() {
-        return this.clientRequestedTargetFluid;
+        return this.clientRequestedTargetStack instanceof IAEFluidStack fluid ? fluid : null;
     }
 
+    /**
+     * @deprecated Use {@link #setTargetStack(IAEStack)} instead.
+     */
+    @Deprecated
     public void setTargetStack(final IAEFluidStack stack) {
-        if (Platform.isClient()) {
-            if (stack == null && this.clientRequestedTargetFluid == null) {
-                return;
-            }
-            if (stack != null && this.clientRequestedTargetFluid != null
-                    && stack.getFluidStack().isFluidEqual(this.clientRequestedTargetFluid.getFluidStack())) {
-                return;
-            }
-
-            final AEFluidStack packetStack = stack == null ? null : AEFluidStack.fromFluidStack(stack.getFluidStack());
-            NetworkHandler.instance().sendToServer(new PacketTargetFluidStack(packetStack));
-        }
-
-        this.clientRequestedTargetFluid = stack == null ? null : stack.copy();
-        if (stack != null) {
-            this.clientRequestedTargetItem = null;
-        }
+        this.setTargetStack((IAEStack<?>) stack);
     }
 
+    /**
+     * Get the current target stack of any type.
+     */
+    public IAEStack<?> getTargetGenericStack() {
+        return this.clientRequestedTargetStack;
+    }
+
+    /**
+     * Set the target stack (any type). On client side, sends {@link PacketTargetStack} to server.
+     * Skips sending if the stack is unchanged.
+     */
     public void setTargetStack(final IAEStack<?> stack) {
-        if (stack instanceof IAEItemStack itemStack) {
-            this.setTargetStack(itemStack);
-        } else if (stack instanceof IAEFluidStack fluidStack) {
-            this.setTargetStack(fluidStack);
+        if (Platform.isClient()) {
+            if (stack == null && this.clientRequestedTargetStack == null) {
+                return;
+            }
+            if (stack != null && this.clientRequestedTargetStack != null
+                    && stack.isSameType(this.clientRequestedTargetStack)) {
+                return;
+            }
+
+            NetworkHandler.instance()
+                    .sendToServer(new appeng.core.sync.packets.PacketTargetStack(stack));
         }
+
+        this.clientRequestedTargetStack = stack == null ? null : stack.copy();
     }
 
     public IActionSource getActionSource() {
@@ -399,7 +406,7 @@ public abstract class AEBaseContainer extends Container {
             }
 
             IItemDefinition expansionCard = AEApi.instance().definitions().materials().cardPatternExpansion();
-            ContainerInterface casted;
+            ContainerPatternProvider casted;
 
             final List<Slot> selectedSlots = new ArrayList<>();
 
@@ -410,8 +417,8 @@ public abstract class AEBaseContainer extends Container {
                 tis = this.transferStackToContainer(tis);
 
                 if (!tis.isEmpty()) {
-                    if (this instanceof ContainerInterface && expansionCard.isSameAs(tis)
-                            && (casted = (ContainerInterface) this).getPatternUpgrades() == casted.availableUpgrades()
+                    if (this instanceof ContainerPatternProvider && expansionCard.isSameAs(tis)
+                            && (casted = (ContainerPatternProvider) this).getPatternUpgrades() == casted.availableUpgrades()
                                     - 1) {
                         return ItemStack.EMPTY; // Don't insert more pattern expansions than maximum useful
                     }
@@ -541,8 +548,8 @@ public abstract class AEBaseContainer extends Container {
 
                                 if ((d instanceof SlotRestrictedInput && ((SlotRestrictedInput) d)
                                         .getPlaceableItemType() == PlacableItemType.ENCODED_PATTERN) ||
-                                        (this instanceof ContainerInterface && expansionCard.isSameAs(tis)
-                                                && (casted = (ContainerInterface) this)
+                                        (this instanceof ContainerPatternProvider && expansionCard.isSameAs(tis)
+                                                && (casted = (ContainerPatternProvider) this)
                                                         .getPatternUpgrades() == casted.availableUpgrades() - 1)) {
                                     break; // Only insert one pattern when shift-clicking into interfaces, and don't
                                            // insert more pattern expansions than maximum useful
@@ -734,8 +741,8 @@ public abstract class AEBaseContainer extends Container {
         }
 
         // get target stack.
-        final IAEItemStack slotItem = this.clientRequestedTargetItem;
-        final IAEFluidStack slotFluid = this.clientRequestedTargetFluid;
+        final IAEItemStack slotItem = this.getTargetStack();
+        final IAEFluidStack slotFluid = this.getTargetFluidStack();
 
         switch (action) {
             case SHIFT_CLICK:
@@ -973,7 +980,9 @@ public abstract class AEBaseContainer extends Container {
             case SET_ITEM_PIN:
             case SET_CONTAINER_PIN:
             case UNSET_PIN:
-                // Pins 操作（预留，需在 ContainerMEMonitorable 等子类中实现）
+                if (this instanceof appeng.container.implementations.ContainerMEMonitorable monContainer) {
+                    monContainer.handlePinAction(action, this.getTargetGenericStack());
+                }
                 break;
             default:
                 break;
@@ -991,55 +1000,57 @@ public abstract class AEBaseContainer extends Container {
         for (int i = 0; i < heldAmount; i++) {
             final ItemStack copiedFluidContainer = held.copy();
             copiedFluidContainer.setCount(1);
-            final var fluidHandler = FluidUtil.getFluidHandler(copiedFluidContainer);
-            if (fluidHandler == null) {
-                return;
-            }
 
-            final IAEFluidStack request = slotFluid.copy();
-            request.setStackSize(Integer.MAX_VALUE);
-            final int amountAllowed = fluidHandler.fill(request.getFluidStack(), false);
-            if (amountAllowed <= 0) {
+            // Simulate: see how much the container can accept
+            final IAEFluidStack fillRequest = slotFluid.copy();
+            fillRequest.setStackSize(Integer.MAX_VALUE);
+            final ContainerInteractionResult<IAEFluidStack> simFill =
+                    AEFluidStackType.INSTANCE.fillToContainer(copiedFluidContainer, fillRequest, true);
+            if (!simFill.isSuccess()) {
                 return;
             }
 
             final IAEFluidStack canPull = appeng.util.StorageHelper.poweredExtraction(
                     this.getPowerSource(),
                     this.getFluidCellInventory(),
-                    request.setStackSize(amountAllowed),
+                    slotFluid.copy().setStackSize(simFill.getTransferred().getStackSize()),
                     this.getActionSource(),
                     Actionable.SIMULATE);
             if (canPull == null || canPull.getStackSize() < 1) {
                 return;
             }
 
-            final int canFill = fluidHandler.fill(canPull.getFluidStack(), false);
-            if (canFill <= 0) {
+            // Re-simulate with the actual available amount
+            final ContainerInteractionResult<IAEFluidStack> simFill2 =
+                    AEFluidStackType.INSTANCE.fillToContainer(copiedFluidContainer, canPull, true);
+            if (!simFill2.isSuccess()) {
                 return;
             }
 
             final IAEFluidStack pulled = appeng.util.StorageHelper.poweredExtraction(
                     this.getPowerSource(),
                     this.getFluidCellInventory(),
-                    request.setStackSize(canFill),
+                    slotFluid.copy().setStackSize(simFill2.getTransferred().getStackSize()),
                     this.getActionSource());
             if (pulled == null || pulled.getStackSize() < 1) {
                 AELog.error("Unable to pull fluid out of the ME system even though the simulation said yes");
                 return;
             }
 
-            final int used = fluidHandler.fill(pulled.getFluidStack(), true);
-            if (used != canFill) {
+            // Actually fill
+            final ContainerInteractionResult<IAEFluidStack> actualFill =
+                    AEFluidStackType.INSTANCE.fillToContainer(copiedFluidContainer, pulled, false);
+            if (!actualFill.isSuccess()) {
                 AELog.error("Fluid item [%s] reported a different possible amount than it actually accepted.",
                         held.getDisplayName());
             }
 
             if (held.getCount() == 1) {
-                player.inventory.setItemStack(fluidHandler.getContainer());
+                player.inventory.setItemStack(actualFill.getResultContainer());
             } else {
                 player.inventory.getItemStack().shrink(1);
-                if (!player.inventory.addItemStackToInventory(fluidHandler.getContainer())) {
-                    player.dropItem(fluidHandler.getContainer(), false);
+                if (!player.inventory.addItemStackToInventory(actualFill.getResultContainer())) {
+                    player.dropItem(actualFill.getResultContainer(), false);
                 }
             }
         }
@@ -1058,58 +1069,60 @@ public abstract class AEBaseContainer extends Container {
         for (int i = 0; i < heldAmount; i++) {
             final ItemStack copiedFluidContainer = held.copy();
             copiedFluidContainer.setCount(1);
-            final var fluidHandler = FluidUtil.getFluidHandler(copiedFluidContainer);
-            if (fluidHandler == null) {
+
+            // Simulate drain
+            final ContainerInteractionResult<IAEFluidStack> simDrain =
+                    AEFluidStackType.INSTANCE.drainFromContainer(copiedFluidContainer, Integer.MAX_VALUE, true);
+            if (!simDrain.isSuccess()) {
                 return;
             }
 
-            final FluidStack extract = fluidHandler.drain(Integer.MAX_VALUE, false);
-            if (extract == null || extract.amount < 1) {
-                return;
-            }
-
+            // Simulate insert into ME
             final IAEFluidStack notStorable = appeng.util.StorageHelper.poweredInsert(
                     this.getPowerSource(),
                     this.getFluidCellInventory(),
-                    AEFluidStack.fromFluidStack(extract),
+                    simDrain.getTransferred(),
                     this.getActionSource(),
                     Actionable.SIMULATE);
 
+            long toDrain = simDrain.getTransferred().getStackSize();
             if (notStorable != null && notStorable.getStackSize() > 0) {
-                final int toStore = (int) (extract.amount - notStorable.getStackSize());
-                final FluidStack storable = fluidHandler.drain(toStore, false);
-                if (storable == null || storable.amount == 0) {
+                toDrain -= notStorable.getStackSize();
+                if (toDrain <= 0) {
                     return;
                 }
-                extract.amount = storable.amount;
             }
 
-            final FluidStack drained = fluidHandler.drain(extract, true);
-            if (drained == null || drained.amount <= 0) {
+            // Actually drain
+            final ContainerInteractionResult<IAEFluidStack> actualDrain =
+                    AEFluidStackType.INSTANCE.drainFromContainer(copiedFluidContainer, toDrain, false);
+            if (!actualDrain.isSuccess()) {
                 return;
             }
-            extract.amount = drained.amount;
 
+            // Insert into ME
             final IAEFluidStack notInserted = appeng.util.StorageHelper.poweredInsert(
                     this.getPowerSource(),
                     this.getFluidCellInventory(),
-                    AEFluidStack.fromFluidStack(extract),
+                    actualDrain.getTransferred(),
                     this.getActionSource());
 
             if (notInserted != null && notInserted.getStackSize() > 0) {
                 final IAEFluidStack spill = this.getFluidCellInventory()
                         .injectItems(notInserted, Actionable.MODULATE, this.getActionSource());
                 if (spill != null && spill.getStackSize() > 0) {
-                    fluidHandler.fill(spill.getFluidStack(), true);
+                    // Attempt to put spilled fluid back into the container
+                    AEFluidStackType.INSTANCE.fillToContainer(
+                            actualDrain.getResultContainer(), spill, false);
                 }
             }
 
             if (held.getCount() == 1) {
-                player.inventory.setItemStack(fluidHandler.getContainer());
+                player.inventory.setItemStack(actualDrain.getResultContainer());
             } else {
                 player.inventory.getItemStack().shrink(1);
-                if (!player.inventory.addItemStackToInventory(fluidHandler.getContainer())) {
-                    player.dropItem(fluidHandler.getContainer(), false);
+                if (!player.inventory.addItemStackToInventory(actualDrain.getResultContainer())) {
+                    player.dropItem(actualDrain.getResultContainer(), false);
                 }
             }
         }
@@ -1398,7 +1411,8 @@ public abstract class AEBaseContainer extends Container {
 
     // ---- 虚拟槽位同步机制（服务端 → 客户端）----
 
-    private boolean needsFullVirtualSync = true;
+    private final java.util.EnumSet<StorageName> fullSyncPending =
+            java.util.EnumSet.allOf(StorageName.class);
 
     /**
      * 在服务端 detectAndSendChanges 中调用，将 {@link appeng.tile.inventory.IAEStackInventory}
@@ -1413,17 +1427,17 @@ public abstract class AEBaseContainer extends Container {
     protected void updateVirtualSlots(StorageName invName,
             appeng.tile.inventory.IAEStackInventory inventory,
             IAEStack<?>[] clientSlotsStacks) {
+        final boolean needsFull = fullSyncPending.remove(invName);
         var list = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<IAEStack<?>>();
         for (int i = 0; i < inventory.getSizeInventory(); ++i) {
             IAEStack<?> aes = inventory.getAEStackInSlot(i);
             IAEStack<?> aesClient = clientSlotsStacks[i];
 
-            if (needsFullVirtualSync || !appeng.util.AEStackSerialization.isStacksIdentical(aes, aesClient)) {
+            if (needsFull || !appeng.util.AEStackSerialization.isStacksIdentical(aes, aesClient)) {
                 list.put(i, aes);
                 clientSlotsStacks[i] = aes != null ? aes.copy() : null;
             }
         }
-        needsFullVirtualSync = false;
 
         if (!list.isEmpty()) {
             for (final IContainerListener listener : this.listeners) {

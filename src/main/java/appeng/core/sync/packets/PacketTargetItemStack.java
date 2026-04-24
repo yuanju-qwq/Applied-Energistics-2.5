@@ -29,6 +29,11 @@ import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.network.INetworkInfo;
 import appeng.util.item.AEItemStack;
 
+/**
+ * @deprecated Use {@link PacketTargetStack} instead, which supports all stack types.
+ *             Kept for backward compatibility with older clients/servers.
+ */
+@Deprecated
 public class PacketTargetItemStack extends AppEngPacket {
     private AEItemStack stack;
 

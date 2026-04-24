@@ -18,39 +18,28 @@
 
 package appeng.client.render;
 
-import java.math.RoundingMode;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.GlStateManager;
 
-import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
+import appeng.client.render.stack.AEStackTypeRendererRegistry;
+import appeng.client.render.stack.IAEStackTypeRenderer;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
-import appeng.util.ISlimReadableNumberConverter;
-import appeng.util.IWideReadableNumberConverter;
-import appeng.util.ReadableNumberConverter;
 
 public class AEStackSizeRenderer {
-    private static final String[] FLUID_NUMBER_FORMATS = new String[] { "#.000", "#.00", "#.0", "#" };
-
-    private static final ISlimReadableNumberConverter SLIM_CONVERTER = ReadableNumberConverter.INSTANCE;
-    private static final IWideReadableNumberConverter WIDE_CONVERTER = ReadableNumberConverter.INSTANCE;
 
     public void renderStackSize(FontRenderer fontRenderer, Object stack, int xPos, int yPos) {
-        if (stack instanceof IAEItemStack) {
-            renderStackSizeInternal(fontRenderer, (IAEItemStack) stack, xPos, yPos);
-        } else if (stack instanceof IAEFluidStack) {
-            renderStackSizeInternal(fontRenderer, (IAEFluidStack) stack, xPos, yPos);
+        if (stack instanceof IAEStack<?> aeStack) {
+            renderStackSizeInternal(fontRenderer, aeStack, xPos, yPos);
         }
     }
 
-    private <T> void renderStackSizeInternal(FontRenderer fontRenderer, T stack, int xPos, int yPos) {
-        if (stack == null)
+    private void renderStackSizeInternal(FontRenderer fontRenderer, IAEStack<?> stack, int xPos, int yPos) {
+        if (stack == null) {
             return;
+        }
 
         final float scaleFactor = AEConfig.instance().useTerminalUseLargeFont() ? 0.85f : 0.5f;
         final float inverseScaleFactor = 1.0f / scaleFactor;
@@ -60,33 +49,19 @@ public class AEStackSizeRenderer {
         fontRenderer.setUnicodeFlag(false);
 
         try {
-            boolean isCraftable = false;
-            long stackSize = 0;
-            boolean isFluid = false;
-
-            if (stack instanceof IAEItemStack) {
-                IAEItemStack itemStack = (IAEItemStack) stack;
-                isCraftable = itemStack.isCraftable();
-                stackSize = itemStack.getStackSize();
-            } else if (stack instanceof IAEFluidStack) {
-                IAEFluidStack fluidStack = (IAEFluidStack) stack;
-                isCraftable = fluidStack.isCraftable();
-                stackSize = fluidStack.getStackSize();
-                isFluid = true;
-            }
+            boolean isCraftable = stack.isCraftable();
+            long stackSize = stack.getStackSize();
+            boolean largeFont = AEConfig.instance().useTerminalUseLargeFont();
 
             String displayText;
 
             if ((stackSize == 0 || GuiScreen.isAltKeyDown()) && isCraftable) {
-                displayText = AEConfig.instance().useTerminalUseLargeFont()
+                displayText = largeFont
                         ? GuiText.LargeFontCraft.getLocal()
                         : GuiText.SmallFontCraft.getLocal();
             } else if (stackSize > 0) {
-                if (isFluid) {
-                    displayText = getFluidStackSizeText(stackSize);
-                } else {
-                    displayText = getItemStackSizeText(stackSize);
-                }
+                IAEStackTypeRenderer renderer = AEStackTypeRendererRegistry.getRenderer(stack);
+                displayText = renderer.formatStackSize(stackSize, largeFont);
             } else {
                 return;
             }
@@ -96,50 +71,6 @@ public class AEStackSizeRenderer {
         } finally {
             fontRenderer.setUnicodeFlag(unicodeFlag);
         }
-    }
-
-    private String getItemStackSizeText(final long originalSize) {
-        if (AEConfig.instance().useTerminalUseLargeFont()) {
-            return SLIM_CONVERTER.toSlimReadableForm(originalSize);
-        } else {
-            return WIDE_CONVERTER.toWideReadableForm(originalSize);
-        }
-    }
-
-    private String getFluidStackSizeText(final long originalSize) {
-        if (originalSize < 1000 * 100 && AEConfig.instance().useTerminalUseLargeFont()) {
-            return getSlimFluidStackSize(originalSize);
-        } else if (originalSize < 1000 * 1000 && !AEConfig.instance().useTerminalUseLargeFont()) {
-            return getWideFluidStackSize(originalSize);
-        }
-
-        if (AEConfig.instance().useTerminalUseLargeFont()) {
-            return SLIM_CONVERTER.toSlimReadableForm(originalSize / 1000);
-        } else {
-            return WIDE_CONVERTER.toWideReadableForm(originalSize / 1000);
-        }
-    }
-
-    private String getSlimFluidStackSize(final long originalSize) {
-        final int log = 1 + (int) Math.floor(Math.log10(originalSize)) / 2;
-        return getFormattedFluidStackSize(originalSize, log);
-    }
-
-    private String getWideFluidStackSize(final long originalSize) {
-        final int log = (int) Math.floor(Math.log10(originalSize)) / 2;
-        return getFormattedFluidStackSize(originalSize, log);
-    }
-
-    private String getFormattedFluidStackSize(final long originalSize, final int log) {
-        final int index = Math.max(0, Math.min(3, log));
-
-        final DecimalFormatSymbols symbols = new DecimalFormatSymbols();
-        symbols.setDecimalSeparator('.');
-        final DecimalFormat format = new DecimalFormat(FLUID_NUMBER_FORMATS[index]);
-        format.setDecimalFormatSymbols(symbols);
-        format.setRoundingMode(RoundingMode.DOWN);
-
-        return format.format(originalSize / 1000d);
     }
 
     private void renderText(FontRenderer fontRenderer, String text, int xPos, int yPos,

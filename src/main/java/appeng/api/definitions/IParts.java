@@ -65,7 +65,7 @@ public interface IParts {
 
     IItemDefinition fluidIface();
 
-    IItemDefinition dualIface();
+    IItemDefinition patternProvider();
 
     IItemDefinition levelEmitter();
 

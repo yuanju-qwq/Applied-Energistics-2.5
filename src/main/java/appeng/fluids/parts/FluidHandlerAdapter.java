@@ -41,6 +41,7 @@ import appeng.fluids.util.AEFluidStackType;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.IGridProxyable;
 import appeng.me.storage.ITickingMonitor;
+import appeng.parts.misc.AbstractPartStorageBus;
 
 /**
  * Wraps an Fluid Handler in such a way that it can be used as an IMEInventory for fluids.
@@ -50,7 +51,7 @@ import appeng.me.storage.ITickingMonitor;
  * @since rv6 22/05/2018
  */
 public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMonitor<IAEFluidStack>, ITickingMonitor {
-    private final Map<IMEMonitorHandlerReceiver<IAEFluidStack>, Object> listeners = new HashMap<>();
+    private final Map<IMEMonitorHandlerReceiver<? super IAEFluidStack>, Object> listeners = new HashMap<>();
     private IActionSource source;
     private final IFluidHandler fluidHandler;
     private final IGridProxyable proxyable;
@@ -61,10 +62,10 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
     FluidHandlerAdapter(IFluidHandler fluidHandler, IGridProxyable proxy) {
         this.fluidHandler = fluidHandler;
         this.proxyable = proxy;
-        if (this.proxyable instanceof PartFluidStorageBus) {
-            PartFluidStorageBus partFluidStorageBus = (PartFluidStorageBus) this.proxyable;
-            this.mode = ((StorageFilter) partFluidStorageBus.getConfigManager().getSetting(Settings.STORAGE_FILTER));
-            this.access = ((AccessRestriction) partFluidStorageBus.getConfigManager().getSetting(Settings.ACCESS));
+        if (this.proxyable instanceof AbstractPartStorageBus) {
+            AbstractPartStorageBus<?> partStorageBus = (AbstractPartStorageBus<?>) this.proxyable;
+            this.mode = ((StorageFilter) partStorageBus.getConfigManager().getSetting(Settings.STORAGE_FILTER));
+            this.access = ((AccessRestriction) partStorageBus.getConfigManager().getSetting(Settings.ACCESS));
         }
         this.cache = new InventoryCache(this.fluidHandler, this.mode);
         this.cache.update();
@@ -154,23 +155,24 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
     }
 
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<IAEFluidStack> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver<? super IAEFluidStack> l, final Object verificationToken) {
         this.listeners.put(l, verificationToken);
     }
 
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<IAEFluidStack> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver<? super IAEFluidStack> l) {
         this.listeners.remove(l);
     }
 
+    @SuppressWarnings("unchecked")
     private void postDifference(Iterable<IAEFluidStack> a) {
-        final Iterator<Map.Entry<IMEMonitorHandlerReceiver<IAEFluidStack>, Object>> i = this.listeners.entrySet()
+        final Iterator<Map.Entry<IMEMonitorHandlerReceiver<? super IAEFluidStack>, Object>> i = this.listeners.entrySet()
                 .iterator();
         while (i.hasNext()) {
-            final Map.Entry<IMEMonitorHandlerReceiver<IAEFluidStack>, Object> l = i.next();
-            final IMEMonitorHandlerReceiver<IAEFluidStack> key = l.getKey();
+            final Map.Entry<IMEMonitorHandlerReceiver<? super IAEFluidStack>, Object> l = i.next();
+            final IMEMonitorHandlerReceiver<? super IAEFluidStack> key = l.getKey();
             if (key.isValid(l.getValue())) {
-                key.postChange(this, a, this.source);
+                ((IMEMonitorHandlerReceiver) key).postChange(this, a, this.source);
             } else {
                 i.remove();
             }

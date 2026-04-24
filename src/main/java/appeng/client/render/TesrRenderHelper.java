@@ -201,14 +201,27 @@ public class TesrRenderHelper {
     }
 
     /**
-     * 泛型版本：根据栈的实际类型分发到物品或流体渲染方法。
+     * Generic version: dispatch to the corresponding type's render method via the renderer registry.
      */
     public static void renderStack2dWithAmount(IAEStack<?> stack, float scale, float spacing) {
-        if (stack instanceof IAEItemStack itemStack) {
-            renderItem2dWithAmount(itemStack, scale, spacing);
-        } else if (stack instanceof IAEFluidStack fluidStack) {
-            renderFluid2dWithAmount(fluidStack, scale, spacing);
-        }
+        appeng.client.render.stack.AEStackTypeRendererRegistry.getRenderer(stack)
+                .render2dWithAmount(stack, scale, spacing);
+    }
+
+    /**
+     * Generic version: dispatch to the corresponding type's 2D render method via the renderer registry.
+     */
+    public static void renderStack2d(IAEStack<?> stack, float scale) {
+        appeng.client.render.stack.AEStackTypeRendererRegistry.getRenderer(stack)
+                .render2d(stack, scale);
+    }
+
+    /**
+     * Generic version: dispatch to the corresponding type's rate render method via the renderer registry.
+     */
+    public static void renderStack2dWithRate(IAEStack<?> stack, float scale, float spacing, String rateText, int color) {
+        appeng.client.render.stack.AEStackTypeRendererRegistry.getRenderer(stack)
+                .render2dWithRate(stack, scale, spacing, rateText, color);
     }
 
     public static void renderItem2d(IAEItemStack itemStack, float itemScale) {

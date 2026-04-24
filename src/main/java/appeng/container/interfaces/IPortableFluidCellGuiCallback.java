@@ -27,7 +27,7 @@ import appeng.util.IConfigManagerHost;
  * 便携/无线流体终端 GUI 的回调接口。
  * <p>
  * 允许 {@link appeng.fluids.container.ContainerMEPortableFluidCell} 与不同的 GUI 实现通信。
- * 旧 GUI（{@link appeng.fluids.client.gui.GuiMEPortableFluidCell}）和新 MUI 面板都可以实现此接口。
+ * MUI 面板通过实现此接口接收回调。
  */
 public interface IPortableFluidCellGuiCallback extends IConfigManagerHost {
 

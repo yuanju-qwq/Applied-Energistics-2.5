@@ -35,7 +35,6 @@ import appeng.tile.storage.TileDrive;
 /**
  * MUI 版 ME 驱动器 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiDrive}。
  * 包含 10 个存储单元槽位和一个优先级标签按钮。
  */
 public class MUIDrivePanel extends AEBasePanel {

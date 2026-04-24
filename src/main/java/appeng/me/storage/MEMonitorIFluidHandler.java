@@ -41,7 +41,7 @@ import appeng.fluids.util.AEFluidStackType;
 public class MEMonitorIFluidHandler implements IMEMonitor<IAEFluidStack>, ITickingMonitor {
     private final IFluidHandler handler;
     private IItemList<IAEFluidStack> cache = AEFluidStackType.INSTANCE.createList();
-    private final HashMap<IMEMonitorHandlerReceiver<IAEFluidStack>, Object> listeners = new HashMap<>();
+    private final HashMap<IMEMonitorHandlerReceiver<? super IAEFluidStack>, Object> listeners = new HashMap<>();
     private IActionSource mySource;
     private StorageFilter mode = StorageFilter.EXTRACTABLE_ONLY;
 
@@ -50,12 +50,12 @@ public class MEMonitorIFluidHandler implements IMEMonitor<IAEFluidStack>, ITicki
     }
 
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<IAEFluidStack> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver<? super IAEFluidStack> l, final Object verificationToken) {
         this.listeners.put(l, verificationToken);
     }
 
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<IAEFluidStack> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver<? super IAEFluidStack> l) {
         this.listeners.remove(l);
     }
 
@@ -150,15 +150,16 @@ public class MEMonitorIFluidHandler implements IMEMonitor<IAEFluidStack>, ITicki
         return changed ? TickRateModulation.URGENT : TickRateModulation.SLOWER;
     }
 
+    @SuppressWarnings("unchecked")
     private void postDifference(final Iterable<IAEFluidStack> a) {
         if (a != null) {
-            final Iterator<Entry<IMEMonitorHandlerReceiver<IAEFluidStack>, Object>> i = this.listeners.entrySet()
+            final Iterator<Entry<IMEMonitorHandlerReceiver<? super IAEFluidStack>, Object>> i = this.listeners.entrySet()
                     .iterator();
             while (i.hasNext()) {
-                final Entry<IMEMonitorHandlerReceiver<IAEFluidStack>, Object> l = i.next();
-                final IMEMonitorHandlerReceiver<IAEFluidStack> key = l.getKey();
+                final Entry<IMEMonitorHandlerReceiver<? super IAEFluidStack>, Object> l = i.next();
+                final IMEMonitorHandlerReceiver<? super IAEFluidStack> key = l.getKey();
                 if (key.isValid(l.getValue())) {
-                    key.postChange(this, a, this.getActionSource());
+                    ((IMEMonitorHandlerReceiver) key).postChange(this, a, this.getActionSource());
                 } else {
                     i.remove();
                 }

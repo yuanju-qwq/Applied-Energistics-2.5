@@ -148,6 +148,50 @@ public interface IAEStackType<T extends IAEStack<T>> {
     @Nullable
     T getStackFromContainerItem(@Nonnull ItemStack container);
 
+    // ========== Container Drain/Fill Operations ==========
+
+    /**
+     * Drain (extract) a resource of this type from a container item.
+     * <p>
+     * For fluids: drains fluid from a bucket/tank item, returning the drained amount and
+     * the modified container (e.g., empty bucket).
+     * For items: returns {@link ContainerInteractionResult#empty()} (items are not containers).
+     * <p>
+     * The container ItemStack is <b>not modified in-place</b>. The caller must use the
+     * {@link ContainerInteractionResult#getResultContainer()} to update the player's inventory.
+     *
+     * @param container the container item to drain from (must have count == 1)
+     * @param maxAmount the maximum amount to drain (in this type's units, e.g., mB for fluids)
+     * @param simulate  if true, only simulate the operation without modifying the container
+     * @return the result of the drain operation
+     */
+    @Nonnull
+    default ContainerInteractionResult<T> drainFromContainer(
+            @Nonnull ItemStack container, long maxAmount, boolean simulate) {
+        return ContainerInteractionResult.empty();
+    }
+
+    /**
+     * Fill (insert) a resource of this type into a container item.
+     * <p>
+     * For fluids: fills a bucket/tank item with the given fluid, returning the amount filled
+     * and the modified container (e.g., full bucket).
+     * For items: returns {@link ContainerInteractionResult#empty()} (items are not containers).
+     * <p>
+     * The container ItemStack is <b>not modified in-place</b>. The caller must use the
+     * {@link ContainerInteractionResult#getResultContainer()} to update the player's inventory.
+     *
+     * @param container the container item to fill (must have count == 1)
+     * @param stack     the resource to fill into the container
+     * @param simulate  if true, only simulate the operation without modifying the container
+     * @return the result of the fill operation
+     */
+    @Nonnull
+    default ContainerInteractionResult<T> fillToContainer(
+            @Nonnull ItemStack container, @Nonnull T stack, boolean simulate) {
+        return ContainerInteractionResult.empty();
+    }
+
     /**
      * @return 该类型 GUI 按钮使用的纹理资源位置
      */

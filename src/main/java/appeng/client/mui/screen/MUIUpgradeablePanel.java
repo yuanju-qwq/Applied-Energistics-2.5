@@ -40,7 +40,6 @@ import mezz.jei.api.gui.IGhostIngredientHandler.Target;
 
 import appeng.api.config.*;
 import appeng.api.implementations.IUpgradeableHost;
-import appeng.client.gui.widgets.GuiCustomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.mui.AEBasePanel;
 import appeng.container.implementations.ContainerUpgradeable;
@@ -51,8 +50,6 @@ import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketConfigButton;
 import appeng.core.sync.packets.PacketInventoryAction;
-import appeng.fluids.client.gui.widgets.GuiFluidSlot;
-import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.InventoryAction;
 import appeng.parts.automation.PartExportBus;
 import appeng.parts.automation.PartImportBus;
@@ -61,8 +58,7 @@ import appeng.util.item.AEItemStack;
 /**
  * MUI 版 GuiUpgradeable 基类。
  *
- * 作为所有可升级配置 GUI 的 MUI 移植基础，对应旧代码的
- * {@link appeng.client.gui.implementations.GuiUpgradeable}。
+ * 作为所有可升级配置 GUI 的 MUI 移植基础。
  *
  * 子类通过覆写 {@link #getBackground()}, {@link #getName()},
  * {@link #addButtons()}, {@link #handleButtonVisibility()}, {@link #drawUpgrades()}
@@ -273,13 +269,6 @@ public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredi
                 }
             }
         }
-        if (!this.getGuiSlots().isEmpty()) {
-            for (GuiCustomSlot slot : this.getGuiSlots()) {
-                if (slot instanceof GuiFluidSlot && fluidStack != null) {
-                    slots.add((IJEITargetSlot) slot);
-                }
-            }
-        }
         for (IJEITargetSlot slot : slots) {
             ItemStack finalItemStack = itemStack;
             FluidStack finalFluidStack = fluidStack;
@@ -290,9 +279,6 @@ public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredi
                     if (slot instanceof SlotFake slotFake && slotFake.isSlotEnabled()) {
                         return new Rectangle(getGuiLeft() + slotFake.xPos,
                                 getGuiTop() + slotFake.yPos, 16, 16);
-                    } else if (slot instanceof GuiFluidSlot fluidSlot && fluidSlot.isSlotEnabled()) {
-                        return new Rectangle(getGuiLeft() + fluidSlot.xPos(),
-                                getGuiTop() + fluidSlot.yPos(), 16, 16);
                     }
                     return new Rectangle();
                 }
@@ -309,15 +295,10 @@ public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredi
                                 p = new PacketInventoryAction(InventoryAction.PLACE_JEI_GHOST_ITEM, slot,
                                         AEItemStack.fromItemStack(finalItemStack));
                             }
-                        } else {
-                            if (finalFluidStack == null) {
-                                return;
-                            }
-                            p = new PacketInventoryAction(InventoryAction.PLACE_JEI_GHOST_ITEM, slot,
-                                    AEItemStack.fromItemStack(
-                                            AEFluidStack.fromFluidStack(finalFluidStack).asItemStackRepresentation()));
                         }
-                        NetworkHandler.instance().sendToServer(p);
+                        if (p != null) {
+                            NetworkHandler.instance().sendToServer(p);
+                        }
 
                     } catch (IOException e) {
                         e.printStackTrace();

@@ -314,8 +314,7 @@ public class TileMEInterface extends AENetworkInvTile
 
     @Override
     public AEGuiKey getGuiKey() {
-        // TODO: 等 B4（Container/GUI）完成后替换为 GUI_ME_INTERFACE
-        return AEGuiKeys.INTERFACE;
+        return AEGuiKeys.ME_INTERFACE;
     }
 
     @Override

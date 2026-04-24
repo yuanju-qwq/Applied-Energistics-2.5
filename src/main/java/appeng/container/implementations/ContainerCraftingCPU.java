@@ -37,7 +37,6 @@ import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
-import appeng.client.gui.implementations.GuiCraftingCPU;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
 import appeng.container.interfaces.ICraftingCPUGuiCallback;
@@ -45,6 +44,7 @@ import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.util.item.IAEStackList;
 import appeng.helpers.ICustomNameObject;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.tile.crafting.TileCraftingTile;
@@ -53,7 +53,7 @@ import appeng.util.Platform;
 public class ContainerCraftingCPU extends AEBaseContainer
         implements IMEMonitorHandlerReceiver<IAEStackBase>, ICustomNameObject {
 
-    private final IItemList<IAEStackBase> list = new appeng.util.item.IAEStackList();
+    private final IAEStackList list = new IAEStackList();
     private IGrid network;
     private CraftingCPUCluster monitor = null;
     private String cpuName = null;
@@ -165,11 +165,7 @@ public class ContainerCraftingCPU extends AEBaseContainer
                     final PacketMEInventoryUpdate b = new PacketMEInventoryUpdate((byte) 1);
                     final PacketMEInventoryUpdate c = new PacketMEInventoryUpdate((byte) 2);
 
-                    for (final IAEStackBase out : this.list) {
-                        if (!(out instanceof IAEStack<?> stack)) {
-                            continue;
-                        }
-
+                    for (final IAEStack<?> stack : this.list.typedView()) {
                         a.appendStack(this.getMonitor().getItemStack(stack, CraftingItemList.STORAGE));
                         b.appendStack(this.getMonitor().getItemStack(stack, CraftingItemList.ACTIVE));
                         c.appendStack(this.getMonitor().getItemStack(stack, CraftingItemList.PENDING));
@@ -268,14 +264,5 @@ public class ContainerCraftingCPU extends AEBaseContainer
      */
     public void setGui(ICraftingCPUGuiCallback callback) {
         this.guiCallback = callback;
-    }
-
-    /**
-     * 设置旧 GUI 回调（向后兼容）。
-     * @deprecated 使用 {@link #setGui(ICraftingCPUGuiCallback)} 代替
-     */
-    @Deprecated
-    public void setGui(GuiCraftingCPU guiCraftingCPU) {
-        this.guiCallback = guiCraftingCPU;
     }
 }

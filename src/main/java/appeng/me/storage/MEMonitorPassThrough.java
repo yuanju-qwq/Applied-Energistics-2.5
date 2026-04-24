@@ -37,7 +37,7 @@ import appeng.util.inv.ItemListIgnoreCrafting;
 public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T>
         implements IMEMonitor<T>, IMEMonitorHandlerReceiver<T> {
 
-    private final HashMap<IMEMonitorHandlerReceiver<T>, Object> listeners = new HashMap<>();
+    private final HashMap<IMEMonitorHandlerReceiver<? super T>, Object> listeners = new HashMap<>();
     private IActionSource changeSource;
     private IMEMonitor<T> monitor;
 
@@ -88,7 +88,7 @@ public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T
     }
 
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<T> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver<? super T> l, final Object verificationToken) {
         if (this.listeners.size() == 0) {
             if (this.monitor != null) {
                 this.monitor.addListener(this, this.monitor);
@@ -98,7 +98,7 @@ public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T
     }
 
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<T> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver<? super T> l) {
         this.listeners.remove(l);
     }
 
@@ -118,13 +118,14 @@ public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void postChange(final IBaseMonitor<T> monitor, final Iterable<T> change, final IActionSource source) {
-        final Iterator<Entry<IMEMonitorHandlerReceiver<T>, Object>> i = this.listeners.entrySet().iterator();
+        final Iterator<Entry<IMEMonitorHandlerReceiver<? super T>, Object>> i = this.listeners.entrySet().iterator();
         while (i.hasNext()) {
-            final Entry<IMEMonitorHandlerReceiver<T>, Object> e = i.next();
-            final IMEMonitorHandlerReceiver<T> receiver = e.getKey();
+            final Entry<IMEMonitorHandlerReceiver<? super T>, Object> e = i.next();
+            final IMEMonitorHandlerReceiver<? super T> receiver = e.getKey();
             if (receiver.isValid(e.getValue())) {
-                receiver.postChange(this, change, source);
+                ((IMEMonitorHandlerReceiver) receiver).postChange(this, change, source);
             } else {
                 i.remove();
             }
@@ -133,10 +134,10 @@ public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T
 
     @Override
     public void onListUpdate() {
-        final Iterator<Entry<IMEMonitorHandlerReceiver<T>, Object>> i = this.listeners.entrySet().iterator();
+        final Iterator<Entry<IMEMonitorHandlerReceiver<? super T>, Object>> i = this.listeners.entrySet().iterator();
         while (i.hasNext()) {
-            final Entry<IMEMonitorHandlerReceiver<T>, Object> e = i.next();
-            final IMEMonitorHandlerReceiver<T> receiver = e.getKey();
+            final Entry<IMEMonitorHandlerReceiver<? super T>, Object> e = i.next();
+            final IMEMonitorHandlerReceiver<? super T> receiver = e.getKey();
             if (receiver.isValid(e.getValue())) {
                 receiver.onListUpdate();
             } else {

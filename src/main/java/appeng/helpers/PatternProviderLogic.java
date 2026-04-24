@@ -90,7 +90,7 @@ import appeng.me.helpers.IGridProxyable;
 import appeng.me.helpers.MachineSource;
 import appeng.parts.automation.StackUpgradeInventory;
 import appeng.parts.automation.UpgradeInventory;
-import appeng.parts.misc.PartInterface;
+import appeng.parts.misc.PartMEInterface;
 import appeng.tile.inventory.AppEngInternalInventory;
 import appeng.tile.networking.TileCableBus;
 import appeng.util.ConfigManager;
@@ -107,7 +107,7 @@ import appeng.api.storage.IMEMonitor;
 /**
  * 样板供应器核心逻辑。
  *
- * 从 {@link DualityInterface} 中提取的所有样板存储、样板推送、合成锁定、
+ * 从 {@link InterfaceLogic} 中提取的所有样板存储、样板推送、合成锁定、
  * 合成跟踪、优先级和终端名称功能。
  *
  * 对应高版本 AE2 的 {@code PatternProviderLogic}。
@@ -449,8 +449,8 @@ public class PatternProviderLogic
         }
         this.waitingToSendFacing.computeIfAbsent(f, k -> new ArrayList<>());
 
-        if (converted instanceof IAEFluidStack) {
-            // 流体走统一的 waitingToSend 队列
+        if (!(converted instanceof IAEItemStack)) {
+            // Non-item types (fluid, future types) go to the generic waitingToSend queue
             if (this.waitingToSend == null) {
                 this.waitingToSend = new ArrayList<>();
             }
@@ -467,8 +467,10 @@ public class PatternProviderLogic
     }
 
     /**
-     * 尝试将 ItemStack 转换为 IAEFluidStack。
-     * 支持 FluidDummyItem 和通用 IFluidHandlerItem。
+     * Try to convert an ItemStack into a non-item IAEStack representation.
+     * Supports FluidDummyItem placeholders and generic fluid container items.
+     * Uses {@link Platform#convertSlotStackToAEStack(ItemStack)} and
+     * {@link IAEStackType#getStackFromContainerItem(ItemStack)}.
      */
     @Nullable
     private static IAEStack<?> tryConvertToFluidStack(final ItemStack is) {
@@ -476,23 +478,14 @@ public class PatternProviderLogic
             return null;
         }
 
-        // FluidDummyItem：流体占位物品（由 asItemStackRepresentation 产生）
-        if (is.getItem() instanceof appeng.fluids.items.FluidDummyItem fluidDummy) {
-            net.minecraftforge.fluids.FluidStack fs = fluidDummy.getFluidStack(is);
-            if (fs != null) {
-                return AEFluidStack.fromFluidStack(fs);
-            }
+        // FluidDummyItem placeholder (produced by asItemStackRepresentation)
+        final IAEStack<?> converted = Platform.convertSlotStackToAEStack(is);
+        if (converted != null && !converted.isItem()) {
+            return converted;
         }
 
-        net.minecraftforge.fluids.capability.IFluidHandlerItem fluidHandler =
-                net.minecraftforge.fluids.FluidUtil.getFluidHandler(is.copy());
-        if (fluidHandler != null) {
-            net.minecraftforge.fluids.FluidStack drained = fluidHandler.drain(Integer.MAX_VALUE, false);
-            if (drained != null && drained.amount > 0) {
-                return AEFluidStack.fromFluidStack(drained);
-            }
-        }
-        return null;
+        // Generic fluid container item (e.g., bucket)
+        return AEFluidStackType.INSTANCE.getStackFromContainerItem(is);
     }
 
     private boolean hasItemsToSend() {
@@ -579,22 +572,22 @@ public class PatternProviderLogic
         }
 
         // 如果目标是接口，尝试通过网络注入
-        if (te instanceof IInterfaceHost || (te instanceof TileCableBus
-                && ((TileCableBus) te).getPart(s.getOpposite()) instanceof PartInterface)) {
+        if (te instanceof IInterfaceLogicHost || (te instanceof TileCableBus
+                && ((TileCableBus) te).getPart(s.getOpposite()) instanceof PartMEInterface)) {
             try {
-                IInterfaceHost targetTE;
-                if (te instanceof IInterfaceHost) {
-                    targetTE = (IInterfaceHost) te;
+                IInterfaceLogicHost targetTE;
+                if (te instanceof IInterfaceLogicHost) {
+                    targetTE = (IInterfaceLogicHost) te;
                 } else {
-                    targetTE = (IInterfaceHost) ((TileCableBus) te).getPart(s.getOpposite());
+                    targetTE = (IInterfaceLogicHost) ((TileCableBus) te).getPart(s.getOpposite());
                 }
 
-                if (!targetTE.getInterfaceDuality().sameGrid(this.gridProxy.getGrid())) {
+                if (!targetTE.getInterfaceLogic().sameGrid(this.gridProxy.getGrid())) {
                     IStorageMonitorableAccessor mon = te.getCapability(Capabilities.STORAGE_MONITORABLE_ACCESSOR,
                             s.getOpposite());
                     if (mon != null) {
                         IStorageMonitorable sm = mon.getInventory(this.mySource);
-                        if (sm != null && Platform.canAccess(targetTE.getInterfaceDuality().gridProxy, this.mySource)) {
+                        if (sm != null && Platform.canAccess(targetTE.getInterfaceLogic().getProxy(), this.mySource)) {
                             IMEMonitor<IAEItemStack> inv = sm.getInventory(AEItemStackType.INSTANCE);
                             if (inv != null) {
                                 final Iterator<ItemStack> iter = facingQueue.iterator();
@@ -854,24 +847,24 @@ public class PatternProviderLogic
                 final TileEntity te = w.getTileEntity(tile.getPos().offset(s));
 
                 // 检查接口类邻居
-                if (te instanceof IInterfaceHost || (te instanceof TileCableBus
-                        && ((TileCableBus) te).getPart(s.getOpposite()) instanceof PartInterface)) {
+                if (te instanceof IInterfaceLogicHost || (te instanceof TileCableBus
+                        && ((TileCableBus) te).getPart(s.getOpposite()) instanceof PartMEInterface)) {
                     try {
-                        IInterfaceHost targetTE;
-                        if (te instanceof IInterfaceHost) {
-                            targetTE = (IInterfaceHost) te;
+                        IInterfaceLogicHost targetTE;
+                        if (te instanceof IInterfaceLogicHost) {
+                            targetTE = (IInterfaceLogicHost) te;
                         } else {
-                            targetTE = (IInterfaceHost) ((TileCableBus) te).getPart(s.getOpposite());
+                            targetTE = (IInterfaceLogicHost) ((TileCableBus) te).getPart(s.getOpposite());
                         }
 
-                        if (targetTE.getInterfaceDuality().sameGrid(this.gridProxy.getGrid())) {
+                        if (targetTE.getInterfaceLogic().sameGrid(this.gridProxy.getGrid())) {
                             continue;
                         } else {
                             IStorageMonitorableAccessor monAccessor = te
                                     .getCapability(Capabilities.STORAGE_MONITORABLE_ACCESSOR, s.getOpposite());
                             if (monAccessor != null) {
                                 IStorageMonitorable sm = monAccessor.getInventory(this.mySource);
-                                if (sm != null && Platform.canAccess(targetTE.getInterfaceDuality().gridProxy,
+                                if (sm != null && Platform.canAccess(targetTE.getInterfaceLogic().getProxy(),
                                         this.mySource)) {
                                     if (sm.getInventory(AEItemStackType.INSTANCE)
                                             .getStorageList().isEmpty()) {
@@ -1145,9 +1138,9 @@ public class PatternProviderLogic
                 continue;
             }
 
-            if (directedTile instanceof IInterfaceHost) {
+            if (directedTile instanceof IInterfaceLogicHost) {
                 try {
-                    if (((IInterfaceHost) directedTile).getInterfaceDuality().sameGrid(this.gridProxy.getGrid())) {
+                    if (((IInterfaceLogicHost) directedTile).getInterfaceLogic().sameGrid(this.gridProxy.getGrid())) {
                         continue;
                     }
                 } catch (final GridAccessException e) {
@@ -1268,11 +1261,10 @@ public class PatternProviderLogic
     public void addDrops(final List<ItemStack> drops) {
         if (this.waitingToSend != null) {
             for (final IAEStack<?> aeStack : this.waitingToSend) {
-                if (aeStack instanceof IAEItemStack) {
-                    final ItemStack is = ((IAEItemStack) aeStack).createItemStack();
-                    if (!is.isEmpty()) {
-                        drops.add(is);
-                    }
+                // Use asItemStackRepresentation() for all types (items, fluids, future types)
+                final ItemStack is = aeStack.asItemStackRepresentation();
+                if (!is.isEmpty()) {
+                    drops.add(is);
                 }
             }
         }

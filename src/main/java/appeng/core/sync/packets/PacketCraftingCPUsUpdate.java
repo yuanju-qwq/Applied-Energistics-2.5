@@ -10,8 +10,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.EntityPlayer;
 
-import appeng.client.gui.implementations.GuiCraftingStatus;
 import appeng.container.implementations.CraftingCPUStatus;
+import appeng.container.interfaces.ICraftingStatusGuiCallback;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.network.INetworkInfo;
 
@@ -47,9 +47,8 @@ public class PacketCraftingCPUsUpdate extends AppEngPacket {
     public void clientPacketData(final INetworkInfo network, final AppEngPacket packet, final EntityPlayer player) {
         final GuiScreen gs = Minecraft.getMinecraft().currentScreen;
 
-        if (gs instanceof GuiCraftingStatus) {
-            GuiCraftingStatus gui = (GuiCraftingStatus) gs;
-            gui.postCPUUpdate(this.cpus);
+        if (gs instanceof ICraftingStatusGuiCallback) {
+            ((ICraftingStatusGuiCallback) gs).postCPUUpdate(this.cpus);
         }
 
     }

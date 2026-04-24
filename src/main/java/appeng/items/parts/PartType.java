@@ -208,11 +208,11 @@ public enum PartType {
             EnumSet.noneOf(IntegrationType.class), PartConversionMonitor.class),
 
     INTERFACE(440, "interface", EnumSet.of(AEFeature.INTERFACE), EnumSet.noneOf(IntegrationType.class),
-            PartInterface.class),
+            PartMEInterface.class),
     FLUID_INTERFACE(441, "fluid_interface", EnumSet.of(AEFeature.FLUID_INTERFACE),
-            EnumSet.noneOf(IntegrationType.class), PartFluidInterface.class),
-    DUAL_INTERFACE(442, "dual_interface", EnumSet.of(AEFeature.INTERFACE),
-            EnumSet.noneOf(IntegrationType.class), PartDualInterface.class),
+            EnumSet.noneOf(IntegrationType.class), PartMEInterface.class),
+    PATTERN_PROVIDER(442, "pattern_provider", EnumSet.of(AEFeature.INTERFACE),
+            EnumSet.noneOf(IntegrationType.class), PartPatternProvider.class),
 
     P2P_TUNNEL_ME(460, "p2p_tunnel_me", EnumSet.of(AEFeature.P2P_TUNNEL, AEFeature.P2P_TUNNEL_ME),
             EnumSet.noneOf(IntegrationType.class), PartP2PTunnelME.class, GuiText.METunnel) {
@@ -288,9 +288,6 @@ public enum PartType {
             PartFluidTerminal.class),
     INTERFACE_CONFIGURATION_TERMINAL(521, "interface_configuration_terminal", EnumSet.of(AEFeature.INTERFACE_TERMINAL),
             EnumSet.noneOf(IntegrationType.class), PartInterfaceConfigurationTerminal.class),
-    FLUID_INTERFACE_CONFIGURATION_TERMINAL(522, "fluid_interface_configuration_terminal",
-            EnumSet.of(AEFeature.INTERFACE_TERMINAL), EnumSet.noneOf(IntegrationType.class),
-            PartFluidInterfaceConfigurationTerminal.class),
 
     RATE_MONITOR(540, "rate_monitor", EnumSet.of(AEFeature.PART_RATE_MONITOR),
             EnumSet.noneOf(IntegrationType.class), PartRateMonitor.class);

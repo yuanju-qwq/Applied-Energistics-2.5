@@ -27,6 +27,7 @@ import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
+import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
@@ -37,21 +38,22 @@ import appeng.api.util.IConfigManager;
 import appeng.core.AppEng;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
+import appeng.fluids.helper.IConfigurableAEStackInventory;
 import appeng.fluids.helper.IConfigurableFluidInventory;
-import appeng.fluids.util.AEFluidInventory;
 import appeng.fluids.util.AEFluidStackType;
-import appeng.fluids.util.IAEFluidInventory;
-import appeng.fluids.util.IAEFluidTank;
 import appeng.items.parts.PartModels;
 import appeng.me.GridAccessException;
 import appeng.me.cache.NetworkMonitor;
 import appeng.parts.PartModel;
 import appeng.parts.automation.PartUpgradeable;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 
 public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatcherHost, IConfigManagerHost,
-        IAEFluidInventory, IMEMonitorHandlerReceiver<IAEFluidStack>, IConfigurableFluidInventory {
+        IIAEStackInventory, IMEMonitorHandlerReceiver<IAEFluidStack>, IConfigurableFluidInventory,
+        IConfigurableAEStackInventory {
     @PartModels
     public static final ResourceLocation MODEL_BASE_OFF = new ResourceLocation(AppEng.MOD_ID,
             "part/level_emitter_base_off");
@@ -81,7 +83,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     private long lastReportedValue = 0;
     private long reportingValue = 0;
     private IStackWatcher stackWatcher = null;
-    private final AEFluidInventory config = new AEFluidInventory(this, 1);
+    private final IAEStackInventory config = new IAEStackInventory(this, 1, StorageName.CONFIG);
 
     public PartFluidLevelEmitter(ItemStack is) {
         super(is);
@@ -113,15 +115,23 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     public void onStackChange(IItemList<?> o, IAEStack<?> fullStack, IAEStack<?> diffStack, IActionSource src,
             IAEStackType<?> type) {
         if (type == AEFluidStackType.INSTANCE
-                && fullStack.equals(this.config.getFluidInSlot(0))) {
+                && fullStack.equals(this.config.getAEStackInSlot(0))) {
             this.lastReportedValue = fullStack.getStackSize();
             this.updateState();
         }
     }
 
     @Override
-    public void onFluidInventoryChanged(IAEFluidTank inv, int slot) {
+    public void saveAEStackInv() {
         this.configureWatchers();
+    }
+
+    @Override
+    public IAEStackInventory getAEInventoryByName(StorageName name) {
+        if (name == StorageName.CONFIG) {
+            return this.config;
+        }
+        return null;
     }
 
     @Override
@@ -201,7 +211,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
         if (this.stackWatcher != null) {
             this.stackWatcher.reset();
 
-            final IAEFluidStack myStack = this.config.getFluidInSlot(0);
+            final IAEStack<?> myStack = this.config.getAEStackInSlot(0);
 
             try {
                 if (myStack != null) {
@@ -224,7 +234,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     }
 
     private void updateReportingValue(final IMEMonitor<IAEFluidStack> monitor) {
-        final IAEFluidStack myStack = this.config.getFluidInSlot(0);
+        final IAEStack<?> myStack = this.config.getAEStackInSlot(0);
 
         if (myStack == null) {
             if (monitor instanceof NetworkMonitor) {
@@ -308,13 +318,19 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
         }
     }
 
-    public IAEFluidTank getConfig() {
+    public IAEStackInventory getConfig() {
         return this.config;
     }
 
     @Override
     public IFluidHandler getFluidInventoryByName(final String name) {
-        if (name.equals("config")) {
+        // Config is now IAEStackInventory, not IFluidHandler
+        return null;
+    }
+
+    @Override
+    public IAEStackInventory getAEStackInventoryByName(final String name) {
+        if ("config".equals(name)) {
             return this.config;
         }
         return null;

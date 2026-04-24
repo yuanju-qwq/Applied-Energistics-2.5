@@ -31,9 +31,6 @@ import net.minecraft.inventory.IContainerListener;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidUtil;
-import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.AEApi;
@@ -57,6 +54,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.AEStackTypeRegistry;
+import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -76,9 +74,7 @@ import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.core.sync.packets.PacketPinsUpdate;
-import appeng.core.sync.packets.PacketTargetFluidStack;
 import appeng.core.sync.packets.PacketValueConfig;
-import appeng.fluids.util.AEFluidStack;
 import appeng.fluids.util.AEFluidStackType;
 import appeng.helpers.IPinsHandler;
 import appeng.helpers.WirelessTerminalGuiObject;
@@ -94,7 +90,7 @@ import appeng.util.item.AEItemStackType;
 
 @SuppressWarnings("unchecked")
 public class ContainerMEMonitorable extends AEBaseContainer
-        implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver {
+        implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver<IAEStackBase> {
 
     protected final SlotRestrictedInput[] cellView = new SlotRestrictedInput[5];
     public final IItemList<IAEItemStack> items = AEItemStackType.INSTANCE.createList();
@@ -451,8 +447,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
             PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
             for (var monitor : this.monitors.values()) {
-                IItemList<?> storageList = monitor.getStorageList();
-                for (final IAEStackBase stackBase : (IItemList<IAEStackBase>) storageList) {
+                for (final IAEStackBase stackBase : (Iterable<IAEStackBase>) monitor.getStorageList()) {
                     final IAEStack<?> send = (IAEStack<?>) stackBase;
                     try {
                         piu.appendStack(send);
@@ -495,10 +490,9 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public void postChange(final IBaseMonitor monitor, final Iterable change,
+    public void postChange(final IBaseMonitor<IAEStackBase> monitor, final Iterable<IAEStackBase> change,
             final IActionSource source) {
-        for (final Object obj : change) {
+        for (final IAEStackBase obj : change) {
             IAEStack<?> aes = (IAEStack<?>) obj;
             IAEStackType<?> type = aes.getStackType();
             Set<IAEStack<?>> queue = this.updateQueue.get(type);
@@ -620,6 +614,18 @@ public class ContainerMEMonitorable extends AEBaseContainer
         this.clientMaxPlayerPinRows = maxPlayerPinRows;
         this.clientMaxCraftingPinRows = maxCraftingPinRows;
         this.clientPinSectionOrder = sectionOrder;
+        if (this.pinsUpdateCallback != null) {
+            this.pinsUpdateCallback.run();
+        }
+    }
+
+    private Runnable pinsUpdateCallback;
+
+    /**
+     * Register a callback to be invoked when pin data is updated from the server.
+     */
+    public void setPinsUpdateCallback(Runnable callback) {
+        this.pinsUpdateCallback = callback;
     }
 
     public PinList getClientPinList() {
@@ -643,6 +649,23 @@ public class ContainerMEMonitorable extends AEBaseContainer
      */
     public IPinsHandler getServerPinsHandler() {
         return this.serverPinsHandler;
+    }
+
+    /**
+     * Send a full pin state sync to the specified player.
+     * Called when pin rows are changed via client request.
+     */
+    public void sendPinsUpdate(EntityPlayerMP player) {
+        if (this.serverPinsHandler == null) {
+            return;
+        }
+        this.serverPinsHandler.clearDirty();
+        final PacketPinsUpdate pinsPacket = new PacketPinsUpdate(
+                this.serverPinsHandler.getMaxPlayerPinRows(),
+                this.serverPinsHandler.getMaxCraftingPinRows(),
+                this.serverPinsHandler.getSectionOrder(),
+                this.serverPinsHandler.getPins());
+        NetworkHandler.instance().sendTo(pinsPacket, player);
     }
 
     /**
@@ -710,31 +733,31 @@ public class ContainerMEMonitorable extends AEBaseContainer
                 final IAEFluidStack extracted = fluidMonitor.extractItems(
                         targetFluid, Actionable.SIMULATE, src);
                 if (extracted != null) {
-                    final FluidStack fluidStack = extracted.getFluidStack();
-                    final IFluidHandlerItem fh = FluidUtil.getFluidHandler(held);
-                    if (fh != null) {
-                        final int filled = fh.fill(fluidStack, true);
-                        if (filled > 0) {
-                            final IAEFluidStack toExtract = targetFluid.copy();
-                            toExtract.setStackSize(filled);
-                            fluidMonitor.extractItems(toExtract, Actionable.MODULATE, src);
-                            player.inventory.setItemStack(fh.getContainer());
-                            this.updateHeld(player);
-                        }
+                    final ContainerInteractionResult<IAEFluidStack> fillResult =
+                            AEFluidStackType.INSTANCE.fillToContainer(held, extracted, false);
+                    if (fillResult.isSuccess()) {
+                        final IAEFluidStack toExtract = targetFluid.copy();
+                        toExtract.setStackSize(fillResult.getTransferred().getStackSize());
+                        fluidMonitor.extractItems(toExtract, Actionable.MODULATE, src);
+                        player.inventory.setItemStack(fillResult.getResultContainer());
+                        this.updateHeld(player);
                     }
                 }
             }
         } else if (action == InventoryAction.EMPTY_ITEM) {
-            final IFluidHandlerItem fh = FluidUtil.getFluidHandler(held);
-            if (fh != null) {
-                final FluidStack drained = fh.drain(Integer.MAX_VALUE, false);
-                if (drained != null && drained.amount > 0) {
-                    final IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(drained);
-                    final IAEFluidStack notInserted = fluidMonitor.injectItems(aeFluid, Actionable.SIMULATE, src);
-                    if (notInserted == null || notInserted.getStackSize() == 0) {
-                        fh.drain(drained.amount, true);
-                        fluidMonitor.injectItems(aeFluid, Actionable.MODULATE, src);
-                        player.inventory.setItemStack(fh.getContainer());
+            final ContainerInteractionResult<IAEFluidStack> drainResult =
+                    AEFluidStackType.INSTANCE.drainFromContainer(held, Integer.MAX_VALUE, true);
+            if (drainResult.isSuccess()) {
+                final IAEFluidStack notInserted = fluidMonitor.injectItems(
+                        drainResult.getTransferred(), Actionable.SIMULATE, src);
+                if (notInserted == null || notInserted.getStackSize() == 0) {
+                    // Actually drain and insert
+                    final ContainerInteractionResult<IAEFluidStack> actualDrain =
+                            AEFluidStackType.INSTANCE.drainFromContainer(held,
+                                    drainResult.getTransferred().getStackSize(), false);
+                    if (actualDrain.isSuccess()) {
+                        fluidMonitor.injectItems(actualDrain.getTransferred(), Actionable.MODULATE, src);
+                        player.inventory.setItemStack(actualDrain.getResultContainer());
                         this.updateHeld(player);
                     }
                 }
@@ -755,23 +778,25 @@ public class ContainerMEMonitorable extends AEBaseContainer
             final Slot clickedSlot = this.inventorySlots.get(idx);
             if (clickedSlot != null && clickedSlot.getHasStack()) {
                 final ItemStack tis = clickedSlot.getStack();
-                final IFluidHandlerItem fh = FluidUtil.getFluidHandler(tis.copy());
-                if (fh != null) {
-                    final FluidStack drained = fh.drain(Integer.MAX_VALUE, false);
-                    if (drained != null && drained.amount > 0) {
-                        @SuppressWarnings("unchecked")
-                        final IMEMonitor<IAEFluidStack> fluidMonitor =
-                                (IMEMonitor<IAEFluidStack>) this.monitors.get(
-                                        AEFluidStackType.INSTANCE);
-                        if (fluidMonitor != null) {
-                            final IActionSource src = new PlayerSource(playerMP, (IActionHost) this.host);
-                            final IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(drained);
-                            final IAEFluidStack notInserted = fluidMonitor.injectItems(
-                                    aeFluid, Actionable.SIMULATE, src);
-                            if (notInserted == null || notInserted.getStackSize() == 0) {
-                                fh.drain(drained.amount, true);
-                                fluidMonitor.injectItems(aeFluid, Actionable.MODULATE, src);
-                                clickedSlot.putStack(fh.getContainer());
+                final ContainerInteractionResult<IAEFluidStack> drainResult =
+                        AEFluidStackType.INSTANCE.drainFromContainer(tis.copy(), Integer.MAX_VALUE, true);
+                if (drainResult.isSuccess()) {
+                    @SuppressWarnings("unchecked")
+                    final IMEMonitor<IAEFluidStack> fluidMonitor =
+                            (IMEMonitor<IAEFluidStack>) this.monitors.get(
+                                    AEFluidStackType.INSTANCE);
+                    if (fluidMonitor != null) {
+                        final IActionSource src = new PlayerSource(playerMP, (IActionHost) this.host);
+                        final IAEFluidStack notInserted = fluidMonitor.injectItems(
+                                drainResult.getTransferred(), Actionable.SIMULATE, src);
+                        if (notInserted == null || notInserted.getStackSize() == 0) {
+                            final ContainerInteractionResult<IAEFluidStack> actualDrain =
+                                    AEFluidStackType.INSTANCE.drainFromContainer(tis,
+                                            drainResult.getTransferred().getStackSize(), false);
+                            if (actualDrain.isSuccess()) {
+                                fluidMonitor.injectItems(actualDrain.getTransferred(),
+                                        Actionable.MODULATE, src);
+                                clickedSlot.putStack(actualDrain.getResultContainer());
                                 this.detectAndSendChanges();
                                 return ItemStack.EMPTY;
                             }

@@ -28,38 +28,28 @@ import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.renderer.texture.TextureMap;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.client.render.stack.AEStackTypeRendererRegistry;
+import appeng.client.render.stack.IAEStackTypeRenderer;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
-import appeng.util.ISlimReadableNumberConverter;
-import appeng.util.IWideReadableNumberConverter;
-import appeng.util.ReadableNumberConverter;
 
 /**
  * 多类型栈渲染器。
  * <p>
  * 统一物品和流体（以及未来扩展类型）的图标渲染、数量叠加层和工具提示。
  * 独立于 GUI 框架，可在 MUI 和旧 GUI 系统中复用。
+ * <p>
+ * All type-specific rendering is delegated to {@link IAEStackTypeRenderer} instances
+ * obtained from {@link AEStackTypeRendererRegistry}.
  */
 @SideOnly(Side.CLIENT)
 public final class MUIStackRenderer {
-
-    private static final ISlimReadableNumberConverter SLIM_CONVERTER = ReadableNumberConverter.INSTANCE;
-    private static final IWideReadableNumberConverter WIDE_CONVERTER = ReadableNumberConverter.INSTANCE;
 
     private MUIStackRenderer() {
     }
@@ -74,67 +64,17 @@ public final class MUIStackRenderer {
         if (stack == null) {
             return;
         }
-
-        if (stack instanceof IAEFluidStack fluidStack) {
-            renderFluidIcon(mc, fluidStack, x, y, 16, 16);
-        } else {
-            ItemStack displayStack = stack.asItemStackRepresentation();
-            if (!displayStack.isEmpty()) {
-                renderItemIcon(mc, displayStack, x, y);
-            }
-        }
+        AEStackTypeRendererRegistry.getRenderer(stack).renderIcon(mc, stack, x, y);
     }
 
     /**
-     * 渲染物品图标。
+     * 渲染物品图标（保留以供直接调用）。
      */
     public static void renderItemIcon(Minecraft mc, ItemStack itemStack, int x, int y) {
-        GlStateManager.pushMatrix();
-        GlStateManager.enableDepth();
-        RenderHelper.enableGUIStandardItemLighting();
-
-        mc.getRenderItem().zLevel = 100.0F;
-        mc.getRenderItem().renderItemAndEffectIntoGUI(itemStack, x, y);
-        mc.getRenderItem().zLevel = 0.0F;
-
-        RenderHelper.disableStandardItemLighting();
-        GlStateManager.popMatrix();
-    }
-
-    /**
-     * 渲染流体图标。
-     */
-    public static void renderFluidIcon(Minecraft mc, IAEFluidStack fluidStack, int x, int y, int w, int h) {
-        Fluid fluid = fluidStack.getFluid();
-        if (fluid == null) {
-            return;
-        }
-
-        GlStateManager.disableLighting();
-        mc.getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-        TextureAtlasSprite sprite = mc.getTextureMapBlocks().getAtlasSprite(fluid.getStill().toString());
-
-        int color = fluid.getColor();
-        float red = (color >> 16 & 0xFF) / 255.0f;
-        float green = (color >> 8 & 0xFF) / 255.0f;
-        float blue = (color & 0xFF) / 255.0f;
-        GlStateManager.color(red, green, blue, 1.0f);
-
-        drawSprite(x, y, w, h, sprite);
-
-        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
-        GlStateManager.enableLighting();
-    }
-
-    private static void drawSprite(int x, int y, int w, int h, TextureAtlasSprite sprite) {
-        Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder buf = tessellator.getBuffer();
-        buf.begin(7, DefaultVertexFormats.POSITION_TEX);
-        buf.pos(x, y + h, 0).tex(sprite.getMinU(), sprite.getMaxV()).endVertex();
-        buf.pos(x + w, y + h, 0).tex(sprite.getMaxU(), sprite.getMaxV()).endVertex();
-        buf.pos(x + w, y, 0).tex(sprite.getMaxU(), sprite.getMinV()).endVertex();
-        buf.pos(x, y, 0).tex(sprite.getMinU(), sprite.getMinV()).endVertex();
-        tessellator.draw();
+        appeng.client.render.stack.AEItemStackRenderer.INSTANCE.renderIcon(
+                mc,
+                appeng.util.item.AEItemStackType.INSTANCE.createStack(itemStack),
+                x, y);
     }
 
     // ========== 数量叠加层 ==========
@@ -169,7 +109,8 @@ public final class MUIStackRenderer {
                     : GuiText.SmallFontCraft.getLocal();
             renderOverlayText(fr, craftLabel, x, y, scale, invScale, offset, 0xFFFFFF);
         } else if (stack.getStackSize() > 0 && showAmount) {
-            String sizeStr = formatStackSize(stack.getStackSize(), largeFont);
+            IAEStackTypeRenderer renderer = AEStackTypeRendererRegistry.getRenderer(stack);
+            String sizeStr = renderer.formatStackSize(stack.getStackSize(), largeFont);
             renderOverlayText(fr, sizeStr, x, y, scale, invScale, offset, 0xFFFFFF);
         }
 
@@ -192,14 +133,6 @@ public final class MUIStackRenderer {
         GlStateManager.enableBlend();
     }
 
-    private static String formatStackSize(long size, boolean largeFont) {
-        if (largeFont) {
-            return SLIM_CONVERTER.toSlimReadableForm(size);
-        } else {
-            return WIDE_CONVERTER.toWideReadableForm(size);
-        }
-    }
-
     // ========== 工具提示 ==========
 
     /**
@@ -211,22 +144,9 @@ public final class MUIStackRenderer {
             return lines;
         }
 
-        if (stack instanceof IAEItemStack itemStack) {
-            ItemStack is = itemStack.createItemStack();
-            try {
-                lines.addAll(is.getTooltip(Minecraft.getMinecraft().player, Minecraft.getMinecraft().gameSettings.advancedItemTooltips
-                        ? net.minecraft.client.util.ITooltipFlag.TooltipFlags.ADVANCED
-                        : net.minecraft.client.util.ITooltipFlag.TooltipFlags.NORMAL));
-            } catch (Exception ignored) {
-            }
-        } else if (stack instanceof IAEFluidStack fluidStack) {
-            lines.add(fluidStack.getFluid().getLocalizedName(fluidStack.getFluidStack()));
-        } else {
-            ItemStack repr = stack.asItemStackRepresentation();
-            if (!repr.isEmpty()) {
-                lines.add(repr.getDisplayName());
-            }
-        }
+        // Delegate base tooltip to the type-specific renderer
+        IAEStackTypeRenderer renderer = AEStackTypeRendererRegistry.getRenderer(stack);
+        lines.addAll(renderer.buildBaseTooltip(stack));
 
         if (stack.getStackSize() > 999) {
             String formatted = NumberFormat.getNumberInstance(Locale.US).format(stack.getStackSize());
@@ -247,9 +167,6 @@ public final class MUIStackRenderer {
         if (stack == null) {
             return "";
         }
-        if (stack instanceof IAEFluidStack fluidStack) {
-            return fluidStack.getFluid().getLocalizedName(fluidStack.getFluidStack());
-        }
-        return stack.asItemStackRepresentation().getDisplayName();
+        return AEStackTypeRendererRegistry.getRenderer(stack).getDisplayName(stack);
     }
 }

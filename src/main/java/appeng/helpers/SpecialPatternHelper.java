@@ -16,7 +16,7 @@ import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.fluids.items.ItemFluidDrop;
+import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
@@ -92,19 +92,11 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
                 continue;
             }
 
-            // 尝试泛型反序列化（带 aeTypeId）
+            // Try generic deserialization (with StackType key)
             IAEStack<?> generic = ingredient.hasKey("StackType") ? IAEStack.fromNBTGeneric(ingredient) : null;
             if (generic != null) {
                 inGeneric.add(generic);
-                if (generic instanceof IAEItemStack itemStack) {
-                    inItems.add(itemStack);
-                } else if (generic instanceof IAEFluidStack fluidStack) {
-                    // 流体 → ItemFluidDrop 伪物品（供旧合成树使用）
-                    IAEItemStack drop = ItemFluidDrop.newAEStack(fluidStack);
-                    inItems.add(drop);
-                } else {
-                    inItems.add(null);
-                }
+                inItems.add(Platform.stackConvert(generic));
             } else {
                 // 回退：当作普通物品
                 final ItemStack gs = stackFromNBT(ingredient);
@@ -132,17 +124,13 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
                 continue;
             }
 
-            // 尝试泛型反序列化（带 aeTypeId）
+            // Try generic deserialization (with StackType key)
             IAEStack<?> generic = resultItemTag.hasKey("StackType") ? IAEStack.fromNBTGeneric(resultItemTag) : null;
             if (generic != null) {
                 outGeneric.add(generic);
-                if (generic instanceof IAEItemStack itemStack) {
-                    outItems.add(itemStack);
-                } else if (generic instanceof IAEFluidStack fluidStack) {
-                    IAEItemStack drop = ItemFluidDrop.newAEStack(fluidStack);
-                    if (drop != null) {
-                        outItems.add(drop);
-                    }
+                IAEItemStack converted = Platform.stackConvert(generic);
+                if (converted != null) {
+                    outItems.add(converted);
                 }
             } else {
                 // 回退：当作普通物品

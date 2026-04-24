@@ -148,7 +148,7 @@ public interface IBlocks {
 
     ITileDefinition fluidIface();
 
-    ITileDefinition dualIface();
+    ITileDefinition patternProvider();
 
     ITileDefinition cellWorkbench();
 

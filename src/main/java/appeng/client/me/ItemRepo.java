@@ -23,7 +23,6 @@ package appeng.client.me;
 import appeng.api.config.*;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.client.gui.widgets.IScrollSource;
@@ -195,8 +194,8 @@ public class ItemRepo {
                 }
 
                 IItemList<?> list = entry.getValue();
-                for (IAEStackBase stackBase : (IItemList<IAEStackBase>) list) {
-                    addIAE((IAEStack<?>) stackBase, viewMode);
+                for (Object stackObj : list) {
+                    addIAE((IAEStack<?>) stackObj, viewMode);
                 }
             }
 

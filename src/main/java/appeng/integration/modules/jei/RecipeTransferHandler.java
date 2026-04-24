@@ -217,15 +217,14 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             }
         }
 
-        // 二合一接口终端：将配方类别名称（机器名）设置为 Names 搜索框的建议文本
+        // Wireless dual interface terminal: set the recipe category name as Names search field suggestion
         if (container instanceof ContainerWirelessDualInterfaceTerminal) {
             final net.minecraft.client.gui.GuiScreen currentScreen =
                     net.minecraft.client.Minecraft.getMinecraft().currentScreen;
-            if (currentScreen instanceof appeng.client.gui.implementations.GuiWirelessDualInterfaceTerminal gui) {
-                // 获取配方类别的本地化标题（例如："Crafting Table"、"卷板机"、"高炉" 等）
+            if (currentScreen instanceof appeng.client.mui.screen.MUIWirelessDualInterfaceTerminalPanel panel) {
                 final String categoryTitle = recipeLayout.getRecipeCategory().getTitle();
                 if (categoryTitle != null && !categoryTitle.isEmpty()) {
-                    gui.setSearchFieldSuggestion(categoryTitle);
+                    panel.setSearchFieldSuggestion(categoryTitle);
                 }
             }
         }

@@ -38,35 +38,43 @@ import appeng.core.sync.packets.PacketConfigButton;
 import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.tile.inventory.IAEStackInventory;
-import appeng.util.item.AEItemStackType;
 
 /**
- * MUI 版物品存储总线 GUI 面板。
+ * Unified MUI storage bus GUI panel for all storage types (item, fluid, etc.).
  *
- * 63 个 VirtualMEPhantomSlot 过滤槽（7 行 × 9 列，后 5 行根据 CAPACITY 升级解锁），
- * 以及读写模式、存储过滤、优先级、分区、清除等配置按钮。
+ * 63 VirtualMEPhantomSlot filter slots (7 rows x 9 columns, last 5 rows
+ * unlocked by CAPACITY upgrades), plus read-write mode, storage filter,
+ * priority, partition, and clear buttons.
+ *
+ * The accepted stack type and title text are passed at construction time,
+ * so no per-type subclass is needed.
  */
 public class MUIStorageBusPanel extends MUIUpgradeablePanel {
 
     private final ContainerStorageBus container;
+    private final IAEStackType<?> acceptedType;
+    private final GuiText title;
 
-    // ========== 按钮 ==========
+    // ========== Buttons ==========
     private GuiImgButton rwMode;
     private GuiImgButton storageFilter;
     private GuiTabButton priority;
     private GuiImgButton partition;
     private GuiImgButton clear;
 
-    // ========== 虚拟槽位 ==========
+    // ========== Virtual Slots ==========
     private VirtualMEPhantomSlot[] configSlots;
 
-    public MUIStorageBusPanel(final ContainerStorageBus container) {
+    public MUIStorageBusPanel(final ContainerStorageBus container, final IAEStackType<?> acceptedType,
+            final GuiText title) {
         super(container);
         this.container = container;
+        this.acceptedType = acceptedType;
+        this.title = title;
         this.ySize = 251;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
@@ -74,7 +82,7 @@ public class MUIStorageBusPanel extends MUIUpgradeablePanel {
         this.initVirtualSlots();
     }
 
-    // ========== 按钮管理 ==========
+    // ========== Button Management ==========
 
     @Override
     protected void addButtons() {
@@ -97,14 +105,16 @@ public class MUIStorageBusPanel extends MUIUpgradeablePanel {
         this.buttonList.add(this.clear);
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.StorageBus.getLocal()), 8, 6, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(this.title.getLocal()), 8, 6, 4210752);
         this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
 
-        this.updateVirtualSlotVisibility();
+        if (this.configSlots != null) {
+            this.updateVirtualSlotVisibility();
+        }
 
         if (this.fuzzyMode != null) {
             this.fuzzyMode.set(this.cvb.getFuzzyMode());
@@ -124,7 +134,7 @@ public class MUIStorageBusPanel extends MUIUpgradeablePanel {
         return "guis/storagebus.png";
     }
 
-    // ========== 按钮事件 ==========
+    // ========== Button Events ==========
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
@@ -150,7 +160,7 @@ public class MUIStorageBusPanel extends MUIUpgradeablePanel {
         }
     }
 
-    // ========== 虚拟槽位管理 ==========
+    // ========== Virtual Slot Management ==========
 
     private void initVirtualSlots() {
         this.guiSlots.clear();
@@ -186,6 +196,6 @@ public class MUIStorageBusPanel extends MUIUpgradeablePanel {
     }
 
     private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
-        return type == AEItemStackType.INSTANCE;
+        return type == this.acceptedType;
     }
 }

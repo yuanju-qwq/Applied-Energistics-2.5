@@ -18,11 +18,6 @@
 
 package appeng.core.sync;
 
-import java.lang.reflect.Constructor;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.tileentity.TileEntity;
@@ -30,7 +25,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.fml.common.network.IGuiHandler;
 
 import appeng.api.config.SecurityPermissions;
-import appeng.api.exceptions.AppEngException;
 import appeng.api.implementations.IUpgradeableHost;
 import appeng.api.implementations.guiobjects.INetworkTool;
 import appeng.api.implementations.guiobjects.IPortableCell;
@@ -38,13 +32,13 @@ import appeng.api.storage.ITerminalHost;
 import appeng.api.util.AEPartLocation;
 import appeng.container.implementations.*;
 import appeng.fluids.container.*;
-import appeng.fluids.helper.IFluidInterfaceHost;
 import appeng.fluids.parts.PartFluidFormationPlane;
 import appeng.fluids.parts.PartFluidLevelEmitter;
 import appeng.fluids.parts.PartFluidStorageBus;
 import appeng.fluids.parts.PartSharedFluidBus;
 import appeng.helpers.ICustomNameObject;
-import appeng.helpers.IInterfaceHost;
+import appeng.helpers.IInterfaceLogicHost;
+import appeng.helpers.IPatternProviderHost;
 import appeng.helpers.IPriorityHost;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.items.contents.QuartzKnifeObj;
@@ -54,7 +48,6 @@ import appeng.parts.misc.PartOreDicStorageBus;
 import appeng.parts.misc.PartStorageBus;
 import appeng.parts.reporting.PartCraftingTerminal;
 import appeng.parts.reporting.PartExpandedProcessingPatternTerminal;
-import appeng.parts.reporting.PartFluidInterfaceConfigurationTerminal;
 import appeng.parts.reporting.PartInterfaceConfigurationTerminal;
 import appeng.parts.reporting.PartInterfaceTerminal;
 import appeng.parts.reporting.PartPatternTerminal;
@@ -118,16 +111,10 @@ public enum GuiBridge implements IGuiHandler {
 
     GUI_CONDENSER(ContainerCondenser.class, TileCondenser.class, GuiHostType.WORLD, null),
 
-    GUI_INTERFACE(ContainerInterface.class, IInterfaceHost.class, GuiHostType.WORLD, SecurityPermissions.BUILD),
-
-    GUI_FLUID_INTERFACE(ContainerFluidInterface.class, IFluidInterfaceHost.class, GuiHostType.WORLD,
+    GUI_ME_INTERFACE(ContainerMEInterface.class, IInterfaceLogicHost.class, GuiHostType.WORLD,
             SecurityPermissions.BUILD),
 
-    // 二合一接口（物品面 + 流体面）
-    GUI_DUAL_ITEM_INTERFACE(ContainerDualItemInterface.class, IInterfaceHost.class, GuiHostType.WORLD,
-            SecurityPermissions.BUILD),
-
-    GUI_DUAL_FLUID_INTERFACE(ContainerDualFluidInterface.class, IFluidInterfaceHost.class, GuiHostType.WORLD,
+    GUI_PATTERN_PROVIDER(ContainerPatternProvider.class, IPatternProviderHost.class, GuiHostType.WORLD,
             SecurityPermissions.BUILD),
 
     GUI_BUS(ContainerUpgradeable.class, IUpgradeableHost.class, GuiHostType.WORLD, SecurityPermissions.BUILD),
@@ -141,7 +128,7 @@ public enum GuiBridge implements IGuiHandler {
     GUI_OREDICTSTORAGEBUS(ContainerOreDictStorageBus.class, PartOreDicStorageBus.class, GuiHostType.WORLD,
             SecurityPermissions.BUILD),
 
-    GUI_STORAGEBUS_FLUID(ContainerFluidStorageBus.class, PartFluidStorageBus.class, GuiHostType.WORLD,
+    GUI_STORAGEBUS_FLUID(ContainerStorageBus.class, PartFluidStorageBus.class, GuiHostType.WORLD,
             SecurityPermissions.BUILD),
 
     GUI_FORMATION_PLANE(ContainerFormationPlane.class, PartFormationPlane.class, GuiHostType.WORLD,
@@ -203,8 +190,6 @@ public enum GuiBridge implements IGuiHandler {
 
     GUI_INTERFACE_CONFIGURATION_TERMINAL(ContainerInterfaceConfigurationTerminal.class,
             PartInterfaceConfigurationTerminal.class, GuiHostType.WORLD, SecurityPermissions.BUILD),
-    GUI_FLUID_INTERFACE_CONFIGURATION_TERMINAL(ContainerFluidInterfaceConfigurationTerminal.class,
-            PartFluidInterfaceConfigurationTerminal.class, GuiHostType.WORLD, SecurityPermissions.BUILD),
 
     GUI_RENAMER(ContainerRenamer.class, ICustomNameObject.class, GuiHostType.WORLD, SecurityPermissions.BUILD);
 
@@ -213,13 +198,6 @@ public enum GuiBridge implements IGuiHandler {
     private GuiHostType type;
     private SecurityPermissions requiredPermission;
     private GuiWrapper.IExternalGui externalGui = null;
-    private final Map<Class<?>, Constructor<?>> containerConstructors = new ConcurrentHashMap<>();
-
-    /**
-     * MUI GUI 工厂 Lambda，设置后 {@link #ConstructGui} 将使用此工厂直接创建 GUI。
-     * 参数：(InventoryPlayer, tileEntity/part/guiObject) → GUI 对象
-     */
-    private BiFunction<InventoryPlayer, Object, Object> muiGuiFactory;
 
     GuiBridge() {
         this.tileClass = null;
@@ -234,15 +212,6 @@ public enum GuiBridge implements IGuiHandler {
 
     public GuiWrapper.IExternalGui getExternalGui() {
         return this.externalGui;
-    }
-
-    /**
-     * 注册 MUI GUI 工厂 Lambda。注册后 {@link #ConstructGui} 将优先使用此工厂直接创建 GUI，不走反射。
-     *
-     * @param factory (InventoryPlayer, tileEntity/part/guiObject) → MUI Panel 实例
-     */
-    public void setMuiGuiFactory(final BiFunction<InventoryPlayer, Object, Object> factory) {
-        this.muiGuiFactory = factory;
     }
 
     GuiBridge(final Class containerClass, final SecurityPermissions requiredPermission) {
@@ -273,66 +242,10 @@ public enum GuiBridge implements IGuiHandler {
         return this.tileClass.isInstance(tE);
     }
 
-    public Object ConstructContainer(final InventoryPlayer inventory, final AEPartLocation side, final Object tE) {
-        try {
-            final Constructor target = this.resolveConstructor(this.containerClass, this.containerConstructors, inventory,
-                    tE);
-            return target.newInstance(inventory, tE);
-        } catch (final Throwable t) {
-            throw new IllegalStateException(t);
-        }
-    }
-
-    private Constructor findConstructor(final Constructor[] c, final InventoryPlayer inventory, final Object tE) {
-        for (final Constructor con : c) {
-            final Class[] types = con.getParameterTypes();
-            if (types.length == 2) {
-                if (types[0].isAssignableFrom(inventory.getClass()) && types[1].isAssignableFrom(tE.getClass())) {
-                    return con;
-                }
-            }
-        }
-        return null;
-    }
-
-    private String typeName(final Object inventory) {
-        if (inventory == null) {
-            return "NULL";
-        }
-
-        return inventory.getClass().getName();
-    }
-
     @Override
     public Object getClientGuiElement(final int ordinal, final EntityPlayer player, final World w, final int x,
             final int y, final int z) {
         return AEGuiHandler.INSTANCE.getClientGuiElement(ordinal, player, w, x, y, z);
-    }
-
-    public Object ConstructGui(final InventoryPlayer inventory, final AEPartLocation side, final Object tE) {
-        if (this.muiGuiFactory != null) {
-            return this.muiGuiFactory.apply(inventory, tE);
-        }
-        throw new IllegalStateException("No MUI GUI factory registered for " + this.name()
-                + ". All GUIs must be registered via setMuiGuiFactory().");
-    }
-
-    private Constructor<?> resolveConstructor(final Class targetClass, final Map<Class<?>, Constructor<?>> cache,
-            final InventoryPlayer inventory, final Object targetObject) throws AppEngException {
-        final Constructor[] constructors = targetClass.getConstructors();
-        if (constructors.length == 0) {
-            throw new AppEngException("Invalid Gui Class");
-        }
-
-        return cache.computeIfAbsent(targetObject.getClass(), ignored -> {
-            final Constructor constructor = this.findConstructor(constructors, inventory, targetObject);
-            if (constructor == null) {
-                throw new IllegalStateException(
-                        "Cannot find " + targetClass.getName() + "( " + this.typeName(inventory) + ", "
-                                + this.typeName(targetObject) + " )");
-            }
-            return constructor;
-        });
     }
 
     public boolean hasPermissions(final TileEntity te, final int x, final int y, final int z, final AEPartLocation side,
@@ -345,9 +258,9 @@ public enum GuiBridge implements IGuiHandler {
     }
 
     /**
-     * 获取打开此 GUI 所需的安全权限。
+     * Get the required security permission to open this GUI.
      *
-     * @return 权限要求，如果不需要权限检查则返回 {@code null}
+     * @return the required permission, or {@code null} if no permission check is needed
      */
     public SecurityPermissions getRequiredPermission() {
         return this.requiredPermission;

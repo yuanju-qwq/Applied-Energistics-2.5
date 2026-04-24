@@ -34,6 +34,7 @@ import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AECableType;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
@@ -141,7 +142,8 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
 
                 boolean Configured = false;
                 for (int x = 0; x < this.availableSlots(); x++) {
-                    final IAEItemStack ais = this.getConfig().getAEStackInSlot(x);
+                    final IAEStack<?> raw = this.getConfig().getAEStackInSlot(x);
+                    final IAEItemStack ais = raw instanceof IAEItemStack ? (IAEItemStack) raw : null;
                     if (ais != null && this.itemsToSend > 0) {
                         Configured = true;
                         while (this.itemsToSend > 0) {

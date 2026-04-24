@@ -39,7 +39,6 @@ import appeng.tile.misc.TileCondenser;
 /**
  * MUI 版物质聚合器 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiCondenser}。
  * 包含存储能量进度条和输出模式按钮。
  */
 public class MUICondenserPanel extends AEBasePanel {

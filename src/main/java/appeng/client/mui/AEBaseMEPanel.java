@@ -50,7 +50,7 @@ import appeng.core.localization.ButtonToolTips;
  *   <li>AppEngSlot 的数量显示 tooltip</li>
  * </ul>
  * <p>
- * 对应旧 GUI 体系中已移除的 AEBaseMEGui。
+ * 对应旧 GUI 体系中已移除的 AEBaseMEGui（已删除）。
  */
 @SideOnly(Side.CLIENT)
 public abstract class AEBaseMEPanel extends AEBasePanel {
@@ -174,10 +174,10 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
                         }
 
                         // 添加可请求数量
-                        if (aeStack instanceof IAEItemStack itemStack && itemStack.getCountRequestable() > 0) {
+                        if (aeStack.getCountRequestable() > 0) {
                             final String local = ButtonToolTips.ItemsRequestable.getLocal();
                             final String formattedAmount = NumberFormat.getNumberInstance(Locale.US)
-                                    .format(itemStack.getCountRequestable());
+                                    .format(aeStack.getCountRequestable());
                             lines.add(String.format(local, formattedAmount));
                         }
 

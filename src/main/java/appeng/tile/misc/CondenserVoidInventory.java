@@ -106,12 +106,12 @@ class CondenserVoidInventory<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
-    public void addListener(IMEMonitorHandlerReceiver<T> l, Object verificationToken) {
+    public void addListener(IMEMonitorHandlerReceiver<? super T> l, Object verificationToken) {
         // Not implemented since the Condenser automatically voids everything, and there are no updates
     }
 
     @Override
-    public void removeListener(IMEMonitorHandlerReceiver<T> l) {
+    public void removeListener(IMEMonitorHandlerReceiver<? super T> l) {
         // Not implemented since we don't remember registered listeners anyway
     }
 }

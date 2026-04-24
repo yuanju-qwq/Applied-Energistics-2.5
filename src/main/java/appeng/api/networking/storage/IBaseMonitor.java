@@ -31,11 +31,14 @@ public interface IBaseMonitor<T extends IAEStackBase> {
 
     /**
      * add a new Listener to the monitor, be sure to properly remove yourself when your done.
+     *
+     * Uses {@code ? super T} to allow a single receiver (e.g. typed as {@code IAEStackBase})
+     * to listen to monitors of any concrete stack type.
      */
-    void addListener(IMEMonitorHandlerReceiver<T> l, Object verificationToken);
+    void addListener(IMEMonitorHandlerReceiver<? super T> l, Object verificationToken);
 
     /**
      * remove a Listener to the monitor.
      */
-    void removeListener(IMEMonitorHandlerReceiver<T> l);
+    void removeListener(IMEMonitorHandlerReceiver<? super T> l);
 }

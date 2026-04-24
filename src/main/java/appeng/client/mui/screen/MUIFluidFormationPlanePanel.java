@@ -22,35 +22,37 @@ import java.io.IOException;
 
 import net.minecraft.client.gui.GuiButton;
 
+import appeng.api.config.Upgrades;
+import appeng.api.storage.data.IAEStackType;
+import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketSwitchGuis;
-import appeng.fluids.client.gui.widgets.GuiFluidSlot;
-import appeng.fluids.client.gui.widgets.GuiOptionalFluidSlot;
 import appeng.fluids.container.ContainerFluidFormationPlane;
-import appeng.fluids.parts.PartFluidFormationPlane;
-import appeng.fluids.util.IAEFluidTank;
+import appeng.fluids.util.AEFluidStackType;
+import appeng.tile.inventory.IAEStackInventory;
 
 /**
  * MUI 版流体成型面板 GUI 面板。
  *
- * 63 个流体过滤槽（7 行 × 9 列，前 2 行始终可见，后 5 行根据 CAPACITY 升级解锁），
+ * 63 个 VirtualMEPhantomSlot 流体过滤槽（7 行 × 9 列，前 2 行始终可见，后 5 行根据 CAPACITY 升级解锁），
  * 以及优先级按钮。
  */
 public class MUIFluidFormationPlanePanel extends MUIUpgradeablePanel {
 
     private final ContainerFluidFormationPlane container;
-    private final PartFluidFormationPlane plane;
 
     // ========== 按钮 ==========
     private GuiTabButton priority;
 
+    // ========== 虚拟槽位 ==========
+    private VirtualMEPhantomSlot[] configSlots;
+
     public MUIFluidFormationPlanePanel(final ContainerFluidFormationPlane container) {
         super(container);
         this.container = container;
-        this.plane = (PartFluidFormationPlane) container.getTarget();
         this.ySize = 251;
     }
 
@@ -59,22 +61,44 @@ public class MUIFluidFormationPlanePanel extends MUIUpgradeablePanel {
     @Override
     public void initGui() {
         super.initGui();
+        this.initVirtualSlots();
+    }
 
+    // ========== 虚拟槽位管理 ==========
+
+    private void initVirtualSlots() {
+        this.guiSlots.clear();
+        this.configSlots = new VirtualMEPhantomSlot[63];
+        final IAEStackInventory configInv = this.container.getConfig();
         final int xo = 8;
         final int yo = 23 + 6;
 
-        final IAEFluidTank config = this.plane.getConfig();
-
         for (int y = 0; y < 7; y++) {
             for (int x = 0; x < 9; x++) {
-                final int idx = y * 9 + x;
-                if (y < 2) {
-                    this.guiSlots.add(new GuiFluidSlot(config, idx, idx, xo + x * 18, yo + y * 18));
-                } else {
-                    this.guiSlots.add(new GuiOptionalFluidSlot(config, this.container, idx, idx, y - 2, xo, yo, x, y));
-                }
+                final int slotIdx = x + y * 9;
+                VirtualMEPhantomSlot slot = new VirtualMEPhantomSlot(
+                        slotIdx,
+                        xo + x * 18,
+                        yo + y * 18,
+                        configInv,
+                        slotIdx,
+                        this::acceptType);
+                this.configSlots[slotIdx] = slot;
+                this.guiSlots.add(slot);
             }
         }
+    }
+
+    private void updateVirtualSlotVisibility() {
+        final int capacity = this.bc.getInstalledUpgrades(Upgrades.CAPACITY);
+
+        for (VirtualMEPhantomSlot slot : this.configSlots) {
+            slot.setHidden(slot.getSlotIndex() >= (18 + (9 * capacity)));
+        }
+    }
+
+    private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
+        return type == AEFluidStackType.INSTANCE;
     }
 
     // ========== 按钮管理 ==========
@@ -86,6 +110,14 @@ public class MUIFluidFormationPlanePanel extends MUIUpgradeablePanel {
     }
 
     // ========== 渲染 ==========
+
+    @Override
+    protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
+        super.drawFG(offsetX, offsetY, mouseX, mouseY);
+        if (this.configSlots != null) {
+            this.updateVirtualSlotVisibility();
+        }
+    }
 
     @Override
     protected String getBackground() {

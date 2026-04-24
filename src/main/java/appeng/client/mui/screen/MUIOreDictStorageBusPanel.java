@@ -34,6 +34,7 @@ import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.client.gui.widgets.MEGuiTextField;
 import appeng.container.implementations.ContainerOreDictStorageBus;
+import appeng.container.interfaces.IOreDictStorageBusGuiCallback;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;
@@ -46,11 +47,10 @@ import appeng.util.item.OreDictFilterMatcher;
 /**
  * MUI 版矿辞存储总线 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiOreDictStorageBus}。
  * 继承 {@link MUIUpgradeablePanel}，包含矿辞正则表达式输入框、
  * 优先级/分区/读写模式/存储过滤按钮。
  */
-public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel {
+public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IOreDictStorageBusGuiCallback {
 
     private final ContainerOreDictStorageBus container;
     private static final Pattern ORE_DICTIONARY_FILTER = Pattern.compile("[0-9a-zA-Z* &|^!()]*");
@@ -110,6 +110,7 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel {
         }
     }
 
+    @Override
     public void fillRegex(String regex) {
         this.searchFieldInputs.setText(regex);
     }

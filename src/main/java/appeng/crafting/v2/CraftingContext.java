@@ -178,7 +178,16 @@ public final class CraftingContext {
         });
     }
 
+    /**
+     * Get fuzzy-matching patterns for the given stack.
+     * <p>
+     * MC limitation: Fuzzy matching only applies to IAEItemStack because it relies on
+     * item damage values (FuzzyMode compares damage percentage ranges). Fluids and other
+     * non-item types have no concept of damage/metadata for fuzzy comparison, so they
+     * fall back to precise pattern matching.
+     */
     public List<ICraftingPatternDetails> getFuzzyPatternsFor(@Nonnull IAEStack<?> stack) {
+        // instanceof IAEItemStack: only items support fuzzy matching via damage values
         if (stack instanceof IAEItemStack) {
             IAEItemStack aiStack = (IAEItemStack) stack;
             if (!fuzzyPatternCache.isPopulated()) {
@@ -186,6 +195,7 @@ public final class CraftingContext {
                     for (final ICraftingPatternDetails pattern : patternSet) {
                         if (pattern.canBeSubstitute()) {
                             for (final IAEStack<?> output : pattern.getAEOutputs()) {
+                                // Only item outputs participate in fuzzy matching (damage-based)
                                 if (output instanceof IAEItemStack) {
                                     fuzzyPatternCache.put(((IAEItemStack) output).copy(), pattern);
                                 }
@@ -202,7 +212,15 @@ public final class CraftingContext {
     }
 
     /**
-     * @return 閰嶆柟鏄惁鏈夊鏉傝涓猴紙鍦ㄥ悎鎴愮綉鏍间腑鐣欎笅鐗╁搧锛夛紝闇€瑕侀€愪竴妯℃嫙
+     * Check whether a crafting pattern has complex behavior (leaves behind container items
+     * in the crafting grid), requiring per-item simulation.
+     * <p>
+     * MC limitation: Only item-type crafting table patterns can exhibit complex behavior,
+     * because MC's CraftingManager and InventoryCrafting only operate on ItemStack.
+     * Container items (e.g. empty bucket after using water bucket in a recipe) are an
+     * item-only MC concept. Non-item types (fluids, etc.) never have complex behavior.
+     *
+     * @return whether the pattern has complex behavior (leaves behind items in the grid)
      */
     public boolean isPatternComplex(@Nonnull ICraftingPatternDetails pattern) {
         if (!pattern.isCraftable()) {
@@ -214,7 +232,8 @@ public final class CraftingContext {
         }
 
         final IAEStack<?>[] inputs = pattern.getAEInputs();
-        // 鍙湁鐗╁搧绫诲瀷鐨勫悎鎴愬彴閰嶆柟鎵嶅彲鑳芥湁澶嶆潅琛屼负
+        // MC limitation: only item-type crafting table patterns can have complex behavior
+        // (container items). If any input is non-item, the pattern cannot be complex.
         boolean allItems = true;
         for (IAEStack<?> s : inputs) {
             if (s != null && !(s instanceof IAEItemStack)) {
@@ -239,10 +258,13 @@ public final class CraftingContext {
     }
 
     /**
-     * 妯℃嫙鐢ㄥ悎鎴愬彴鍋?1 娆″悎鎴愩€?
+     * Simulate one crafting operation using the MC crafting table.
+     * <p>
+     * MC limitation: This directly uses MC's InventoryCrafting (3x3 grid) and
+     * CraftingManager, which only work with ItemStack. This is inherently item-only.
      *
-     * @param inputSlots 3x3 鍚堟垚鐭╅樀鍐呭
-     * @return 鍚堟垚鍚?3x3 鐭╅樀涓墿浣欑殑鐗╁搧
+     * @param inputSlots 3x3 crafting grid contents
+     * @return remaining items in the 3x3 grid after crafting (container items)
      */
     public IAEItemStack[] simulateComplexCrafting(IAEItemStack[] inputSlots, ICraftingPatternDetails pattern) {
         if (inputSlots.length > 9) {

@@ -44,8 +44,6 @@ import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.ClickType;
@@ -54,14 +52,13 @@ import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.client.gui.widgets.GuiCustomSlot;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.gui.widgets.ITooltip;
@@ -69,6 +66,8 @@ import appeng.client.me.InternalSlotME;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.me.SlotME;
 import appeng.client.render.StackSizeRenderer;
+import appeng.client.render.stack.AEStackTypeRendererRegistry;
+import appeng.client.render.stack.IAEStackTypeRenderer;
 import appeng.container.AEBaseContainer;
 import appeng.container.slot.AppEngCraftingSlot;
 import appeng.container.slot.AppEngSlot;
@@ -88,12 +87,10 @@ import appeng.core.AppEng;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.core.sync.packets.PacketSwapSlots;
-import appeng.fluids.client.render.FluidStackSizeRenderer;
 import appeng.fluids.container.slots.IMEFluidSlot;
-import appeng.fluids.items.FluidDummyItem;
-import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.InventoryAction;
 import appeng.items.misc.ItemEncodedPattern;
+import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 
 /**
@@ -140,9 +137,6 @@ public abstract class AEBasePanel extends GuiContainer {
 
     /** 物品数量渲染器 */
     private final StackSizeRenderer stackSizeRenderer = new StackSizeRenderer();
-
-    /** 流体数量渲染器 */
-    private final FluidStackSizeRenderer fluidStackSizeRenderer = new FluidStackSizeRenderer();
 
     /** 拖拽点击槽位记录（防止重复触发） */
     private final Set<Slot> dragClick = new HashSet<>();
@@ -418,63 +412,29 @@ public abstract class AEBasePanel extends GuiContainer {
             }
             return;
         } else if (s instanceof IMEFluidSlot && ((IMEFluidSlot) s).shouldRenderAsFluid()) {
+            // Fluid ME terminal slot — render via generic IAEStackTypeRenderer
             final IMEFluidSlot slot = (IMEFluidSlot) s;
             final IAEFluidStack fs = slot.getAEFluidStack();
 
             if (fs != null && this.isPowered()) {
-                GlStateManager.disableLighting();
-                GlStateManager.disableBlend();
-                final Fluid fluid = fs.getFluid();
-                Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-                final TextureAtlasSprite sprite = Minecraft.getMinecraft().getTextureMapBlocks()
-                        .getAtlasSprite(fluid.getStill().toString());
-
-                float red = (fluid.getColor() >> 16 & 255) / 255.0F;
-                float green = (fluid.getColor() >> 8 & 255) / 255.0F;
-                float blue = (fluid.getColor() & 255) / 255.0F;
-                GlStateManager.color(red, green, blue);
-
-                this.drawTexturedModalRect(s.xPos, s.yPos, sprite, 16, 16);
-                GlStateManager.enableLighting();
-                GlStateManager.enableBlend();
-
-                this.fluidStackSizeRenderer.renderStackSize(this.fontRenderer, fs, s.xPos, s.yPos);
+                final IAEStackTypeRenderer renderer = AEStackTypeRendererRegistry.getRenderer(fs);
+                renderer.renderIcon(Minecraft.getMinecraft(), fs, s.xPos, s.yPos);
+                renderer.renderStackSize(this.fontRenderer, fs, s.xPos, s.yPos);
             } else if (!this.isPowered()) {
                 drawRect(s.xPos, s.yPos, 16 + s.xPos, 16 + s.yPos, 0x66111111);
             }
             return;
-        } else if (s instanceof SlotFake && !s.getStack().isEmpty()
-                && s.getStack().getItem() instanceof FluidDummyItem) {
-            // SlotFake 中的 FluidDummyItem（由 asItemStackRepresentation 产生）：渲染为流体纹理 + 流体数量
-            final ItemStack stack = s.getStack();
-            final FluidStack fluidStack = ((FluidDummyItem) stack.getItem()).getFluidStack(stack);
-
-            if (fluidStack != null) {
-                GlStateManager.disableLighting();
-                GlStateManager.disableBlend();
-                final Fluid fluid = fluidStack.getFluid();
-                Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-                final TextureAtlasSprite sprite = Minecraft.getMinecraft().getTextureMapBlocks()
-                        .getAtlasSprite(fluid.getStill().toString());
-
-                float red = (fluid.getColor() >> 16 & 255) / 255.0F;
-                float green = (fluid.getColor() >> 8 & 255) / 255.0F;
-                float blue = (fluid.getColor() & 255) / 255.0F;
-                GlStateManager.color(red, green, blue);
-
-                this.drawTexturedModalRect(s.xPos, s.yPos, sprite, 16, 16);
-                GlStateManager.enableLighting();
-                GlStateManager.enableBlend();
-
-                IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(fluidStack);
-                if (aeFluid != null) {
-                    // Use the fluid amount from NBT, not ItemStack.count
-                    this.fluidStackSizeRenderer.renderStackSize(this.fontRenderer, aeFluid, s.xPos, s.yPos);
-                }
-            } else {
-                super.drawSlot(s);
+        } else if (s instanceof SlotFake && !s.getStack().isEmpty()) {
+            // SlotFake may contain a FluidDummyItem (or other non-item representation):
+            // try to convert to a generic IAEStack and render via the appropriate renderer
+            final IAEStack<?> converted = Platform.convertSlotStackToAEStack(s.getStack());
+            if (converted != null && !converted.isItem()) {
+                final IAEStackTypeRenderer renderer = AEStackTypeRendererRegistry.getRenderer(converted);
+                renderer.renderIcon(Minecraft.getMinecraft(), converted, s.xPos, s.yPos);
+                renderer.renderStackSize(this.fontRenderer, converted, s.xPos, s.yPos);
+                return;
             }
-            return;
+            // Fall through to default rendering for regular items in SlotFake
         } else {
             try {
                 final ItemStack is = s.getStack();

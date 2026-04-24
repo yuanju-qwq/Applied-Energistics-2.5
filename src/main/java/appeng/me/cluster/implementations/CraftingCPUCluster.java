@@ -64,6 +64,7 @@ import appeng.crafting.*;
 import appeng.crafting.v2.CraftingJobV2;
 import appeng.helpers.PatternHelper;
 import appeng.util.inv.MEInventoryCrafting;
+import appeng.util.item.IAEStackList;
 import appeng.integration.modules.betterquesting.BQEventHelper;
 import appeng.me.cache.CraftingGridCache;
 import appeng.me.cluster.IAECluster;
@@ -89,7 +90,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
     private final List<TileCraftingTile> tiles = new ArrayList<>();
     private final List<TileCraftingTile> storage = new ArrayList<>();
     private final List<TileCraftingMonitorTile> status = new ArrayList<>();
-    private final HashMap<IMEMonitorHandlerReceiver<IAEStackBase>, Object> listeners = new HashMap<>();
+    private final HashMap<IMEMonitorHandlerReceiver<? super IAEStackBase>, Object> listeners = new HashMap<>();
     private final Map<ICraftingPatternDetails, Queue<ICraftingMedium>> visitedMediums = new HashMap<>();
     private ICraftingMedium LatestMedium;
     private ICraftingLink myLastLink;
@@ -155,7 +156,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
      * add a new Listener to the monitor, be sure to properly remove yourself when your done.
      */
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<IAEStackBase> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver<? super IAEStackBase> l, final Object verificationToken) {
         this.listeners.put(l, verificationToken);
     }
 
@@ -163,7 +164,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
      * remove a Listener to the monitor.
      */
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<IAEStackBase> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver<? super IAEStackBase> l) {
         this.listeners.remove(l);
     }
 
@@ -360,18 +361,18 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
     @SuppressWarnings("unchecked")
     private void postChange(final IAEStack<?> diff, final IActionSource src) {
-        final Iterator<Entry<IMEMonitorHandlerReceiver<IAEStackBase>, Object>> i = this.getListeners();
+        final Iterator<Entry<IMEMonitorHandlerReceiver<? super IAEStackBase>, Object>> i = this.getListeners();
 
         // protect integrity
         if (i.hasNext()) {
             final ImmutableList<IAEStackBase> single = ImmutableList.of(diff.copy());
 
             while (i.hasNext()) {
-                final Entry<IMEMonitorHandlerReceiver<IAEStackBase>, Object> o = i.next();
-                final IMEMonitorHandlerReceiver<IAEStackBase> receiver = o.getKey();
+                final Entry<IMEMonitorHandlerReceiver<? super IAEStackBase>, Object> o = i.next();
+                final IMEMonitorHandlerReceiver<? super IAEStackBase> receiver = o.getKey();
 
                 if (receiver.isValid(o.getValue())) {
-                    receiver.postChange(null, single, src);
+                    ((IMEMonitorHandlerReceiver) receiver).postChange(null, single, src);
                 } else {
                     i.remove();
                 }
@@ -465,7 +466,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         }
     }
 
-    private Iterator<Entry<IMEMonitorHandlerReceiver<IAEStackBase>, Object>> getListeners() {
+    private Iterator<Entry<IMEMonitorHandlerReceiver<? super IAEStackBase>, Object>> getListeners() {
         return this.listeners.entrySet().iterator();
     }
 
@@ -580,10 +581,10 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             this.myLastLink.cancel();
         }
 
-        final IItemList<IAEStackBase> list;
-        this.getGenericListOfItem(list = new appeng.util.item.IAEStackList(), CraftingItemList.ALL);
-        for (final IAEStackBase is : list) {
-            this.postChange(asGenericStack(is), this.machineSrc);
+        final IAEStackList list = new IAEStackList();
+        this.getGenericListOfItem(list, CraftingItemList.ALL);
+        for (final IAEStack<?> is : list.typedView()) {
+            this.postChange(is, this.machineSrc);
         }
 
         this.isComplete = true;
@@ -591,10 +592,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         this.tasks.clear();
 
         final List<IAEStack<?>> items = new ArrayList<>(this.waitingFor.size());
-        for (final IAEStackBase stackBase : this.waitingFor) {
-            if (stackBase instanceof IAEStack<?> aeStack) {
-                items.add(aeStack.copy().setStackSize(-aeStack.getStackSize()));
-            }
+        for (final IAEStack<?> stack : this.waitingFor.typedView()) {
+            items.add(stack.copy().setStackSize(-stack.getStackSize()));
         }
 
         this.waitingFor.resetStatus();
@@ -1010,8 +1009,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             final IMEMonitor<?> monitor = sg.getInventory(type);
             if (monitor == null) continue;
             final IItemList<?> list = entry.getValue();
-            for (IAEStackBase stackBase : asBaseList(list)) {
-                IAEStack<?> aeStack = asGenericStack(stackBase);
+            for (IAEStack<?> aeStack : iterateTyped(list)) {
                 aeStack = this.inventory.extractAny(aeStack.copy(), Actionable.MODULATE);
 
                 if (aeStack != null) {
@@ -1032,13 +1030,12 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         this.markDirty();
     }
 
+    /**
+     * Iterate any {@link IItemList}{@code <?>} as {@code IAEStack<?>} without going through {@code IAEStackBase}.
+     */
     @SuppressWarnings("unchecked")
-    private static IItemList<IAEStackBase> asBaseList(final IItemList<?> list) {
-        return (IItemList<IAEStackBase>) list;
-    }
-
-    private static IAEStack<?> asGenericStack(final IAEStackBase stackBase) {
-        return (IAEStack<?>) stackBase;
+    private static Iterable<IAEStack<?>> iterateTyped(final IItemList<?> list) {
+        return (Iterable<IAEStack<?>>) (Iterable<?>) list;
     }
 
     @SuppressWarnings("unchecked")
@@ -1094,10 +1091,10 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                 this.submitLink(this.myLastLink);
                 this.submitLink(whatLink);
 
-                final IItemList<IAEStackBase> list = new appeng.util.item.IAEStackList();
+                final IAEStackList list = new IAEStackList();
                 this.getGenericListOfItem(list, CraftingItemList.ALL);
-                for (final IAEStackBase ge : list) {
-                    this.postChange(asGenericStack(ge), this.machineSrc);
+                for (final IAEStack<?> ge : list.typedView()) {
+                    this.postChange(ge, this.machineSrc);
                 }
 
                 return whatLink;
@@ -1191,7 +1188,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
     public void getGenericListOfItem(final IItemList<IAEStackBase> list, final CraftingItemList whichList) {
         switch (whichList) {
             case ACTIVE:
-                for (final IAEStackBase ais : this.waitingFor) {
+                for (final IAEStack<?> ais : this.waitingFor.typedView()) {
                     list.add(ais);
                 }
                 break;
@@ -1211,7 +1208,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             case ALL:
                 this.inventory.getAvailableStacks(list);
 
-                for (final IAEStackBase ais : this.waitingFor) {
+                for (final IAEStack<?> ais : this.waitingFor.typedView()) {
                     list.add(ais);
                 }
 
@@ -1393,10 +1390,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         }
 
         this.waitingFor = this.readList((NBTTagList) data.getTag("waitingFor"));
-        for (final IAEStackBase stackBase : this.waitingFor) {
-            if (stackBase instanceof IAEStack<?> stack) {
-                this.postCraftingStatusChange(stack.copy());
-            }
+        for (final IAEStack<?> stack : this.waitingFor.typedView()) {
+            this.postCraftingStatusChange(stack.copy());
         }
 
         this.lastTime = System.nanoTime();
@@ -1452,13 +1447,13 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         this.lastTime = System.nanoTime();
         this.elapsedTime = 0;
 
-        final IItemList<IAEStackBase> list = new appeng.util.item.IAEStackList();
+        final IAEStackList list = new IAEStackList();
 
         this.getGenericListOfItem(list, CraftingItemList.ACTIVE);
         this.getGenericListOfItem(list, CraftingItemList.PENDING);
 
         long itemCount = 0;
-        for (final IAEStackBase ge : list) {
+        for (final IAEStack<?> ge : list.typedView()) {
             itemCount += ge.getStackSize();
         }
 

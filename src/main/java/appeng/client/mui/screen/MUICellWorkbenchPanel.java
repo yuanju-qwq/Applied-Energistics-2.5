@@ -33,18 +33,21 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.config.Settings;
 import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IUpgradeModule;
+import appeng.api.storage.ICellWorkbenchItem;
+import appeng.api.storage.data.IAEStackType;
+import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiToggleButton;
 import appeng.container.implementations.ContainerCellWorkbench;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.tile.misc.TileCellWorkbench;
 
 /**
  * MUI 版单元工作台 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiCellWorkbench}。
  * 继承 {@link MUIUpgradeablePanel}，包含清除/分区/复制模式/模糊模式按钮，
  * 以及支持最多 24 个升级槽的多列升级区域绘制。
  */
@@ -57,10 +60,21 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
     private GuiImgButton partition;
     private GuiToggleButton copyMode;
 
+    // ========== 虚拟槽位 ==========
+    private VirtualMEPhantomSlot[] configSlots;
+
     public MUICellWorkbenchPanel(final ContainerCellWorkbench container) {
         super(container);
         this.workbench = container;
         this.ySize = 251;
+    }
+
+    // ========== 初始化 ==========
+
+    @Override
+    public void initGui() {
+        super.initGui();
+        this.initVirtualSlots();
     }
 
     // ========== 按钮管理 ==========
@@ -186,5 +200,41 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
             }
         } catch (final IOException ignored) {
         }
+    }
+
+    // ========== 虚拟槽位管理 ==========
+
+    private void initVirtualSlots() {
+        this.guiSlots.clear();
+        this.configSlots = new VirtualMEPhantomSlot[63];
+        final IAEStackInventory inputInv = this.workbench.getConfig();
+        final int xo = 8;
+        final int yo = 29;
+
+        for (int y = 0; y < 7; y++) {
+            for (int x = 0; x < 9; x++) {
+                final int slotIdx = x + y * 9;
+                VirtualMEPhantomSlot slot = new VirtualMEPhantomSlot(
+                        slotIdx,
+                        xo + x * 18,
+                        yo + y * 18,
+                        inputInv,
+                        slotIdx,
+                        this::acceptType);
+                this.configSlots[slotIdx] = slot;
+                this.guiSlots.add(slot);
+            }
+        }
+    }
+
+    /**
+     * 根据当前单元物品的栈类型决定是否接受某种类型的栈。
+     */
+    private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
+        final ICellWorkbenchItem cell = this.workbench.getCell();
+        if (cell != null) {
+            return type == cell.getStackType();
+        }
+        return false;
     }
 }

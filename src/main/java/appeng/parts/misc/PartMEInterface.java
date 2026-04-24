@@ -182,8 +182,7 @@ public class PartMEInterface extends PartBasicState implements IGridTickable, IS
     @Override
     public boolean onPartActivate(final EntityPlayer p, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            // TODO: 等 B4（Container/GUI）完成后替换为 GUI_ME_INTERFACE
-            Platform.openGUI(p, this.getTileEntity(), this.getSide(), AEGuiKeys.INTERFACE);
+            Platform.openGUI(p, this.getTileEntity(), this.getSide(), AEGuiKeys.ME_INTERFACE);
         }
         return true;
     }
@@ -291,7 +290,6 @@ public class PartMEInterface extends PartBasicState implements IGridTickable, IS
 
     @Override
     public GuiBridge getGuiBridge() {
-        // TODO: 等 B4（Container/GUI）完成后替换为 GUI_ME_INTERFACE
-        return AEGuiKeys.INTERFACE.getLegacyBridge();
+        return AEGuiKeys.ME_INTERFACE.getLegacyBridge();
     }
 }

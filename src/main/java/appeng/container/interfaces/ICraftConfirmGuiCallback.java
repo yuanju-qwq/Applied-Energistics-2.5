@@ -26,8 +26,7 @@ import appeng.api.storage.data.IAEStack;
  * 合成确认 GUI 的回调接口。
  * <p>
  * 允许 {@link appeng.container.implementations.ContainerCraftConfirm} 与不同的 GUI 实现通信，
- * 而不必依赖具体的 GUI 类。旧 GUI（{@link appeng.client.gui.implementations.GuiCraftConfirm}）
- * 和新 MUI 面板都可以实现此接口。
+ * 而不必依赖具体的 GUI 类。MUI 面板通过实现此接口接收回调。
  */
 public interface ICraftConfirmGuiCallback {
 

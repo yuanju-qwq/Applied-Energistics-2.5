@@ -24,20 +24,20 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.entity.player.EntityPlayer;
 
 import appeng.container.AEBaseContainer;
-import appeng.container.implementations.ContainerFluidInterfaceConfigurationTerminal;
 import appeng.core.AELog;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.network.INetworkInfo;
-import appeng.fluids.container.ContainerFluidInterface;
-import appeng.fluids.container.ContainerFluidTerminal;
-import appeng.fluids.container.ContainerWirelessFluidTerminal;
 import appeng.fluids.util.AEFluidStack;
 
 /**
+ * @deprecated Use {@link PacketTargetStack} instead, which supports all stack types.
+ *             Kept for backward compatibility with older clients/servers.
+ *
  * @author BrockWS
  * @version rv6 - 23/05/2018
  * @since rv6 23/05/2018
  */
+@Deprecated
 public class PacketTargetFluidStack extends AppEngPacket {
     private AEFluidStack stack;
 
@@ -74,16 +74,9 @@ public class PacketTargetFluidStack extends AppEngPacket {
 
     @Override
     public void serverPacketData(final INetworkInfo manager, final AppEngPacket packet, final EntityPlayer player) {
+        // All fluid containers extend AEBaseContainer, so a single dispatch suffices.
         if (player.openContainer instanceof AEBaseContainer) {
             ((AEBaseContainer) player.openContainer).setTargetStack(this.stack);
-        } else if (player.openContainer instanceof ContainerFluidTerminal) {
-            ((ContainerFluidTerminal) player.openContainer).setTargetStack(this.stack);
-        } else if (player.openContainer instanceof ContainerWirelessFluidTerminal) {
-            ((ContainerWirelessFluidTerminal) player.openContainer).setTargetStack(this.stack);
-        } else if (player.openContainer instanceof ContainerFluidInterface) {
-            ((ContainerFluidInterface) player.openContainer).setTargetStack(this.stack);
-        } else if (player.openContainer instanceof ContainerFluidInterfaceConfigurationTerminal) {
-            ((ContainerFluidInterfaceConfigurationTerminal) player.openContainer).setTargetStack(this.stack);
         }
     }
 }

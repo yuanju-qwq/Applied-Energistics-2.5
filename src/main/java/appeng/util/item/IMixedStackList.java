@@ -19,6 +19,7 @@
 package appeng.util.item;
 
 import java.util.Collection;
+import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
@@ -62,5 +63,18 @@ public interface IMixedStackList extends Iterable<IAEStackBase> {
     @Nullable
     default IAEStackType<?> getMixedStackType() {
         return null;
+    }
+
+    /**
+     * Returns a typed view of this list that yields {@link IAEStack} instead of {@link IAEStackBase}.
+     * All elements stored in an {@link IMixedStackList} are guaranteed to be {@link IAEStack} instances,
+     * so this is a safe unchecked cast wrapper.
+     */
+    @SuppressWarnings("unchecked")
+    default Iterable<IAEStack<?>> typedView() {
+        return () -> {
+            Iterator<IAEStackBase> base = IMixedStackList.this.iterator();
+            return (Iterator<IAEStack<?>>) (Iterator<?>) base;
+        };
     }
 }

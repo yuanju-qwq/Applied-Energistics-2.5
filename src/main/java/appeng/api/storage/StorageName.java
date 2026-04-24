@@ -28,7 +28,8 @@ public enum StorageName {
     CRAFTING_INPUT("crafting"),
     CRAFTING_OUTPUT("output"),
     CRAFTING_PATTERN("pattern"),
-    CONFIG("config");
+    CONFIG("config"),
+    STORAGE("storage");
 
     private final String name;
 

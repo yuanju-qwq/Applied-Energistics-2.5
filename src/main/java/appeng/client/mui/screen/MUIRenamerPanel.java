@@ -37,7 +37,6 @@ import appeng.helpers.ICustomNameObject;
 /**
  * MUI 版重命名器 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiRenamer}。
  * 提供文本输入框和确认按钮，用于重命名方块/物品。
  * ESC/Enter 键关闭面板并发送重命名数据包。
  */

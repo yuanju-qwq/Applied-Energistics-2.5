@@ -63,7 +63,6 @@ import appeng.util.item.AEItemStackType;
 /**
  * MUI 版扩展处理样板终端面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiExpandedProcessingPatternTerm}。
  * 继承 {@link MUIMEMonitorablePanel}，提供扩展的处理模式样板编码功能：
  * <ul>
  *   <li>4 列 × N 行输入网格（带分页滚动条）</li>

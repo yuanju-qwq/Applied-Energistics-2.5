@@ -894,17 +894,17 @@ public class Platform {
     // ========== 泛型栈 NBT 序列化/反序列化工具方法 ==========
 
     /**
-     * 从 NBT 中读取一个泛型 {@link IAEStack}。
+     * Read a generic {@link IAEStack} from NBT.
      * <p>
-     * 支持以下两种 NBT 格式，实现旧存档无缝迁移：
+     * Supports two NBT formats for seamless legacy save migration:
      * <ol>
-     *   <li><b>新格式</b>：含 {@code "StackType"} 字符串键 → 通过 {@link IAEStack#fromNBTGeneric(NBTTagCompound)} 反序列化</li>
-     *   <li><b>旧格式</b>：不含 {@code "StackType"} 键 → 当作 {@link IAEItemStack}，可选地做 ItemFluidDrop 转换</li>
+     *   <li><b>New format</b>: contains {@code "StackType"} string key → deserialized via {@link IAEStack#fromNBTGeneric(NBTTagCompound)}</li>
+     *   <li><b>Legacy format</b>: no {@code "StackType"} key → treated as {@link IAEItemStack}, optionally converting FluidDummyItem placeholders</li>
      * </ol>
      *
-     * @param tag     NBT 标签
-     * @param convert 是否尝试将旧格式的 ItemFluidDrop 物品转换为 {@link IAEFluidStack}
-     * @return 反序列化的泛型栈，tag 为空则返回 null
+     * @param tag     NBT tag
+     * @param convert whether to convert legacy FluidDummyItem items to {@link IAEFluidStack}
+     * @return deserialized generic stack, or null if tag is empty
      */
     @Nullable
     public static IAEStack<?> readStackNBT(@Nullable final NBTTagCompound tag, final boolean convert) {
@@ -918,15 +918,22 @@ public class Platform {
             return IAEStack.fromNBTGeneric(tag);
         }
 
-        // 旧格式：无 StackType 键，当作物品栈
+        // 旧格式：无 StackType 键，先尝试物品栈，再尝试流体栈
         IAEItemStack itemStack = AEItemStack.fromNBT(tag);
-        if (itemStack == null) {
-            return null;
+        if (itemStack != null) {
+            if (convert) {
+                return convertLegacyStack(itemStack);
+            }
+            return itemStack;
         }
-        if (convert) {
-            return convertLegacyStack(itemStack);
+
+        // 尝试旧的 AEFluidStack NBT 格式（含 Amt / FluidName 键）
+        IAEFluidStack fluidStack = AEFluidStack.fromNBT(tag);
+        if (fluidStack != null) {
+            return fluidStack;
         }
-        return itemStack;
+
+        return null;
     }
 
     /**
@@ -955,7 +962,7 @@ public class Platform {
                 // 旧格式：直接作为物品栈序列化
                 stack.writeToNBT(tag);
             } else if (stack instanceof IAEFluidStack) {
-                // 旧格式：流体需要转为 ItemFluidDrop 的物品栈格式
+                // Legacy format: fluids need to be converted to FluidDummyItem item stack format
                 IAEItemStack converted = stackConvert(stack);
                 if (converted != null) {
                     converted.writeToNBT(tag);
@@ -978,11 +985,11 @@ public class Platform {
     // ========== 泛型栈列表 NBT 序列化/反序列化 ==========
 
     /**
-     * 从 {@link NBTTagList} 中读取泛型栈列表。
+     * Read a generic stack list from {@link NBTTagList}.
      *
-     * @param tags    NBTTagList（每个条目为 NBTTagCompound）
-     * @param convert 是否做旧格式 ItemFluidDrop 自动转换
-     * @return 泛型栈列表
+     * @param tags    NBTTagList (each entry is an NBTTagCompound)
+     * @param convert whether to convert legacy FluidDummyItem items automatically
+     * @return generic stack list
      */
     public static IItemList<IAEStack<?>> readAEStackListNBT(@Nullable final NBTTagList tags, boolean convert) {
         @SuppressWarnings("unchecked")
@@ -1034,14 +1041,14 @@ public class Platform {
     }
 
     /**
-     * 将 {@link IAEStack} 转换为 {@link IAEItemStack}（用于旧接口兼容）。
+     * Convert any {@link IAEStack} to {@link IAEItemStack} (for legacy interface compatibility).
      * <p>
-     * 如果栈本身是 {@link IAEItemStack} 则直接返回；
-     * 如果是 {@link IAEFluidStack} 且 ItemFluidDrop 可用，则创建对应的 drop 物品；
-     * 否则返回 null。
+     * If the stack is already an {@link IAEItemStack}, it is returned directly.
+     * Otherwise, uses {@link IAEStack#asItemStackRepresentation()} to obtain an ItemStack
+     * and wraps it as {@link IAEItemStack}, preserving metadata (craftable, requestable).
      *
-     * @param stack 泛型栈
-     * @return 物品栈表示，或 null
+     * @param stack generic stack
+     * @return item stack representation, or null
      */
     @Nullable
     public static IAEItemStack stackConvert(@Nullable final IAEStack<?> stack) {
@@ -1051,10 +1058,11 @@ public class Platform {
         if (stack instanceof IAEItemStack ais) {
             return ais;
         }
-        if (stack instanceof IAEFluidStack ifs) {
-            IAEItemStack result = appeng.fluids.items.ItemFluidDrop.newAEStack(ifs);
+        final ItemStack repr = stack.asItemStackRepresentation();
+        if (repr != null && !repr.isEmpty()) {
+            IAEItemStack result = AEItemStack.fromItemStack(repr);
             if (result != null) {
-                // 保留元数据
+                result.setStackSize(stack.getStackSize());
                 result.setCraftable(stack.isCraftable());
                 result.setCountRequestable(stack.getCountRequestable());
             }
@@ -1064,9 +1072,9 @@ public class Platform {
     }
 
     /**
-     * 尝试将旧格式的 {@link IAEItemStack}（可能是 ItemFluidDrop）转换为 {@link IAEFluidStack}。
-     * 如果不是 ItemFluidDrop，原样返回。
-     * 转换时保留 craftable / requestable 等元数据。
+     * Try to convert a legacy {@link IAEItemStack} (which may be a FluidDummyItem placeholder)
+     * into an {@link IAEFluidStack}. If not a fluid placeholder, returns as-is.
+     * Preserves craftable / requestable metadata.
      */
     @Nullable
     private static IAEStack<?> convertLegacyStack(@Nullable final IAEItemStack stack) {
@@ -1074,13 +1082,12 @@ public class Platform {
             return null;
         }
         final ItemStack is = stack.createItemStack();
-        if (appeng.fluids.items.ItemFluidDrop.isFluidDrop(is)) {
-            final net.minecraftforge.fluids.FluidStack fluid =
-                    appeng.fluids.items.ItemFluidDrop.getFluidStack(is);
+        if (is.getItem() instanceof appeng.fluids.items.FluidDummyItem fluidDummy) {
+            final net.minecraftforge.fluids.FluidStack fluid = fluidDummy.getFluidStack(is);
             if (fluid != null) {
                 IAEFluidStack fluidStack = AEFluidStack.fromFluidStack(fluid);
                 if (fluidStack != null) {
-                    // 保留元数据
+                    fluidStack.setStackSize(stack.getStackSize());
                     fluidStack.setCraftable(stack.isCraftable());
                     fluidStack.setCountRequestable(stack.getCountRequestable());
                     return fluidStack;
@@ -1088,5 +1095,28 @@ public class Platform {
             }
         }
         return stack;
+    }
+
+    /**
+     * Convert a vanilla {@link ItemStack} from a GUI slot into a generic {@link IAEStack}.
+     * <p>
+     * If the ItemStack is a FluidDummyItem (or any other non-item representation),
+     * it will be converted to the appropriate IAEStack type.
+     * Otherwise, returns an IAEItemStack.
+     *
+     * @return the converted IAEStack, or null if the input is empty
+     */
+    @Nullable
+    public static IAEStack<?> convertSlotStackToAEStack(@Nonnull final ItemStack itemStack) {
+        if (itemStack.isEmpty()) {
+            return null;
+        }
+        if (itemStack.getItem() instanceof appeng.fluids.items.FluidDummyItem fluidDummy) {
+            final net.minecraftforge.fluids.FluidStack fluid = fluidDummy.getFluidStack(itemStack);
+            if (fluid != null) {
+                return AEFluidStack.fromFluidStack(fluid);
+            }
+        }
+        return AEItemStack.fromItemStack(itemStack);
     }
 }

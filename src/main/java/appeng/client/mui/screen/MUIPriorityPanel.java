@@ -40,7 +40,6 @@ import appeng.helpers.IPriorityHost;
 /**
  * MUI 版优先级设置 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiPriority}。
  * 包含数字输入框、8 个加减按钮（±1/±10/±100/±1000）和返回原始 GUI 的标签按钮。
  */
 public class MUIPriorityPanel extends AEBasePanel {

@@ -19,7 +19,6 @@
 package appeng.core.sync.packets;
 
 import java.io.IOException;
-import java.util.Collections;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -52,8 +51,6 @@ import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.INetworkInfo;
 import appeng.core.sync.network.NetworkHandler;
-import appeng.fluids.client.gui.widgets.GuiFluidSlot;
-import appeng.fluids.container.ContainerFluidConfigurable;
 import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.InventoryAction;
 import appeng.util.Platform;
@@ -122,7 +119,7 @@ public class PacketInventoryAction extends AppEngPacket {
             this.slot = ((SlotDisconnected) slot).getSlotIndex();
             this.id = ((SlotDisconnected) slot).getSlot().getId();
         } else {
-            this.slot = ((GuiFluidSlot) slot).getId();
+            this.slot = 0;
             this.id = 0;
         }
         this.slotItem = slotItem;
@@ -241,18 +238,7 @@ public class PacketInventoryAction extends AppEngPacket {
                     }
                 }
             } else if (this.action == InventoryAction.PLACE_JEI_GHOST_ITEM) {
-                if (sender.openContainer instanceof ContainerFluidConfigurable) {
-                    if (this.slotItem != null) {
-                        IAEFluidStack aefs = AEFluidStack.fromNBT(this.slotItem.getDefinition().getTagCompound());
-                        if (aefs != null) {
-                            aefs.setStackSize(1000);
-                            ((ContainerFluidConfigurable) sender.openContainer).getFluidConfigInventory()
-                                    .setFluidInSlot(this.slot, aefs);
-                            NetworkHandler.instance()
-                                    .sendToServer(new PacketFluidSlot(Collections.singletonMap(this.slot, aefs)));
-                        }
-                    }
-                } else if (sender.openContainer instanceof ContainerInterfaceConfigurationTerminal) {
+                if (sender.openContainer instanceof ContainerInterfaceConfigurationTerminal) {
                     ConfigTracker inv = ((ContainerInterfaceConfigurationTerminal) sender.openContainer)
                             .getSlotByID(this.id);
                     final IItemHandler theSlot = new WrapperRangeItemHandler(inv.getServer(), 0, slot + 1);

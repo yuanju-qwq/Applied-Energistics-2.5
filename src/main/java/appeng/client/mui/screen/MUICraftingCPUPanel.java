@@ -59,7 +59,6 @@ import appeng.util.item.IAEStackList;
 /**
  * MUI 版合成 CPU 状态面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiCraftingCPU}。
  * 功能：显示当前合成 CPU 的运行状态（已存储/正在合成/待处理的物品和流体列表）。
  * <p>
  * 特性：

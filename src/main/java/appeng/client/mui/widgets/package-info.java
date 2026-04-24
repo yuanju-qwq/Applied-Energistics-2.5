@@ -16,7 +16,7 @@
  *   <tr><td>MEGuiTextField</td><td>{@link appeng.client.mui.widgets.MUITextFieldWidget}</td></tr>
  *   <tr><td>GuiImgLabel</td><td>{@link appeng.client.mui.widgets.MUIDrawableWidget}</td></tr>
  *   <tr><td>GuiCustomSlot</td><td>{@link appeng.client.mui.widgets.MUISlotWidget}</td></tr>
- *   <tr><td>GuiFluidSlot / GuiFluidTank</td><td>{@link appeng.client.mui.widgets.MUIFluidSlotWidget}</td></tr>
+ *   <tr><td>GuiFluidSlot / GuiFluidTank (removed)</td><td>VirtualMEPhantomSlot / VirtualMESlot</td></tr>
  *   <tr><td>TypeToggleButton</td><td>{@link appeng.client.mui.widgets.MUICycleButtonWidget}</td></tr>
  *   <tr><td>UniversalTerminalButtons</td><td>{@link appeng.client.mui.widgets.MUITabGroup}</td></tr>
  * </table>

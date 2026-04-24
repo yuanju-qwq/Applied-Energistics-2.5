@@ -58,7 +58,7 @@ import appeng.core.localization.GuiText;
 import appeng.core.localization.PlayerMessages;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
-import appeng.helpers.DualityInterface;
+import appeng.helpers.InterfaceLogic;
 import appeng.helpers.InventoryAction;
 import appeng.util.BlockPosUtils;
 import appeng.util.item.AEItemStack;
@@ -426,7 +426,7 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         ClientDCInternalInv o = this.byId.get(id);
         if (o == null) {
             this.byId.put(id,
-                    o = new ClientDCInternalInv(DualityInterface.NUMBER_OF_CONFIG_SLOTS, id, sortBy, string, 512));
+                    o = new ClientDCInternalInv(InterfaceLogic.NUMBER_OF_CONFIG_SLOTS, id, sortBy, string, 512));
             this.refreshList = true;
         }
         return o;

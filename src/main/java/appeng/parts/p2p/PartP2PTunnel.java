@@ -32,6 +32,7 @@ import net.minecraft.util.math.Vec3d;
 
 import appeng.api.AEApi;
 import appeng.api.config.*;
+import appeng.api.features.IP2PTunnelRegistry;
 import appeng.api.implementations.items.IMemoryCard;
 import appeng.api.implementations.items.MemoryCardMessages;
 import appeng.api.networking.events.MENetworkBootingStatusChange;
@@ -52,6 +53,78 @@ import appeng.me.cache.helpers.TunnelCollection;
 import appeng.parts.PartBasicState;
 import appeng.util.Platform;
 
+/**
+ * Base class for all P2P (Point-to-Point) tunnel parts.
+ * <p>
+ * A P2P tunnel bridges a specific Forge Capability or signal between two points
+ * on the ME network using a frequency-based pairing system. One tunnel acts as the
+ * "input" and one or more tunnels act as "outputs" on the same frequency.
+ * <p>
+ * This base class provides the common infrastructure:
+ * <ul>
+ *   <li>Frequency management (pairing via Memory Card)</li>
+ *   <li>Input/output mode switching</li>
+ *   <li>NBT persistence and network sync of frequency</li>
+ *   <li>Attunement (converting between tunnel types via right-click with trigger items)</li>
+ *   <li>Power drain accounting ({@link #queueTunnelDrain})</li>
+ *   <li>Network change notifications ({@link #onTunnelNetworkChange})</li>
+ * </ul>
+ *
+ * <h3>How to create a new P2P tunnel type (for third-party mods):</h3>
+ * <ol>
+ *   <li><b>Create a Part class</b> extending {@code PartP2PTunnel<YourP2PPart>}.
+ *       Implement the target Forge Capability interface (e.g., {@code IItemHandler},
+ *       {@code IFluidHandler}, {@code IEnergyStorage}) directly on the class or via
+ *       inner handler classes.</li>
+ *   <li><b>Override {@link #hasCapability} and {@link #getCapability}</b> to expose
+ *       the capability to adjacent blocks.</li>
+ *   <li><b>Override {@link #onTunnelNetworkChange}</b> to invalidate any cached
+ *       references to adjacent tile entities when the network topology changes.</li>
+ *   <li><b>Implement the proxy logic</b>: when the input receives a capability call
+ *       (e.g., {@code insertItem}), iterate over {@link #getOutputs()}, find each
+ *       output's adjacent tile entity's capability, and delegate the call.
+ *       Use a ThreadLocal or depth counter to prevent infinite recursion.</li>
+ *   <li><b>Register the tunnel type</b> via
+ *       {@link TunnelType#registerTunnelType(String, ItemStack)} during mod initialization.</li>
+ *   <li><b>Register attunements</b> via
+ *       {@link IP2PTunnelRegistry#addNewAttunement(ItemStack, TunnelType)} or
+ *       {@link IP2PTunnelRegistry#addNewAttunement(Capability, TunnelType)} so that
+ *       players can attune a generic P2P tunnel to your type by right-clicking with
+ *       a trigger item.</li>
+ * </ol>
+ *
+ * <h3>Example (pseudocode):</h3>
+ * <pre>{@code
+ * public class PartP2PMana extends PartP2PTunnel<PartP2PMana> implements IManaHandler {
+ *     // 1. Constructor
+ *     public PartP2PMana(ItemStack is) { super(is); }
+ *
+ *     // 2. Expose capability
+ *     public boolean hasCapability(Capability<?> cap) {
+ *         return cap == MANA_CAPABILITY || super.hasCapability(cap);
+ *     }
+ *
+ *     // 3. Invalidate cache on network change
+ *     public void onTunnelNetworkChange() { this.cachedHandler = null; }
+ *
+ *     // 4. Proxy logic: delegate to output's adjacent tile
+ *     public int receiveMana(int amount, boolean simulate) {
+ *         // iterate getOutputs(), find adjacent IManaHandler, delegate
+ *     }
+ * }
+ *
+ * // 5. Register during init
+ * TunnelType MANA = TunnelType.registerTunnelType("MANA", manaP2PPartStack);
+ *
+ * // 6. Register attunement
+ * AEApi.instance().registries().p2pTunnel().addNewAttunement(MANA_CAPABILITY, MANA);
+ * }</pre>
+ *
+ * @param <T> the concrete tunnel subclass (recursive generic for type-safe collections)
+ * @see TunnelType
+ * @see IP2PTunnelRegistry
+ * @see P2PCache
+ */
 public abstract class PartP2PTunnel<T extends PartP2PTunnel> extends PartBasicState {
     private final TunnelCollection type = new TunnelCollection<T>(null, this.getClass());
     private boolean output;

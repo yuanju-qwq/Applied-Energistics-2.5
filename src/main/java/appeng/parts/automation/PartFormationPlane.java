@@ -50,6 +50,7 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.parts.IPartItem;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEInventoryHandler;
+import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
@@ -58,17 +59,19 @@ import appeng.api.util.AEPartLocation;
 import appeng.core.AEConfig;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
+import appeng.fluids.helper.IConfigurableAEStackInventory;
 import appeng.items.parts.PartModels;
 import appeng.me.GridAccessException;
 import appeng.me.storage.MEInventoryHandler;
-import appeng.tile.inventory.AppEngInternalAEInventory;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.Platform;
-import appeng.util.inv.InvOperation;
 import appeng.util.prioritylist.FuzzyPriorityList;
 import appeng.util.prioritylist.PrecisePriorityList;
 import appeng.util.item.AEItemStackType;
 
-public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack> {
+public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
+        implements IIAEStackInventory, IConfigurableAEStackInventory {
 
     private static final PlaneModels MODELS = new PlaneModels("part/formation_plane_", "part/formation_plane_on_");
 
@@ -79,7 +82,7 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
 
     private final MEInventoryHandler<IAEItemStack> myHandler = new MEInventoryHandler<>(this,
             AEItemStackType.INSTANCE);
-    private final AppEngInternalAEInventory Config = new AppEngInternalAEInventory(this, 63);
+    private final IAEStackInventory Config = new IAEStackInventory(this, 63, StorageName.CONFIG);
 
     public PartFormationPlane(final ItemStack is) {
         super(is);
@@ -99,9 +102,9 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
         final IItemList<IAEItemStack> priorityList = AEItemStackType.INSTANCE.createList();
 
         final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
-        for (int x = 0; x < this.Config.getSlots() && x < slotsToUse; x++) {
-            final IAEItemStack is = this.Config.getAEStackInSlot(x);
-            if (is != null) {
+        for (int x = 0; x < this.Config.getSizeInventory() && x < slotsToUse; x++) {
+            final IAEStack<?> raw = this.Config.getAEStackInSlot(x);
+            if (raw instanceof IAEItemStack is) {
                 priorityList.add(is);
             }
         }
@@ -122,16 +125,6 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
     }
 
     @Override
-    public void onChangeInventory(final IItemHandler inv, final int slot, final InvOperation mc,
-            final ItemStack removedStack, final ItemStack newStack) {
-        super.onChangeInventory(inv, slot, mc, removedStack, newStack);
-
-        if (inv == this.Config) {
-            this.updateHandler();
-        }
-    }
-
-    @Override
     public void readFromNBT(final NBTTagCompound data) {
         super.readFromNBT(data);
         this.Config.readFromNBT(data, "config");
@@ -146,11 +139,32 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
 
     @Override
     public IItemHandler getInventoryByName(final String name) {
-        if (name.equals("config")) {
+        // Config is now IAEStackInventory, not IItemHandler
+        return super.getInventoryByName(name);
+    }
+
+    @Override
+    public IAEStackInventory getAEStackInventoryByName(final String name) {
+        if ("config".equals(name)) {
             return this.Config;
         }
+        return null;
+    }
 
-        return super.getInventoryByName(name);
+    // ---- IIAEStackInventory implementation ----
+
+    @Override
+    public void saveAEStackInv() {
+        this.updateHandler();
+        this.getHost().markForSave();
+    }
+
+    @Override
+    public IAEStackInventory getAEInventoryByName(StorageName name) {
+        if (name == StorageName.CONFIG) {
+            return this.Config;
+        }
+        return null;
     }
 
     @Override

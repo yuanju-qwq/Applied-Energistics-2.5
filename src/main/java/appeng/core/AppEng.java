@@ -147,6 +147,18 @@ public final class AppEng {
         AEStackTypeRegistry.register(AEFluidStackType.INSTANCE);
         AEStackTypeRegistry.initNetworkIds();
 
+        // Register interface slot handlers for each stack type
+        appeng.helpers.iface.InterfaceSlotHandlerRegistry.register(
+                AEItemStackType.INSTANCE, appeng.helpers.iface.ItemInterfaceSlotHandler.INSTANCE);
+        appeng.helpers.iface.InterfaceSlotHandlerRegistry.register(
+                AEFluidStackType.INSTANCE, appeng.helpers.iface.FluidInterfaceSlotHandler.INSTANCE);
+
+        // Register conversion monitor handlers for each stack type
+        appeng.api.parts.ConversionMonitorHandlerRegistry.register(
+                AEItemStackType.INSTANCE, appeng.parts.reporting.ItemConversionMonitorHandler.INSTANCE);
+        appeng.api.parts.ConversionMonitorHandlerRegistry.register(
+                AEFluidStackType.INSTANCE, appeng.parts.reporting.FluidConversionMonitorHandler.INSTANCE);
+
         final VersionCheckerConfig versionCheckerConfig = new VersionCheckerConfig(versionFile);
         this.exportConfig = new ForgeExportConfig(recipeConfiguration);
 

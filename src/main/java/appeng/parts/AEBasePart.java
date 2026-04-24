@@ -39,7 +39,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.event.ForgeEventFactory;
-import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandler;
@@ -57,9 +56,7 @@ import appeng.api.storage.StorageName;
 import appeng.api.util.*;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
-import appeng.fluids.helper.IConfigurableFluidInventory;
 import appeng.fluids.parts.PartFluidLevelEmitter;
-import appeng.fluids.util.AEFluidInventory;
 import appeng.helpers.ICustomNameObject;
 import appeng.helpers.IPriorityHost;
 import appeng.items.parts.ItemPart;
@@ -69,7 +66,6 @@ import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.IGridProxyable;
 import appeng.parts.automation.PartLevelEmitter;
 import appeng.parts.networking.PartCable;
-import appeng.tile.inventory.AppEngInternalAEInventory;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.Platform;
@@ -328,21 +324,7 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
             pHost.setPriority(compound.getInteger("priority"));
         }
 
-        final IItemHandler inv = this.getInventoryByName("config");
-        if (inv instanceof AppEngInternalAEInventory) {
-            final AppEngInternalAEInventory target = (AppEngInternalAEInventory) inv;
-            final AppEngInternalAEInventory tmp = new AppEngInternalAEInventory(null, target.getSlots());
-            tmp.readFromNBT(compound, "config");
-            for (int x = 0; x < tmp.getSlots(); x++) {
-                target.setStackInSlot(x, tmp.getStackInSlot(x));
-            }
-            if (this instanceof PartLevelEmitter) {
-                final PartLevelEmitter partLevelEmitter = (PartLevelEmitter) this;
-                partLevelEmitter.setReportingValue(compound.getLong("reportingValue"));
-            }
-        }
-
-        // IAEStackInventory 璺緞锛堟敮鎸佹硾鍨嬫爤閰嶇疆鐨勯儴浠讹紝濡傛敼閫犲悗鐨?PartStorageBus / PartLevelEmitter锛?
+        // IAEStackInventory path (unified for all config inventories)
         if (this instanceof IIAEStackInventory iiaeStackInventory) {
             IAEStackInventory aeInv = iiaeStackInventory.getAEInventoryByName(StorageName.CONFIG);
             if (aeInv != null) {
@@ -352,23 +334,12 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
                 final PartLevelEmitter partLevelEmitter = (PartLevelEmitter) this;
                 partLevelEmitter.setReportingValue(compound.getLong("reportingValue"));
             }
-        }
-
-        if (this instanceof IConfigurableFluidInventory) {
-            final IFluidHandler tank = ((IConfigurableFluidInventory) this).getFluidInventoryByName("config");
-            if (tank instanceof AEFluidInventory) {
-                final AEFluidInventory target = (AEFluidInventory) tank;
-                final AEFluidInventory tmp = new AEFluidInventory(null, target.getSlots());
-                tmp.readFromNBT(compound, "config");
-                for (int x = 0; x < tmp.getSlots(); x++) {
-                    target.setFluidInSlot(x, tmp.getFluidInSlot(x));
-                }
-            }
             if (this instanceof PartFluidLevelEmitter) {
                 final PartFluidLevelEmitter partFluidLevelEmitter = (PartFluidLevelEmitter) this;
                 partFluidLevelEmitter.setReportingValue(compound.getLong("reportingValue"));
             }
         }
+
 
         uploadSettingsFromStackTag(compound);
     }
@@ -403,16 +374,8 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
             output.setInteger("priority", pHost.getPriority());
         }
 
-        final IItemHandler inv = this.getInventoryByName("config");
-        if (inv instanceof AppEngInternalAEInventory) {
-            ((AppEngInternalAEInventory) inv).writeToNBT(output, "config");
-            if (this instanceof PartLevelEmitter) {
-                final PartLevelEmitter partLevelEmitter = (PartLevelEmitter) this;
-                output.setLong("reportingValue", partLevelEmitter.getReportingValue());
-            }
-        }
 
-        // IAEStackInventory 璺緞锛堟敮鎸佹硾鍨嬫爤閰嶇疆鐨勯儴浠讹級
+        // IAEStackInventory path (unified for all config inventories)
         if (this instanceof IIAEStackInventory iiaeStackInventory) {
             IAEStackInventory aeInv = iiaeStackInventory.getAEInventoryByName(StorageName.CONFIG);
             if (aeInv != null) {
@@ -422,18 +385,12 @@ public abstract class AEBasePart implements IPart, IGridProxyable, IActionHost, 
                 final PartLevelEmitter partLevelEmitter = (PartLevelEmitter) this;
                 output.setLong("reportingValue", partLevelEmitter.getReportingValue());
             }
-        }
-
-        if (this instanceof IConfigurableFluidInventory) {
-            final IFluidHandler tank = ((IConfigurableFluidInventory) this).getFluidInventoryByName("config");
-            if (tank instanceof AEFluidInventory) {
-                ((AEFluidInventory) tank).writeToNBT(output, "config");
-            }
             if (this instanceof PartFluidLevelEmitter) {
                 final PartFluidLevelEmitter partFluidLevelEmitter = (PartFluidLevelEmitter) this;
                 output.setLong("reportingValue", partFluidLevelEmitter.getReportingValue());
             }
         }
+
 
         downloadSettingsToStackTag(output);
 

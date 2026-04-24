@@ -50,7 +50,6 @@ import appeng.parts.reporting.PartPatternTerminal;
 /**
  * MUI 版样板名称设置面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiPatternValueName}。
  * Ctrl+中键点击样板虚拟槽位后打开，允许用户自定义物品名称。
  */
 @SideOnly(Side.CLIENT)

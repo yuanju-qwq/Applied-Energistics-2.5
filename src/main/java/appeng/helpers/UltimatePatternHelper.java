@@ -45,7 +45,7 @@ import appeng.util.item.AEItemStack;
  * <p>
  * 取代 {@link FluidPatternHelper} 和 {@link SpecialPatternHelper}，
  * 通过 {@link appeng.util.Platform#readStackNBT} 读取 NBT 中的栈数据，
- * 自动处理新格式（带 "StackType" 键）和旧格式（纯 ItemStack / ItemFluidDrop）的迁移。
+ * Automatically handles both new format (with "StackType" key) and legacy format (plain ItemStack / FluidDummyItem) migration.
  * <p>
  * 设计参考自 Applied-Energistics-2-Unofficial 的同名类。
  */
@@ -116,7 +116,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         // ========== 解析输入 ==========
         for (int x = 0; x < inTag.tagCount(); x++) {
             final NBTTagCompound tag = inTag.getCompoundTagAt(x);
-            // readStackNBT(tag, true)：启用旧格式 ItemFluidDrop 自动转换
+            // readStackNBT(tag, true): enable legacy FluidDummyItem auto-conversion
             final IAEStack<?> aeStack = readStackNBT(tag, true);
 
             if (aeStack == null && !tag.isEmpty()) {
@@ -124,7 +124,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
                 throw new IllegalStateException("No pattern here!");
             }
 
-            // 旧版物品列表：通过 stackConvert 将流体转为 ItemFluidDrop 物品
+            // Legacy item list: convert fluids to FluidDummyItem items via stackConvert
             inLegacy.add(stackConvert(aeStack));
             in.add(aeStack);
         }

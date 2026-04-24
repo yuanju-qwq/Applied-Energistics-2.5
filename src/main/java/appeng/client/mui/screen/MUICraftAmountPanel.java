@@ -54,7 +54,6 @@ import appeng.parts.reporting.PartTerminal;
 /**
  * MUI 版合成数量输入面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiCraftAmount}。
  * 功能：输入合成数量 → 点击 Next/Start 发起合成请求。
  * <p>
  * 特性：

@@ -41,6 +41,7 @@ import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AECableType;
 import appeng.core.AELog;
 import appeng.core.AppEng;
@@ -83,7 +84,6 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
     public PartExportBus(final ItemStack is) {
         super(TickRates.ExportBus, is);
 
-        this.getConfigManager().registerSetting(Settings.REDSTONE_CONTROLLED, RedstoneMode.IGNORE);
         this.getConfigManager().registerSetting(Settings.FUZZY_MODE, FuzzyMode.IGNORE_ALL);
         this.getConfigManager().registerSetting(Settings.CRAFT_ONLY, YesNo.NO);
         this.getConfigManager().registerSetting(Settings.SCHEDULING_MODE, SchedulingMode.DEFAULT);
@@ -129,7 +129,8 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
                 for (x = 0; x < this.availableSlots() && this.itemToSend > 0; x++) {
                     final int slotToExport = this.getStartingSlot(schedulingMode, x);
 
-                    final IAEItemStack ais = this.getConfig().getAEStackInSlot(slotToExport);
+                    final IAEStack<?> raw = this.getConfig().getAEStackInSlot(slotToExport);
+                    final IAEItemStack ais = raw instanceof IAEItemStack ? (IAEItemStack) raw : null;
 
                     if (ais == null || this.itemToSend <= 0) {
                         continue;

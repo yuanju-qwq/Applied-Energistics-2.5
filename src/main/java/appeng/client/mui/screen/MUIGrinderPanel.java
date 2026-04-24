@@ -28,7 +28,6 @@ import appeng.tile.grindstone.TileGrinder;
 /**
  * MUI 版石英磨具 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiGrinder}。
  * 纯展示型面板，仅包含背景贴图和标题文字，无按钮/交互。
  */
 public class MUIGrinderPanel extends AEBasePanel {

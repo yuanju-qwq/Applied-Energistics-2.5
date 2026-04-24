@@ -41,13 +41,11 @@ import appeng.api.networking.security.IActionHost;
 import appeng.container.AEBaseContainer;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketCompressedNBT;
-import appeng.helpers.DualityInterface;
-import appeng.helpers.IInterfaceHost;
+import appeng.helpers.IInterfaceLogicHost;
+import appeng.helpers.InterfaceLogic;
 import appeng.helpers.InventoryAction;
-import appeng.parts.misc.PartInterface;
 import appeng.parts.reporting.PartInterfaceConfigurationTerminal;
 import appeng.tile.inventory.AppEngInternalInventory;
-import appeng.tile.misc.TileInterface;
 import appeng.util.Platform;
 import appeng.util.helpers.ItemHandlerUtil;
 import appeng.util.inv.WrapperRangeItemHandler;
@@ -59,7 +57,7 @@ public final class ContainerInterfaceConfigurationTerminal extends AEBaseContain
      */
 
     private static long autoBase = Long.MIN_VALUE;
-    private final Map<IInterfaceHost, ConfigTracker> diList = new HashMap<>();
+    private final Map<IInterfaceLogicHost, ConfigTracker> diList = new HashMap<>();
     private final Map<Long, ConfigTracker> byId = new HashMap<>();
     private IGrid grid;
     private NBTTagCompound data = new NBTTagCompound();
@@ -94,58 +92,16 @@ public final class ContainerInterfaceConfigurationTerminal extends AEBaseContain
         if (host != null) {
             final IGridNode agn = host.getActionableNode();
             if (agn != null && agn.isActive()) {
-                for (final IGridNode gn : this.grid.getMachines(TileInterface.class)) {
-                    if (gn.isActive()) {
-                        final IInterfaceHost ih = (IInterfaceHost) gn.getMachine();
-                        if (ih.getInterfaceDuality().getConfigManager()
-                                .getSetting(Settings.INTERFACE_TERMINAL) == YesNo.NO) {
-                            continue;
-                        }
-
-                        final ConfigTracker t = this.diList.get(ih);
-
-                        if (t == null) {
-                            missing = true;
-                        } else {
-                            final DualityInterface dual = ih.getInterfaceDuality();
-                            if (!t.unlocalizedName.equals(dual.getTermName())) {
-                                missing = true;
-                            }
-                        }
-
-                        total++;
-                    }
-                }
-
-                for (final IGridNode gn : this.grid.getMachines(PartInterface.class)) {
-                    if (gn.isActive()) {
-                        final IInterfaceHost ih = (IInterfaceHost) gn.getMachine();
-                        if (ih.getInterfaceDuality().getConfigManager()
-                                .getSetting(Settings.INTERFACE_TERMINAL) == YesNo.NO) {
-                            continue;
-                        }
-
-                        final ConfigTracker t = this.diList.get(ih);
-
-                        if (t == null) {
-                            missing = true;
-                        } else {
-                            final DualityInterface dual = ih.getInterfaceDuality();
-                            if (!t.unlocalizedName.equals(dual.getTermName())) {
-                                missing = true;
-                            }
-                        }
-
-                        total++;
-                    }
-                }
+                // TODO: New InterfaceLogic uses IAEStackInventory for config (not IItemHandler).
+                //       This terminal needs to be refactored to support the new unified config format.
+                //       For now, no ME interfaces are scanned.
             }
         }
 
         if (total != this.diList.size() || missing) {
             this.regenList(this.data);
         } else {
-            for (final Entry<IInterfaceHost, ConfigTracker> en : this.diList.entrySet()) {
+            for (final Entry<IInterfaceLogicHost, ConfigTracker> en : this.diList.entrySet()) {
                 final ConfigTracker inv = en.getValue();
                 for (int x = 0; x < inv.server.getSlots(); x++) {
                     if (this.isDifferent(inv.server.getStackInSlot(x), inv.client.getStackInSlot(x))) {
@@ -260,27 +216,15 @@ public final class ContainerInterfaceConfigurationTerminal extends AEBaseContain
         if (host != null) {
             final IGridNode agn = host.getActionableNode();
             if (agn != null && agn.isActive()) {
-                for (final IGridNode gn : this.grid.getMachines(TileInterface.class)) {
-                    final IInterfaceHost ih = (IInterfaceHost) gn.getMachine();
-                    final DualityInterface dual = ih.getInterfaceDuality();
-                    if (gn.isActive() && dual.getConfigManager().getSetting(Settings.INTERFACE_TERMINAL) == YesNo.YES) {
-                        this.diList.put(ih, new ConfigTracker(dual, dual.getConfig(), dual.getTermName()));
-                    }
-                }
-
-                for (final IGridNode gn : this.grid.getMachines(PartInterface.class)) {
-                    final IInterfaceHost ih = (IInterfaceHost) gn.getMachine();
-                    final DualityInterface dual = ih.getInterfaceDuality();
-                    if (gn.isActive() && dual.getConfigManager().getSetting(Settings.INTERFACE_TERMINAL) == YesNo.YES) {
-                        this.diList.put(ih, new ConfigTracker(dual, dual.getConfig(), dual.getTermName()));
-                    }
-                }
+                // TODO: New InterfaceLogic uses IAEStackInventory for config (not IItemHandler).
+                //       This terminal needs to be refactored to support the new unified config format.
+                //       For now, no ME interfaces are shown in this terminal.
             }
         }
 
         data.setBoolean("clear", true);
 
-        for (final Entry<IInterfaceHost, ConfigTracker> en : this.diList.entrySet()) {
+        for (final Entry<IInterfaceLogicHost, ConfigTracker> en : this.diList.entrySet()) {
             final ConfigTracker inv = en.getValue();
             this.byId.put(inv.which, inv);
             this.addItems(data, inv, 0, inv.server.getSlots());
@@ -338,14 +282,14 @@ public final class ContainerInterfaceConfigurationTerminal extends AEBaseContain
         private final BlockPos pos;
         private final int dim;
 
-        public ConfigTracker(final DualityInterface dual, final IItemHandler configSlots,
+        public ConfigTracker(final InterfaceLogic logic, final IItemHandler configSlots,
                 final String unlocalizedName) {
             this.server = configSlots;
             this.client = new AppEngInternalInventory(null, this.server.getSlots());
             this.unlocalizedName = unlocalizedName;
-            this.sortBy = dual.getSortValue();
-            this.pos = dual.getLocation().getPos();
-            this.dim = dual.getLocation().getWorld().provider.getDimension();
+            this.sortBy = logic.getSortValue();
+            this.pos = logic.getLocation().getPos();
+            this.dim = logic.getLocation().getWorld().provider.getDimension();
         }
 
         public IItemHandler getServer() {

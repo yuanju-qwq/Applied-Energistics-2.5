@@ -18,83 +18,49 @@
 
 package appeng.parts.misc;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 
 import com.jaquadro.minecraft.storagedrawers.api.capabilities.IItemRepository;
 
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.AEApi;
-import appeng.api.config.*;
-import appeng.api.networking.IGridNode;
-import appeng.api.networking.events.MENetworkCellArrayUpdate;
-import appeng.api.networking.events.MENetworkChannelsChanged;
-import appeng.api.networking.events.MENetworkEventSubscribe;
-import appeng.api.networking.events.MENetworkPowerStatusChange;
-import appeng.api.networking.security.IActionSource;
-import appeng.api.networking.storage.IBaseMonitor;
-import appeng.api.networking.storage.IStorageGrid;
-import appeng.api.networking.ticking.IGridTickable;
-import appeng.api.networking.ticking.ITickManager;
-import appeng.api.networking.ticking.TickRateModulation;
-import appeng.api.networking.ticking.TickingRequest;
-import appeng.api.parts.IPart;
-import appeng.api.parts.IPartCollisionHelper;
+import appeng.api.config.Settings;
+import appeng.api.config.YesNo;
 import appeng.api.parts.IPartModel;
-import appeng.api.storage.*;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.IMEInventory;
+import appeng.api.storage.IStorageMonitorable;
+import appeng.api.storage.IStorageMonitorableAccessor;
+import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
-import appeng.api.util.AECableType;
-import appeng.api.util.IConfigManager;
 import appeng.capabilities.Capabilities;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
 import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
-import appeng.helpers.IPriorityHost;
 import appeng.helpers.Reflected;
 import appeng.items.parts.PartModels;
-import appeng.me.GridAccessException;
-import appeng.me.cache.GridStorageCache;
-import appeng.me.helpers.MachineSource;
-import appeng.me.storage.ITickingMonitor;
-import appeng.me.storage.MEInventoryHandler;
 import appeng.parts.PartModel;
-import appeng.parts.automation.PartUpgradeable;
-import appeng.tile.inventory.AppEngInternalAEInventory;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.tile.inventory.IIAEStackInventory;
-import appeng.tile.misc.TileInterface;
-import appeng.tile.networking.TileCableBus;
-import appeng.util.ConfigManager;
-import appeng.util.Platform;
+import appeng.tile.misc.TileMEInterface;
 import appeng.util.inv.InvOperation;
 import appeng.util.item.AEItemStackType;
-import appeng.util.prioritylist.FuzzyPriorityList;
-import appeng.util.prioritylist.PrecisePriorityList;
 
-public class PartStorageBus extends PartUpgradeable
-        implements IGridTickable, ICellContainer, IMEMonitorHandlerReceiver<IAEItemStack>, IPriorityHost,
-        IIAEStackInventory {
+public class PartStorageBus extends AbstractPartStorageBus<IAEItemStack>
+        implements IIAEStackInventory {
+
     public static final ResourceLocation MODEL_BASE = new ResourceLocation(AppEng.MOD_ID, "part/storage_bus_base");
     @PartModels
     public static final IPartModel MODELS_OFF = new PartModel(MODEL_BASE,
@@ -105,293 +71,37 @@ public class PartStorageBus extends PartUpgradeable
     @PartModels
     public static final IPartModel MODELS_HAS_CHANNEL = new PartModel(MODEL_BASE,
             new ResourceLocation(AppEng.MOD_ID, "part/storage_bus_has_channel"));
+
     @CapabilityInject(IItemRepository.class)
     public static Capability<IItemRepository> ITEM_REPOSITORY_CAPABILITY = null;
-    protected final IActionSource mySrc;
+
     protected final IAEStackInventory Config = new IAEStackInventory(this, 63, StorageName.CONFIG);
-    protected int priority = 0;
-    protected boolean cached = false;
-    protected ITickingMonitor monitor = null;
-    protected MEInventoryHandler<IAEItemStack> handler = null;
-    protected int handlerHash = 0;
-    private boolean wasActive = false;
-    private byte resetCacheLogic = 0;
-    private boolean accessChanged;
-    private boolean readOncePass;
 
     @Reflected
     public PartStorageBus(final ItemStack is) {
         super(is);
-        this.getConfigManager().registerSetting(Settings.ACCESS, AccessRestriction.READ_WRITE);
-        this.getConfigManager().registerSetting(Settings.FUZZY_MODE, FuzzyMode.IGNORE_ALL);
-        this.getConfigManager().registerSetting(Settings.STORAGE_FILTER, StorageFilter.EXTRACTABLE_ONLY);
         this.getConfigManager().registerSetting(Settings.STICKY_MODE, YesNo.NO);
-        this.mySrc = new MachineSource(this);
+    }
+
+    // ---- AbstractPartStorageBus abstract method implementations ----
+
+    @Override
+    protected IAEStackType<IAEItemStack> getStackType() {
+        return AEItemStackType.INSTANCE;
     }
 
     @Override
-    @MENetworkEventSubscribe
-    public void powerRender(final MENetworkPowerStatusChange c) {
-        this.updateStatus();
-    }
-
-    private void updateStatus() {
-        final boolean currentActive = this.getProxy().isActive();
-        if (this.wasActive != currentActive) {
-            this.wasActive = currentActive;
-            try {
-                this.getProxy().getGrid().postEvent(new MENetworkCellArrayUpdate());
-                this.getHost().markForUpdate();
-            } catch (final GridAccessException e) {
-                // :P
-            }
-        }
+    protected TickRates getTickRates() {
+        return TickRates.StorageBus;
     }
 
     @Override
-    @MENetworkEventSubscribe
-    public void chanRender(final MENetworkChannelsChanged changedChannels) {
-        this.updateStatus();
+    public AEGuiKey getGuiKey() {
+        return AEGuiKeys.STORAGE_BUS;
     }
 
     @Override
-    protected int getUpgradeSlots() {
-        return 5;
-    }
-
-    @Override
-    public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
-        if (settingName.name().equals("ACCESS")) {
-            this.accessChanged = true;
-        }
-        this.resetCache(true);
-        this.getHost().markForSave();
-    }
-
-    @Override
-    public void onChangeInventory(final IItemHandler inv, final int slot, final InvOperation mc,
-            final ItemStack removedStack, final ItemStack newStack) {
-        super.onChangeInventory(inv, slot, mc, removedStack, newStack);
-    }
-
-    @Override
-    public void upgradesChanged() {
-        super.upgradesChanged();
-        this.resetCache(true);
-    }
-
-    @Override
-    public void readFromNBT(final NBTTagCompound data) {
-        super.readFromNBT(data);
-        this.Config.readFromNBT(data, "config");
-        this.priority = data.getInteger("priority");
-        this.accessChanged = false;
-    }
-
-    @Override
-    public void writeToNBT(final NBTTagCompound data) {
-        super.writeToNBT(data);
-        this.Config.writeToNBT(data, "config");
-        data.setInteger("priority", this.priority);
-    }
-
-    @Override
-    public IItemHandler getInventoryByName(final String name) {
-        return super.getInventoryByName(name);
-    }
-
-    // ---- IIAEStackInventory 瀹炵幇 ----
-
-    @Override
-    public void saveAEStackInv() {
-        this.resetCache(true);
-        this.getHost().markForSave();
-    }
-
-    @Override
-    public IAEStackInventory getAEInventoryByName(StorageName name) {
-        if (name == StorageName.CONFIG) {
-            return this.Config;
-        }
-        return null;
-    }
-
-    protected void resetCache(final boolean fullReset) {
-        if (this.getHost() == null || this.getHost().getTile() == null || this.getHost().getTile().getWorld() == null
-                || this.getHost().getTile().getWorld().isRemote) {
-            return;
-        }
-
-        if (fullReset) {
-            this.resetCacheLogic = 2;
-        } else if (this.resetCacheLogic < 2) {
-            this.resetCacheLogic = 1;
-        }
-
-        try {
-            this.getProxy().getTick().alertDevice(this.getProxy().getNode());
-        } catch (final GridAccessException e) {
-            // :P
-        }
-    }
-
-    @Override
-    public boolean isValid(final Object verificationToken) {
-        return this.handler == verificationToken;
-    }
-
-    @Override
-    public void postChange(final IBaseMonitor<IAEItemStack> monitor, final Iterable<IAEItemStack> change,
-            final IActionSource source) {
-        if (this.getProxy().isActive()) {
-            var filteredChanges = this.filterChanges(change);
-
-            AccessRestriction currentAccess = (AccessRestriction) ((ConfigManager) this.getConfigManager())
-                    .getSetting(Settings.ACCESS);
-            if (readOncePass) {
-                readOncePass = false;
-                try {
-                    this.getProxy().getStorage().postAlterationOfStoredItems(
-                            AEItemStackType.INSTANCE, filteredChanges,
-                            mySrc);
-                } catch (final GridAccessException e) {
-                    // :(
-                }
-                return;
-            }
-            if (!currentAccess.hasPermission(AccessRestriction.READ)) {
-                return;
-            }
-            try {
-                this.getProxy().getStorage().postAlterationOfStoredItems(
-                        AEItemStackType.INSTANCE, filteredChanges,
-                        source);
-            } catch (final GridAccessException e) {
-                // :(
-            }
-        }
-    }
-
-    @Override
-    public void onListUpdate() {
-        // not used here.
-    }
-
-    @Override
-    public void getBoxes(final IPartCollisionHelper bch) {
-        bch.addBox(3, 3, 15, 13, 13, 16);
-        bch.addBox(2, 2, 14, 14, 14, 15);
-        bch.addBox(5, 5, 12, 11, 11, 14);
-    }
-
-    @Override
-    public void onNeighborChanged(IBlockAccess w, BlockPos pos, BlockPos neighbor) {
-        if (pos.offset(this.getSide().getFacing()).equals(neighbor)) {
-            final TileEntity te = w.getTileEntity(neighbor);
-
-            // In case the TE was destroyed, we have to do a full reset immediately.
-            if (te instanceof TileCableBus) {
-                IPart iPart = ((TileCableBus) te).getPart(this.getSide().getOpposite());
-                if (iPart == null) {
-                    this.resetCache(true);
-                    this.resetCache();
-                } else if (iPart instanceof PartInterface) {
-                    if (createHandlerHash(te) != handlerHash) {
-                        this.resetCache(true);
-                        this.resetCache();
-                    }
-                }
-            } else if (te == null) {
-                this.resetCache(true);
-                this.resetCache();
-            } else if (te instanceof TileInterface) {
-                if (createHandlerHash(te) != handlerHash) {
-                    this.resetCache(true);
-                    this.resetCache();
-                }
-            } else {
-                this.resetCache(false);
-            }
-        }
-    }
-
-    @Override
-    public float getCableConnectionLength(AECableType cable) {
-        return 4;
-    }
-
-    @Override
-    public boolean onPartActivate(final EntityPlayer player, final EnumHand hand, final Vec3d pos) {
-        if (Platform.isServer()) {
-            Platform.openGUI(player, this.getHost().getTile(), this.getSide(), AEGuiKeys.STORAGE_BUS);
-        }
-        return true;
-    }
-
-    @Override
-    public TickingRequest getTickingRequest(final IGridNode node) {
-        return new TickingRequest(TickRates.StorageBus.getMin(), TickRates.StorageBus.getMax(), this.monitor == null,
-                true);
-    }
-
-    @Override
-    public TickRateModulation tickingRequest(final IGridNode node, final int ticksSinceLastCall) {
-        if (this.resetCacheLogic != 0) {
-            this.resetCache();
-        }
-
-        if (this.monitor != null) {
-            return this.monitor.onTick();
-        }
-
-        return TickRateModulation.SLEEP;
-    }
-
-    protected void resetCache() {
-        final boolean fullReset = this.resetCacheLogic == 2;
-        this.resetCacheLogic = 0;
-
-        final MEInventoryHandler<IAEItemStack> in = this.getInternalHandler();
-
-        IItemList<IAEItemStack> before = AEItemStackType.INSTANCE.createList();
-        if (in != null) {
-            if (accessChanged) {
-                AccessRestriction currentAccess = (AccessRestriction) ((ConfigManager) this.getConfigManager())
-                        .getSetting(Settings.ACCESS);
-                AccessRestriction oldAccess = (AccessRestriction) ((ConfigManager) this.getConfigManager())
-                        .getOldSetting(Settings.ACCESS);
-                if (oldAccess.hasPermission(AccessRestriction.READ)
-                        && !currentAccess.hasPermission(AccessRestriction.READ)) {
-                    readOncePass = true;
-                }
-                in.setBaseAccess(oldAccess);
-                before = in.getAvailableItems(before);
-                in.setBaseAccess(currentAccess);
-                accessChanged = false;
-            } else {
-                before = in.getAvailableItems(before);
-            }
-        }
-
-        this.cached = false;
-        if (fullReset) {
-            this.handlerHash = 0;
-        }
-
-        final MEInventoryHandler<IAEItemStack> out = this.getInternalHandler();
-
-        IItemList<IAEItemStack> after = AEItemStackType.INSTANCE.createList();
-
-        if (in != out) {
-            if (out != null) {
-                after = out.getAvailableItems(after);
-            }
-            appeng.util.StorageHelper.postListChanges(before, after, this, this.mySrc);
-        }
-    }
-
-    IMEInventory<IAEItemStack> getInventoryWrapper(TileEntity target) {
-
+    protected IMEInventory<IAEItemStack> getInventoryWrapper(TileEntity target) {
         EnumFacing targetSide = this.getSide().getFacing().getOpposite();
 
         // Prioritize a handler to directly link to another ME network
@@ -425,10 +135,10 @@ public class PartStorageBus extends PartUpgradeable
         }
 
         return null;
-
     }
 
-    int createHandlerHash(TileEntity target) {
+    @Override
+    protected int createHandlerHash(TileEntity target) {
         if (target == null) {
             return 0;
         }
@@ -458,142 +168,73 @@ public class PartStorageBus extends PartUpgradeable
         return 0;
     }
 
-    public MEInventoryHandler<IAEItemStack> getInternalHandler() {
-        if (this.cached) {
-            return this.handler;
-        }
-
-        final boolean wasSleeping = this.monitor == null;
-
-        this.cached = true;
-        final TileEntity self = this.getHost().getTile();
-        final TileEntity target = self.getWorld().getTileEntity(self.getPos().offset(this.getSide().getFacing()));
-        final int newHandlerHash = this.createHandlerHash(target);
-
-        if (newHandlerHash != 0 && newHandlerHash == this.handlerHash) {
-            return this.handler;
-        }
-
-        this.handlerHash = newHandlerHash;
-        this.handler = null;
-        if (this.monitor != null) {
-            ((IBaseMonitor<IAEItemStack>) monitor).removeListener(this);
-        }
-        this.monitor = null;
-        if (target != null) {
-            IMEInventory<IAEItemStack> inv = this.getInventoryWrapper(target);
-
-            if (inv instanceof ITickingMonitor) {
-                this.monitor = (ITickingMonitor) inv;
-                this.monitor.setActionSource(mySrc);
-                this.monitor.setMode((StorageFilter) this.getConfigManager().getSetting(Settings.STORAGE_FILTER));
-            }
-
-            if (inv != null) {
-                this.handler = new MEInventoryHandler<>(inv,
-                        AEItemStackType.INSTANCE);
-
-                this.handler.setBaseAccess((AccessRestriction) this.getConfigManager().getSetting(Settings.ACCESS));
-                this.handler.setWhitelist(this.getInstalledUpgrades(Upgrades.INVERTER) > 0 ? IncludeExclude.BLACKLIST
-                        : IncludeExclude.WHITELIST);
-                this.handler.setPriority(this.priority);
-                this.handler
-                        .setStorageFilter((StorageFilter) this.getConfigManager().getSetting(Settings.STORAGE_FILTER));
-
-                final IItemList<IAEItemStack> priorityList = AEItemStackType.INSTANCE.createList();
-
-                final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
-                for (int x = 0; x < this.Config.getSizeInventory() && x < slotsToUse; x++) {
-                    final IAEStack<?> stack = this.Config.getAEStackInSlot(x);
-                    if (stack instanceof IAEItemStack) {
-                        priorityList.add((IAEItemStack) stack);
-                    }
-                }
-
-                if (this.getInstalledUpgrades(Upgrades.STICKY) > 0) {
-                    this.handler.setSticky(true);
-                }
-
-                if (this.getInstalledUpgrades(Upgrades.FUZZY) > 0) {
-                    this.handler.setPartitionList(new FuzzyPriorityList<>(priorityList,
-                            (FuzzyMode) this.getConfigManager().getSetting(Settings.FUZZY_MODE)));
-                } else {
-                    this.handler.setPartitionList(new PrecisePriorityList<>(priorityList));
-                }
-
-                if (inv instanceof IBaseMonitor) {
-                    if (((AccessRestriction) ((ConfigManager) this.getConfigManager()).getSetting(Settings.ACCESS))
-                            .hasPermission(AccessRestriction.READ)) {
-                        ((IBaseMonitor<IAEItemStack>) inv).addListener(this, this.handler);
-                    }
-                }
-            }
-        }
-
-        // update sleep state...
-        if (wasSleeping != (this.monitor == null)) {
-            try {
-                final ITickManager tm = this.getProxy().getTick();
-                if (this.monitor == null) {
-                    tm.sleepDevice(this.getProxy().getNode());
-                } else {
-                    tm.wakeDevice(this.getProxy().getNode());
-                }
-            } catch (final GridAccessException e) {
-                // :(
-            }
-        }
-
-        try {
-            // force grid to update handlers...
-            ((GridStorageCache) this.getProxy().getGrid().getCache(IStorageGrid.class)).cellUpdate(null);
-        } catch (final GridAccessException e) {
-            // :3
-        }
-
-        return this.handler;
+    @Override
+    protected boolean isRelevantInterfaceTile(TileEntity te) {
+        return te instanceof TileMEInterface;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
-        if (type == AEItemStackType.INSTANCE) {
-            final IMEInventoryHandler<IAEItemStack> out = this.getInternalHandler();
-            if (out != null) {
-                return Collections.singletonList((IMEInventoryHandler<T>) out);
+    protected boolean isRelevantInterfacePart(appeng.api.parts.IPart part) {
+        return part instanceof PartMEInterface;
+    }
+
+    @Override
+    protected IItemList<IAEItemStack> buildPriorityList(int slotsToUse) {
+        final IItemList<IAEItemStack> priorityList = AEItemStackType.INSTANCE.createList();
+        for (int x = 0; x < this.Config.getSizeInventory() && x < slotsToUse; x++) {
+            final IAEStack<?> stack = this.Config.getAEStackInSlot(x);
+            if (stack instanceof IAEItemStack) {
+                priorityList.add((IAEItemStack) stack);
             }
         }
-        return Collections.emptyList();
+        return priorityList;
     }
 
     @Override
-    public int getPriority() {
-        return this.priority;
+    public ItemStack getItemStackRepresentation() {
+        return AEApi.instance().definitions().parts().storageBus().maybeStack(1).orElse(ItemStack.EMPTY);
     }
 
     @Override
-    public void setPriority(final int newValue) {
-        this.priority = newValue;
-        this.getHost().markForSave();
+    protected void readConfigFromNBT(NBTTagCompound data) {
+        this.Config.readFromNBT(data, "config");
+    }
+
+    @Override
+    protected void writeConfigToNBT(NBTTagCompound data) {
+        this.Config.writeToNBT(data, "config");
+    }
+
+    // ---- Item-specific behavior ----
+
+    @Override
+    public void onChangeInventory(final IItemHandler inv, final int slot, final InvOperation mc,
+            final ItemStack removedStack, final ItemStack newStack) {
+        super.onChangeInventory(inv, slot, mc, removedStack, newStack);
+    }
+
+    @Override
+    public IItemHandler getInventoryByName(final String name) {
+        return super.getInventoryByName(name);
+    }
+
+    // ---- IIAEStackInventory implementation ----
+
+    @Override
+    public void saveAEStackInv() {
         this.resetCache(true);
+        this.getHost().markForSave();
     }
 
     @Override
-    public void blinkCell(final int slot) {
+    public IAEStackInventory getAEInventoryByName(StorageName name) {
+        if (name == StorageName.CONFIG) {
+            return this.Config;
+        }
+        return null;
     }
 
-    // TODO: BC PIPE INTEGRATION
-    /*
-     * @Override
-     * 
-     * @Method( iname = IntegrationType.BuildCraftTransport ) public ConnectOverride overridePipeConnection( PipeType
-     * type, ForgeDirection with ) { return type == PipeType.ITEM && with == this.getSide() ? ConnectOverride.CONNECT :
-     * ConnectOverride.DISCONNECT; }
-     */
-    @Override
-    public void saveChanges(final ICellInventory<?> cellInventory) {
-        // nope!
-    }
+    // ---- Model ----
 
     @Override
     public IPartModel getStaticModels() {
@@ -604,42 +245,5 @@ public class PartStorageBus extends PartUpgradeable
         } else {
             return MODELS_OFF;
         }
-    }
-
-    @Override
-    public ItemStack getItemStackRepresentation() {
-        return AEApi.instance().definitions().parts().storageBus().maybeStack(1).orElse(ItemStack.EMPTY);
-    }
-
-    @Override
-    public AEGuiKey getGuiKey() {
-        return AEGuiKeys.STORAGE_BUS;
-    }
-
-    @Override
-    public GuiBridge getGuiBridge() {
-        return getGuiKey().getLegacyBridge();
-    }
-
-    // TODO: 1/28/2024 Unify both methods.
-    /**
-     * Filters the changes to only include items that pass the storage filter. Optimally, this should be handled by the
-     * underlying monitor.
-     * 
-     * @see appeng.fluids.parts.PartFluidStorageBus#filterChanges
-     */
-    protected Iterable<IAEItemStack> filterChanges(Iterable<IAEItemStack> change) {
-        var storageFilter = this.getConfigManager().getSetting(Settings.STORAGE_FILTER);
-        if (storageFilter == StorageFilter.EXTRACTABLE_ONLY && handler != null) {
-            var filteredList = new ArrayList<IAEItemStack>();
-            for (final IAEItemStack stack : change) {
-                if (this.handler.passesBlackOrWhitelist(stack)) {
-                    filteredList.add(stack);
-                }
-            }
-
-            return filteredList;
-        }
-        return change;
     }
 }

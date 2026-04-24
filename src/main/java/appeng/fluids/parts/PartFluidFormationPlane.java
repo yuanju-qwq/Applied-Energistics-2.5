@@ -30,6 +30,7 @@ import appeng.api.networking.events.MENetworkPowerStatusChange;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEInventoryHandler;
+import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStackType;
@@ -37,21 +38,21 @@ import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
+import appeng.fluids.helper.IConfigurableAEStackInventory;
 import appeng.fluids.helper.IConfigurableFluidInventory;
-import appeng.fluids.util.AEFluidInventory;
-import appeng.fluids.util.IAEFluidInventory;
-import appeng.fluids.util.IAEFluidTank;
+import appeng.fluids.util.AEFluidStackType;
 import appeng.items.parts.PartModels;
 import appeng.me.GridAccessException;
 import appeng.me.storage.MEInventoryHandler;
 import appeng.parts.automation.PartAbstractFormationPlane;
 import appeng.parts.automation.PlaneModels;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.prioritylist.PrecisePriorityList;
-import appeng.fluids.util.AEFluidStackType;
 
 public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluidStack>
-        implements IAEFluidInventory, IConfigurableFluidInventory {
+        implements IIAEStackInventory, IConfigurableFluidInventory, IConfigurableAEStackInventory {
     private static final PlaneModels MODELS = new PlaneModels("part/fluid_formation_plane_",
             "part/fluid_formation_plane_on_");
 
@@ -62,7 +63,7 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
 
     private final MEInventoryHandler<IAEFluidStack> myHandler = new MEInventoryHandler<>(this,
             AEFluidStackType.INSTANCE);
-    private final AEFluidInventory config = new AEFluidInventory(this, 63);
+    private final IAEStackInventory config = new IAEStackInventory(this, 63, StorageName.CONFIG);
 
     public PartFluidFormationPlane(final ItemStack is) {
         super(is);
@@ -79,10 +80,10 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
         final IItemList<IAEFluidStack> priorityList = AEFluidStackType.INSTANCE.createList();
 
         final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
-        for (int x = 0; x < this.config.getSlots() && x < slotsToUse; x++) {
-            final IAEFluidStack is = this.config.getFluidInSlot(x);
-            if (is != null) {
-                priorityList.add(is);
+        for (int x = 0; x < this.config.size() && x < slotsToUse; x++) {
+            final IAEStack<?> is = this.config.getAEStackInSlot(x);
+            if (is instanceof IAEFluidStack fluidStack) {
+                priorityList.add(fluidStack);
             }
         }
         this.myHandler.setPartitionList(new PrecisePriorityList<IAEFluidStack>(priorityList));
@@ -131,10 +132,16 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
     }
 
     @Override
-    public void onFluidInventoryChanged(IAEFluidTank inv, int slot) {
-        if (inv == this.config) {
-            this.updateHandler();
+    public void saveAEStackInv() {
+        this.updateHandler();
+    }
+
+    @Override
+    public IAEStackInventory getAEInventoryByName(StorageName name) {
+        if (name == StorageName.CONFIG) {
+            return this.config;
         }
+        return null;
     }
 
     @Override
@@ -192,13 +199,18 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
         return MODELS.getModel(this.getConnections(), this.isPowered(), this.isActive());
     }
 
-    public IAEFluidTank getConfig() {
+    public IAEStackInventory getConfig() {
         return this.config;
     }
 
     @Override
     public IFluidHandler getFluidInventoryByName(final String name) {
-        if (name.equals("config")) {
+        return null;
+    }
+
+    @Override
+    public IAEStackInventory getAEStackInventoryByName(final String name) {
+        if ("config".equals(name)) {
             return this.config;
         }
         return null;

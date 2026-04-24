@@ -52,7 +52,6 @@ import appeng.parts.reporting.PartPatternTerminal;
 /**
  * MUI 版样板数值设置面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiPatternValueAmount}。
  * 中键点击样板虚拟槽位后打开，允许用户通过 +/- 按钮或直接输入精确设置物品数量。
  * 支持数学表达式（如 "64*9"）。
  */

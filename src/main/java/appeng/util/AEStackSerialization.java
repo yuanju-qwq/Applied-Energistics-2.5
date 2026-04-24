@@ -73,11 +73,10 @@ public final class AEStackSerialization {
         return tag;
     }
 
-    @SuppressWarnings("unchecked")
     public static NBTTagList writeAEStackListNBT(final IItemList<?> list) {
         final NBTTagList out = new NBTTagList();
-        for (final IAEStackBase stackBase : (IItemList<IAEStackBase>) list) {
-            final IAEStack<?> stack = (IAEStack<?>) stackBase;
+        for (final Object stackObj : list) {
+            final IAEStack<?> stack = (IAEStack<?>) stackObj;
             final NBTTagCompound tag = new NBTTagCompound();
             writeStackNBT(stack, tag);
             out.appendTag(tag);
@@ -87,8 +86,7 @@ public final class AEStackSerialization {
 
     public static NBTTagList writeAEStackListNBT(final IMixedStackList list) {
         final NBTTagList out = new NBTTagList();
-        for (final IAEStackBase stackBase : list) {
-            final IAEStack<?> stack = (IAEStack<?>) stackBase;
+        for (final IAEStack<?> stack : list.typedView()) {
             final NBTTagCompound tag = new NBTTagCompound();
             writeStackNBT(stack, tag);
             out.appendTag(tag);

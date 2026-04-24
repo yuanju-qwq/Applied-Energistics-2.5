@@ -36,26 +36,31 @@ import appeng.api.implementations.items.IStorageCell;
 import appeng.api.storage.ICellWorkbenchItem;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IStorageChannel;
+import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.container.guisync.GuiSync;
+import appeng.container.interfaces.IVirtualSlotHolder;
+import appeng.container.interfaces.IVirtualSlotSource;
 import appeng.container.slot.OptionalSlotRestrictedInput;
-import appeng.container.slot.SlotFakeTypeOnly;
 import appeng.container.slot.SlotRestrictedInput;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.tile.misc.TileCellWorkbench;
 import appeng.util.Platform;
-import appeng.util.helpers.ItemHandlerUtil;
 import appeng.util.inv.WrapperSupplierItemHandler;
 import appeng.util.iterators.NullIterator;
 import appeng.util.item.AEItemStackType;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
-public class ContainerCellWorkbench extends ContainerUpgradeable {
+public class ContainerCellWorkbench extends ContainerUpgradeable implements IVirtualSlotHolder, IVirtualSlotSource {
     private final TileCellWorkbench workBench;
     @GuiSync(2)
     public CopyMode copyMode = CopyMode.CLEAR_ON_REMOVE;
     private ItemStack prevStack = ItemStack.EMPTY;
     private int lastUpgrades = 0;
+
+    // 服务端用于增量同步的客户端快照
+    private final IAEStack<?>[] configClientSlot = new IAEStack[63];
 
     public ContainerCellWorkbench(final InventoryPlayer ip, final TileCellWorkbench te) {
         super(ip, te);
@@ -89,20 +94,11 @@ public class ContainerCellWorkbench extends ContainerUpgradeable {
         this.addSlotToContainer(new SlotRestrictedInput(SlotRestrictedInput.PlacableItemType.WORKBENCH_CELL, cell, 0,
                 152, 8, this.getPlayerInv()));
 
-        final IItemHandler inv = this.getUpgradeable().getInventoryByName("config");
+        // config 槽位不再使用 Minecraft Slot，改为由 GUI 侧的 VirtualMEPhantomSlot 处理。
+        // 这里只添加升级槽位。
+
         final WrapperSupplierItemHandler upgradeInventory = new WrapperSupplierItemHandler(
                 this::getCellUpgradeInventory);
-        // null, 3 * 8 );
-
-        int offset = 0;
-        final int y = 29;
-        final int x = 8;
-        for (int w = 0; w < 7; w++) {
-            for (int z = 0; z < 9; z++) {
-                this.addSlotToContainer(new SlotFakeTypeOnly(inv, offset, x + z * 18, y + w * 18));
-                offset++;
-            }
-        }
 
         for (int zz = 0; zz < 3; zz++) {
             for (int z = 0; z < 8; z++) {
@@ -113,13 +109,6 @@ public class ContainerCellWorkbench extends ContainerUpgradeable {
                                         .getInventoryPlayer()));
             }
         }
-        /*
-         * if ( supportCapacity() ) { for (int w = 0; w < 2; w++) for (int z = 0; z < 9; z++) addSlotToContainer( new
-         * OptionalSlotFakeTypeOnly( inv, this, offset++, x, y, z, w, 1 ) ); for (int w = 0; w < 2; w++) for (int z = 0;
-         * z < 9; z++) addSlotToContainer( new OptionalSlotFakeTypeOnly( inv, this, offset++, x, y, z, w + 2, 2 ) ); for
-         * (int w = 0; w < 2; w++) for (int z = 0; z < 9; z++) addSlotToContainer( new OptionalSlotFakeTypeOnly( inv,
-         * this, offset++, x, y, z, w + 4, 3 ) ); }
-         */
     }
 
     @Override
@@ -154,6 +143,10 @@ public class ContainerCellWorkbench extends ContainerUpgradeable {
 
             this.setCopyMode(this.getWorkBenchCopyMode());
             this.setFuzzyMode(this.getWorkBenchFuzzyMode());
+
+            // 使用虚拟槽位同步 config
+            final IAEStackInventory config = this.workBench.getAEInventoryByName(StorageName.CONFIG);
+            this.updateVirtualSlots(StorageName.CONFIG, config, this.configClientSlot);
         }
 
         this.prevStack = is;
@@ -181,7 +174,11 @@ public class ContainerCellWorkbench extends ContainerUpgradeable {
     }
 
     public void clear() {
-        ItemHandlerUtil.clear(this.getUpgradeable().getInventoryByName("config"));
+        final IAEStackInventory inv = this.workBench.getAEInventoryByName(StorageName.CONFIG);
+        for (int x = 0; x < inv.getSizeInventory(); x++) {
+            inv.putAEStackInSlot(x, null);
+        }
+        this.workBench.syncConfigToCell();
         this.detectAndSendChanges();
     }
 
@@ -195,7 +192,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable {
 
     public void partition() {
 
-        final IItemHandler inv = this.getUpgradeable().getInventoryByName("config");
+        final IAEStackInventory inv = this.workBench.getAEInventoryByName(StorageName.CONFIG);
 
         final ItemStack is = this.getUpgradeable().getInventoryByName("cell").getStackInSlot(0);
         final IStorageChannel channel = is.getItem() instanceof IStorageCell
@@ -210,16 +207,18 @@ public class ContainerCellWorkbench extends ContainerUpgradeable {
             i = (Iterator<IAEStack<?>>) (Iterator<?>) list.iterator();
         }
 
-        for (int x = 0; x < inv.getSlots(); x++) {
+        for (int x = 0; x < inv.getSizeInventory(); x++) {
             if (i.hasNext()) {
-                // TODO: check if ok
-                final ItemStack g = i.next().asItemStackRepresentation();
-                ItemHandlerUtil.setStackInSlot(inv, x, g);
+                final IAEStack<?> next = i.next();
+                final IAEStack<?> copy = next.copy();
+                copy.setStackSize(1);
+                inv.putAEStackInSlot(x, copy);
             } else {
-                ItemHandlerUtil.setStackInSlot(inv, x, ItemStack.EMPTY);
+                inv.putAEStackInSlot(x, null);
             }
         }
 
+        this.workBench.syncConfigToCell();
         this.detectAndSendChanges();
     }
 
@@ -229,5 +228,40 @@ public class ContainerCellWorkbench extends ContainerUpgradeable {
 
     private void setCopyMode(final CopyMode copyMode) {
         this.copyMode = copyMode;
+    }
+
+    // ---- IVirtualSlotHolder 实现（接收服务端推送的虚拟槽位数据，客户端侧）----
+
+    @Override
+    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
+        final IAEStackInventory config = this.workBench.getAEInventoryByName(StorageName.CONFIG);
+        for (var entry : slotStacks.int2ObjectEntrySet()) {
+            config.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+        }
+    }
+
+    // ---- IVirtualSlotSource 实现（接收客户端发来的虚拟槽位更新，服务端侧）----
+
+    @Override
+    public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
+        final IAEStackInventory config = this.workBench.getAEInventoryByName(StorageName.CONFIG);
+        if (config != null && slotId >= 0 && slotId < config.getSizeInventory()) {
+            config.putAEStackInSlot(slotId, aes);
+            this.workBench.syncConfigToCell();
+        }
+    }
+
+    /**
+     * 获取 config IAEStackInventory，供 GUI 层使用。
+     */
+    public IAEStackInventory getConfig() {
+        return this.workBench.getAEInventoryByName(StorageName.CONFIG);
+    }
+
+    /**
+     * 获取当前单元物品的 ICellWorkbenchItem，供 GUI 层判断接受的栈类型。
+     */
+    public ICellWorkbenchItem getCell() {
+        return this.workBench.getCell();
     }
 }

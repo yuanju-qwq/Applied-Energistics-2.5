@@ -63,7 +63,6 @@ import appeng.util.item.IAEStackList;
 /**
  * MUI 版合成确认面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiCraftConfirm}。
  * 功能：显示合成计划（从仓库/待合成/缺失的物品列表），选择 CPU，确认开始合成。
  * <p>
  * 特性：

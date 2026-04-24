@@ -131,6 +131,14 @@ public class ClientHelper extends ServerHelper {
                         .registerItemColorHandler(ItemSpecialEncodedPatternBakedModel.PATTERN_ITEM_COLOR_HANDLER,
                                 pattern));
 
+        // Stack type renderer registration
+        appeng.client.render.stack.AEStackTypeRendererRegistry.register(
+                appeng.util.item.AEItemStackType.INSTANCE,
+                appeng.client.render.stack.AEItemStackRenderer.INSTANCE);
+        appeng.client.render.stack.AEStackTypeRendererRegistry.register(
+                appeng.fluids.util.AEFluidStackType.INSTANCE,
+                appeng.client.render.stack.AEFluidStackRenderer.INSTANCE);
+
         // MUI 面板注册
         appeng.client.mui.AEMUIRegistration.registerAll();
     }

@@ -42,7 +42,7 @@ public class MEMonitorIInventory implements IMEMonitor<IAEItemStack>, ITickingMo
     private final InventoryAdaptor adaptor;
     private IItemList<IAEItemStack> cache = AEItemStackType.INSTANCE.createList();
 
-    private final HashMap<IMEMonitorHandlerReceiver<IAEItemStack>, Object> listeners = new HashMap<>();
+    private final HashMap<IMEMonitorHandlerReceiver<? super IAEItemStack>, Object> listeners = new HashMap<>();
     private IActionSource mySource;
     private StorageFilter mode = StorageFilter.EXTRACTABLE_ONLY;
 
@@ -51,12 +51,12 @@ public class MEMonitorIInventory implements IMEMonitor<IAEItemStack>, ITickingMo
     }
 
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<IAEItemStack> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver<? super IAEItemStack> l, final Object verificationToken) {
         this.listeners.put(l, verificationToken);
     }
 
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<IAEItemStack> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver<? super IAEItemStack> l) {
         this.listeners.remove(l);
     }
 
@@ -162,15 +162,16 @@ public class MEMonitorIInventory implements IMEMonitor<IAEItemStack>, ITickingMo
         return changed ? TickRateModulation.URGENT : TickRateModulation.SLOWER;
     }
 
+    @SuppressWarnings("unchecked")
     private void postDifference(final Iterable<IAEItemStack> a) {
         if (a != null) {
-            final Iterator<Entry<IMEMonitorHandlerReceiver<IAEItemStack>, Object>> i = this.listeners.entrySet()
+            final Iterator<Entry<IMEMonitorHandlerReceiver<? super IAEItemStack>, Object>> i = this.listeners.entrySet()
                     .iterator();
             while (i.hasNext()) {
-                final Entry<IMEMonitorHandlerReceiver<IAEItemStack>, Object> l = i.next();
-                final IMEMonitorHandlerReceiver<IAEItemStack> key = l.getKey();
+                final Entry<IMEMonitorHandlerReceiver<? super IAEItemStack>, Object> l = i.next();
+                final IMEMonitorHandlerReceiver<? super IAEItemStack> key = l.getKey();
                 if (key.isValid(l.getValue())) {
-                    key.postChange(this, a, this.getActionSource());
+                    ((IMEMonitorHandlerReceiver) key).postChange(this, a, this.getActionSource());
                 } else {
                     i.remove();
                 }

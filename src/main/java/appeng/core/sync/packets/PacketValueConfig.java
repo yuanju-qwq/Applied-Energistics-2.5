@@ -38,15 +38,14 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.config.Settings;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
-import appeng.client.gui.implementations.GuiCraftingCPU;
-import appeng.client.gui.implementations.GuiOreDictStorageBus;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.*;
+import appeng.container.interfaces.ICraftingCPUGuiCallback;
+import appeng.container.interfaces.IOreDictStorageBusGuiCallback;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.INetworkInfo;
 import appeng.fluids.container.ContainerFluidLevelEmitter;
-import appeng.fluids.container.ContainerFluidStorageBus;
 import appeng.helpers.IMouseWheelItem;
 import appeng.items.tools.powered.ToolWirelessUniversalTerminal;
 import appeng.items.tools.powered.WirelessTerminalMode;
@@ -239,19 +238,15 @@ public class PacketValueConfig extends AppEngPacket {
         } else if (this.Name.startsWith("StorageBus.")) {
             if (this.Name.equals("StorageBus.Action")) {
                 if (this.Value.equals("Partition")) {
-                    if (c instanceof ContainerStorageBus) {
-                        ((ContainerStorageBus) c).partition();
-                    } else if (c instanceof ContainerFluidStorageBus) {
-                        ((ContainerFluidStorageBus) c).partition();
-                    } else if (c instanceof ContainerOreDictStorageBus) {
-                        ((ContainerOreDictStorageBus) c).partition();
+                    if (c instanceof IStorageBusContainer) {
+                        ((IStorageBusContainer) c).partition();
+                    }
+                    if (c instanceof ContainerOreDictStorageBus) {
                         ((ContainerOreDictStorageBus) c).sendRegex();
                     }
                 } else if (this.Value.equals("Clear")) {
-                    if (c instanceof ContainerStorageBus) {
-                        ((ContainerStorageBus) c).clear();
-                    } else if (c instanceof ContainerFluidStorageBus) {
-                        ((ContainerFluidStorageBus) c).clear();
+                    if (c instanceof IStorageBusContainer) {
+                        ((IStorageBusContainer) c).clear();
                     }
                 }
             }
@@ -328,13 +323,13 @@ public class PacketValueConfig extends AppEngPacket {
             ((AEBaseContainer) c).stringSync(Integer.parseInt(this.Name.substring(8)), this.Value);
         } else if (this.Name.equals("CraftingStatus") && this.Value.equals("Clear")) {
             final GuiScreen gs = Minecraft.getMinecraft().currentScreen;
-            if (gs instanceof GuiCraftingCPU) {
-                ((GuiCraftingCPU) gs).clearItems();
+            if (gs instanceof ICraftingCPUGuiCallback) {
+                ((ICraftingCPUGuiCallback) gs).clearItems();
             }
         } else if (this.Name.equals("OreDictStorageBus.sendRegex")) {
             final GuiScreen gs = Minecraft.getMinecraft().currentScreen;
-            if (gs instanceof GuiOreDictStorageBus) {
-                ((GuiOreDictStorageBus) gs).fillRegex(this.Value);
+            if (gs instanceof IOreDictStorageBusGuiCallback) {
+                ((IOreDictStorageBusGuiCallback) gs).fillRegex(this.Value);
             }
         } else if (c instanceof IConfigurableObject) {
             final IConfigManager cm = ((IConfigurableObject) c).getConfigManager();

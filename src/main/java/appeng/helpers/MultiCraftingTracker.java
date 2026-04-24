@@ -35,6 +35,7 @@ import appeng.api.networking.crafting.ICraftingLink;
 import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.util.InventoryAdaptor;
 
 public class MultiCraftingTracker {
@@ -80,42 +81,75 @@ public class MultiCraftingTracker {
             ItemStack remaining = d.simulateAdd(inputStack);
 
             if (remaining.isEmpty()) {
-                final Future<ICraftingJob> craftingJob = this.getJob(x);
+                return submitCraftingRequest(x, itemToCraft, ais, w, g, cg, mySrc);
+            }
+        }
+        return false;
+    }
 
-                if (this.getLink(x) != null) {
-                    return false;
-                } else if (craftingJob != null) {
+    /**
+     * Generic version of handleCrafting that works with any {@link IAEStack} type.
+     * <p>
+     * The caller is responsible for checking whether the physical storage has space
+     * for the crafted result (since each type has a different storage model: item slots,
+     * fluid tanks, etc.). This method only handles the ME crafting job submission.
+     *
+     * @param x            slot index
+     * @param amountToCraft amount to request
+     * @param what         the stack to craft (any type)
+     * @param hasSpace     whether the physical storage has room for the result
+     *                     (caller must check this using the type-appropriate storage)
+     * @param w            the world
+     * @param g            the grid
+     * @param cg           the crafting grid
+     * @param mySrc        the action source
+     * @return true if crafting was submitted
+     */
+    public boolean handleCrafting(final int x, final long amountToCraft, final IAEStack<?> what,
+            final boolean hasSpace, final World w, final IGrid g, final ICraftingGrid cg,
+            final IActionSource mySrc) {
+        if (what != null && hasSpace) {
+            return submitCraftingRequest(x, amountToCraft, what, w, g, cg, mySrc);
+        }
+        return false;
+    }
 
-                    try {
-                        ICraftingJob job = null;
-                        if (craftingJob.isDone()) {
-                            job = craftingJob.get();
-                        }
+    /**
+     * Core crafting request submission logic shared by both overloads.
+     */
+    private boolean submitCraftingRequest(final int x, final long amountToCraft, final IAEStack<?> what,
+            final World w, final IGrid g, final ICraftingGrid cg, final IActionSource mySrc) {
+        final Future<ICraftingJob> craftingJob = this.getJob(x);
 
-                        if (job != null) {
-                            final ICraftingLink link = cg.submitJob(job, this.owner, null, false, mySrc);
+        if (this.getLink(x) != null) {
+            return false;
+        } else if (craftingJob != null) {
+            try {
+                ICraftingJob job = null;
+                if (craftingJob.isDone()) {
+                    job = craftingJob.get();
+                }
 
-                            this.setJob(x, null);
+                if (job != null) {
+                    final ICraftingLink link = cg.submitJob(job, this.owner, null, false, mySrc);
 
-                            if (link != null) {
-                                this.setLink(x, link);
+                    this.setJob(x, null);
 
-                                return true;
-                            }
-                        }
-                    } catch (final InterruptedException e) {
-                        // :P
-                    } catch (final ExecutionException e) {
-                        // :P
-                    }
-                } else {
-                    if (this.getLink(x) == null) {
-                        final IAEItemStack aisC = ais.copy();
-                        aisC.setStackSize(itemToCraft);
-
-                        this.setJob(x, cg.beginCraftingJob(w, g, mySrc, aisC, null));
+                    if (link != null) {
+                        this.setLink(x, link);
+                        return true;
                     }
                 }
+            } catch (final InterruptedException e) {
+                // :P
+            } catch (final ExecutionException e) {
+                // :P
+            }
+        } else {
+            if (this.getLink(x) == null) {
+                final IAEStack<?> requestStack = what.copy();
+                requestStack.setStackSize(amountToCraft);
+                this.setJob(x, cg.beginCraftingJob(w, g, mySrc, requestStack, null));
             }
         }
         return false;

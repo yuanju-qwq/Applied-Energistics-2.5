@@ -31,7 +31,6 @@ import appeng.tile.misc.TileVibrationChamber;
 /**
  * MUI 版振动仓 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiVibrationChamber}。
  * 显示 AE/t 功率输出进度条和燃烧火焰动画。
  */
 public class MUIVibrationChamberPanel extends AEBasePanel {

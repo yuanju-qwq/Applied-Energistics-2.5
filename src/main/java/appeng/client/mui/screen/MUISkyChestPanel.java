@@ -29,7 +29,6 @@ import appeng.tile.storage.TileSkyChest;
 /**
  * MUI 版陨石箱 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiSkyChest}。
  * 纯展示型面板，包含背景贴图、标题文字，以及 InvTweaks 兼容的空格键处理。
  */
 public class MUISkyChestPanel extends AEBasePanel {

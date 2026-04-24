@@ -53,7 +53,7 @@ import appeng.util.item.AEItemStackType;
  * Wraps an Item Handler in such a way that it can be used as an IMEInventory for items.
  */
 class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAEItemStack>, ITickingMonitor {
-    private final Object2ObjectMap<IMEMonitorHandlerReceiver<IAEItemStack>, Object> listeners = new Object2ObjectOpenHashMap<>();
+    private final Object2ObjectMap<IMEMonitorHandlerReceiver<? super IAEItemStack>, Object> listeners = new Object2ObjectOpenHashMap<>();
     private IActionSource mySource;
     private final IItemHandler itemHandler;
     private final IGridProxyable proxyable;
@@ -64,8 +64,8 @@ class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAE
     ItemHandlerAdapter(IItemHandler itemHandler, IGridProxyable proxy) {
         this.itemHandler = itemHandler;
         this.proxyable = proxy;
-        if (this.proxyable instanceof PartStorageBus) {
-            PartStorageBus partStorageBus = (PartStorageBus) this.proxyable;
+        if (this.proxyable instanceof AbstractPartStorageBus) {
+            AbstractPartStorageBus<?> partStorageBus = (AbstractPartStorageBus<?>) this.proxyable;
             this.mode = ((StorageFilter) partStorageBus.getConfigManager().getSetting(Settings.STORAGE_FILTER));
             this.access = ((AccessRestriction) partStorageBus.getConfigManager().getSetting(Settings.ACCESS));
         }
@@ -228,23 +228,24 @@ class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAE
     }
 
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<IAEItemStack> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver<? super IAEItemStack> l, final Object verificationToken) {
         this.listeners.put(l, verificationToken);
     }
 
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<IAEItemStack> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver<? super IAEItemStack> l) {
         this.listeners.remove(l);
     }
 
+    @SuppressWarnings("unchecked")
     private void postDifference(Iterable<IAEItemStack> a) {
-        final Iterator<Map.Entry<IMEMonitorHandlerReceiver<IAEItemStack>, Object>> i = this.listeners.entrySet()
+        final Iterator<Map.Entry<IMEMonitorHandlerReceiver<? super IAEItemStack>, Object>> i = this.listeners.entrySet()
                 .iterator();
         while (i.hasNext()) {
-            final Map.Entry<IMEMonitorHandlerReceiver<IAEItemStack>, Object> l = i.next();
-            final IMEMonitorHandlerReceiver<IAEItemStack> key = l.getKey();
+            final Map.Entry<IMEMonitorHandlerReceiver<? super IAEItemStack>, Object> l = i.next();
+            final IMEMonitorHandlerReceiver<? super IAEItemStack> key = l.getKey();
             if (key.isValid(l.getValue())) {
-                key.postChange(this, a, this.mySource);
+                ((IMEMonitorHandlerReceiver) key).postChange(this, a, this.mySource);
             } else {
                 i.remove();
             }

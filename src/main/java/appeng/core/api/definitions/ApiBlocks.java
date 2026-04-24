@@ -78,10 +78,9 @@ import appeng.decorative.solid.BlockSkyStone.SkystoneType;
 import appeng.decorative.stair.BlockStairCommon;
 import appeng.entity.EntityIds;
 import appeng.entity.EntityTinyTNTPrimed;
-import appeng.fluids.block.BlockFluidInterface;
-import appeng.fluids.tile.TileFluidInterface;
-import appeng.block.misc.BlockDualInterface;
-import appeng.tile.misc.TileDualInterface;
+import appeng.block.misc.BlockFluidInterface;
+import appeng.block.misc.BlockItemInterface;
+import appeng.block.misc.BlockPatternProvider;
 import appeng.hooks.DispenserBehaviorTinyTNT;
 import appeng.tile.crafting.TileCraftingMonitorTile;
 import appeng.tile.crafting.TileCraftingStorageTile;
@@ -137,7 +136,7 @@ public final class ApiBlocks implements IBlocks {
     private final ITileDefinition chest;
     private final ITileDefinition iface;
     private final ITileDefinition fluidIface;
-    private final ITileDefinition dualIface;
+    private final ITileDefinition patternProvider;
     private final ITileDefinition cellWorkbench;
     private final ITileDefinition iOPort;
     private final ITileDefinition condenser;
@@ -343,17 +342,17 @@ public final class ApiBlocks implements IBlocks {
                 .useCustomItemModel()
                 .rendering(new ChestRendering())
                 .build();
-        this.iface = registry.block("interface", BlockInterface::new)
+        this.iface = registry.block("interface", BlockItemInterface::new)
                 .features(AEFeature.INTERFACE)
-                .tileEntity(new TileEntityDefinition(TileInterface.class))
+                .tileEntity(new TileEntityDefinition(TileMEInterface.class))
                 .build();
         this.fluidIface = registry.block("fluid_interface", BlockFluidInterface::new)
                 .features(AEFeature.FLUID_INTERFACE)
-                .tileEntity(new TileEntityDefinition(TileFluidInterface.class))
+                .tileEntity(new TileEntityDefinition(TileMEInterface.class))
                 .build();
-        this.dualIface = registry.block("dual_interface", BlockDualInterface::new)
+        this.patternProvider = registry.block("pattern_provider", BlockPatternProvider::new)
                 .features(AEFeature.INTERFACE)
-                .tileEntity(new TileEntityDefinition(TileDualInterface.class))
+                .tileEntity(new TileEntityDefinition(TilePatternProvider.class))
                 .build();
         this.cellWorkbench = registry.block("cell_workbench", BlockCellWorkbench::new)
                 .features(AEFeature.STORAGE_CELLS)
@@ -844,8 +843,8 @@ public final class ApiBlocks implements IBlocks {
     }
 
     @Override
-    public ITileDefinition dualIface() {
-        return this.dualIface;
+    public ITileDefinition patternProvider() {
+        return this.patternProvider;
     }
 
     @Override

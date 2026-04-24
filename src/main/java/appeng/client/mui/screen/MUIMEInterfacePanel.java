@@ -26,11 +26,13 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.lwjgl.input.Mouse;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
@@ -40,10 +42,10 @@ import mezz.jei.api.gui.IGhostIngredientHandler.Target;
 
 import appeng.api.config.Settings;
 import appeng.api.config.YesNo;
-import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
+import appeng.client.gui.slots.VirtualMESlot;
 import appeng.client.gui.widgets.GuiCustomSlot;
 import appeng.client.gui.widgets.GuiToggleButton;
 import appeng.container.implementations.ContainerMEInterface;
@@ -53,28 +55,22 @@ import appeng.container.slot.SlotOversized;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketConfigButton;
-import appeng.core.sync.packets.PacketInventoryAction;
-import appeng.fluids.client.gui.widgets.GuiFluidSlot;
-import appeng.fluids.util.AEFluidStack;
-import appeng.fluids.util.IAEFluidTank;
 import appeng.helpers.InterfaceLogic;
-import appeng.helpers.InventoryAction;
 import appeng.tile.inventory.IAEStackInventory;
-import appeng.util.item.AEItemStack;
 
 /**
  * MUI 版 ME 接口 GUI 面板。
  *
  * 显示 18 个 Config 槽（VirtualMEPhantomSlot，可标记物品或流体）和 18 个 Storage 槽
- * （物品使用 Container 层的 SlotOversized，流体使用 GUI 层的 GuiFluidSlot，
+ * （物品使用 Container 层的 SlotOversized，流体使用 VirtualSlot 从服务端同步显示，
  * 根据 Config 类型动态切换显示）。
  *
  * <h3>布局</h3>
  * <pre>
  * Config 行0 (y=30):  [VirtualMEPhantomSlot × 9]
- * Storage 行0 (y=48): [SlotOversized / GuiFluidSlot × 9]
+ * Storage 行0 (y=48): [SlotOversized / FluidStorageVirtualSlot × 9]
  * Config 行1 (y=70):  [VirtualMEPhantomSlot × 9]
- * Storage 行1 (y=88): [SlotOversized / GuiFluidSlot × 9]
+ * Storage 行1 (y=88): [SlotOversized / FluidStorageVirtualSlot × 9]
  * </pre>
  */
 public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhostIngredients {
@@ -87,8 +83,8 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
     // ========== Config 虚拟槽位 ==========
     private VirtualMEPhantomSlot[] configSlots;
 
-    // ========== 流体 Storage 虚拟槽位（可控可见性）==========
-    private ToggleableFluidSlot[] fluidStorageSlots;
+    // ========== 流体 Storage 虚拟槽位（只读，可控可见性）==========
+    private FluidStorageVirtualSlot[] fluidStorageSlots;
 
     // ========== 物品 Storage slot 引用及原始 xPos（用于隐藏/恢复）==========
     private AppEngSlot[] itemStorageSlots;
@@ -146,18 +142,18 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
     // ========== 流体 Storage 槽位初始化 ==========
 
     private void initFluidStorageSlots() {
-        this.guiSlots.removeIf(slot -> slot instanceof ToggleableFluidSlot);
-        this.fluidStorageSlots = new ToggleableFluidSlot[InterfaceLogic.NUMBER_OF_CONFIG_SLOTS];
+        this.guiSlots.removeIf(slot -> slot instanceof FluidStorageVirtualSlot);
+        this.fluidStorageSlots = new FluidStorageVirtualSlot[InterfaceLogic.NUMBER_OF_CONFIG_SLOTS];
+        final IAEStackInventory fluidStorage = this.container.getFluidStorageClientInv();
 
         for (int row = 0; row < 2; row++) {
             final int rowY = (row == 0) ? ContainerMEInterface.STORAGE_ROW_0_Y : ContainerMEInterface.STORAGE_ROW_1_Y;
             for (int col = 0; col < InterfaceLogic.SLOTS_PER_ROW; col++) {
                 final int slotIdx = row * InterfaceLogic.SLOTS_PER_ROW + col;
                 final int x = ContainerMEInterface.SLOT_X_OFFSET + col * 18;
-                ToggleableFluidSlot slot = new ToggleableFluidSlot(
-                        this.container.getLogic().getFluidTanks(), slotIdx,
+                FluidStorageVirtualSlot slot = new FluidStorageVirtualSlot(
                         slotIdx + InterfaceLogic.NUMBER_OF_CONFIG_SLOTS,
-                        x, rowY);
+                        x, rowY, fluidStorage, slotIdx);
                 this.fluidStorageSlots[slotIdx] = slot;
                 this.guiSlots.add(slot);
             }
@@ -180,10 +176,11 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
     }
 
     /**
-     * 根据 Config 类型动态切换每个 Storage 位置显示物品 slot 或流体 slot。
+     * Dynamically toggle each storage slot between item slot and fluid virtual slot
+     * based on the Config stack type.
      * <ul>
-     *   <li>Config = IAEFluidStack → 隐藏物品 slot、显示 GuiFluidSlot</li>
-     *   <li>Config = IAEItemStack 或 null → 显示物品 slot、隐藏 GuiFluidSlot</li>
+     *   <li>Config = non-item type (fluid, etc.) → hide item slot, show FluidStorageVirtualSlot</li>
+     *   <li>Config = item type or null → show item slot, hide FluidStorageVirtualSlot</li>
      * </ul>
      */
     private void updateStorageSlotVisibility() {
@@ -191,16 +188,18 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
 
         for (int i = 0; i < InterfaceLogic.NUMBER_OF_CONFIG_SLOTS; i++) {
             final IAEStack<?> configStack = config.getAEStackInSlot(i);
-            final boolean isFluid = configStack instanceof IAEFluidStack;
+            // Non-item types (fluids, etc.) use FluidStorageVirtualSlot;
+            // items and null use the regular item slot.
+            // This is a Minecraft Slot system limitation: Slot only holds ItemStack,
+            // so non-item types must use virtual slots.
+            final boolean isNonItem = configStack != null && !configStack.isItem();
 
-            // 物品 Storage slot：流体 Config 时隐藏（移到屏幕外）
             if (this.itemStorageSlots != null && this.itemStorageSlots[i] != null) {
-                this.itemStorageSlots[i].xPos = isFluid ? -9999 : this.itemStorageOrigX[i];
+                this.itemStorageSlots[i].xPos = isNonItem ? -9999 : this.itemStorageOrigX[i];
             }
 
-            // 流体 Storage slot：流体 Config 时显示
             if (this.fluidStorageSlots != null && this.fluidStorageSlots[i] != null) {
-                this.fluidStorageSlots[i].setEnabled(isFluid);
+                this.fluidStorageSlots[i].setHidden(!isNonItem);
             }
         }
     }
@@ -272,14 +271,6 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
                 addConfigTarget(targets, phantomSlot, itemStack, fluidStack);
             }
         }
-        // 流体 Storage GuiFluidSlot
-        if (fluidStack != null) {
-            for (GuiCustomSlot slot : this.getGuiSlots()) {
-                if (slot instanceof ToggleableFluidSlot fluidSlot && fluidSlot.isSlotEnabled()) {
-                    addFluidStorageTarget(targets, fluidSlot, fluidStack);
-                }
-            }
-        }
 
         return targets;
     }
@@ -310,73 +301,61 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         mapTargetSlot.putIfAbsent(target, phantomSlot);
     }
 
-    private void addFluidStorageTarget(List<Target<?>> targets, ToggleableFluidSlot fluidSlot,
-            FluidStack fluidStack) {
-        final FluidStack finalFluidStack = fluidStack;
-        Target<Object> target = new Target<>() {
-            @Nonnull
-            @Override
-            public java.awt.Rectangle getArea() {
-                return new java.awt.Rectangle(getGuiLeft() + fluidSlot.xPos(),
-                        getGuiTop() + fluidSlot.yPos(), 16, 16);
-            }
-
-            @Override
-            public void accept(@Nonnull Object ingredient) {
-                try {
-                    PacketInventoryAction p = new PacketInventoryAction(InventoryAction.PLACE_JEI_GHOST_ITEM,
-                            fluidSlot,
-                            AEItemStack.fromItemStack(
-                                    AEFluidStack.fromFluidStack(finalFluidStack).asItemStackRepresentation()));
-                    NetworkHandler.instance().sendToServer(p);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-        targets.add(target);
-        mapTargetSlot.putIfAbsent(target, fluidSlot);
-    }
-
     @Override
     public Map<Target<?>, Object> getFakeSlotTargetMap() {
         return mapTargetSlot;
     }
 
-    // ========== 可控可见性的流体 Storage 槽位 ==========
+    // ========== 只读流体 Storage 虚拟槽位 ==========
 
     /**
-     * 继承 {@link GuiFluidSlot}，增加 enabled 状态控制。
-     * 当对应 Config 不是流体类型时隐藏此槽位。
+     * Read-only VirtualMESlot that displays fluid storage data synced from server
+     * via {@link appeng.api.storage.StorageName#STORAGE} VirtualSlot channel.
+     * Does not handle clicks (storage is managed by the server).
      */
-    private static class ToggleableFluidSlot extends GuiFluidSlot {
+    private static class FluidStorageVirtualSlot extends VirtualMESlot {
 
-        private boolean enabled = false;
+        private final IAEStackInventory inventory;
+        private final int inventorySlot;
+        private boolean hidden = false;
 
-        ToggleableFluidSlot(IAEFluidTank fluids, int slot, int id, int x, int y) {
-            super(fluids, slot, id, x, y);
+        FluidStorageVirtualSlot(int id, int x, int y, IAEStackInventory inventory, int inventorySlot) {
+            super(id, x, y, inventorySlot);
+            this.inventory = inventory;
+            this.inventorySlot = inventorySlot;
+        }
+
+        @Override
+        @Nullable
+        public IAEStack<?> getAEStack() {
+            return this.inventory.getAEStackInSlot(this.inventorySlot);
         }
 
         @Override
         public boolean isSlotEnabled() {
-            return this.enabled;
+            return !this.hidden;
         }
 
         @Override
         public boolean isVisible() {
-            return this.enabled;
+            return !this.hidden;
         }
 
         @Override
         public void drawContent(Minecraft mc, int mouseX, int mouseY, float partialTicks) {
-            if (!this.enabled) {
+            if (this.hidden) {
                 return;
             }
             super.drawContent(mc, mouseX, mouseY, partialTicks);
         }
 
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
+        @Override
+        public boolean canClick(EntityPlayer player) {
+            return false;
+        }
+
+        public void setHidden(boolean hidden) {
+            this.hidden = hidden;
         }
     }
 }

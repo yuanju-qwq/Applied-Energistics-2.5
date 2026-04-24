@@ -51,7 +51,6 @@ import appeng.util.Platform;
 /**
  * MUI 版无线双接口终端面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiWirelessDualInterfaceTerminal}。
  * 采用模块化组合架构，由三个独立模块组成：
  * <ul>
  *   <li>{@link InterfaceListModule} — 接口列表面板（中央区域，滚动列表+搜索+高亮）</li>
@@ -135,6 +134,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         // 初始化三个模块
         this.interfaceListModule.initSearchFieldsAndButtons();
         this.patternEncodingModule.initButtons();
+        this.patternEncodingModule.initVirtualSlots();
         this.meItemBrowserModule.initPanel();
 
         // 定位槽位
@@ -497,6 +497,18 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     @Override
     public InterfaceListModule getInterfaceListModule() {
         return this.interfaceListModule;
+    }
+
+    // ========== JEI search suggestion ==========
+
+    /**
+     * Set the Names search field suggestion text (used by JEI recipe transfer to
+     * pre-fill the machine name when a recipe is transferred).
+     */
+    public void setSearchFieldSuggestion(final String suggestion) {
+        if (this.interfaceListModule != null && this.interfaceListModule.getSearchFieldNames() != null) {
+            this.interfaceListModule.getSearchFieldNames().setSuggestion(suggestion);
+        }
     }
 
     // ========== MEItemBrowserModule.Host 实现 ==========

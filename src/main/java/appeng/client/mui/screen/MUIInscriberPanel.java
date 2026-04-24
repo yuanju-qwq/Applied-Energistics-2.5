@@ -31,7 +31,6 @@ import appeng.tile.misc.TileInscriber;
 /**
  * MUI 版压印器 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiInscriber}。
  * 显示压印进度条、升级区域和工具箱区域。
  */
 public class MUIInscriberPanel extends AEBasePanel {

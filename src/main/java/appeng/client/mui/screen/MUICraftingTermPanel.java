@@ -41,7 +41,6 @@ import appeng.helpers.InventoryAction;
 /**
  * MUI 版合成终端面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiCraftingTerm}。
  * 继承 {@link MUIMEMonitorablePanel}，增加 3×3 合成网格 + 清除按钮。
  */
 @SideOnly(Side.CLIENT)

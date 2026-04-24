@@ -24,8 +24,10 @@ import javax.annotation.Nullable;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.Constants.NBT;
+import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.storage.StorageName;
+import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.core.AELog;
 import appeng.util.Platform;
@@ -163,13 +165,7 @@ public class IAEStackInventory {
                 final String key = "#" + x;
                 if (target.hasKey(key, NBT.TAG_COMPOUND)) {
                     final NBTTagCompound c = target.getCompoundTag(key);
-                    // 优先尝试新的泛型格式（含 "StackType" 键）
-                    IAEStack<?> stack = c.hasKey("StackType") ? IAEStack.fromNBTGeneric(c) : null;
-                    if (stack == null && !c.isEmpty()) {
-                        // 兼容旧版 AppEngInternalAEInventory 格式（无 "StackType" 键）
-                        stack = appeng.util.item.AEItemStack.fromNBT(c);
-                    }
-                    this.inv[x] = stack;
+                    this.inv[x] = Platform.readStackNBT(c, true);
                 }
             } catch (final Exception e) {
                 AELog.debug(e);
@@ -198,5 +194,65 @@ public class IAEStackInventory {
      */
     public StorageName getStorageName() {
         return this.storageName;
+    }
+
+    /**
+     * Returns a read-only {@link IItemHandler} view of this inventory.
+     * Only IAEItemStack entries are visible as ItemStack; other types (e.g. fluids) appear as empty.
+     * Mutations through the IItemHandler (insert/extract) write back to this IAEStackInventory.
+     */
+    public IItemHandler asItemHandler() {
+        return new ItemHandlerView();
+    }
+
+    /**
+     * Read-write IItemHandler adapter that delegates to the parent IAEStackInventory.
+     * Only IAEItemStack slots are accessible; fluid/other stack types appear as empty.
+     */
+    private class ItemHandlerView implements IItemHandler {
+        @Override
+        public int getSlots() {
+            return size;
+        }
+
+        @Nonnull
+        @Override
+        public ItemStack getStackInSlot(int slot) {
+            final IAEStack<?> s = inv[slot];
+            if (s instanceof IAEItemStack is) {
+                return is.createItemStack();
+            }
+            return ItemStack.EMPTY;
+        }
+
+        @Nonnull
+        @Override
+        public ItemStack insertItem(int slot, @Nonnull ItemStack stack, boolean simulate) {
+            if (stack.isEmpty()) {
+                return ItemStack.EMPTY;
+            }
+            if (!simulate) {
+                putAEStackInSlot(slot, appeng.util.item.AEItemStack.fromItemStack(stack));
+            }
+            return ItemStack.EMPTY;
+        }
+
+        @Nonnull
+        @Override
+        public ItemStack extractItem(int slot, int amount, boolean simulate) {
+            final IAEStack<?> s = inv[slot];
+            if (!simulate) {
+                putAEStackInSlot(slot, null);
+            }
+            if (s instanceof IAEItemStack is) {
+                return is.createItemStack();
+            }
+            return ItemStack.EMPTY;
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return Integer.MAX_VALUE;
+        }
     }
 }

@@ -30,16 +30,28 @@ import appeng.api.config.*;
 import appeng.api.implementations.IUpgradeableHost;
 import appeng.api.implementations.guiobjects.IGuiItem;
 import appeng.api.parts.IPart;
+import appeng.api.storage.StorageName;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
+import appeng.container.interfaces.IVirtualSlotHolder;
+import appeng.container.interfaces.IVirtualSlotSource;
 import appeng.container.slot.*;
 import appeng.items.contents.NetworkToolViewer;
 import appeng.items.tools.ToolNetworkTool;
 import appeng.parts.automation.PartExportBus;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.Platform;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
-public class ContainerUpgradeable extends AEBaseContainer implements IOptionalSlotHost {
+/**
+ * Base container for all upgradeable parts/tiles.
+ * Provides built-in VirtualSlot synchronization for IAEStackInventory configs.
+ */
+public class ContainerUpgradeable extends AEBaseContainer
+        implements IOptionalSlotHost, IVirtualSlotHolder, IVirtualSlotSource {
 
     private final IUpgradeableHost upgradeable;
     @GuiSync(0)
@@ -52,6 +64,16 @@ public class ContainerUpgradeable extends AEBaseContainer implements IOptionalSl
     public SchedulingMode schedulingMode = SchedulingMode.DEFAULT;
     private int tbSlot;
     private NetworkToolViewer tbInventory;
+
+    // VirtualSlot sync infrastructure for IAEStackInventory config
+    private IAEStack<?>[] configClientSlot;
+
+    private IAEStackInventory getHostConfig() {
+        if (this.upgradeable instanceof IIAEStackInventory iiaeStackInventory) {
+            return iiaeStackInventory.getAEInventoryByName(StorageName.CONFIG);
+        }
+        return null;
+    }
 
     public ContainerUpgradeable(final InventoryPlayer ip, final IUpgradeableHost te) {
         super(ip, (TileEntity) (te instanceof TileEntity ? te : null), (IPart) (te instanceof IPart ? te : null));
@@ -105,6 +127,12 @@ public class ContainerUpgradeable extends AEBaseContainer implements IOptionalSl
         this.setupConfig();
 
         this.bindPlayerInventory(ip, 0, this.getHeight() - /* height of player inventory */82);
+
+        // Initialize VirtualSlot sync for IAEStackInventory config
+        final IAEStackInventory cfg = this.getHostConfig();
+        if (cfg != null) {
+            this.configClientSlot = new IAEStack[cfg.getSizeInventory()];
+        }
     }
 
     public boolean hasToolbox() {
@@ -119,6 +147,11 @@ public class ContainerUpgradeable extends AEBaseContainer implements IOptionalSl
         this.setupUpgrades();
 
         final IItemHandler inv = this.getUpgradeable().getInventoryByName("config");
+        // Config may be null if the host uses IAEStackInventory instead of IItemHandler.
+        // In that case, MUI panels handle config slots directly via VirtualMEPhantomSlot.
+        if (inv == null) {
+            return;
+        }
         final int y = 40;
         final int x = 80;
         this.addSlotToContainer(new SlotFakeTypeOnly(inv, 0, x, y));
@@ -179,6 +212,12 @@ public class ContainerUpgradeable extends AEBaseContainer implements IOptionalSl
         if (Platform.isServer()) {
             final IConfigManager cm = this.getUpgradeable().getConfigManager();
             this.loadSettingsFromHost(cm);
+
+            // VirtualSlot sync for IAEStackInventory config
+            final IAEStackInventory cfg = this.getHostConfig();
+            if (cfg != null && this.configClientSlot != null) {
+                this.updateVirtualSlots(StorageName.CONFIG, cfg, this.configClientSlot);
+            }
         }
 
         this.checkToolbox();
@@ -270,5 +309,35 @@ public class ContainerUpgradeable extends AEBaseContainer implements IOptionalSl
 
     protected IUpgradeableHost getUpgradeable() {
         return this.upgradeable;
+    }
+
+    // ---- IVirtualSlotHolder (client receives server sync) ----
+
+    @Override
+    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
+        final IAEStackInventory cfg = this.getHostConfig();
+        if (cfg != null) {
+            for (var entry : slotStacks.int2ObjectEntrySet()) {
+                cfg.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+            }
+        }
+    }
+
+    // ---- IVirtualSlotSource (server receives client update) ----
+
+    @Override
+    public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
+        final IAEStackInventory cfg = this.getHostConfig();
+        if (cfg != null && slotId >= 0 && slotId < cfg.getSizeInventory()) {
+            cfg.putAEStackInSlot(slotId, aes);
+        }
+    }
+
+    /**
+     * Returns the host's IAEStackInventory config, or null if not available.
+     * Subclasses and GUI panels can use this for direct access.
+     */
+    public IAEStackInventory getConfig() {
+        return this.getHostConfig();
     }
 }

@@ -99,23 +99,17 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         return new IAEStackList();
     }
 
+    /**
+     * Iterate any {@link IItemList}{@code <?>} as {@code IAEStack<?>} without going through {@code IAEStackBase}.
+     */
     @SuppressWarnings("unchecked")
-    private static IItemList<IAEStackBase> asBaseList(final IItemList<?> list) {
-        return (IItemList<IAEStackBase>) list;
+    private static Iterable<IAEStack<?>> iterateTyped(final IItemList<?> list) {
+        return (Iterable<IAEStack<?>>) (Iterable<?>) list;
     }
 
     @SuppressWarnings("unchecked")
     private static <T extends IAEStack<T>> IItemList<T> castTypedList(final IItemList<?> list) {
         return (IItemList<T>) list;
-    }
-
-    private static void addToTypedList(final IItemList<?> list, final IAEStack<?> stack) {
-        list.addGeneric(stack);
-    }
-
-    private static Collection<? extends IAEStackBase> findFuzzyInTypedList(final IItemList<?> list,
-            final IAEStack<?> stack, final FuzzyMode fuzzy) {
-        return list.findFuzzyGeneric(stack, fuzzy);
     }
 
     private IItemList<?> getList(final IAEStackType<?> type) {
@@ -132,16 +126,6 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
 
     private IAEStack<?> findPreciseInternal(final IAEStack<?> stack) {
         return stack == null ? null : findPreciseStack(this.getList(stack.getStackType()), stack);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static IAEStack<?> asGenericStack(final IAEStackBase stackBase) {
-        return (IAEStack<?>) stackBase;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <StackType extends IAEStack<StackType>> StackType copyFromBase(final IAEStackBase stackBase) {
-        return (StackType) asGenericStack(stackBase).copy();
     }
 
     private static IAEStack<?> injectToMonitor(final IMEMonitor<?> monitor, final IAEStack<?> stack,
@@ -188,8 +172,8 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             this.inventoryMap.put(type, list);
             IItemList<?> parentList = parent.inventoryMap.get(type);
             if (parentList != null) {
-                for (IAEStackBase stackBase : asBaseList(parentList)) {
-                    asBaseList(list).add(stackBase);
+                for (IAEStack<?> stack : iterateTyped(parentList)) {
+                    list.addGeneric(stack);
                 }
             }
         }
@@ -233,8 +217,8 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             IMEMonitor<?> monitor = target.getInventory(type);
             if (monitor != null) {
                 IItemList<?> storageList = monitor.getStorageList();
-                for (IAEStackBase stackBase : asBaseList(storageList)) {
-                    asBaseList(list).add(copyFromBase(stackBase));
+                for (IAEStack<?> stack : iterateTyped(storageList)) {
+                    list.addGeneric(stack.copy());
                 }
             }
         }
@@ -277,7 +261,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         }
         IItemList<?> itemList = this.getList(AEItemStackType.INSTANCE);
         for (final IAEItemStack is : target.getStorageList()) {
-            asBaseList(itemList).add(target.extractItems(is, Actionable.SIMULATE, src));
+            itemList.addGeneric(target.extractItems(is, Actionable.SIMULATE, src));
         }
 
         this.par = null;
@@ -340,7 +324,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         }
         IItemList<?> targetList = this.getList(AEItemStackType.INSTANCE);
         for (IAEItemStack iaeItemStack : itemList) {
-            asBaseList(targetList).add(iaeItemStack);
+            targetList.addGeneric(iaeItemStack);
         }
 
         this.par = null;
@@ -405,18 +389,16 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         IAEStackType<?> listType = out.getStackType();
 
         if (listType != null) {
-            // 单类型列表：只填充对应类型
             IItemList<?> sourceList = this.inventoryMap.get(listType);
             if (sourceList != null) {
-                for (IAEStackBase stackBase : asBaseList(sourceList)) {
-                    out.add(stackBase);
+                for (IAEStack<?> stack : iterateTyped(sourceList)) {
+                    out.add(stack);
                 }
             }
         } else {
-            // 多类型列表：填充所有类型
             for (IItemList<?> list : this.inventoryMap.values()) {
-                for (IAEStackBase stackBase : asBaseList(list)) {
-                    out.add(stackBase);
+                for (IAEStack<?> stack : iterateTyped(list)) {
+                    out.add(stack);
                 }
             }
         }
@@ -486,8 +468,8 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
      */
     public void fillAvailableItems(final IItemList<IAEStackBase> out) {
         for (IItemList<?> list : this.inventoryMap.values()) {
-            for (IAEStackBase stackBase : asBaseList(list)) {
-                out.add(stackBase);
+            for (IAEStack<?> stack : iterateTyped(list)) {
+                out.add(stack);
             }
         }
     }
@@ -531,8 +513,8 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     public void readInventory(NBTTagList tag) {
         IMixedStackList tempList = newMixedList();
         appeng.util.AEStackSerialization.readAEStackListNBT(tempList, tag);
-        for (IAEStackBase stackBase : tempList) {
-            injectItems(asGenericStack(stackBase), Actionable.MODULATE);
+        for (IAEStack<?> stack : tempList.typedView()) {
+            injectItems(stack, Actionable.MODULATE);
         }
     }
 
@@ -593,8 +575,8 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
         IItemList<?> itemList = this.getList(AEItemStackType.INSTANCE);
         if (itemList != null) {
-            for (IAEStackBase stackBase : asBaseList(itemList)) {
-                out.add((IAEItemStack) stackBase);
+            for (IAEStack<?> stack : iterateTyped(itemList)) {
+                out.add((IAEItemStack) stack);
             }
         }
         return out;
@@ -627,8 +609,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
 
         // 注入阶段
         if (this.logInjections) {
-            for (final IAEStackBase injectBase : this.injectedCache) {
-                final IAEStack<?> inject = asGenericStack(injectBase);
+            for (final IAEStack<?> inject : this.injectedCache.typedView()) {
                 IAEStack<?> result = doInject(inject, Actionable.MODULATE, src);
                 added.add(result);
 
@@ -639,18 +620,15 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             }
         }
 
-        // 注入失败回滚
         if (failed) {
-            for (final IAEStackBase isBase : added) {
-                doExtract(asGenericStack(isBase), Actionable.MODULATE, src);
+            for (final IAEStack<?> is : added.typedView()) {
+                doExtract(is, Actionable.MODULATE, src);
             }
             return false;
         }
 
-        // 提取阶段
         if (this.logExtracted) {
-            for (final IAEStackBase extraBase : this.extractedCache) {
-                final IAEStack<?> extra = asGenericStack(extraBase);
+            for (final IAEStack<?> extra : this.extractedCache.typedView()) {
                 IAEStack<?> result = doExtract(extra, Actionable.MODULATE, src);
                 pulled.add(result);
 
@@ -679,23 +657,21 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             }
         }
 
-        // 提取失败回滚
         if (failed) {
-            for (final IAEStackBase isBase : added) {
-                doExtract(asGenericStack(isBase), Actionable.MODULATE, src);
+            for (final IAEStack<?> is : added.typedView()) {
+                doExtract(is, Actionable.MODULATE, src);
             }
 
-            for (final IAEStackBase isBase : pulled) {
-                doInject(asGenericStack(isBase), Actionable.MODULATE, src);
+            for (final IAEStack<?> is : pulled.typedView()) {
+                doInject(is, Actionable.MODULATE, src);
             }
 
             return false;
         }
 
-        // 传播 missing 到父级
         if (this.logMissing && this.par != null) {
-            for (final IAEStackBase extraBase : this.missingCache) {
-                this.par.addMissing(asGenericStack(extraBase));
+            for (final IAEStack<?> extra : this.missingCache.typedView()) {
+                this.par.addMissing(extra);
             }
         }
 

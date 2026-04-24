@@ -26,18 +26,12 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.*;
-import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEStack;
 import appeng.container.guisync.GuiSync;
-import appeng.container.interfaces.IVirtualSlotHolder;
-import appeng.container.interfaces.IVirtualSlotSource;
 import appeng.container.slot.SlotRestrictedInput;
 import appeng.parts.automation.PartLevelEmitter;
-import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
-public class ContainerLevelEmitter extends ContainerUpgradeable implements IVirtualSlotHolder, IVirtualSlotSource {
+public class ContainerLevelEmitter extends ContainerUpgradeable {
 
     private final PartLevelEmitter lvlEmitter;
 
@@ -49,9 +43,6 @@ public class ContainerLevelEmitter extends ContainerUpgradeable implements IVirt
     public long EmitterValue = -1;
     @GuiSync(4)
     public YesNo cmType;
-
-    // 服务端用于增量同步的客户端快照
-    private final IAEStack<?>[] configClientSlot = new IAEStack[1];
 
     public ContainerLevelEmitter(final InventoryPlayer ip, final PartLevelEmitter te) {
         super(ip, te);
@@ -124,10 +115,6 @@ public class ContainerLevelEmitter extends ContainerUpgradeable implements IVirt
             this.setFuzzyMode((FuzzyMode) this.getUpgradeable().getConfigManager().getSetting(Settings.FUZZY_MODE));
             this.setRedStoneMode(
                     (RedstoneMode) this.getUpgradeable().getConfigManager().getSetting(Settings.REDSTONE_EMITTER));
-
-            // 使用虚拟槽位同步 config
-            final IAEStackInventory config = this.lvlEmitter.getAEInventoryByName(StorageName.CONFIG);
-            this.updateVirtualSlots(StorageName.CONFIG, config, this.configClientSlot);
         }
 
         this.standardDetectAndSendChanges();
@@ -140,33 +127,6 @@ public class ContainerLevelEmitter extends ContainerUpgradeable implements IVirt
                 this.textField.setText(String.valueOf(this.EmitterValue));
             }
         }
-    }
-
-    // ---- IVirtualSlotHolder 实现（接收服务端推送的虚拟槽位数据，客户端侧）----
-
-    @Override
-    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
-        final IAEStackInventory config = this.lvlEmitter.getAEInventoryByName(StorageName.CONFIG);
-        for (var entry : slotStacks.int2ObjectEntrySet()) {
-            config.putAEStackInSlot(entry.getIntKey(), entry.getValue());
-        }
-    }
-
-    // ---- IVirtualSlotSource 实现（接收客户端发来的虚拟槽位更新，服务端侧）----
-
-    @Override
-    public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
-        final IAEStackInventory config = this.lvlEmitter.getAEInventoryByName(StorageName.CONFIG);
-        if (config != null && slotId >= 0 && slotId < config.getSizeInventory()) {
-            config.putAEStackInSlot(slotId, aes);
-        }
-    }
-
-    /**
-     * 获取 config IAEStackInventory，供 GUI 层使用。
-     */
-    public IAEStackInventory getConfig() {
-        return this.lvlEmitter.getAEInventoryByName(StorageName.CONFIG);
     }
 
     @Override

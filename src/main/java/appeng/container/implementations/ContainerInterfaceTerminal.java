@@ -30,18 +30,14 @@ import appeng.container.slot.AppEngSlot;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketCompressedNBT;
 import appeng.core.sync.packets.PacketInventoryAction;
-import appeng.helpers.DualityInterface;
-import appeng.helpers.IInterfaceHost;
 import appeng.helpers.IPatternProviderHost;
 import appeng.helpers.InventoryAction;
 import appeng.helpers.PatternProviderLogic;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.items.misc.ItemEncodedPattern;
-import appeng.parts.misc.PartInterface;
 import appeng.parts.misc.PartPatternProvider;
 import appeng.parts.reporting.PartInterfaceTerminal;
 import appeng.tile.inventory.AppEngInternalInventory;
-import appeng.tile.misc.TileInterface;
 import appeng.tile.misc.TilePatternProvider;
 import appeng.util.InventoryAdaptor;
 import appeng.util.Platform;
@@ -78,7 +74,6 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
      */
 
     private static long autoBase = Long.MIN_VALUE;
-    private final Map<IInterfaceHost, InvTracker> diList = new HashMap<>();
     private final Map<IPatternProviderHost, InvTracker> ppList = new HashMap<>();
     private final List<ProviderTracker> provider = new ArrayList<>();
     private final Map<Long, InvTracker> byId = new HashMap<>();
@@ -131,20 +126,21 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         if (host != null) {
             final IGridNode agn = host.getActionableNode();
             if (agn != null && agn.isActive()) {
-                for (final IGridNode gn : this.grid.getMachines(TileInterface.class)) {
+                // Pattern Provider (Tile)
+                for (final IGridNode gn : this.grid.getMachines(TilePatternProvider.class)) {
                     if (gn.isActive()) {
-                        final IInterfaceHost ih = (IInterfaceHost) gn.getMachine();
-                        if (ih.getInterfaceDuality().getConfigManager()
+                        final IPatternProviderHost ph = (IPatternProviderHost) gn.getMachine();
+                        final PatternProviderLogic logic = ph.getPatternProviderLogic();
+                        if (logic.getConfigManager()
                                 .getSetting(Settings.INTERFACE_TERMINAL) == YesNo.NO) {
                             continue;
                         }
 
-                        final InvTracker t = this.diList.get(ih);
+                        final InvTracker t = this.ppList.get(ph);
                         if (t == null) {
                             missing = true;
                         } else {
-                            final DualityInterface dual = ih.getInterfaceDuality();
-                            if (!t.unlocalizedName.equals(dual.getTermName())) {
+                            if (!t.unlocalizedName.equals(logic.getTermName())) {
                                 missing = true;
                             }
                         }
@@ -152,20 +148,21 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
                     }
                 }
 
-                for (final IGridNode gn : this.grid.getMachines(PartInterface.class)) {
+                // Pattern Provider (Part)
+                for (final IGridNode gn : this.grid.getMachines(PartPatternProvider.class)) {
                     if (gn.isActive()) {
-                        final IInterfaceHost ih = (IInterfaceHost) gn.getMachine();
-                        if (ih.getInterfaceDuality().getConfigManager()
+                        final IPatternProviderHost ph = (IPatternProviderHost) gn.getMachine();
+                        final PatternProviderLogic logic = ph.getPatternProviderLogic();
+                        if (logic.getConfigManager()
                                 .getSetting(Settings.INTERFACE_TERMINAL) == YesNo.NO) {
                             continue;
                         }
 
-                        final InvTracker t = this.diList.get(ih);
+                        final InvTracker t = this.ppList.get(ph);
                         if (t == null) {
                             missing = true;
                         } else {
-                            final DualityInterface dual = ih.getInterfaceDuality();
-                            if (!t.unlocalizedName.equals(dual.getTermName())) {
+                            if (!t.unlocalizedName.equals(logic.getTermName())) {
                                 missing = true;
                             }
                         }
@@ -183,19 +180,11 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
             }
         }
 
-        if (total != this.diList.size() + this.ppList.size() + (Platform.GTLoaded ? this.provider.size() : 0) || missing) {
+        if (total != this.ppList.size() + (Platform.GTLoaded ? this.provider.size() : 0) || missing) {
             this.regenList(this.data);
         } else {
 
-            for (final Entry<IInterfaceHost, InvTracker> en : this.diList.entrySet()) {
-                final InvTracker inv = en.getValue();
-                for (int x = 0; x < inv.server.getSlots(); x++) {
-                    if (this.isDifferent(inv.server.getStackInSlot(x), inv.client.getStackInSlot(x))) {
-                        this.addItems(this.data, inv, x, 1);
-                    }
-                }
-            }
-            // 增量同步样板供应器
+            // Incremental sync for pattern providers
             for (final Entry<IPatternProviderHost, InvTracker> en : this.ppList.entrySet()) {
                 final InvTracker inv = en.getValue();
                 for (int x = 0; x < inv.server.getSlots(); x++) {
@@ -506,7 +495,6 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
     private void regenList(final NBTTagCompound data) {
         this.byId.clear();
         this.providerId.clear();
-        this.diList.clear();
         this.ppList.clear();
         if (Platform.GTLoaded)
             this.provider.clear();
@@ -515,19 +503,21 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         if (host != null) {
             final IGridNode agn = host.getActionableNode();
             if (agn != null && agn.isActive()) {
-                for (final IGridNode gn : this.grid.getMachines(TileInterface.class)) {
-                    final IInterfaceHost ih = (IInterfaceHost) gn.getMachine();
-                    final DualityInterface dual = ih.getInterfaceDuality();
-                    if (gn.isActive() && dual.getConfigManager().getSetting(Settings.INTERFACE_TERMINAL) == YesNo.YES) {
-                        this.diList.put(ih, new InvTracker(dual, dual.getPatterns(), dual.getTermName()));
+                // Pattern Provider (Tile)
+                for (final IGridNode gn : this.grid.getMachines(TilePatternProvider.class)) {
+                    final IPatternProviderHost ph = (IPatternProviderHost) gn.getMachine();
+                    final PatternProviderLogic logic = ph.getPatternProviderLogic();
+                    if (gn.isActive() && logic.getConfigManager().getSetting(Settings.INTERFACE_TERMINAL) == YesNo.YES) {
+                        this.ppList.put(ph, new InvTracker(logic, logic.getPatterns(), logic.getTermName()));
                     }
                 }
 
-                for (final IGridNode gn : this.grid.getMachines(PartInterface.class)) {
-                    final IInterfaceHost ih = (IInterfaceHost) gn.getMachine();
-                    final DualityInterface dual = ih.getInterfaceDuality();
-                    if (gn.isActive() && dual.getConfigManager().getSetting(Settings.INTERFACE_TERMINAL) == YesNo.YES) {
-                        this.diList.put(ih, new InvTracker(dual, dual.getPatterns(), dual.getTermName()));
+                // Pattern Provider (Part)
+                for (final IGridNode gn : this.grid.getMachines(PartPatternProvider.class)) {
+                    final IPatternProviderHost ph = (IPatternProviderHost) gn.getMachine();
+                    final PatternProviderLogic logic = ph.getPatternProviderLogic();
+                    if (gn.isActive() && logic.getConfigManager().getSetting(Settings.INTERFACE_TERMINAL) == YesNo.YES) {
+                        this.ppList.put(ph, new InvTracker(logic, logic.getPatterns(), logic.getTermName()));
                     }
                 }
                 // GT 样板提供者收集 — 由 GregTech 通过 Mixin 注入实际逻辑
@@ -539,12 +529,7 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
 
         data.setBoolean("clear", true);
 
-        for (final Entry<IInterfaceHost, InvTracker> en : this.diList.entrySet()) {
-            final InvTracker inv = en.getValue();
-            this.byId.put(inv.which, inv);
-            this.addItems(data, inv, 0, inv.server.getSlots());
-        }
-        // 注册样板供应器到 byId 并同步
+        // Register pattern providers to byId and sync
         for (final Entry<IPatternProviderHost, InvTracker> en : this.ppList.entrySet()) {
             final InvTracker inv = en.getValue();
             this.byId.put(inv.which, inv);
@@ -715,16 +700,6 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         private final BlockPos pos;
         private final int dim;
         private final int numUpgrades;
-
-        public InvTracker(final DualityInterface dual, final IItemHandler patterns, final String unlocalizedName) {
-            this.server = patterns;
-            this.client = new AppEngInternalInventory(null, this.server.getSlots());
-            this.unlocalizedName = unlocalizedName;
-            this.sortBy = dual.getSortValue();
-            this.pos = dual.getLocation().getPos();
-            this.dim = dual.getLocation().getWorld().provider.getDimension();
-            this.numUpgrades = dual.getInstalledUpgrades(Upgrades.PATTERN_EXPANSION);
-        }
 
         public InvTracker(final PatternProviderLogic logic, final IItemHandler patterns,
                 final String unlocalizedName) {

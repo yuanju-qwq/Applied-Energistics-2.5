@@ -20,6 +20,8 @@ package appeng.parts.reporting;
 
 import java.io.IOException;
 
+import javax.annotation.Nullable;
+
 import io.netty.buffer.ByteBuf;
 
 import net.minecraft.client.renderer.GlStateManager;
@@ -30,9 +32,6 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
-import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -45,22 +44,18 @@ import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.client.render.TesrRenderHelper;
+import appeng.api.parts.ConversionMonitorHandlerRegistry;
+import appeng.api.parts.IConversionMonitorHandler;
 import appeng.core.localization.PlayerMessages;
-import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.Reflected;
 import appeng.me.GridAccessException;
 import appeng.util.IWideReadableNumberConverter;
 import appeng.util.Platform;
 import appeng.util.ReadableNumberConverter;
-import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
-import appeng.fluids.util.AEFluidStackType;
 
 /**
  * A basic subclass for any item monitor like display with an item icon and an amount.
@@ -77,9 +72,9 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
         implements IPartStorageMonitor, IStackWatcherHost {
     private static final IWideReadableNumberConverter NUMBER_CONVERTER = ReadableNumberConverter.INSTANCE;
 
-    private IAEItemStack configuredItem;
-    private IAEFluidStack configuredFluid;
-    private long configuredAmount;
+    // Unified configured stack (supports item, fluid, or any registered IAEStackType)
+    @Nullable
+    private IAEStack<?> configured;
     private String lastHumanReadableText;
     private boolean isLocked;
     private IStackWatcher myWatcher;
@@ -95,11 +90,8 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
 
         this.isLocked = data.getBoolean("isLocked");
 
-        final NBTTagCompound myItem = data.getCompoundTag("configuredItem");
-        this.configuredItem = AEItemStack.fromNBT(myItem);
-
-        final NBTTagCompound myFluid = data.getCompoundTag("configuredFluid");
-        this.configuredFluid = AEFluidStack.fromNBT(myFluid);
+        final NBTTagCompound stackTag = data.getCompoundTag("configured");
+        this.configured = IAEStack.fromNBTGeneric(stackTag);
     }
 
     @Override
@@ -108,18 +100,8 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
 
         data.setBoolean("isLocked", this.isLocked);
 
-        final NBTTagCompound myItem = new NBTTagCompound();
-        if (this.configuredItem != null) {
-            this.configuredItem.writeToNBT(myItem);
-        }
-        final NBTTagCompound myFluid = new NBTTagCompound();
-        if (this.configuredFluid != null) {
-            this.configuredFluid.writeToNBT(myFluid);
-        }
-
-        data.setTag("configuredItem", myItem);
-        data.setTag("configuredFluid", myFluid);
-
+        final NBTTagCompound stackTag = this.configured != null ? this.configured.toNBTGeneric() : new NBTTagCompound();
+        data.setTag("configured", stackTag);
     }
 
     @Override
@@ -127,14 +109,7 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
         super.writeToStream(data);
 
         data.writeBoolean(this.isLocked);
-        // is configured
-        data.writeBoolean(this.configuredItem != null);
-        data.writeBoolean(this.configuredFluid != null);
-        if (this.configuredItem != null) {
-            this.configuredItem.writeToPacket(data);
-        } else if (this.configuredFluid != null) {
-            this.configuredFluid.writeToPacket(data);
-        }
+        IAEStack.writeToPacketGeneric(data, this.configured);
     }
 
     @Override
@@ -146,17 +121,10 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
 
         this.isLocked = isLocked;
 
-        final boolean isItem = data.readBoolean();
-        final boolean isFluid = data.readBoolean();
-        if (isItem) {
-            this.configuredItem = AEItemStack.fromPacket(data);
-            this.configuredFluid = null;
-        } else if (isFluid) {
-            this.configuredFluid = AEFluidStack.fromPacket(data);
-            this.configuredItem = null;
-        } else {
-            this.configuredItem = null;
-            this.configuredFluid = null;
+        final IAEStack<?> old = this.configured;
+        this.configured = IAEStack.fromPacketGeneric(data);
+        if (!java.util.Objects.equals(old, this.configured)) {
+            needRedraw = true;
         }
 
         return needRedraw;
@@ -178,25 +146,19 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
 
         if (!this.isLocked) {
             final ItemStack eq = player.getHeldItem(hand);
-            FluidStack fluidInTank = null;
 
-            if (eq.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null)) {
-                IFluidHandlerItem fluidHandlerItem = (eq
-                        .getCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null));
-                fluidInTank = fluidHandlerItem.drain(Integer.MAX_VALUE, false);
-            }
-
-            if (fluidInTank == null) {
-                this.configuredFluid = null;
-                if (!eq.isEmpty()) {
-                    this.configuredItem = AEItemStack.fromItemStack(eq).setStackSize(0);
-                } else {
-                    this.configuredItem = null;
+            // Try each registered handler to resolve the held item into a configured stack
+            IAEStack<?> resolved = null;
+            if (!eq.isEmpty()) {
+                for (IConversionMonitorHandler<?> handler : ConversionMonitorHandlerRegistry.getAllHandlers()) {
+                    resolved = handler.resolveConfiguredStack(eq);
+                    if (resolved != null) {
+                        break;
+                    }
                 }
-            } else if (fluidInTank.amount > 0) {
-                this.configuredFluid = AEFluidStack.fromFluidStack(fluidInTank).setStackSize(0);
-                this.configuredItem = null;
             }
+
+            this.configured = resolved;
 
             this.configureWatchers();
             this.getHost().markForSave();
@@ -239,45 +201,26 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
         }
 
         try {
-            if (this.configuredItem != null) {
+            if (this.configured != null) {
                 if (this.myWatcher != null) {
-                    this.myWatcher.add(this.configuredItem);
+                    this.myWatcher.add(this.configured);
                 }
 
+                final IAEStackType<?> stackType = this.configured.getStackTypeBase();
                 this.updateReportingValue(
-                        this.getProxy().getStorage()
-                                .getInventory(AEItemStackType.INSTANCE));
-            } else if (this.configuredFluid != null) {
-                if (this.myWatcher != null) {
-                    this.myWatcher.add(this.configuredFluid);
-                }
-
-                this.updateReportingValue(
-                        this.getProxy().getStorage().getInventory(
-                                AEFluidStackType.INSTANCE));
+                        this.getProxy().getStorage().getInventory(stackType));
             }
         } catch (final GridAccessException e) {
             // >.>
         }
     }
 
+    @SuppressWarnings("unchecked")
     private <T extends IAEStack<T>> void updateReportingValue(final IMEMonitor<T> monitor) {
-        if (this.configuredItem != null) {
-            final IAEItemStack result = (IAEItemStack) monitor.getStorageList().findPrecise((T) this.configuredItem);
-            if (result == null) {
-                this.configuredAmount = 0;
-            } else {
-                this.configuredAmount = result.getStackSize();
-            }
-            this.configuredItem.setStackSize(this.configuredAmount);
-        } else if (this.configuredFluid != null) {
-            final IAEFluidStack result = (IAEFluidStack) monitor.getStorageList().findPrecise((T) this.configuredFluid);
-            if (result == null) {
-                this.configuredAmount = 0;
-            } else {
-                this.configuredAmount = result.getStackSize();
-            }
-            this.configuredFluid.setStackSize(this.configuredAmount);
+        if (this.configured != null) {
+            final T result = monitor.getStorageList().findPrecise((T) this.configured);
+            final long amount = result != null ? result.getStackSize() : 0;
+            this.configured.setStackSize(amount);
         }
     }
 
@@ -303,10 +246,7 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
 
         TesrRenderHelper.moveToFace(facing);
         TesrRenderHelper.rotateToFace(facing, this.getSpin());
-        if (ais instanceof IAEItemStack)
-            TesrRenderHelper.renderItem2dWithAmount((IAEItemStack) ais, 0.8f, 0.17f);
-        if (ais instanceof IAEFluidStack)
-            TesrRenderHelper.renderFluid2dWithAmount((IAEFluidStack) ais, 0.8f, 0.17f);
+        TesrRenderHelper.renderStack2dWithAmount(ais, 0.8f, 0.17f);
         GlStateManager.popMatrix();
 
     }
@@ -318,11 +258,7 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
 
     @Override
     public IAEStack<?> getDisplayed() {
-        if (this.configuredItem != null)
-            return this.configuredItem;
-        else if (this.configuredFluid != null)
-            return this.configuredFluid;
-        return null;
+        return this.configured;
     }
 
     @Override
@@ -353,12 +289,10 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
     @Override
     public void onStackChange(IItemList<?> o, IAEStack<?> fullStack, IAEStack<?> diffStack, IActionSource src,
             IAEStackType<?> type) {
-        this.configuredAmount = fullStack.getStackSize();
-
-        if (this.configuredItem != null) {
-            this.configuredItem.setStackSize(this.configuredAmount);
-        } else if (this.configuredFluid != null) {
-            this.configuredFluid.setStackSize(this.configuredAmount);
+        if (this.configured != null && fullStack != null) {
+            this.configured.setStackSize(fullStack.getStackSize());
+        } else if (this.configured != null) {
+            this.configured.setStackSize(0);
         }
         this.getHost().markForUpdate();
     }

@@ -35,6 +35,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import appeng.api.config.ActionItems;
+import appeng.api.config.PinSectionOrder;
+import appeng.api.config.PinsRows;
 import appeng.api.config.SearchBoxMode;
 import appeng.api.config.Settings;
 import appeng.api.config.TerminalStyle;
@@ -52,6 +55,7 @@ import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.client.ActionKey;
 import appeng.client.gui.slots.VirtualMEMonitorableSlot;
+import appeng.client.gui.slots.VirtualMEPinSlot;
 import appeng.client.gui.widgets.*;
 import appeng.client.me.InternalSlotME;
 import appeng.client.me.ItemRepo;
@@ -70,6 +74,7 @@ import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
+import appeng.core.sync.packets.PacketPinsUpdate;
 import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.helpers.InventoryAction;
@@ -83,7 +88,6 @@ import appeng.util.Platform;
 /**
  * MUI 版 ME 终端面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiMEMonitorable}。
  * 这是所有终端（合成终端、样板终端等）的基类。
  * <p>
  * 核心功能：
@@ -138,10 +142,18 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     private GuiImgButton SortDirBox;
     private GuiImgButton searchBoxSettings;
     private GuiImgButton terminalStyleBox;
+    private GuiImgButton pinsStateButton;
     private boolean isAutoFocus = false;
     private int currentMouseX = 0;
     private int currentMouseY = 0;
     private boolean delayedUpdate;
+
+    // ========== Pin system ==========
+
+    private PinsRows craftingPinsRows = PinsRows.DISABLED;
+    private PinsRows playerPinsRows = PinsRows.DISABLED;
+    private VirtualMEPinSlot[] pinSlots = null;
+    private int totalPinRows = 0;
 
     // 类型过滤切换按钮（每种 IAEStackType 一个）
     private final List<TypeToggleButton> typeToggleButtons = new ArrayList<>();
@@ -184,6 +196,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
         this.configSrc = ((IConfigurableObject) this.inventorySlots).getConfigManager();
         (this.monitorableContainer = (ContainerMEMonitorable) this.inventorySlots).setGui(this);
+        this.monitorableContainer.setPinsUpdateCallback(this::onPinsUpdated);
 
         this.viewCell = te instanceof IViewCellStorage;
 
@@ -261,23 +274,57 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         this.rows = Math.min(this.rows, this.getMaxRows());
         this.rows = Math.max(this.rows, this.getMinRows());
 
+        // ========== Pin rows calculation ==========
+        this.syncPinRowsFromContainer();
+        int craftingRows = Math.min(this.craftingPinsRows.ordinal(), 16);
+        int playerRows = Math.min(this.playerPinsRows.ordinal(), 16);
+        int pinMaxSize = Math.max(0, this.rows - 1);
+        int totalRequested = craftingRows + playerRows;
+        if (totalRequested > pinMaxSize) {
+            if (playerRows > pinMaxSize) {
+                playerRows = pinMaxSize;
+                craftingRows = 0;
+            } else {
+                craftingRows = Math.min(craftingRows, pinMaxSize - playerRows);
+            }
+        }
+        this.totalPinRows = craftingRows + playerRows;
+        int normalSlotRows = Math.max(0, this.rows - this.totalPinRows);
+
+        // ========== Pin slots creation ==========
+        this.pinSlots = new VirtualMEPinSlot[this.totalPinRows * this.perRow];
+        final boolean playerFirst = this.monitorableContainer.getClientPinSectionOrder()
+                == PinSectionOrder.PLAYER_FIRST;
+        int slotIdx = 0;
+        int firstRows = playerFirst ? playerRows : craftingRows;
+        int secondRows = playerFirst ? craftingRows : playerRows;
+        boolean firstIsCrafting = !playerFirst;
+        slotIdx = createPinSection(slotIdx, firstRows, this.perRow, 0, firstIsCrafting);
+        slotIdx = createPinSection(slotIdx, secondRows, this.perRow, firstRows, !firstIsCrafting);
+
+        // ========== Normal ME slots ==========
+        int normalSlotOffsetY = 18 + this.totalPinRows * 18;
         this.getMeSlots().clear();
-        for (int y = 0; y < this.rows; y++) {
+        for (int y = 0; y < normalSlotRows; y++) {
             for (int x = 0; x < this.perRow; x++) {
                 this.getMeSlots()
-                        .add(new InternalSlotME(this.repo, x + y * this.perRow, this.offsetX + x * 18, 18 + y * 18));
+                        .add(new InternalSlotME(this.repo, x + y * this.perRow,
+                                this.offsetX + x * 18, normalSlotOffsetY + y * 18));
             }
         }
 
         super.initGui();
 
-        // 清除旧的 VirtualMEMonitorableSlot 并重建
-        this.guiSlots.removeIf(s -> s instanceof VirtualMEMonitorableSlot);
-        for (int y = 0; y < this.rows; y++) {
+        // Rebuild virtual GUI slots (pin slots + normal slots)
+        this.guiSlots.removeIf(s -> s instanceof VirtualMEMonitorableSlot || s instanceof VirtualMEPinSlot);
+        for (VirtualMEPinSlot pinSlot : this.pinSlots) {
+            this.guiSlots.add(pinSlot);
+        }
+        for (int y = 0; y < normalSlotRows; y++) {
             for (int x = 0; x < this.perRow; x++) {
-                final int slotIdx = x + y * this.perRow;
+                final int idx = x + y * this.perRow;
                 this.guiSlots.add(new VirtualMEMonitorableSlot(
-                        slotIdx, this.offsetX + x * 18, 18 + y * 18, this.repo, slotIdx));
+                        idx, this.offsetX + x * 18, normalSlotOffsetY + y * 18, this.repo, idx));
             }
         }
 
@@ -342,6 +389,14 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         // 搜索框
         this.searchField = new MEGuiTextField(this.fontRenderer, this.guiLeft + Math.max(80, this.offsetX),
                 this.guiTop + 4, 90, 12);
+
+        // Pins button (placed at bottom-right of the ME grid area)
+        this.buttonList.add(
+                this.pinsStateButton = new GuiImgButton(
+                        this.guiLeft + 178,
+                        this.guiTop + 18 + (this.rows * 18) + 25,
+                        Settings.ACTIONS,
+                        ActionItems.PINS));
         this.searchField.setEnableBackgroundDrawing(false);
         this.searchField.setMaxStringLength(50);
         this.searchField.setTextColor(0xFFFFFF);
@@ -418,6 +473,11 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         this.fontRenderer.drawString(this.getGuiDisplayName(this.myName.getLocal()), 8, 6, 4210752);
         this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
 
+        // Draw pin slot backgrounds and icons
+        if (this.pinSlots != null && this.pinSlots.length > 0) {
+            VirtualMEPinSlot.drawSlotsBackground(this.pinSlots, this.mc, this.zLevel);
+        }
+
         this.currentMouseX = mouseX;
         this.currentMouseY = mouseY;
     }
@@ -477,6 +537,25 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.CRAFTING_STATUS));
         }
 
+        // Pins button: left-click cycles player rows, right-click cycles crafting rows
+        if (btn == this.pinsStateButton) {
+            final boolean rmb = Mouse.isButtonDown(1);
+            if (rmb) {
+                int c = Math.min(this.craftingPinsRows.ordinal() + 1, 16);
+                if (c + this.playerPinsRows.ordinal() >= this.rows) {
+                    c = 0;
+                }
+                this.sendPinRowsUpdate(PinsRows.fromOrdinal(c), this.playerPinsRows);
+            } else {
+                int p = Math.min(this.playerPinsRows.ordinal() + 1, 16);
+                if (p + this.craftingPinsRows.ordinal() >= this.rows) {
+                    p = 0;
+                }
+                this.sendPinRowsUpdate(this.craftingPinsRows, PinsRows.fromOrdinal(p));
+            }
+            return;
+        }
+
         // 类型过滤切换按钮
         if (btn instanceof TypeToggleButton typeBtn) {
             typeBtn.setTypeEnabled(!typeBtn.isTypeEnabled());
@@ -530,6 +609,35 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             this.searchField.setText("");
             this.repo.setSearchString("");
             this.updateScrollBar();
+        }
+
+        // Pin interaction: Ctrl+left-click on ME slot to pin; Shift+right-click on pin slot to unpin
+        for (final GuiCustomSlot slot : this.guiSlots) {
+            if (this.isPointInRegion(slot.xPos(), slot.yPos(), slot.getWidth(), slot.getHeight(), xCoord, yCoord)) {
+                if (slot instanceof VirtualMEPinSlot pinSlot && btn == 1 && isShiftKeyDown()) {
+                    // Shift+right-click on pin slot: unpin
+                    final IAEStack<?> stack = pinSlot.getAEStack();
+                    if (stack != null) {
+                        ((AEBaseContainer) this.inventorySlots).setTargetStack(stack);
+                        final PacketInventoryAction p = new PacketInventoryAction(
+                                InventoryAction.UNSET_PIN,
+                                this.inventorySlots.inventorySlots.size(), -1);
+                        NetworkHandler.instance().sendToServer(p);
+                        return;
+                    }
+                } else if (slot instanceof VirtualMEMonitorableSlot meSlot && btn == 0 && isCtrlKeyDown()) {
+                    // Ctrl+left-click on normal ME slot: pin
+                    final IAEStack<?> stack = meSlot.getAEStack();
+                    if (stack != null) {
+                        ((AEBaseContainer) this.inventorySlots).setTargetStack(stack);
+                        final PacketInventoryAction p = new PacketInventoryAction(
+                                InventoryAction.SET_ITEM_PIN,
+                                this.inventorySlots.inventorySlots.size(), -1);
+                        NetworkHandler.instance().sendToServer(p);
+                        return;
+                    }
+                }
+            }
         }
 
         super.mouseClicked(xCoord, yCoord, btn);
@@ -618,7 +726,32 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     protected void mouseWheelEvent(final int x, final int y, final int wheel) {
-        // 优先检查 VirtualMEMonitorableSlot 的滚轮交互
+        // Ctrl+scroll over the ME grid area adjusts pin rows
+        if (isCtrlKeyDown() && this.isPointInRegion(this.offsetX, 18, this.perRow * 18, this.rows * 18, x, y)) {
+            final boolean rmb = Mouse.isButtonDown(1);
+            final boolean ctrl = isCtrlKeyDown();
+            int c = Math.min(this.craftingPinsRows.ordinal(), 16);
+            int p = Math.min(this.playerPinsRows.ordinal(), 16);
+            if (ctrl) {
+                if (wheel < 0) {
+                    c = Math.max(0, c - 1);
+                } else {
+                    c = Math.min(16, c + 1);
+                }
+            } else {
+                if (wheel < 0) {
+                    p = Math.max(0, p - 1);
+                } else {
+                    p = Math.min(16, p + 1);
+                }
+            }
+            if (c + p < this.rows) {
+                this.sendPinRowsUpdate(PinsRows.fromOrdinal(c), PinsRows.fromOrdinal(p));
+            }
+            return;
+        }
+
+        // Check VirtualMEMonitorableSlot scroll interaction
         for (final GuiCustomSlot slot : this.guiSlots) {
             if (slot instanceof VirtualMEMonitorableSlot virtualSlot) {
                 if (this.isPointInRegion(slot.xPos(), slot.yPos(),
@@ -756,5 +889,61 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     public static int getCraftingGridOffsetY() {
         return craftingGridOffsetY;
+    }
+
+    // ========== Pin system helpers ==========
+
+    /**
+     * Sync pin row configuration from the container's client-side data.
+     */
+    private void syncPinRowsFromContainer() {
+        this.craftingPinsRows = this.monitorableContainer.getClientMaxCraftingPinRows();
+        this.playerPinsRows = this.monitorableContainer.getClientMaxPlayerPinRows();
+    }
+
+    /**
+     * Create pin slots for one section (crafting or player).
+     *
+     * @return the next available slot index
+     */
+    private int createPinSection(int slotIdx, int sectionRows, int pinsPerRow, int rowOffset, boolean isCrafting) {
+        int baseIndex = isCrafting ? 0 : appeng.items.contents.PinList.PLAYER_OFFSET;
+        for (int y = 0; y < sectionRows; y++) {
+            for (int x = 0; x < pinsPerRow; x++) {
+                VirtualMEPinSlot slot = new VirtualMEPinSlot(
+                        this.offsetX + x * 18,
+                        18 + (rowOffset + y) * 18,
+                        this.monitorableContainer.getClientPinList(),
+                        baseIndex + y * pinsPerRow + x,
+                        isCrafting);
+                this.pinSlots[slotIdx++] = slot;
+            }
+        }
+        return slotIdx;
+    }
+
+    /**
+     * Send a pin rows update packet to the server and reinitialize the GUI.
+     */
+    private void sendPinRowsUpdate(PinsRows craftingRows, PinsRows playerRows) {
+        try {
+            NetworkHandler.instance().sendToServer(new PacketPinsUpdate(craftingRows, playerRows));
+        } catch (final Exception e) {
+            AELog.debug(e);
+        }
+    }
+
+    /**
+     * Called by the container when pin data is updated from the server.
+     * Triggers a GUI reinitialize to reflect the new pin layout.
+     */
+    public void onPinsUpdated() {
+        PinsRows newCrafting = this.monitorableContainer.getClientMaxCraftingPinRows();
+        PinsRows newPlayer = this.monitorableContainer.getClientMaxPlayerPinRows();
+        if (newCrafting != this.craftingPinsRows || newPlayer != this.playerPinsRows) {
+            this.craftingPinsRows = newCrafting;
+            this.playerPinsRows = newPlayer;
+            this.reinitalize();
+        }
     }
 }

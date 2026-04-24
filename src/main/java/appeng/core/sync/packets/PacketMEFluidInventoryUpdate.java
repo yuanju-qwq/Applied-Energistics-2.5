@@ -32,8 +32,6 @@ import javax.annotation.Nullable;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.fml.common.network.internal.FMLProxyPacket;
 import net.minecraftforge.fml.relauncher.Side;
@@ -43,8 +41,6 @@ import appeng.api.storage.data.IAEFluidStack;
 import appeng.core.AELog;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.network.INetworkInfo;
-import appeng.fluids.client.gui.GuiFluidTerminal;
-import appeng.fluids.client.gui.GuiWirelessFluidTerminal;
 import appeng.fluids.util.AEFluidStack;
 
 /**
@@ -138,16 +134,11 @@ public class PacketMEFluidInventoryUpdate extends AppEngPacket {
         this.list = null;
     }
 
+    // Old GUI dispatch removed — fluid inventory updates are now handled by
+    // PacketMEInventoryUpdate and the MUI panel system.
     @Override
     @SideOnly(Side.CLIENT)
     public void clientPacketData(final INetworkInfo network, final AppEngPacket packet, final EntityPlayer player) {
-        final GuiScreen gs = Minecraft.getMinecraft().currentScreen;
-
-        if (gs instanceof GuiFluidTerminal) {
-            ((GuiFluidTerminal) gs).postUpdate(this.list);
-        } else if (gs instanceof GuiWirelessFluidTerminal) {
-            ((GuiWirelessFluidTerminal) gs).postUpdate(this.list);
-        }
     }
 
     @Nullable

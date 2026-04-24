@@ -40,6 +40,7 @@ import appeng.api.config.ActionItems;
 import appeng.api.config.CombineMode;
 import appeng.api.config.ItemSubstitution;
 import appeng.api.config.Settings;
+import appeng.client.gui.slots.VirtualMEPatternSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.gui.widgets.GuiTabButton;
@@ -47,15 +48,13 @@ import appeng.client.me.ClientDCInternalInv;
 import appeng.client.mui.AEBasePanel;
 import appeng.container.implementations.ContainerWirelessDualInterfaceTerminal;
 import appeng.container.slot.AppEngSlot;
-import appeng.container.slot.OptionalSlotFake;
-import appeng.container.slot.SlotFakeCraftingMatrix;
-import appeng.container.slot.SlotPatternOutputs;
 import appeng.container.slot.SlotPatternTerm;
 import appeng.container.slot.SlotRestrictedInput;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.helpers.PatternHelper;
+import appeng.tile.inventory.IAEStackInventory;
 
 /**
  * 样板编码模块 — 从 GuiWirelessDualInterfaceTerminal 中提取的可复用组件。
@@ -175,6 +174,10 @@ public class PatternEncodingModule {
     private final GuiScrollbar processingInputScrollbar;
     private int processingInputPage = 0;
     private final GuiScrollbar processingScrollBar;
+
+    // 虚拟槽位：crafting 输入和 pattern 输出
+    private VirtualMEPatternSlot[] craftingVirtualSlots;
+    private VirtualMEPatternSlot[] outputVirtualSlots;
 
     // PlacePattern
     private boolean pendingPlacePattern = false;
@@ -351,7 +354,33 @@ public class PatternEncodingModule {
     // ========== 槽位定位 ==========
 
     /**
+     * 初始化虚拟槽位：crafting 输入和 pattern 输出。
+     * 必须在 initGui 中调用。
+     */
+    public void initVirtualSlots() {
+        final ContainerWirelessDualInterfaceTerminal ct = host.getDualContainer();
+        final IAEStackInventory craftingInv = ct.getCraftingAEInv();
+        final IAEStackInventory outputInv = ct.getOutputAEInv();
+
+        this.craftingVirtualSlots = new VirtualMEPatternSlot[craftingInv.getSizeInventory()];
+        for (int i = 0; i < craftingInv.getSizeInventory(); i++) {
+            VirtualMEPatternSlot slot = new VirtualMEPatternSlot(i, -9000, -9000, craftingInv, i);
+            this.craftingVirtualSlots[i] = slot;
+            host.getPanel().guiSlots.add(slot);
+        }
+
+        this.outputVirtualSlots = new VirtualMEPatternSlot[outputInv.getSizeInventory()];
+        for (int i = 0; i < outputInv.getSizeInventory(); i++) {
+            VirtualMEPatternSlot slot = new VirtualMEPatternSlot(i, -9000, -9000, outputInv, i);
+            this.outputVirtualSlots[i] = slot;
+            host.getPanel().guiSlots.add(slot);
+        }
+    }
+
+    /**
      * 重新定位所有样板相关槽位（crafting/processing/pattern IN/OUT）。
+     * 虚拟槽位（crafting/output）由本模块直接管理坐标。
+     * Container 中注册的 Slot（craftSlot/patternIN/patternOUT）仍然遍历 inventorySlots。
      * 必须在 initGui 和 updateScreen 中调用。
      */
     public void repositionSlots() {
@@ -359,61 +388,72 @@ public class PatternEncodingModule {
         final int panelY = getPanelY();
         final ContainerWirelessDualInterfaceTerminal ct = host.getDualContainer();
 
+        // 定位 crafting 虚拟槽位
+        if (this.craftingVirtualSlots != null) {
+            for (int craftIdx = 0; craftIdx < this.craftingVirtualSlots.length; craftIdx++) {
+                final VirtualMEPatternSlot slot = this.craftingVirtualSlots[craftIdx];
+                if (ct.isCraftingMode()) {
+                    if (craftIdx >= CRAFTING_INPUT_SLOTS) {
+                        slot.xPos = -9000;
+                        slot.yPos = -9000;
+                    } else {
+                        final int gridX = craftIdx % CRAFTING_GRID_DIMENSION;
+                        final int gridY = craftIdx / CRAFTING_GRID_DIMENSION;
+                        slot.xPos = panelX + CRAFTING_GRID_OFFSET_X + gridX * 18;
+                        slot.yPos = panelY + CRAFTING_GRID_OFFSET_Y + gridY * 18;
+                    }
+                } else {
+                    final boolean inverted = ct.isInverted();
+                    final int processingGridOffsetX = inverted
+                            ? PROCESSING_INVERTED_GRID_OFFSET_X
+                            : PROCESSING_GRID_OFFSET_X;
+                    final int pageStart = this.processingInputPage
+                            * PatternHelper.PROCESSING_INPUT_PAGE_SLOTS;
+                    final int pageEnd = Math.min(pageStart + PatternHelper.PROCESSING_INPUT_PAGE_SLOTS,
+                            PatternHelper.PROCESSING_INPUT_LIMIT);
+                    if (craftIdx < pageStart || craftIdx >= pageEnd) {
+                        slot.xPos = -9000;
+                        slot.yPos = -9000;
+                    } else {
+                        final int visibleIndex = craftIdx - pageStart;
+                        final int gridX = visibleIndex % PROCESSING_INPUT_WIDTH;
+                        final int gridY = visibleIndex / PROCESSING_INPUT_WIDTH;
+                        slot.xPos = panelX + processingGridOffsetX + gridX * 18;
+                        slot.yPos = panelY + PROCESSING_GRID_OFFSET_Y + gridY * 18;
+                    }
+                }
+            }
+        }
+
+        // 定位 output 虚拟槽位
+        if (this.outputVirtualSlots != null) {
+            for (int outIdx = 0; outIdx < this.outputVirtualSlots.length; outIdx++) {
+                final VirtualMEPatternSlot slot = this.outputVirtualSlots[outIdx];
+                if (ct.isCraftingMode()) {
+                    slot.xPos = -9000;
+                    slot.yPos = -9000;
+                } else {
+                    final int processingOutputOffsetX = ct.isInverted()
+                            ? PROCESSING_OUTPUT_INVERTED_OFFSET_X
+                            : PROCESSING_OUTPUT_NORMAL_OFFSET_X;
+                    final int outX = outIdx % PROCESSING_OUTPUT_COLUMNS;
+                    final int outY = outIdx / PROCESSING_OUTPUT_COLUMNS;
+                    slot.xPos = panelX + processingOutputOffsetX + outX * 18;
+                    slot.yPos = panelY + PROCESSING_OUTPUT_OFFSET_Y + outY * 18;
+                }
+            }
+        }
+
+        // 定位 Container 中注册的 Slot（craftSlot/patternIN/patternOUT/玩家物品栏）
         for (final Object obj : host.getPanel().inventorySlots.inventorySlots) {
             if (obj instanceof AppEngSlot slot) {
-                if (slot instanceof SlotFakeCraftingMatrix) {
-                    final int craftIdx = slot.getSlotIndex();
-                    if (ct.isCraftingMode()) {
-                        if (craftIdx >= CRAFTING_INPUT_SLOTS) {
-                            slot.xPos = -9000;
-                            slot.yPos = -9000;
-                        } else {
-                            final int gridX = craftIdx % CRAFTING_GRID_DIMENSION;
-                            final int gridY = craftIdx / CRAFTING_GRID_DIMENSION;
-                            slot.xPos = panelX + CRAFTING_GRID_OFFSET_X + gridX * 18;
-                            slot.yPos = panelY + CRAFTING_GRID_OFFSET_Y + gridY * 18;
-                        }
-                    } else {
-                        final boolean inverted = ct.isInverted();
-                        final int processingGridOffsetX = inverted
-                                ? PROCESSING_INVERTED_GRID_OFFSET_X
-                                : PROCESSING_GRID_OFFSET_X;
-                        final int pageStart = this.processingInputPage
-                                * PatternHelper.PROCESSING_INPUT_PAGE_SLOTS;
-                        final int pageEnd = Math.min(pageStart + PatternHelper.PROCESSING_INPUT_PAGE_SLOTS,
-                                PatternHelper.PROCESSING_INPUT_LIMIT);
-                        if (craftIdx < pageStart || craftIdx >= pageEnd) {
-                            slot.xPos = -9000;
-                            slot.yPos = -9000;
-                        } else {
-                            final int visibleIndex = craftIdx - pageStart;
-                            final int gridX = visibleIndex % PROCESSING_INPUT_WIDTH;
-                            final int gridY = visibleIndex / PROCESSING_INPUT_WIDTH;
-                            slot.xPos = panelX + processingGridOffsetX + gridX * 18;
-                            slot.yPos = panelY + PROCESSING_GRID_OFFSET_Y + gridY * 18;
-                        }
-                    }
-                } else if (slot instanceof SlotPatternTerm) {
+                if (slot instanceof SlotPatternTerm) {
                     if (ct.isCraftingMode()) {
                         slot.xPos = panelX + CRAFTING_OUTPUT_OFFSET_X;
                         slot.yPos = panelY + 37;
                     } else {
                         slot.xPos = -9000;
                         slot.yPos = -9000;
-                    }
-                } else if (slot instanceof SlotPatternOutputs) {
-                    if (ct.isCraftingMode()) {
-                        slot.xPos = -9000;
-                        slot.yPos = -9000;
-                    } else {
-                        final int processingOutputOffsetX = ct.isInverted()
-                                ? PROCESSING_OUTPUT_INVERTED_OFFSET_X
-                                : PROCESSING_OUTPUT_NORMAL_OFFSET_X;
-                        final int outIdx = slot.getSlotIndex();
-                        final int outX = outIdx % PROCESSING_OUTPUT_COLUMNS;
-                        final int outY = outIdx / PROCESSING_OUTPUT_COLUMNS;
-                        slot.xPos = panelX + processingOutputOffsetX + outX * 18;
-                        slot.yPos = panelY + PROCESSING_OUTPUT_OFFSET_Y + outY * 18;
                     }
                 } else if (slot instanceof SlotRestrictedInput restrictedSlot) {
                     if (restrictedSlot.getPlaceableItemType()

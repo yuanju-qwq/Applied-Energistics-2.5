@@ -37,7 +37,6 @@ import appeng.util.Platform;
 /**
  * MUI 版空间 IO 端口 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiSpatialIOPort}。
  * 显示存储/最大功率、所需功率、效率、SCS 尺寸等信息，以及电源单位切换按钮。
  */
 public class MUISpatialIOPortPanel extends AEBasePanel {

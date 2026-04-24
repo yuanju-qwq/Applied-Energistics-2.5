@@ -54,7 +54,7 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     @Nonnull
     private final IItemList<T> cachedList;
     @Nonnull
-    private final Object2ObjectMap<IMEMonitorHandlerReceiver<T>, Object> listeners;
+    private final Object2ObjectMap<IMEMonitorHandlerReceiver<? super T>, Object> listeners;
 
     private boolean sendEvent = false;
     private long gridCount;
@@ -68,7 +68,7 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<T> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver<? super T> l, final Object verificationToken) {
         this.listeners.put(l, verificationToken);
     }
 
@@ -132,7 +132,7 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<T> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver<? super T> l) {
         this.listeners.remove(l);
     }
 
@@ -146,19 +146,20 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
         return this.myGridCache.getInventoryHandler(this.myStackType);
     }
 
-    private Iterator<Entry<IMEMonitorHandlerReceiver<T>, Object>> getListeners() {
+    private Iterator<Entry<IMEMonitorHandlerReceiver<? super T>, Object>> getListeners() {
         return this.listeners.entrySet().iterator();
     }
 
+    @SuppressWarnings("unchecked")
     private void notifyListenersOfChange(final Iterable<T> diff, final IActionSource src) {
-        final Iterator<Entry<IMEMonitorHandlerReceiver<T>, Object>> i = this.getListeners();
+        final Iterator<Entry<IMEMonitorHandlerReceiver<? super T>, Object>> i = this.getListeners();
 
         while (i.hasNext()) {
-            final Entry<IMEMonitorHandlerReceiver<T>, Object> o = i.next();
-            final IMEMonitorHandlerReceiver<T> receiver = o.getKey();
+            final Entry<IMEMonitorHandlerReceiver<? super T>, Object> o = i.next();
+            final IMEMonitorHandlerReceiver<? super T> receiver = o.getKey();
 
             if (receiver.isValid(o.getValue())) {
-                receiver.postChange(this, diff, src);
+                ((IMEMonitorHandlerReceiver) receiver).postChange(this, diff, src);
             } else {
                 i.remove();
             }
@@ -273,10 +274,10 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
 
         gridCount = count;
 
-        final Iterator<Entry<IMEMonitorHandlerReceiver<T>, Object>> i = this.getListeners();
+        final Iterator<Entry<IMEMonitorHandlerReceiver<? super T>, Object>> i = this.getListeners();
         while (i.hasNext()) {
-            final Entry<IMEMonitorHandlerReceiver<T>, Object> o = i.next();
-            final IMEMonitorHandlerReceiver<T> receiver = o.getKey();
+            final Entry<IMEMonitorHandlerReceiver<? super T>, Object> o = i.next();
+            final IMEMonitorHandlerReceiver<? super T> receiver = o.getKey();
 
             if (receiver.isValid(o.getValue())) {
                 receiver.onListUpdate();

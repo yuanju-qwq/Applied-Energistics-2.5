@@ -23,23 +23,26 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.implementations.guiobjects.INetworkTool;
 import appeng.api.implementations.guiobjects.IPortableCell;
-import appeng.fluids.helper.IFluidInterfaceHost;
 import appeng.api.storage.ITerminalHost;
 import appeng.client.mui.screen.*;
 import appeng.container.implementations.*;
 import appeng.fluids.container.*;
 import appeng.core.AELog;
+import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;
 import appeng.helpers.ICustomNameObject;
-import appeng.helpers.IInterfaceHost;
+import appeng.helpers.IInterfaceLogicHost;
+import appeng.helpers.IPatternProviderHost;
 import appeng.helpers.IPriorityHost;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.items.contents.QuartzKnifeObj;
 import appeng.fluids.parts.PartFluidFormationPlane;
 import appeng.fluids.parts.PartFluidLevelEmitter;
+import appeng.fluids.util.AEFluidStackType;
 import appeng.parts.automation.PartFormationPlane;
 import appeng.parts.automation.PartLevelEmitter;
 import appeng.parts.misc.PartOreDicStorageBus;
+import appeng.parts.misc.AbstractPartStorageBus;
 import appeng.parts.misc.PartStorageBus;
 import appeng.parts.reporting.PartCraftingTerminal;
 import appeng.parts.reporting.PartExpandedProcessingPatternTerminal;
@@ -56,13 +59,12 @@ import appeng.tile.networking.TileWireless;
 import appeng.tile.qnb.TileQuantumBridge;
 import appeng.tile.spatial.TileSpatialIOPort;
 import appeng.tile.storage.TileChest;
+import appeng.util.item.AEItemStackType;
 import appeng.tile.storage.TileDrive;
 import appeng.tile.storage.TileSkyChest;
 import appeng.api.implementations.IUpgradeableHost;
-import appeng.fluids.parts.PartFluidStorageBus;
 import appeng.fluids.parts.PartSharedFluidBus;
 import appeng.parts.reporting.PartInterfaceConfigurationTerminal;
-import appeng.parts.reporting.PartFluidInterfaceConfigurationTerminal;
 
 /**
  * MUI GUI 统一注册入口。
@@ -223,9 +225,11 @@ public final class AEMUIRegistration {
                 (ip, host) -> new MUIWirelessDualInterfaceTerminalPanel(
                         new ContainerWirelessDualInterfaceTerminal(ip, (WirelessTerminalGuiObject) host)));
 
-        // GUI_WIRELESS_FLUID_TERMINAL 暂不注册：
-        // 该终端已标记 @Deprecated，且其 Container 不继承 ContainerMEMonitorable，
-        // 需要完整的 MUI 流体终端面板支持。保留使用旧 GUI。
+        // WIRELESS_FLUID_TERMINAL: the wireless terminal already supports unified
+        // item+fluid display, so we reuse the same panel as WIRELESS_TERM.
+        AEMUIGuiFactory.register(AEGuiKeys.WIRELESS_FLUID_TERMINAL,
+                (ip, host) -> new ContainerWirelessTerm(ip, (WirelessTerminalGuiObject) host),
+                (ip, host) -> new MUIWirelessTermPanelImpl(ip, (WirelessTerminalGuiObject) host));
 
         // ========== 通用/合成/样板终端 ==========
 
@@ -253,27 +257,15 @@ public final class AEMUIRegistration {
 
         // ========== 接口设置 ==========
 
-        AEMUIGuiFactory.register(AEGuiKeys.INTERFACE,
-                (ip, host) -> new ContainerInterface(ip, (IInterfaceHost) host),
-                (ip, host) -> new MUIInterfacePanel(
-                        new ContainerInterface(ip, (IInterfaceHost) host)));
+        AEMUIGuiFactory.register(AEGuiKeys.ME_INTERFACE,
+                (ip, host) -> new ContainerMEInterface(ip, (IInterfaceLogicHost) host),
+                (ip, host) -> new MUIMEInterfacePanel(
+                        new ContainerMEInterface(ip, (IInterfaceLogicHost) host)));
 
-        AEMUIGuiFactory.register(AEGuiKeys.FLUID_INTERFACE,
-                (ip, host) -> new ContainerFluidInterface(ip, (IFluidInterfaceHost) host),
-                (ip, host) -> new MUIFluidInterfacePanel(
-                        new ContainerFluidInterface(ip, (IFluidInterfaceHost) host),
-                        (IFluidInterfaceHost) host));
-
-        AEMUIGuiFactory.register(AEGuiKeys.DUAL_ITEM_INTERFACE,
-                (ip, host) -> new ContainerDualItemInterface(ip, (IInterfaceHost) host),
-                (ip, host) -> new MUIDualItemInterfacePanel(
-                        new ContainerDualItemInterface(ip, (IInterfaceHost) host)));
-
-        AEMUIGuiFactory.register(AEGuiKeys.DUAL_FLUID_INTERFACE,
-                (ip, host) -> new ContainerDualFluidInterface(ip, (IFluidInterfaceHost) host),
-                (ip, host) -> new MUIDualFluidInterfacePanel(
-                        new ContainerDualFluidInterface(ip, (IFluidInterfaceHost) host),
-                        (IFluidInterfaceHost) host));
+        AEMUIGuiFactory.register(AEGuiKeys.PATTERN_PROVIDER,
+                (ip, host) -> new ContainerPatternProvider(ip, (IPatternProviderHost) host),
+                (ip, host) -> new MUIPatternProviderPanel(
+                        new ContainerPatternProvider(ip, (IPatternProviderHost) host)));
 
         // ========== 总线/面板 ==========
 
@@ -285,18 +277,19 @@ public final class AEMUIRegistration {
         AEMUIGuiFactory.register(AEGuiKeys.BUS_FLUID,
                 (ip, host) -> new ContainerFluidIO(ip, (PartSharedFluidBus) host),
                 (ip, host) -> new MUIFluidIOPanel(
-                        new ContainerFluidIO(ip, (PartSharedFluidBus) host),
-                        (PartSharedFluidBus) host));
+                        new ContainerFluidIO(ip, (PartSharedFluidBus) host)));
 
         AEMUIGuiFactory.register(AEGuiKeys.STORAGE_BUS,
-                (ip, host) -> new ContainerStorageBus(ip, (PartStorageBus) host),
+                (ip, host) -> new ContainerStorageBus(ip, (AbstractPartStorageBus<?>) host),
                 (ip, host) -> new MUIStorageBusPanel(
-                        new ContainerStorageBus(ip, (PartStorageBus) host)));
+                        new ContainerStorageBus(ip, (AbstractPartStorageBus<?>) host),
+                        AEItemStackType.INSTANCE, GuiText.StorageBus));
 
         AEMUIGuiFactory.register(AEGuiKeys.STORAGE_BUS_FLUID,
-                (ip, host) -> new ContainerFluidStorageBus(ip, (PartFluidStorageBus) host),
-                (ip, host) -> new MUIFluidStorageBusPanel(
-                        new ContainerFluidStorageBus(ip, (PartFluidStorageBus) host)));
+                (ip, host) -> new ContainerStorageBus(ip, (AbstractPartStorageBus<?>) host),
+                (ip, host) -> new MUIStorageBusPanel(
+                        new ContainerStorageBus(ip, (AbstractPartStorageBus<?>) host),
+                        AEFluidStackType.INSTANCE, GuiText.StorageBusFluids));
 
         AEMUIGuiFactory.register(AEGuiKeys.FORMATION_PLANE,
                 (ip, host) -> new ContainerFormationPlane(ip, (PartFormationPlane) host),
@@ -354,13 +347,6 @@ public final class AEMUIRegistration {
                 (ip, host) -> new MUIInterfaceConfigurationTerminalPanel(
                         new ContainerInterfaceConfigurationTerminal(ip,
                                 (PartInterfaceConfigurationTerminal) host)));
-
-        AEMUIGuiFactory.register(AEGuiKeys.FLUID_INTERFACE_CONFIGURATION_TERMINAL,
-                (ip, host) -> new ContainerFluidInterfaceConfigurationTerminal(ip,
-                        (PartFluidInterfaceConfigurationTerminal) host),
-                (ip, host) -> new MUIFluidInterfaceConfigurationTerminalPanel(
-                        new ContainerFluidInterfaceConfigurationTerminal(ip,
-                                (PartFluidInterfaceConfigurationTerminal) host)));
 
         // ========== 样板值设置 ==========
 

@@ -10,11 +10,11 @@ import appeng.api.config.RedstoneMode;
 import appeng.api.config.SecurityPermissions;
 import appeng.api.config.Settings;
 import appeng.container.guisync.GuiSync;
+import appeng.container.implementations.ContainerUpgradeable;
 import appeng.fluids.parts.PartFluidLevelEmitter;
-import appeng.fluids.util.IAEFluidTank;
 import appeng.util.Platform;
 
-public class ContainerFluidLevelEmitter extends ContainerFluidConfigurable {
+public class ContainerFluidLevelEmitter extends ContainerUpgradeable {
     private final PartFluidLevelEmitter lvlEmitter;
 
     @SideOnly(Side.CLIENT)
@@ -49,7 +49,6 @@ public class ContainerFluidLevelEmitter extends ContainerFluidConfigurable {
 
     @Override
     public int availableUpgrades() {
-
         return 0;
     }
 
@@ -73,10 +72,5 @@ public class ContainerFluidLevelEmitter extends ContainerFluidConfigurable {
                 this.textField.setText(String.valueOf(this.EmitterValue));
             }
         }
-    }
-
-    @Override
-    public IAEFluidTank getFluidConfigInventory() {
-        return this.lvlEmitter.getConfig();
     }
 }

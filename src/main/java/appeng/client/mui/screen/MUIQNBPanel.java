@@ -28,7 +28,6 @@ import appeng.tile.qnb.TileQuantumBridge;
 /**
  * MUI 版量子网络桥 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiQNB}。
  * 纯展示型面板，仅包含背景贴图和标题文字，无按钮/交互。
  */
 public class MUIQNBPanel extends AEBasePanel {

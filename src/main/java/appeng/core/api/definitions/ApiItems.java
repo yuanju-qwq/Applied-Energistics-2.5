@@ -39,20 +39,25 @@ import appeng.debug.ToolMeteoritePlacer;
 import appeng.debug.ToolReplicatorCard;
 import appeng.entity.EntityGrowingCrystal;
 import appeng.entity.EntityIds;
-import appeng.fluids.items.BasicFluidStorageCell;
+import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEItemStack;
+import appeng.fluids.helper.FluidCellConfig;
 import appeng.fluids.items.FluidDummyItem;
 import appeng.fluids.items.FluidDummyItemRendering;
-import appeng.fluids.items.ItemFluidDrop;
+import appeng.fluids.util.AEFluidStackType;
 import appeng.hooks.DispenserBlockTool;
 import appeng.hooks.DispenserMatterCannon;
+import appeng.items.contents.CellConfig;
 import appeng.items.materials.MaterialType;
 import appeng.items.misc.*;
 import appeng.items.parts.FacadeRendering;
 import appeng.items.parts.ItemFacade;
-import appeng.items.storage.BasicItemStorageCell;
+import appeng.items.storage.BasicStorageCell;
+import appeng.items.storage.CellSpec;
 import appeng.items.storage.ItemCreativeStorageCell;
 import appeng.items.storage.ItemSpatialStorageCell;
 import appeng.items.storage.ItemViewCell;
+import appeng.util.item.AEItemStackType;
 import appeng.items.tools.*;
 import appeng.items.tools.powered.*;
 import appeng.items.tools.quartz.*;
@@ -128,8 +133,6 @@ public final class ApiItems implements IItems {
     private final IItemDefinition toolReplicatorCard;
 
     private final IItemDefinition dummyFluidItem;
-
-    private final IItemDefinition fluidDrop;
 
     public ApiItems(FeatureFactory registry) {
         FeatureFactory certusTools = registry.features(AEFeature.CERTUS_QUARTZ_TOOLS);
@@ -251,26 +254,43 @@ public final class ApiItems implements IItems {
         this.viewCell = registry.item("view_cell", ItemViewCell::new).features(AEFeature.VIEW_CELL).build();
 
         FeatureFactory storageCells = registry.features(AEFeature.STORAGE_CELLS);
-        this.cell1k = storageCells.item("storage_cell_1k", () -> new BasicItemStorageCell(MaterialType.CELL1K_PART, 1))
+
+        // Item storage cell specs
+        final CellSpec<IAEItemStack> itemSpec1k = new CellSpec<>(AEItemStackType.INSTANCE, 8, 0.5, 63, CellConfig::new);
+        final CellSpec<IAEItemStack> itemSpec4k = new CellSpec<>(AEItemStackType.INSTANCE, 32, 1.0, 63, CellConfig::new);
+        final CellSpec<IAEItemStack> itemSpec16k = new CellSpec<>(AEItemStackType.INSTANCE, 128, 1.5, 63, CellConfig::new);
+        final CellSpec<IAEItemStack> itemSpec64k = new CellSpec<>(AEItemStackType.INSTANCE, 512, 2.0, 63, CellConfig::new);
+
+        this.cell1k = storageCells
+                .item("storage_cell_1k", () -> new BasicStorageCell<>(MaterialType.CELL1K_PART, 1, itemSpec1k))
                 .build();
-        this.cell4k = storageCells.item("storage_cell_4k", () -> new BasicItemStorageCell(MaterialType.CELL4K_PART, 4))
+        this.cell4k = storageCells
+                .item("storage_cell_4k", () -> new BasicStorageCell<>(MaterialType.CELL4K_PART, 4, itemSpec4k))
                 .build();
         this.cell16k = storageCells
-                .item("storage_cell_16k", () -> new BasicItemStorageCell(MaterialType.CELL16K_PART, 16)).build();
+                .item("storage_cell_16k", () -> new BasicStorageCell<>(MaterialType.CELL16K_PART, 16, itemSpec16k))
+                .build();
         this.cell64k = storageCells
-                .item("storage_cell_64k", () -> new BasicItemStorageCell(MaterialType.CELL64K_PART, 64)).build();
+                .item("storage_cell_64k", () -> new BasicStorageCell<>(MaterialType.CELL64K_PART, 64, itemSpec64k))
+                .build();
+
+        // Fluid storage cell specs
+        final CellSpec<IAEFluidStack> fluidSpec1k = new CellSpec<>(AEFluidStackType.INSTANCE, 8, 0.5, 5, FluidCellConfig::new);
+        final CellSpec<IAEFluidStack> fluidSpec4k = new CellSpec<>(AEFluidStackType.INSTANCE, 32, 1.0, 5, FluidCellConfig::new);
+        final CellSpec<IAEFluidStack> fluidSpec16k = new CellSpec<>(AEFluidStackType.INSTANCE, 128, 1.5, 5, FluidCellConfig::new);
+        final CellSpec<IAEFluidStack> fluidSpec64k = new CellSpec<>(AEFluidStackType.INSTANCE, 512, 2.0, 5, FluidCellConfig::new);
 
         this.fluidCell1k = storageCells
-                .item("fluid_storage_cell_1k", () -> new BasicFluidStorageCell(MaterialType.FLUID_CELL1K_PART, 1))
+                .item("fluid_storage_cell_1k", () -> new BasicStorageCell<>(MaterialType.FLUID_CELL1K_PART, 1, fluidSpec1k))
                 .build();
         this.fluidCell4k = storageCells
-                .item("fluid_storage_cell_4k", () -> new BasicFluidStorageCell(MaterialType.FLUID_CELL4K_PART, 4))
+                .item("fluid_storage_cell_4k", () -> new BasicStorageCell<>(MaterialType.FLUID_CELL4K_PART, 4, fluidSpec4k))
                 .build();
         this.fluidCell16k = storageCells
-                .item("fluid_storage_cell_16k", () -> new BasicFluidStorageCell(MaterialType.FLUID_CELL16K_PART, 16))
+                .item("fluid_storage_cell_16k", () -> new BasicStorageCell<>(MaterialType.FLUID_CELL16K_PART, 16, fluidSpec16k))
                 .build();
         this.fluidCell64k = storageCells
-                .item("fluid_storage_cell_64k", () -> new BasicFluidStorageCell(MaterialType.FLUID_CELL64K_PART, 64))
+                .item("fluid_storage_cell_64k", () -> new BasicStorageCell<>(MaterialType.FLUID_CELL64K_PART, 64, fluidSpec64k))
                 .build();
 
         FeatureFactory spatialCells = registry.features(AEFeature.SPATIAL_IO);
@@ -326,11 +346,6 @@ public final class ApiItems implements IItems {
 
         this.dummyFluidItem = registry.item("dummy_fluid_item", FluidDummyItem::new)
                 .rendering(new FluidDummyItemRendering()).build();
-
-        // 流体伪物品（Fluid Drop）— 用于在合成系统中表示流体
-        this.fluidDrop = registry.item("fluid_drop", ItemFluidDrop::new)
-                .features(AEFeature.FLUID_CELLS)
-                .build();
     }
 
     @Override
@@ -595,9 +610,5 @@ public final class ApiItems implements IItems {
 
     public IItemDefinition dummyFluidItem() {
         return this.dummyFluidItem;
-    }
-
-    public IItemDefinition fluidDrop() {
-        return this.fluidDrop;
     }
 }

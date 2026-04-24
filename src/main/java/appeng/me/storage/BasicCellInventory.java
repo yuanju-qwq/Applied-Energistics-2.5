@@ -62,7 +62,15 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
         return getStorageCell(input) != null;
     }
 
+    /**
+     * Check if the given stack represents a non-empty storage cell.
+     * <p>
+     * MC limitation: Only items can be storage cells (physical items that go into ME drives).
+     * Fluids and other non-item types cannot be storage cells, so this check only applies
+     * to IAEItemStack. This prevents storing a non-empty cell inside another cell.
+     */
     private boolean isStorageCell(final T input) {
+        // MC limitation: only ItemStack-based storage cells exist
         if (input instanceof IAEItemStack) {
             final IAEItemStack stack = (IAEItemStack) input;
             final IStorageCell<?> type = getStorageCell(stack.getDefinition());

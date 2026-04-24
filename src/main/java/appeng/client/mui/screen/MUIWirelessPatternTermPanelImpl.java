@@ -32,7 +32,6 @@ import appeng.helpers.WirelessTerminalGuiObject;
 /**
  * MUI 版无线样板终端面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiWirelessPatternTerminal}。
  * 继承 {@link MUIPatternTermPanel}（通过其无线构造函数），
  * 添加无线升级图标和终端模式切换按钮。
  * <p>

@@ -27,14 +27,13 @@ import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 
 import appeng.api.config.*;
-import appeng.api.networking.IGridNode;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
-import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
 import appeng.items.parts.PartModels;
@@ -63,7 +62,6 @@ public class PartFluidExportBus extends PartSharedFluidBus {
 
     public PartFluidExportBus(ItemStack is) {
         super(is);
-        this.getConfigManager().registerSetting(Settings.REDSTONE_CONTROLLED, RedstoneMode.IGNORE);
         this.getConfigManager().registerSetting(Settings.FUZZY_MODE, FuzzyMode.IGNORE_ALL);
         this.getConfigManager().registerSetting(Settings.CRAFT_ONLY, YesNo.NO);
         this.getConfigManager().registerSetting(Settings.SCHEDULING_MODE, SchedulingMode.DEFAULT);
@@ -71,24 +69,13 @@ public class PartFluidExportBus extends PartSharedFluidBus {
     }
 
     @Override
-    public TickingRequest getTickingRequest(IGridNode node) {
-        return new TickingRequest(TickRates.FluidExportBus.getMin(), TickRates.FluidExportBus.getMax(),
-                this.isSleeping(), false);
-    }
-
-    @Override
-    public TickRateModulation tickingRequest(IGridNode node, int ticksSinceLastCall) {
-        return this.canDoBusWork() ? this.doBusWork() : TickRateModulation.IDLE;
-    }
-
-    @Override
-    protected boolean canDoBusWork() {
-        return this.getProxy().isActive();
+    protected TickRates getTickRates() {
+        return TickRates.FluidExportBus;
     }
 
     @Override
     protected TickRateModulation doBusWork() {
-        if (!this.canDoBusWork()) {
+        if (!this.getProxy().isActive() || !this.canDoBusWork()) {
             return TickRateModulation.IDLE;
         }
 
@@ -102,12 +89,12 @@ public class PartFluidExportBus extends PartSharedFluidBus {
                 final IMEMonitor<IAEFluidStack> inv = this.getProxy().getStorage().getInventory(this.getStackType());
 
                 if (fh != null) {
-                    for (int i = 0; i < this.getConfig().getSlots(); i++) {
-                        IAEFluidStack fluid = this.getConfig().getFluidInSlot(i);
-                        if (fluid != null) {
+                    for (int i = 0; i < this.getConfig().getSizeInventory(); i++) {
+                        final IAEStack<?> raw = this.getConfig().getAEStackInSlot(i);
+                        if (raw instanceof IAEFluidStack fluid) {
                             final IAEFluidStack toExtract = fluid.copy();
 
-                            toExtract.setStackSize(this.calculateAmountToSend());
+                            toExtract.setStackSize(this.calculateFluidAmountToSend());
 
                             final IAEFluidStack out = inv.extractItems(toExtract, Actionable.SIMULATE, this.source);
 
@@ -140,11 +127,6 @@ public class PartFluidExportBus extends PartSharedFluidBus {
         bch.addBox(5, 5, 14, 11, 11, 15);
         bch.addBox(6, 6, 15, 10, 10, 16);
         bch.addBox(6, 6, 11, 10, 10, 12);
-    }
-
-    @Override
-    public RedstoneMode getRSMode() {
-        return (RedstoneMode) this.getConfigManager().getSetting(Settings.REDSTONE_CONTROLLED);
     }
 
     @Nonnull

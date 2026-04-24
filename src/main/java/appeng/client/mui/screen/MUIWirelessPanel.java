@@ -37,7 +37,6 @@ import appeng.util.Platform;
 /**
  * MUI 版无线接入点 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiWireless}。
  * 显示无线信号范围和功率消耗，以及电源单位切换按钮。
  */
 public class MUIWirelessPanel extends AEBasePanel {

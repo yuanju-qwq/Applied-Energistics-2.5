@@ -63,6 +63,7 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
+import appeng.api.storage.StorageName;
 import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
@@ -74,10 +75,9 @@ import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.container.ContainerNull;
 import appeng.container.guisync.GuiSync;
+import appeng.container.interfaces.IVirtualSlotHolder;
+import appeng.container.interfaces.IVirtualSlotSource;
 import appeng.container.slot.IOptionalSlotHost;
-import appeng.container.slot.OptionalSlotFake;
-import appeng.container.slot.SlotFakeCraftingMatrix;
-import appeng.container.slot.SlotPatternOutputs;
 import appeng.container.slot.SlotPatternTerm;
 import appeng.container.slot.SlotRestrictedInput;
 import appeng.core.AELog;
@@ -88,32 +88,34 @@ import appeng.fluids.items.FluidDummyItem;
 import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.IContainerCraftingPacket;
 import appeng.helpers.WirelessTerminalGuiObject;
+import appeng.items.contents.CellConfigLegacy;
 import appeng.me.helpers.ChannelPowerSrc;
 import appeng.tile.inventory.AppEngInternalInventory;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.ConfigManager;
 import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 import appeng.util.helpers.ItemHandlerUtil;
 import appeng.util.inv.InvOperation;
-import appeng.util.inv.WrapperRangeItemHandler;
-import appeng.util.inv.WrapperSupplierItemHandler;
 import appeng.util.item.AEItemStack;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 /**
- * 鏃犵嚎浜屽悎涓€鎺ュ彛缁堢鐨勫鍣?
- * 缁ф壙鑷?ContainerWirelessInterfaceTerminal锛岃幏寰楁帴鍙ｅ垪琛ㄥ悓姝?鏃犵嚎绠＄悊鑳藉姏銆?
- * 棰濆宓屽叆浜嗘牱鏉跨紪鍐欏姛鑳斤紙浠?ContainerPatternEncoder 涓Щ妞嶏級鍜?ME 缃戠粶鐗╁搧鐩戞帶鍔熻兘銆?
+ * 无线二合一接口终端的容器。
+ * 继承自 ContainerWirelessInterfaceTerminal，获得接口列表同步/无线管理能力。
+ * 额外嵌入了样板编写功能（从 ContainerPatternEncoder 中移植）和 ME 网络物品监控功能。
  *
- * 甯冨眬璇存槑锛?
- * - 鎺ュ彛缁堢鏁版嵁鍚屾锛氱敱鐖剁被 ContainerInterfaceTerminal 鐨?detectAndSendChanges 澶勭悊
- * - 鏃犵嚎缁堢绠＄悊锛氱敱鐖剁被 ContainerWirelessInterfaceTerminal 鐨?detectAndSendChanges 澶勭悊
- * - 鏍锋澘缂栧啓锛氭湰绫诲唴宓岀殑 crafting/output/pattern 妲戒綅
- * - ME鐗╁搧娴忚锛氶€氳繃 IMEMonitorHandlerReceiver 鐩戞帶 AE 缃戠粶搴撳瓨鍙樺寲
+ * 布局说明：
+ * - 接口终端数据同步：由父类 ContainerInterfaceTerminal 的 detectAndSendChanges 处理
+ * - 无线终端管理：由父类 ContainerWirelessInterfaceTerminal 的 detectAndSendChanges 处理
+ * - 样板编写：本类内嵌的 crafting/output/pattern 槽位（crafting/output 使用虚拟槽位同步）
+ * - ME物品浏览：通过 IMEMonitorHandlerReceiver 监控 AE 网络库存变化
  */
 @SuppressWarnings("unchecked")
 public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInterfaceTerminal
         implements IOptionalSlotHost, IContainerCraftingPacket, IMEMonitorHandlerReceiver,
-        IConfigurableObject, IConfigManagerHost {
+        IConfigurableObject, IConfigManagerHost, IVirtualSlotHolder, IVirtualSlotSource, IIAEStackInventory {
 
     private static final int CRAFTING_INPUT_SLOTS = CRAFTING_GRID_DIMENSION * CRAFTING_GRID_DIMENSION;
     private static final int PROCESSING_INPUT_SLOTS = PROCESSING_INPUT_LIMIT;
@@ -122,19 +124,22 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private static final String NBT_PATTERNS = "wirelessDualPatternSlots";
     private static final String LEGACY_NBT_PATTERNS = "patterns";
 
-    // ========== 鏍锋澘缂栧啓鐩稿叧瀛楁锛堜粠 ContainerPatternEncoder 绉绘锛?==========
-    private final AppEngInternalInventory crafting;
-    private final AppEngInternalInventory patternOutput;
+    // ========== 样板编写相关字段（从 ContainerPatternEncoder 移植） ==========
+    // 泛型 AE 栈库存，支持物品、流体等任意类型
+    private final IAEStackInventory crafting;
+    private final IAEStackInventory patternOutput;
     private final AppEngInternalInventory patternSlots;
     private final WirelessTerminalGuiObject guiObject;
 
-    private SlotFakeCraftingMatrix[] craftingSlots;
-    private OptionalSlotFake[] outputSlots;
     private SlotPatternTerm craftSlot;
     private SlotRestrictedInput patternSlotIN;
     private SlotRestrictedInput patternSlotOUT;
 
     private final AppEngInternalInventory cOut = new AppEngInternalInventory(null, 1);
+
+    // 服务端用于增量同步的客户端快照
+    private IAEStack<?>[] craftingClientSlots;
+    private IAEStack<?>[] outputClientSlots;
 
     @GuiSync(97)
     public boolean craftingMode = true;
@@ -155,42 +160,42 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private boolean bulkPatternChanged = false;
     private boolean bulkCraftingChanged = false;
 
-    // ========== ME 缃戠粶鐩戞帶鐩稿叧瀛楁锛堜粠 ContainerMEMonitorable 绉绘锛?==========
+    // ========== ME 网络监控相关字段（从 ContainerMEMonitorable 移植） ==========
 
     /**
-     * 澶氱被鍨?Monitor 鏄犲皠锛氭瘡绉嶅凡娉ㄥ唽鐨?IAEStackType 瀵瑰簲涓€涓?IMEMonitor銆?
+     * 多类型 Monitor 映射：每种已注册的 IAEStackType 对应一个 IMEMonitor。
      */
     private final Map<IAEStackType<?>, IMEMonitor<?>> meMonitors = new IdentityHashMap<>();
 
     /**
-     * 澶氱被鍨嬫洿鏂伴槦鍒楋細鏈嶅姟绔敹鍒板彉鍖栭€氱煡鍚庯紝鎸夌被鍨嬫殏瀛樺緟鍙戦€佺殑鍙樻洿銆?
+     * 多类型更新队列：服务端收到变化通知后，按类型暂存待发送的变更。
      */
     private final Map<IAEStackType<?>, Set<IAEStack<?>>> meUpdateQueue = new IdentityHashMap<>();
 
     /**
-     * 褰?onListUpdate 瑙﹀彂鏃舵爣璁颁负 true锛屼笅娆?detectAndSendChanges 鏃跺彂閫佸叏閲忋€?
+     * 当 onListUpdate 触发时标记为 true，下次 detectAndSendChanges 时发送全量。
      */
     private boolean meNeedListUpdate = false;
 
     /**
-     * GUI 鍥炶皟寮曠敤锛堝鎴风锛夛紝鐢ㄤ簬灏?postUpdate 杞彂鍒?GUI
+     * GUI 回调引用（客户端），用于将 postUpdate 转发到 GUI
      */
     private Object meGui;
 
-    // ========== 鎺掑簭/杩囨护璁剧疆锛堜粠 ContainerMEMonitorable 绉绘锛?==========
+    // ========== 排序/过滤设置（从 ContainerMEMonitorable 移植） ==========
 
     /**
-     * 瀹㈡埛绔厤缃鐞嗗櫒锛岀敤浜庡悓姝ユ帓搴?瑙嗗浘璁剧疆
+     * 客户端配置管理器，用于同步排序/视图设置
      */
     private final IConfigManager clientCM;
 
     /**
-     * 鏈嶅姟绔厤缃鐞嗗櫒锛屼粠 WirelessTerminalGuiObject 鑾峰彇
+     * 服务端配置管理器，从 WirelessTerminalGuiObject 获取
      */
     private IConfigManager serverCM;
 
     /**
-     * AE 缃戠粶鑺傜偣寮曠敤锛岀敤浜?ME 鐗╁搧浜や簰鐨勭數鍔涘拰瀛樺偍璁块棶
+     * AE 网络节点引用，用于 ME 物品交互的电力和存储访问
      */
     private IGridNode networkNode;
 
@@ -198,23 +203,23 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         super(ip, gui);
         this.guiObject = gui;
 
-        // 鍒濆鍖栨帓搴?瑙嗗浘閰嶇疆绠＄悊鍣?
+        // 初始化排序/视图配置管理器
         this.clientCM = new ConfigManager(this);
         this.clientCM.registerSetting(Settings.SORT_BY, SortOrder.NAME);
         this.clientCM.registerSetting(Settings.VIEW_MODE, ViewItems.ALL);
         this.clientCM.registerSetting(Settings.SORT_DIRECTION, SortDir.ASCENDING);
 
-        // 鍒濆鍖栨牱鏉跨紪鍐欑殑鐗╁搧鏍?
-        this.crafting = new AppEngInternalInventory(this, PROCESSING_INPUT_SLOTS);
-        this.patternOutput = new AppEngInternalInventory(this, TOTAL_OUTPUT_SLOTS);
+        // 初始化样板编写的物品栈（泛型 AE 栈库存，支持虚拟槽位同步）
+        this.crafting = new IAEStackInventory(this, PROCESSING_INPUT_SLOTS, StorageName.CRAFTING_INPUT);
+        this.patternOutput = new IAEStackInventory(this, TOTAL_OUTPUT_SLOTS, StorageName.CRAFTING_OUTPUT);
         this.patternSlots = new AppEngInternalInventory(this, 2);
 
-        this.craftingSlots = new SlotFakeCraftingMatrix[PROCESSING_INPUT_SLOTS];
-        this.outputSlots = new OptionalSlotFake[OUTPUT_SLOTS_PER_PAGE];
+        this.craftingClientSlots = new IAEStack[PROCESSING_INPUT_SLOTS];
+        this.outputClientSlots = new IAEStack[TOTAL_OUTPUT_SLOTS];
 
         this.loadPatternFromNBT();
 
-        // 鍒濆鍖?ME 缃戠粶鐩戞帶锛堟湇鍔＄锛?
+        // 初始化 ME 网络监控（服务端）
         if (Platform.isServer()) {
             this.serverCM = gui.getConfigManager();
 
@@ -227,7 +232,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                 }
             }
 
-            // 璁剧疆 ME 鐗╁搧闈㈡澘鐨勭數鍔涙潵婧愬拰瀛樺偍锛屼娇 SlotME 鐐瑰嚮浜や簰鐢熸晥
+            // 设置 ME 物品面板的电力来源和存储，使 SlotME 点击交互生效
             this.setPowerSource(gui);
             @SuppressWarnings("unchecked")
             IMEMonitor<IAEItemStack> itemMon = (IMEMonitor<IAEItemStack>) gui
@@ -242,7 +247,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                 this.setFluidCellInventory(fluidMon);
             }
 
-            // 鑾峰彇缃戠粶鑺傜偣寮曠敤
+            // 获取网络节点引用
             this.networkNode = gui.getActionableNode();
             if (this.networkNode != null) {
                 final IGrid g = this.networkNode.getGrid();
@@ -252,39 +257,15 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             }
         }
 
-        // 娣诲姞鏍锋澘缂栧啓妲戒綅锛?x3鍚堟垚缃戞牸锛?
-        // 娉ㄦ剰锛氳繖浜涘潗鏍囨槸"鍒濆鍧愭爣"锛屾渶缁堜綅缃敱 GUI 鐨?repositionSlots() 鏂规硶鍐冲畾
-        for (int slotIndex = 0; slotIndex < PROCESSING_INPUT_SLOTS; slotIndex++) {
-            final int x = slotIndex % PROCESSING_INPUT_WIDTH;
-            final int y = slotIndex / PROCESSING_INPUT_WIDTH;
-            this.addSlotToContainer(this.craftingSlots[slotIndex] = new SlotFakeCraftingMatrix(this.crafting,
-                    slotIndex, 18 + x * 18, -76 + y * 18));
-        }
+        // crafting/output 槽位现在由 GUI 侧的 VirtualMEPatternSlot 管理，
+        // 不再添加 SlotFakeCraftingMatrix / SlotPatternOutputs 到 Minecraft Container。
 
-        // 娣诲姞鏍锋澘缂栫爜妲?
+        // 添加样板编码槽
         this.addSlotToContainer(this.craftSlot = new SlotPatternTerm(ip.player, this.getActionSource(), gui,
-                gui, this.crafting, patternSlots, this.cOut, 110, -76 + 18, this, 2, this));
+                gui, new CellConfigLegacy(this.crafting, null), patternSlots, this.cOut, 110, -76 + 18, this, 2, this));
         this.craftSlot.setIIcon(-1);
 
-        // 娣诲姞杈撳嚭妲?
-        for (int y = 0; y < this.outputSlots.length; y++) {
-            final int outputX = 96;
-            final int outputY = -75 + y * 18;
-            this.addSlotToContainer(
-                    this.outputSlots[y] = new SlotPatternOutputs(
-                            new WrapperSupplierItemHandler(this::getVisiblePatternOutputs),
-                            this,
-                            y,
-                            outputX,
-                            outputY,
-                            0,
-                            0,
-                            1));
-            this.outputSlots[y].setRenderDisabled(false);
-            this.outputSlots[y].setIIcon(-1);
-        }
-
-        // 娣诲姞绌虹櫧鏍锋澘杈撳叆妲藉拰缂栫爜鏍锋澘杈撳嚭妲?
+        // 添加空白样板输入槽和编码样板输出槽
         this.addSlotToContainer(
                 this.patternSlotIN = new SlotRestrictedInput(SlotRestrictedInput.PlacableItemType.BLANK_PATTERN,
                         patternSlots, 0, 147, -72 - 9, this.getInventoryPlayer()));
@@ -295,7 +276,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         this.restoreEncodedPatternContents();
     }
 
-    // ========== IMEMonitorHandlerReceiver 鎺ュ彛瀹炵幇锛圡E 缃戠粶鐩戞帶锛?==========
+    // ========== IMEMonitorHandlerReceiver 接口实现（ME 网络监控） ==========
 
     @Override
     public boolean isValid(final Object verificationToken) {
@@ -322,13 +303,13 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 璁剧疆 GUI 鍥炶皟瀵硅薄锛堝鎴风锛夛紝鐢ㄤ簬鎺ユ敹 postUpdate 杞彂銆?
+     * 设置 GUI 回调对象（客户端），用于接收 postUpdate 转发。
      */
     public void setMeGui(final Object gui) {
         this.meGui = gui;
     }
 
-    // ========== IConfigurableObject / IConfigManagerHost 鎺ュ彛瀹炵幇 ==========
+    // ========== IConfigurableObject / IConfigManagerHost 接口实现 ==========
 
     @Override
     public IConfigManager getConfigManager() {
@@ -340,12 +321,12 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     @Override
     public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
-        // 瀹㈡埛绔帴鏀跺埌鏈嶅姟绔悓姝ョ殑璁剧疆鍙樻洿鏃讹紝閫氱煡 GUI 鍒锋柊
+        // 客户端接收到服务端同步的设置变更时，通知 GUI 刷新
     }
 
     /**
-     * 瀹㈡埛绔帴鏀跺埌 PacketMEInventoryUpdate 鏃惰皟鐢ㄣ€?
-     * 灏嗘洿鏂拌浆鍙戝埌 GUI 鐨?postUpdate 鏂规硶銆?
+     * 客户端接收到 PacketMEInventoryUpdate 时调用。
+     * 将更新转发到 GUI 的 postUpdate 方法。
      */
     @SuppressWarnings("unchecked")
     public void postUpdate(final List<IAEStack<?>> list) {
@@ -355,13 +336,13 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * GUI 瀹炵幇姝ゆ帴鍙ｄ互鎺ユ敹 ME 搴撳瓨鏇存柊
+     * GUI 实现此接口以接收 ME 库存更新
      */
     public interface IMEInventoryUpdateReceiver {
         void postUpdate(List<IAEStack<?>> list);
     }
 
-    // ========== IContainerCraftingPacket 鎺ュ彛瀹炵幇 ==========
+    // ========== IContainerCraftingPacket 接口实现 ==========
 
     @Override
     public IGridNode getNetworkNode() {
@@ -374,9 +355,9 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     @Override
     public IItemHandler getInventoryByName(String name) {
         if ("crafting".equals(name)) {
-            return this.crafting;
+            return new CellConfigLegacy(this.crafting, null);
         } else if ("output".equals(name)) {
-            return this.patternOutput;
+            return new CellConfigLegacy(this.patternOutput, null);
         } else if ("player".equals(name)) {
             return new net.minecraftforge.items.wrapper.PlayerMainInvWrapper(
                     this.getPlayerInv());
@@ -394,7 +375,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         return new ItemStack[0];
     }
 
-    // ========== IOptionalSlotHost 鎺ュ彛瀹炵幇 ==========
+    // ========== IOptionalSlotHost 接口实现 ==========
 
     @Override
     public boolean isSlotEnabled(final int idx) {
@@ -413,7 +394,59 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         return false;
     }
 
-    // ========== 鏍锋澘缂栧啓鏍稿績鏂规硶锛堜粠 ContainerPatternEncoder 绉绘锛?==========
+    // ========== IIAEStackInventory 接口实现 ==========
+
+    @Override
+    public void saveAEStackInv() {
+        this.saveChanges();
+    }
+
+    @Override
+    public IAEStackInventory getAEInventoryByName(StorageName name) {
+        if (name == StorageName.CRAFTING_INPUT) {
+            return this.crafting;
+        }
+        if (name == StorageName.CRAFTING_OUTPUT) {
+            return this.patternOutput;
+        }
+        return null;
+    }
+
+    // ========== IVirtualSlotHolder 接口实现（客户端接收虚拟槽位数据） ==========
+
+    @Override
+    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
+        final IAEStackInventory inv;
+        if (invName == StorageName.CRAFTING_INPUT) {
+            inv = this.crafting;
+        } else if (invName == StorageName.CRAFTING_OUTPUT) {
+            inv = this.patternOutput;
+        } else {
+            return;
+        }
+        for (var entry : slotStacks.int2ObjectEntrySet()) {
+            inv.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+        }
+    }
+
+    // ========== IVirtualSlotSource 接口实现（服务端接收客户端虚拟槽位更新） ==========
+
+    @Override
+    public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
+        final IAEStackInventory inv;
+        if (invName == StorageName.CRAFTING_INPUT) {
+            inv = this.crafting;
+        } else if (invName == StorageName.CRAFTING_OUTPUT) {
+            inv = this.patternOutput;
+        } else {
+            return;
+        }
+        if (slotId >= 0 && slotId < inv.getSizeInventory()) {
+            inv.putAEStackInSlot(slotId, aes);
+        }
+    }
+
+    // ========== 样板编写核心方法（从 ContainerPatternEncoder 移植） ==========
 
     public boolean isCraftingMode() {
         return craftingMode;
@@ -547,65 +580,41 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         return (TOTAL_OUTPUT_SLOTS + OUTPUT_SLOTS_PER_PAGE - 1) / OUTPUT_SLOTS_PER_PAGE;
     }
 
-    private IItemHandler getVisiblePatternOutputs() {
-        final int pageStart = this.activePage * OUTPUT_SLOTS_PER_PAGE;
-        final int pageEnd = Math.min(TOTAL_OUTPUT_SLOTS, pageStart + OUTPUT_SLOTS_PER_PAGE);
-        return new WrapperRangeItemHandler(this.patternOutput, pageStart, pageEnd);
-    }
-
     /**
-     * 鏇存柊杈撳嚭妲戒綅鐨勬樉绀?闅愯棌鐘舵€侊細
-     * - 鍚堟垚妯″紡涓嬶細鏄剧ず craftSlot锛堝崟涓緭鍑猴級锛岄殣钘忔墍鏈?outputSlots
-     * - 澶勭悊妯″紡涓嬶細闅愯棌 craftSlot锛屼粎鏄剧ず褰撳墠 activePage 瀵瑰簲鐨?3 涓?outputSlots
-     *   骞跺皢瀹冧滑鐨?yPos 閲嶆柊瀹氫綅鍒板墠 3 涓Ы鐨勪綅缃?
+     * 更新输出槽位的显示/隐藏状态：
+     * - 合成模式下：显示 craftSlot（单个输出），隐藏所有 outputSlots
+     * - 处理模式下：隐藏 craftSlot，输出由 GUI 的 VirtualMEPatternSlot 管理
      */
     private void updateOrderOfOutputSlots() {
-        if (this.outputSlots == null || this.outputSlots.length == 0) {
-            return;
-        }
-
+        // output 槽位现在由 GUI 侧的 VirtualMEPatternSlot 管理。
+        // 仅控制 craftSlot（合成模式输出）的可见性。
         if (!this.isCraftingMode()) {
             if (this.craftSlot != null) {
                 this.craftSlot.xPos = -9000;
-            }
-            for (int y = 0; y < OUTPUT_SLOTS_PER_PAGE; y++) {
-                final OptionalSlotFake outputSlot = this.outputSlots[y];
-                if (outputSlot == null) {
-                    continue;
-                }
-                outputSlot.xPos = outputSlot.getX();
-                    // 灏嗗綋鍓嶉〉鐨勬Ы浣?yPos 鏄犲皠鍒板墠 3 涓Ы浣嶇殑浣嶇疆
-                outputSlot.yPos = outputSlot.getY();
             }
         } else {
             if (this.craftSlot != null) {
                 this.craftSlot.xPos = this.craftSlot.getX();
             }
-            for (int y = 0; y < OUTPUT_SLOTS_PER_PAGE; y++) {
-                final OptionalSlotFake outputSlot = this.outputSlots[y];
-                if (outputSlot != null) {
-                    outputSlot.xPos = -9000;
-                }
-            }
         }
     }
 
     /**
-     * 鍚堟垚妯″紡涓嬶紝纭繚鎵€鏈夎緭鍏ョ墿鍝佹暟閲忎负1
+     * 合成模式下，确保所有输入物品数量为1
      */
     private void fixCraftingRecipes() {
         if (this.isCraftingMode()) {
-            for (int x = 0; x < this.crafting.getSlots(); x++) {
-                final ItemStack is = this.crafting.getStackInSlot(x);
-                if (!is.isEmpty()) {
-                    is.setCount(1);
+            for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
+                final IAEStack<?> is = this.crafting.getAEStackInSlot(x);
+                if (is != null) {
+                    is.setStackSize(1);
                 }
             }
         }
     }
 
     /**
-     * 缂栫爜鏍锋澘骞剁Щ鍔ㄥ埌鐜╁鑳屽寘
+     * 编码样板并移动到玩家背包
      */
     public void encodeAndMoveToInventory() {
         encode();
@@ -619,7 +628,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 缂栫爜鏍锋澘锛氬皢鍚堟垚缃戞牸涓殑杈撳叆鍜岃緭鍑虹紪鐮佷负鏍锋澘鐗╁搧
+     * 编码样板：将合成网格中的输入和输出编码为样板物品
      */
     public void encode() {
         this.refreshPatternPreview();
@@ -631,12 +640,12 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         final ItemStack[] encodedIn = in;
         final ItemStack[] encodedOut = out;
 
-        // 杈撳叆蹇呴』瀛樺湪
+        // 输入必须存在
         if (encodedIn == null) {
             return;
         }
 
-        // 妫€鏌ヨ緭鍑烘Ы锛氳嫢宸叉湁鐗╁搧涓旀棦涓嶆槸鏅€氭牱鏉夸篃涓嶆槸鐗规畩鏍锋澘锛屽垯涓
+        // 检查输出槽：若已有物品且既不是普通样板也不是特殊样板，则中止
         if (!output.isEmpty() && !this.isPattern(output) && !this.isSpecialPattern(output)) {
             return;
         }
@@ -701,7 +710,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         encodedValue.setBoolean("substitute", this.isSubstitute());
         encodedValue.setBoolean("beSubstitute", this.isBeSubstitute());
 
-        // 鏍囪娴佷綋鏍锋澘锛堝綋杈撳叆鎴栬緭鍑轰腑鍖呭惈娴佷綋鏃讹級
+        // 标记流体样板（当输入或输出中包含流体时）
         if (fluidPattern) {
             encodedValue.setBoolean("fluidPattern", true);
         }
@@ -715,7 +724,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 娓呴櫎鍚堟垚缃戞牸鍜岃緭鍑烘Ы
+     * 清除合成网格和输出槽
      */
     public void clear() {
         this.beginBulkPatternUpdate();
@@ -728,167 +737,132 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 涔樹互鍊嶆暟
+     * 乘以倍数
      */
     public void multiply(int multiple) {
         boolean canMultiplyInputs = true;
         boolean canMultiplyOutputs = true;
 
-        for (int x = 0; x < this.craftingSlots.length; x++) {
-            ItemStack stack = this.craftingSlots[x].getStack();
-            if (!stack.isEmpty() && stack.getCount() * multiple < 1) {
+        for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
+            IAEStack<?> stack = this.crafting.getAEStackInSlot(x);
+            if (stack != null && stack.getStackSize() * multiple < 1) {
                 canMultiplyInputs = false;
             }
         }
-        for (final OptionalSlotFake outputSlot : this.outputSlots) {
-            final ItemStack out = outputSlot.getStack();
-            if (!out.isEmpty() && out.getCount() * multiple < 1) {
+        for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
+            IAEStack<?> stack = this.patternOutput.getAEStackInSlot(x);
+            if (stack != null && stack.getStackSize() * multiple < 1) {
                 canMultiplyOutputs = false;
             }
         }
         if (canMultiplyInputs && canMultiplyOutputs) {
-            for (SlotFakeCraftingMatrix craftingSlot : this.craftingSlots) {
-                ItemStack stack = craftingSlot.getStack();
-                if (!stack.isEmpty()) {
-                    craftingSlot.getStack().setCount(stack.getCount() * multiple);
+            for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
+                IAEStack<?> stack = this.crafting.getAEStackInSlot(x);
+                if (stack != null) {
+                    stack.setStackSize(stack.getStackSize() * multiple);
                 }
             }
-            for (OptionalSlotFake outputSlot : this.outputSlots) {
-                ItemStack stack = outputSlot.getStack();
-                if (!stack.isEmpty()) {
-                    outputSlot.getStack().setCount(stack.getCount() * multiple);
+            for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
+                IAEStack<?> stack = this.patternOutput.getAEStackInSlot(x);
+                if (stack != null) {
+                    stack.setStackSize(stack.getStackSize() * multiple);
                 }
             }
         }
     }
 
     /**
-     * 闄や互闄ゆ暟
+     * 除以除数
      */
     public void divide(int divide) {
         boolean canDivideInputs = true;
         boolean canDivideOutputs = true;
 
-        for (int x = 0; x < this.craftingSlots.length; x++) {
-            ItemStack stack = this.craftingSlots[x].getStack();
-            if (!stack.isEmpty() && stack.getCount() % divide != 0) {
+        for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
+            IAEStack<?> stack = this.crafting.getAEStackInSlot(x);
+            if (stack != null && stack.getStackSize() % divide != 0) {
                 canDivideInputs = false;
             }
         }
-        for (final OptionalSlotFake outputSlot : this.outputSlots) {
-            final ItemStack out = outputSlot.getStack();
-            if (!out.isEmpty() && out.getCount() % divide != 0) {
+        for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
+            IAEStack<?> stack = this.patternOutput.getAEStackInSlot(x);
+            if (stack != null && stack.getStackSize() % divide != 0) {
                 canDivideOutputs = false;
             }
         }
         if (canDivideInputs && canDivideOutputs) {
-            for (SlotFakeCraftingMatrix craftingSlot : this.craftingSlots) {
-                ItemStack stack = craftingSlot.getStack();
-                if (!stack.isEmpty()) {
-                    craftingSlot.getStack().setCount(stack.getCount() / divide);
+            for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
+                IAEStack<?> stack = this.crafting.getAEStackInSlot(x);
+                if (stack != null) {
+                    stack.setStackSize(stack.getStackSize() / divide);
                 }
             }
-            for (OptionalSlotFake outputSlot : this.outputSlots) {
-                ItemStack stack = outputSlot.getStack();
-                if (!stack.isEmpty()) {
-                    outputSlot.getStack().setCount(stack.getCount() / divide);
+            for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
+                IAEStack<?> stack = this.patternOutput.getAEStackInSlot(x);
+                if (stack != null) {
+                    stack.setStackSize(stack.getStackSize() / divide);
                 }
             }
         }
     }
 
     /**
-     * 澧炲姞鏁伴噺
+     * 增加数量
      */
     public void increase(int increase) {
         boolean canIncreaseInputs = true;
         boolean canIncreaseOutputs = true;
 
-        for (int x = 0; x < this.craftingSlots.length; x++) {
-            ItemStack stack = this.craftingSlots[x].getStack();
-            if (!stack.isEmpty() && stack.getCount() + increase < 1) {
+        for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
+            IAEStack<?> stack = this.crafting.getAEStackInSlot(x);
+            if (stack != null && stack.getStackSize() + increase < 1) {
                 canIncreaseInputs = false;
             }
         }
-        for (final OptionalSlotFake outputSlot : this.outputSlots) {
-            final ItemStack out = outputSlot.getStack();
-            if (!out.isEmpty() && out.getCount() + increase < 1) {
+        for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
+            IAEStack<?> stack = this.patternOutput.getAEStackInSlot(x);
+            if (stack != null && stack.getStackSize() + increase < 1) {
                 canIncreaseOutputs = false;
             }
         }
         if (canIncreaseInputs && canIncreaseOutputs) {
-            for (SlotFakeCraftingMatrix craftingSlot : this.craftingSlots) {
-                ItemStack stack = craftingSlot.getStack();
-                if (!stack.isEmpty()) {
-                    craftingSlot.getStack().setCount(stack.getCount() + increase);
+            for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
+                IAEStack<?> stack = this.crafting.getAEStackInSlot(x);
+                if (stack != null) {
+                    stack.setStackSize(stack.getStackSize() + increase);
                 }
             }
-            for (OptionalSlotFake outputSlot : this.outputSlots) {
-                ItemStack stack = outputSlot.getStack();
-                if (!stack.isEmpty()) {
-                    outputSlot.getStack().setCount(stack.getCount() + increase);
+            for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
+                IAEStack<?> stack = this.patternOutput.getAEStackInSlot(x);
+                if (stack != null) {
+                    stack.setStackSize(stack.getStackSize() + increase);
                 }
             }
         }
     }
 
     /**
-     * 鍑忓皯鏁伴噺
+     * 减少数量
      */
     public void decrease(int decrease) {
         increase(-decrease);
     }
 
     /**
-     * 鏈€澶у寲鏁伴噺
+     * 最大化数量（此操作在 IAEStack 上不适用，因为没有 maxStackSize 限制，保留空实现）
      */
     public void maximizeCount() {
-        boolean canGrowInputs = true;
-        boolean canGrowOutputs = true;
-        int maxInputStackGrowth = 0;
-        int maxOutputStackGrowth = 0;
-
-        for (int x = 0; x < this.craftingSlots.length; x++) {
-            ItemStack stack = this.craftingSlots[x].getStack();
-            if (!stack.isEmpty() && stack.getMaxStackSize() - stack.getCount() > maxInputStackGrowth) {
-                maxInputStackGrowth = stack.getMaxStackSize() - stack.getCount();
-            }
-            if (!stack.isEmpty() && stack.getCount() + maxInputStackGrowth > stack.getMaxStackSize()) {
-                canGrowInputs = false;
-            }
-        }
-        for (final OptionalSlotFake outputSlot : this.outputSlots) {
-            final ItemStack out = outputSlot.getStack();
-            maxOutputStackGrowth = out.getMaxStackSize() - out.getCount();
-            if (!out.isEmpty() && out.getCount() + maxOutputStackGrowth > out.getMaxStackSize()) {
-                canGrowOutputs = false;
-            }
-        }
-        if (canGrowInputs && canGrowOutputs) {
-            int maxStackGrowth = Math.min(maxInputStackGrowth, maxOutputStackGrowth);
-            for (SlotFakeCraftingMatrix craftingSlot : this.craftingSlots) {
-                ItemStack stack = craftingSlot.getStack();
-                if (!stack.isEmpty()) {
-                    craftingSlot.getStack().setCount(stack.getCount() + maxStackGrowth);
-                }
-            }
-            for (OptionalSlotFake outputSlot : this.outputSlots) {
-                ItemStack stack = outputSlot.getStack();
-                if (!stack.isEmpty()) {
-                    outputSlot.getStack().setCount(stack.getCount() + maxStackGrowth);
-                }
-            }
-        }
+        // IAEStack 没有 maxStackSize 的概念，此操作不再适用。
     }
 
-    // ========== PlacePattern锛堝皢缂栫爜鏍锋澘鏀惧叆鎺ュ彛锛?==========
+    // ========== PlacePattern（将编码样板放入接口） ==========
 
     /**
-     * 灏嗙紪鐮佽緭鍑烘Ы涓殑鏍锋澘鏀惧叆鎸囧畾鎺ュ彛鐨勬寚瀹氭Ы浣嶃€?
-     * 鏉′欢锛氱洰鏍囨Ы涓虹┖銆佺紪鐮佽緭鍑烘湁鏍锋澘銆佹帴鍙ｄ腑涓嶅瓨鍦ㄥ畬鍏ㄧ浉鍚岀殑鏍锋澘銆?
+     * 将编码输出槽中的样板放入指定接口的指定槽位。
+     * 条件：目标槽为空、编码输出有样板、接口中不存在完全相同的样板。
      *
-     * @param interfaceId 鎺ュ彛缁堢涓殑鎺ュ彛 ID
-     * @param slot        鐩爣鎺ュ彛鐨勬Ы浣嶇储寮?
+     * @param interfaceId 接口终端中的接口 ID
+     * @param slot        目标接口的槽位索引
      */
     public void placePattern(long interfaceId, int slot) {
         final IItemHandler interfaceHandler = this.getInterfacePatternHandlerById(interfaceId);
@@ -905,36 +879,36 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             return;
         }
         final ItemStack pattern = this.patternSlotOUT.getStack();
-        // 妫€鏌ユ帴鍙ｄ腑鏄惁宸叉湁瀹屽叏鐩稿悓鐨勬牱鏉?
+        // 检查接口中是否已有完全相同的样板
         for (int i = 0; i < interfaceHandler.getSlots(); i++) {
             final ItemStack existing = interfaceHandler.getStackInSlot(i);
             if (!existing.isEmpty() && Platform.itemComparisons().isSameItem(existing, pattern)) {
                 return;
             }
         }
-        // 鏀惧叆鏍锋澘骞舵竻绌虹紪鐮佽緭鍑?
+        // 放入样板并清空编码输出
         ItemHandlerUtil.setStackInSlot(interfaceHandler, slot, pattern.copy());
         this.patternSlotOUT.putStack(ItemStack.EMPTY);
         this.detectAndSendChanges();
     }
 
     /**
-     * 鑾峰彇缂栫爜杈撳嚭妲?
+     * 获取编码输出槽
      */
     public SlotRestrictedInput getPatternSlotOUT() {
         return this.patternSlotOUT;
     }
 
-    // ========== DoubleStacks锛堢紪鐮侀潰鏉跨炕鍊?鍑忓崐锛?==========
+    // ========== DoubleStacks（编码面板翻倍/减半） ==========
 
     /**
-     * 瀵圭紪鐮侀潰鏉夸笂鐨勮緭鍏?杈撳嚭杩涜缈诲€嶆垨鍑忓崐銆?
-     * 浣嶆帺鐮佸弬鏁帮細
-     *   bit 0 = shift锛堝揩閫熸ā寮忥細脳8/梅8锛屽惁鍒?脳2/梅2锛?
-     *   bit 1 = 鍙抽敭锛堝弽鍚?闄ゆ硶锛?
-     * 浠呭湪澶勭悊妯″紡涓嬬敓鏁堛€?
+     * 对编码面板上的输入/输出进行翻倍或减半。
+     * 位掩码参数：
+     *   bit 0 = shift（快速模式：×8/÷8，否则 ×2/÷2）
+     *   bit 1 = 右键（反向/除法）
+     * 仅在处理模式下生效。
      *
-     * @param val 浣嶆帺鐮佸弬鏁?
+     * @param val 位掩码参数
      */
     public void doubleStacks(int val) {
         if (this.isCraftingMode()) {
@@ -945,65 +919,65 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         int multi = fast ? 8 : 2;
 
         if (backwards) {
-            if (canDivide(this.craftingSlots, multi) && canDivide(this.outputSlots, multi)) {
-                divideSlots(this.craftingSlots, multi);
-                divideSlots(this.outputSlots, multi);
+            if (canDivideAEInv(this.crafting, multi) && canDivideAEInv(this.patternOutput, multi)) {
+                divideAEInv(this.crafting, multi);
+                divideAEInv(this.patternOutput, multi);
             }
         } else {
-            if (canMultiply(this.craftingSlots, multi) && canMultiply(this.outputSlots, multi)) {
-                multiplySlots(this.craftingSlots, multi);
-                multiplySlots(this.outputSlots, multi);
+            if (canMultiplyAEInv(this.crafting, multi) && canMultiplyAEInv(this.patternOutput, multi)) {
+                multiplyAEInv(this.crafting, multi);
+                multiplyAEInv(this.patternOutput, multi);
             }
         }
         this.detectAndSendChanges();
     }
 
-    private boolean canMultiply(net.minecraft.inventory.Slot[] slots, int multi) {
-        for (net.minecraft.inventory.Slot s : slots) {
-            ItemStack st = s.getStack();
-            if (!st.isEmpty() && (long) st.getCount() * multi > Integer.MAX_VALUE) {
+    private boolean canMultiplyAEInv(IAEStackInventory inv, int multi) {
+        for (int i = 0; i < inv.getSizeInventory(); i++) {
+            IAEStack<?> stack = inv.getAEStackInSlot(i);
+            if (stack != null && stack.getStackSize() * multi > Integer.MAX_VALUE) {
                 return false;
             }
         }
         return true;
     }
 
-    private boolean canDivide(net.minecraft.inventory.Slot[] slots, int multi) {
-        for (net.minecraft.inventory.Slot s : slots) {
-            ItemStack st = s.getStack();
-            if (!st.isEmpty() && st.getCount() / multi <= 0) {
+    private boolean canDivideAEInv(IAEStackInventory inv, int multi) {
+        for (int i = 0; i < inv.getSizeInventory(); i++) {
+            IAEStack<?> stack = inv.getAEStackInSlot(i);
+            if (stack != null && stack.getStackSize() / multi <= 0) {
                 return false;
             }
         }
         return true;
     }
 
-    private void multiplySlots(net.minecraft.inventory.Slot[] slots, int multi) {
-        for (net.minecraft.inventory.Slot s : slots) {
-            ItemStack st = s.getStack();
-            if (!st.isEmpty()) {
-                st.setCount(st.getCount() * multi);
+    private void multiplyAEInv(IAEStackInventory inv, int multi) {
+        for (int i = 0; i < inv.getSizeInventory(); i++) {
+            IAEStack<?> stack = inv.getAEStackInSlot(i);
+            if (stack != null) {
+                stack.setStackSize(stack.getStackSize() * multi);
             }
         }
     }
 
-    private void divideSlots(net.minecraft.inventory.Slot[] slots, int multi) {
-        for (net.minecraft.inventory.Slot s : slots) {
-            ItemStack st = s.getStack();
-            if (!st.isEmpty()) {
-                st.setCount(st.getCount() / multi);
+    private void divideAEInv(IAEStackInventory inv, int multi) {
+        for (int i = 0; i < inv.getSizeInventory(); i++) {
+            IAEStack<?> stack = inv.getAEStackInSlot(i);
+            if (stack != null) {
+                stack.setStackSize(stack.getStackSize() / multi);
             }
         }
     }
 
-    // ========== InterfaceTerminal.Double锛堟帴鍙ｆ牱鏉跨炕鍊?鍑忓崐锛?==========
+    // ========== InterfaceTerminal.Double（接口样板翻倍/减半） ==========
 
     /**
-     * 瀵规寚瀹氭帴鍙ｄ腑鎵€鏈夊凡缂栫爜鐨勫鐞嗘牱鏉匡紙闈炲悎鎴愭ā寮忥級杩涜缈诲€嶆垨鍑忓崐銆?
-     * 鐩存帴淇敼鏍锋澘鐗╁搧鐨?NBT 鏍囩涓?in/out 鍒楄〃鐨?Count 瀛楁銆?
+     * 对指定接口中所有已编码的处理样板（非合成模式）进行翻倍或减半。
+     * 直接修改样板物品的 NBT 标签中 in/out 列表的 Count 字段。
      *
-     * @param val         浣嶆帺鐮佸弬鏁帮紙bit 0=shift蹇€? bit 1=鍙抽敭鍙嶅悜锛?
-     * @param interfaceId 鎺ュ彛缁堢涓殑鎺ュ彛 ID
+     * @param val         位掩码参数（bit 0=shift快速, bit 1=右键反向）
+     * @param interfaceId 接口终端中的接口 ID
      */
     public void doubleInterfacePatterns(int val, long interfaceId) {
         final IItemHandler handler = this.getInterfacePatternHandlerById(interfaceId);
@@ -1042,8 +1016,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 涔樹互鎸囧畾鍊嶆暟锛氫慨鏀规牱鏉?NBT 涓墍鏈?in/out 鏉＄洰鐨?Count 瀛楁
-     * @return 鏄惁鎵€鏈夋潯鐩兘鑳藉畨鍏ㄤ箻浠ワ紙涓嶆孩鍑?Integer.MAX_VALUE锛?
+     * 乘以指定倍数：修改样板 NBT 中所有 in/out 条目的 Count 字段
+     * @return 是否所有条目都能安全乘以（不溢出 Integer.MAX_VALUE）
      */
     private boolean multiplyPatternNBT(ItemStack pattern, int multi) {
         NBTTagCompound tag = pattern.getTagCompound();
@@ -1060,8 +1034,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 闄や互鎸囧畾闄ゆ暟锛氫慨鏀规牱鏉?NBT 涓墍鏈?in/out 鏉＄洰鐨?Count 瀛楁
-     * @return 鏄惁鎵€鏈夋潯鐩兘鑳藉畨鍏ㄩ櫎浠ワ紙缁撴灉 >= 1锛?
+     * 除以指定除数：修改样板 NBT 中所有 in/out 条目的 Count 字段
+     * @return 是否所有条目都能安全除以（结果 >= 1）
      */
     private boolean dividePatternNBT(ItemStack pattern, int multi) {
         NBTTagCompound tag = pattern.getTagCompound();
@@ -1078,7 +1052,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 浠?NBT 鏉＄洰涓幏鍙栫墿鍝佹暟閲忥紝鍏煎 stackSize 鎵╁睍瀛楁
+     * 从 NBT 条目中获取物品数量，兼容 stackSize 扩展字段
      */
     private int getCountFromNBT(NBTTagCompound entry) {
         if (entry.hasKey("stackSize")) {
@@ -1088,7 +1062,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 灏嗙墿鍝佹暟閲忓啓鍥?NBT 鏉＄洰锛屽ぇ浜?127 鏃跺悓鏃跺啓鍏?stackSize 鎵╁睍瀛楁
+     * 将物品数量写回 NBT 条目，大于 127 时同时写入 stackSize 扩展字段
      */
     private void setCountToNBT(NBTTagCompound entry, int count) {
         entry.setInteger("Count", count);
@@ -1149,21 +1123,21 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         }
     }
 
-    // ========== 杈呭姪鏂规硶 ==========
+    // ========== 辅助方法 ==========
 
     /**
-     * 鑾峰彇缂栫爜鏃剁殑杈撳叆鐗╁搧鍒楄〃銆?
-     * 褰?inverted=false 鏃讹紝浠?craftingSlots锛堣緭鍏ュ尯锛夎幏鍙栵紱
-     * 褰?inverted=true 鏃讹紝浠?outputSlots锛堣緭鍑哄尯褰撲綔杈撳叆锛夎幏鍙栥€?
+     * 获取编码时的输入物品列表。
+     * 当 inverted=false 时，从 crafting（输入区）获取；
+     * 当 inverted=true 时，从 patternOutput（输出区当作输入）获取。
      */
     private ItemStack[] getInputs() {
         ItemStack[] result;
         if (this.inverted && !this.isCraftingMode()) {
-            result = getItemsFromOutputSlots();
+            result = getItemsFromOutputInv();
         } else {
-            result = getItemsFromCraftingSlots();
+            result = getItemsFromCraftingInv();
         }
-        // 鍚堝苟妯″紡锛氬鐞嗘ā寮忎笅鍚堝苟鍚岀被杈撳叆
+        // 合并模式：处理模式下合并同类输入
         if (this.combine && !this.isCraftingMode() && result != null) {
             result = combineItems(result);
         }
@@ -1171,9 +1145,9 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 鑾峰彇缂栫爜鏃剁殑杈撳嚭鐗╁搧鍒楄〃銆?
-     * 褰?inverted=false 鏃讹紝浠?outputSlots锛堣緭鍑哄尯锛夎幏鍙栵紱
-     * 褰?inverted=true 鏃讹紝浠?craftingSlots锛堣緭鍏ュ尯褰撲綔杈撳嚭锛夎幏鍙栥€?
+     * 获取编码时的输出物品列表。
+     * 当 inverted=false 时，从 patternOutput（输出区）获取；
+     * 当 inverted=true 时，从 crafting（输入区当作输出）获取。
      */
     private ItemStack[] getOutputs() {
         if (this.isCraftingMode()) {
@@ -1184,11 +1158,11 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         } else {
             ItemStack[] result;
             if (this.inverted) {
-                result = getItemsFromCraftingSlots();
+                result = getItemsFromCraftingInv();
             } else {
-                result = getItemsFromOutputSlots();
+                result = getItemsFromOutputInv();
             }
-            // 鍚堝苟妯″紡锛氬鐞嗘ā寮忎笅鍚堝苟鍚岀被杈撳嚭
+            // 合并模式：处理模式下合并同类输出
             if (this.combine && result != null) {
                 result = combineItems(result);
             }
@@ -1197,12 +1171,13 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         return null;
     }
 
-    private ItemStack[] getItemsFromCraftingSlots() {
-        final int slotCount = this.isCraftingMode() ? CRAFTING_INPUT_SLOTS : this.craftingSlots.length;
+    private ItemStack[] getItemsFromCraftingInv() {
+        final int slotCount = this.isCraftingMode() ? CRAFTING_INPUT_SLOTS : this.crafting.getSizeInventory();
         final ItemStack[] input = new ItemStack[slotCount];
         boolean hasValue = false;
         for (int x = 0; x < slotCount; x++) {
-            input[x] = this.craftingSlots[x].getStack();
+            final IAEStack<?> aeStack = this.crafting.getAEStackInSlot(x);
+            input[x] = aeStack != null ? this.toPatternTerminalStack(aeStack) : ItemStack.EMPTY;
             if (!input[x].isEmpty()) {
                 hasValue = true;
             }
@@ -1210,14 +1185,13 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         return hasValue ? input : null;
     }
 
-    private ItemStack[] getItemsFromOutputSlots() {
-        final ItemStack[] result = new ItemStack[this.outputSlots.length];
+    private ItemStack[] getItemsFromOutputInv() {
+        final ItemStack[] result = new ItemStack[this.patternOutput.getSizeInventory()];
         boolean hasValue = false;
-        for (int i = 0; i < this.outputSlots.length; i++) {
-            final OptionalSlotFake outputSlot = this.outputSlots[i];
-            final ItemStack out = outputSlot.getStack();
-            if (!out.isEmpty() && out.getCount() > 0) {
-                result[i] = out;
+        for (int i = 0; i < this.patternOutput.getSizeInventory(); i++) {
+            final IAEStack<?> aeStack = this.patternOutput.getAEStackInSlot(i);
+            if (aeStack != null && aeStack.getStackSize() > 0) {
+                result[i] = this.toPatternTerminalStack(aeStack);
                 hasValue = true;
             } else {
                 result[i] = ItemStack.EMPTY;
@@ -1227,8 +1201,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 鍚堝苟鐩稿悓鐗╁搧锛氬皢 ItemStack 鏁扮粍涓?Item+NBT 鐩稿悓鐨勬潯鐩悎骞朵负涓€涓紝鏁伴噺绱姞銆?
-     * 鐢ㄤ簬 Combine锛堝悎骞舵ā寮忥級涓嬬殑缂栫爜銆?
+     * 合并相同物品：将 ItemStack 数组中 Item+NBT 相同的条目合并为一个，数量累加。
+     * 用于 Combine（合并模式）下的编码。
      */
     private ItemStack[] combineItems(ItemStack[] items) {
         final List<ItemStack> merged = new ArrayList<>();
@@ -1256,7 +1230,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         final InventoryCrafting ic = new InventoryCrafting(new ContainerNull(), 3, 3);
 
         for (int x = 0; x < ic.getSizeInventory(); x++) {
-            ic.setInventorySlotContents(x, this.crafting.getStackInSlot(x));
+            final IAEStack<?> aeStack = this.crafting.getAEStackInSlot(x);
+            ic.setInventorySlotContents(x, aeStack != null ? this.toPatternTerminalStack(aeStack) : ItemStack.EMPTY);
         }
 
         if (this.currentRecipe == null || !this.currentRecipe.matches(ic, world)) {
@@ -1303,7 +1278,6 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         final NBTTagCompound c = new NBTTagCompound();
         if (!i.isEmpty()) {
             // FluidDummyItem（流体占位物品）：使用泛型格式序列化为流体
-            // FluidDummyItem（流体占位物品）：使用泛型格式序列化为流体
             if (i.getItem() instanceof FluidDummyItem fluidDummy) {
                 FluidStack fs = fluidDummy.getFluidStack(i);
                 if (fs != null) {
@@ -1313,7 +1287,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                     }
                 }
             }
-            // 娴佷綋瀹瑰櫒锛堟《绛夛級锛氭彁鍙栨祦浣撳悗浣跨敤娉涘瀷鏍煎紡搴忓垪鍖?
+            // 流体容器（桶等）：提取流体后使用泛型格式序列化
             FluidStack fluid = FluidUtil.getFluidContained(i);
             if (fluid != null && fluid.amount > 0) {
                 IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(fluid);
@@ -1322,7 +1296,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                     return aeFluid.toNBTGeneric();
                 }
             }
-            // 鏅€氱墿鍝侊細浣跨敤鏍囧噯搴忓垪鍖?
+            // 普通物品：使用标准序列化
             i.writeToNBT(c);
         }
         return c;
@@ -1365,14 +1339,30 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         return compacted.isEmpty() ? null : compacted.toArray(new ItemStack[0]);
     }
 
-    // ========== 鐢熷懡鍛ㄦ湡鏂规硶瑕嗗啓 ==========
+    // ========== 公共访问器（供 GUI 层使用） ==========
+
+    /**
+     * 获取 crafting 输入 IAEStackInventory，供 GUI 层创建 VirtualMEPatternSlot。
+     */
+    public IAEStackInventory getCraftingAEInv() {
+        return this.crafting;
+    }
+
+    /**
+     * 获取 output IAEStackInventory，供 GUI 层创建 VirtualMEPatternSlot。
+     */
+    public IAEStackInventory getOutputAEInv() {
+        return this.patternOutput;
+    }
+
+    // ========== 生命周期方法覆写 ==========
 
     @Override
     public void saveChanges() {
         if (Platform.isServer()) {
             NBTTagCompound tag = this.wirelessHelper.saveUpgradesToNBT();
 
-            // 淇濆瓨鏍锋澘缂栧啓鏁版嵁
+            // 保存样板编写数据
             this.crafting.writeToNBT(tag, NBT_CRAFTING_GRID);
             this.patternOutput.writeToNBT(tag, NBT_OUTPUT);
             this.patternSlots.writeToNBT(tag, NBT_PATTERNS);
@@ -1404,41 +1394,154 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             if (data.hasKey("beSubstitute")) {
                 this.beSubstitute = data.getBoolean("beSubstitute");
             }
-            if (data.hasKey("isInverted")) {
-                this.inverted = data.getBoolean("isInverted");
-            }
             if (data.hasKey("isCombine")) {
                 this.combine = data.getBoolean("isCombine");
             }
-            this.updateOrderOfOutputSlots();
-            this.refreshPatternPreview();
+            if (data.hasKey("isInverted")) {
+                this.inverted = data.getBoolean("isInverted");
+            }
+        }
+        this.updateOrderOfOutputSlots();
+    }
+
+    /**
+     * 校验并加载样板槽位：仅在 NBT 中数据有效时加载（空白样板/编码样板/无物品）
+     */
+    private void loadValidPatternSlots(NBTTagCompound data, String key) {
+        AppEngInternalInventory tmpInv = new AppEngInternalInventory(null, 2);
+        tmpInv.readFromNBT(data, key);
+        for (int i = 0; i < 2; i++) {
+            final ItemStack stack = tmpInv.getStackInSlot(i);
+            if (!stack.isEmpty() && !isPattern(stack)) {
+                // 非法物品：丢弃
+                continue;
+            }
+            this.patternSlots.setStackInSlot(i, stack);
         }
     }
 
-    @Override
-    public void putStackInSlot(int slotID, ItemStack stack) {
-        super.putStackInSlot(slotID, stack);
-        this.refreshPatternPreview();
+    /**
+     * 将 IAEStack 转换为 ItemStack 表示形式（用于样板编码）。
+     * IAEItemStack → ItemStack；
+     * IAEFluidStack → FluidDummyItem ItemStack。
+     */
+    private ItemStack toPatternTerminalStack(final IAEStack<?> aeStack) {
+        if (aeStack == null) {
+            return ItemStack.EMPTY;
+        }
+        return aeStack.asItemStackRepresentation();
     }
+
+    /**
+     * 从编码样板中还原输入/输出到编码面板。
+     * 如果 patternSlotOUT 中有编码样板，则读取 in/out NBT 并放入 crafting/patternOutput。
+     */
+    @SuppressWarnings("unchecked")
+    private void restoreEncodedPatternContents() {
+        final ItemStack encodedPattern = this.patternSlotOUT.getStack();
+        if (encodedPattern.isEmpty()) {
+            return;
+        }
+        if (!(encodedPattern.getItem() instanceof ICraftingPatternItem patternItem)) {
+            return;
+        }
+
+        final World world = this.getPlayerInv().player.world;
+        final ICraftingPatternDetails details = patternItem.getPatternForItem(encodedPattern, world);
+        if (details == null) {
+            return;
+        }
+
+        this.beginBulkPatternUpdate();
+        try {
+            this.setCraftingMode(details.isCraftable());
+            this.setSubstitute(details.canSubstitute());
+            if (details.canBeSubstitute() != null) {
+                this.setBeSubstitute(details.canBeSubstitute());
+            }
+
+            // 还原输入
+            final IAEStack<?>[] inputs = (IAEStack<?>[]) details.getInputs();
+            for (int i = 0; i < this.crafting.getSizeInventory(); i++) {
+                if (inputs != null && i < inputs.length && inputs[i] != null) {
+                    this.crafting.putAEStackInSlot(i, inputs[i].copy());
+                } else {
+                    this.crafting.putAEStackInSlot(i, null);
+                }
+            }
+
+            // 还原输出
+            final IAEStack<?>[] outputs = (IAEStack<?>[]) details.getOutputs();
+            for (int i = 0; i < this.patternOutput.getSizeInventory(); i++) {
+                if (outputs != null && i < outputs.length && outputs[i] != null) {
+                    this.patternOutput.putAEStackInSlot(i, outputs[i].copy());
+                } else {
+                    this.patternOutput.putAEStackInSlot(i, null);
+                }
+            }
+
+            this.markBulkPatternChanged(true);
+        } finally {
+            this.endBulkPatternUpdate(false);
+        }
+    }
+
+    /**
+     * 清空 crafting 和 patternOutput 的内容。
+     */
+    private void clearPatternContents() {
+        for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
+            this.crafting.putAEStackInSlot(x, null);
+        }
+        for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
+            this.patternOutput.putAEStackInSlot(x, null);
+        }
+    }
+
+    // ========== detectAndSendChanges ==========
 
     @Override
     public void detectAndSendChanges() {
         super.detectAndSendChanges();
+
         if (Platform.isServer()) {
-            // ===== 鍚屾鎺掑簭/瑙嗗浘璁剧疆鍒板鎴风 =====
+            // 虚拟槽位同步：crafting 输入
+            this.updateVirtualSlots(StorageName.CRAFTING_INPUT, this.crafting, this.craftingClientSlots);
+            // 虚拟槽位同步：pattern 输出
+            this.updateVirtualSlots(StorageName.CRAFTING_OUTPUT, this.patternOutput, this.outputClientSlots);
+
+            // ME 网络库存同步
+            if (this.meNeedListUpdate) {
+                this.meNeedListUpdate = false;
+                // 全量更新
+                for (var entry : this.meMonitors.entrySet()) {
+                    this.sendFullList(entry.getKey(), entry.getValue());
+                }
+            } else {
+                // 增量更新
+                for (var entry : this.meUpdateQueue.entrySet()) {
+                    final Set<IAEStack<?>> set = entry.getValue();
+                    if (!set.isEmpty()) {
+                        this.sendIncrementalUpdate(entry.getKey(), set);
+                        set.clear();
+                    }
+                }
+            }
+
+            // 同步配置（排序等设置）
             if (this.serverCM != null) {
                 for (final Settings set : this.serverCM.getSettings()) {
                     final Enum<?> sideLocal = this.serverCM.getSetting(set);
                     final Enum<?> sideRemote = this.clientCM.getSetting(set);
-
                     if (sideLocal != sideRemote) {
                         this.clientCM.putSetting(set, sideLocal);
                         for (final IContainerListener crafter : this.listeners) {
                             if (crafter instanceof EntityPlayerMP) {
                                 try {
-                                    NetworkHandler.instance().sendTo(
-                                            new PacketValueConfig(set.name(), sideLocal.name()),
-                                            (EntityPlayerMP) crafter);
+                                    NetworkHandler.instance()
+                                            .sendTo(
+                                                    new PacketValueConfig(set.name(), sideLocal.name()),
+                                                    (EntityPlayerMP) crafter);
                                 } catch (final IOException e) {
                                     AELog.debug(e);
                                 }
@@ -1447,289 +1550,156 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                     }
                 }
             }
-
-            NBTTagCompound nbtTagCompound = guiObject.getItemStack().getTagCompound();
-            if (nbtTagCompound != null) {
-                // 鍚屾鍚堟垚妯″紡
-                if (nbtTagCompound.hasKey("isCraftingMode")) {
-                    boolean crafting = nbtTagCompound.getBoolean("isCraftingMode");
-                    if (this.isCraftingMode() != crafting) {
-                        this.setCraftingMode(crafting);
-                    }
-                } else {
-                    nbtTagCompound.setBoolean("isCraftingMode", false);
-                }
-                // 鍚屾鏇夸唬鍝佹ā寮?
-                if (nbtTagCompound.hasKey("isSubstitute")) {
-                    boolean sub = nbtTagCompound.getBoolean("isSubstitute");
-                    if (this.isSubstitute() != sub) {
-                        this.setSubstitute(sub);
-                    }
-                } else {
-                    nbtTagCompound.setBoolean("isSubstitute", false);
-                }
-                // 鍚屾缁濆鏇挎崲妯″紡锛坆eSubstitute锛?
-                if (nbtTagCompound.hasKey("beSubstitute")) {
-                    boolean beSub = nbtTagCompound.getBoolean("beSubstitute");
-                    if (this.isBeSubstitute() != beSub) {
-                        this.setBeSubstitute(beSub);
-                    }
-                } else {
-                    nbtTagCompound.setBoolean("beSubstitute", false);
-                }
-                // 鍚屾鍙嶈浆妯″紡锛坕nverted锛?
-                if (nbtTagCompound.hasKey("isInverted")) {
-                    boolean inv = nbtTagCompound.getBoolean("isInverted");
-                    if (this.isInverted() != inv) {
-                        this.setInverted(inv);
-                    }
-                } else {
-                    nbtTagCompound.setBoolean("isInverted", false);
-                }
-                // 鍚屾鍚堝苟妯″紡锛坈ombine锛?
-                if (nbtTagCompound.hasKey("isCombine")) {
-                    boolean comb = nbtTagCompound.getBoolean("isCombine");
-                    if (this.isCombine() != comb) {
-                        this.setCombine(comb);
-                    }
-                } else {
-                    nbtTagCompound.setBoolean("isCombine", false);
-                }
-            } else {
-                nbtTagCompound = new NBTTagCompound();
-                nbtTagCompound.setBoolean("isCraftingMode", false);
-                nbtTagCompound.setBoolean("isSubstitute", false);
-                nbtTagCompound.setBoolean("beSubstitute", false);
-                nbtTagCompound.setBoolean("isInverted", false);
-                nbtTagCompound.setBoolean("isCombine", false);
-                guiObject.getItemStack().setTagCompound(nbtTagCompound);
-            }
-
-            // ===== ME 缃戠粶搴撳瓨鏇存柊鍙戦€侀€昏緫 =====
-            if (this.meNeedListUpdate) {
-                // 鍏ㄩ噺閲嶅彂鎵€鏈夌被鍨嬬殑搴撳瓨
-                this.meNeedListUpdate = false;
-                for (final Object c : this.listeners) {
-                    if (c instanceof EntityPlayerMP player) {
-                        this.queueMEInventory(player);
-                    }
-                }
-            } else {
-                // 澧為噺鍙戦€佸彉鏇?
-                try {
-                    final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
-
-                    for (var entry : this.meUpdateQueue.entrySet()) {
-                        IAEStackType type = entry.getKey();
-                        IMEMonitor<?> mon = this.meMonitors.get(type);
-                        if (mon == null) {
-                            continue;
-                        }
-                        IItemList<?> storageList = mon.getStorageList();
-                        for (IAEStack<?> aes : entry.getValue()) {
-                            final IAEStack<?> send = storageList.findPreciseGeneric(aes);
-                            if (send == null) {
-                                aes.setStackSize(0);
-                                piu.appendStack(aes);
-                            } else {
-                                piu.appendStack(send);
-                            }
-                        }
-                    }
-
-                    if (!piu.isEmpty()) {
-                        for (var queue : this.meUpdateQueue.values()) {
-                            queue.clear();
-                        }
-                        for (final Object c : this.listeners) {
-                            if (c instanceof EntityPlayer) {
-                                NetworkHandler.instance().sendTo(piu, (EntityPlayerMP) c);
-                            }
-                        }
-                    }
-                } catch (final IOException e) {
-                    AELog.debug(e);
-                }
-            }
-        }
-    }
-
-    /**
-     * 鍚戞寚瀹氱帺瀹跺彂閫佸畬鏁寸殑 ME 缃戠粶搴撳瓨
-     */
-    @Override
-    public void onUpdate(final String field, final Object oldValue, final Object newValue) {
-        super.onUpdate(field, oldValue, newValue);
-
-        if ("craftingMode".equals(field)) {
-            this.refreshPatternPreview();
-            this.updateOrderOfOutputSlots();
-        } else if ("activePage".equals(field)) {
-            this.updateOrderOfOutputSlots();
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void queueMEInventory(final EntityPlayerMP player) {
+    private <T extends IAEStack<T>> void sendFullList(IAEStackType<?> type, IMEMonitor<?> mon) {
         try {
-            PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
-
-            for (var monitor : this.meMonitors.values()) {
-                IItemList<?> storageList = monitor.getStorageList();
-                for (final IAEStackBase stackBase : (IItemList<IAEStackBase>) storageList) {
-                    final IAEStack<?> send = (IAEStack<?>) stackBase;
-                    try {
-                        piu.appendStack(send);
-                    } catch (final BufferOverflowException boe) {
-                        NetworkHandler.instance().sendTo(piu, player);
-                        piu = new PacketMEInventoryUpdate();
-                        piu.appendStack(send);
-                    }
-                }
+            final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
+            IItemList<T> list = (IItemList<T>) mon.getStorageList();
+            for (final T stack : list) {
+                piu.appendItem(stack);
             }
 
-            NetworkHandler.instance().sendTo(piu, player);
-        } catch (final IOException e) {
+            for (final IContainerListener c : this.listeners) {
+                if (c instanceof EntityPlayer ep && ep instanceof EntityPlayerMP mp) {
+                    NetworkHandler.instance().sendTo(piu, mp);
+                }
+            }
+        } catch (final IOException | BufferOverflowException e) {
             AELog.debug(e);
         }
     }
 
-    @Override
-    public void addListener(final IContainerListener c) {
-        super.addListener(c);
-
-        // 鏂扮洃鍚€呭姞鍏ユ椂锛屽彂閫佸畬鏁寸殑 ME 搴撳瓨
-        if (Platform.isServer() && c instanceof EntityPlayerMP player) {
-            this.queueMEInventory(player);
-        }
-    }
-
-    @Override
-    public void removeListener(final IContainerListener c) {
-        super.removeListener(c);
-
-        if (this.listeners.isEmpty()) {
-            for (IMEMonitor<?> mon : this.meMonitors.values()) {
-                mon.removeListener(this);
+    @SuppressWarnings("unchecked")
+    private <T extends IAEStack<T>> void sendIncrementalUpdate(IAEStackType<?> type, Set<IAEStack<?>> changes) {
+        try {
+            final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
+            for (IAEStack<?> stack : changes) {
+                piu.appendItem((T) stack);
             }
+
+            for (final IContainerListener c : this.listeners) {
+                if (c instanceof EntityPlayer ep && ep instanceof EntityPlayerMP mp) {
+                    NetworkHandler.instance().sendTo(piu, mp);
+                }
+            }
+        } catch (final IOException | BufferOverflowException e) {
+            AELog.debug(e);
         }
     }
+
+    // ========== onContainerClosed ==========
 
     @Override
     public void onContainerClosed(final EntityPlayer player) {
         super.onContainerClosed(player);
-        for (IMEMonitor<?> mon : this.meMonitors.values()) {
-            mon.removeListener(this);
+
+        // 清理 ME monitor 监听
+        for (var entry : this.meMonitors.entrySet()) {
+            entry.getValue().removeListener(this);
         }
+        this.meMonitors.clear();
+        this.meUpdateQueue.clear();
+
+        // 保存样板数据
+        this.saveChanges();
     }
+
+    // ========== onChangeInventory ==========
 
     @Override
-    public void onChangeInventory(final IItemHandler inv, final int slot, final InvOperation mc,
-            final ItemStack removedStack, final ItemStack newStack) {
-        // 澶勭悊鍚堟垚缃戞牸鍙樻洿
-        if (this.isBulkPatternUpdating()) {
-            if (inv == this.crafting) {
-                this.markBulkPatternChanged(true);
-            } else if (inv == this.patternOutput || inv == this.patternSlots) {
-                this.markBulkPatternChanged(false);
+    public void onChangeInventory(IItemHandler inv, int slot, InvOperation mc, ItemStack removed, ItemStack added) {
+        if (inv == this.patternSlots) {
+            // 编码样板输出槽变化时，还原已编码内容
+            if (slot == 1) {
+                this.restoreEncodedPatternContents();
             }
-            return;
         }
-
-        if (inv == this.patternSlots && slot == 1) {
-            this.restoreEncodedPatternContents();
-            return;
-        }
-
-        if (inv == this.crafting) {
-            this.fixCraftingRecipes();
-            this.refreshPatternPreview();
-            this.saveChanges();
-        } else if (inv == this.patternOutput || inv == this.patternSlots) {
-            this.saveChanges();
-        }
-        // 澶勭悊鏍锋澘妲界殑鍙樻洿锛氬綋鏀惧叆宸茬紪鐮佺殑鏍锋澘鏃讹紝鑷姩鍔犺浇鍏跺唴瀹瑰埌缂栧啓缃戞牸
     }
 
-    private void restoreEncodedPatternContents() {
-        this.beginBulkPatternUpdate();
+    // ========== PacketValueConfig 处理 ==========
+
+    @Override
+    public void onUpdate(final String field, final String value) {
+        super.onUpdate(field, value);
         try {
-            this.clearPatternContents();
-
-            final ItemStack patternStack = this.patternSlots.getStackInSlot(1);
-            if (patternStack.isEmpty() || !(patternStack.getItem() instanceof ICraftingPatternItem pattern)) {
-                this.markBulkPatternChanged(true);
-                return;
+            switch (field) {
+                case "PatternTerminal.CraftMode":
+                    this.setCraftingMode("1".equals(value));
+                    break;
+                case "PatternTerminal.Substitute":
+                    this.setSubstitute("1".equals(value));
+                    break;
+                case "PatternTerminal.BeSubstitute":
+                    this.setBeSubstitute("1".equals(value));
+                    break;
+                case "PatternTerminal.Combine":
+                    this.setCombine("1".equals(value));
+                    break;
+                case "PatternTerminal.Inverted":
+                    this.setInverted("1".equals(value));
+                    break;
+                case "PatternTerminal.Encode":
+                    this.encode();
+                    break;
+                case "PatternTerminal.Clear":
+                    this.clear();
+                    break;
+                case "PatternTerminal.Multiply":
+                    this.multiply(Integer.parseInt(value));
+                    break;
+                case "PatternTerminal.Divide":
+                    this.divide(Integer.parseInt(value));
+                    break;
+                case "PatternTerminal.Increase":
+                    this.increase(Integer.parseInt(value));
+                    break;
+                case "PatternTerminal.Decrease":
+                    this.decrease(Integer.parseInt(value));
+                    break;
+                case "PatternTerminal.Double":
+                    this.doubleStacks(Integer.parseInt(value));
+                    break;
+                case "PatternTerminal.EncodeAndMoveToInventory":
+                    this.encodeAndMoveToInventory();
+                    break;
+                case "PatternTerminal.MaximizeCount":
+                    this.maximizeCount();
+                    break;
+                case "PatternTerminal.ActivePage":
+                    this.setActivePage(Integer.parseInt(value));
+                    break;
+                case "InterfaceTerminal.PlacePattern": {
+                    String[] parts = value.split(",");
+                    if (parts.length == 2) {
+                        this.placePattern(Long.parseLong(parts[0]), Integer.parseInt(parts[1]));
+                    }
+                    break;
+                }
+                case "InterfaceTerminal.Double": {
+                    String[] parts = value.split(",");
+                    if (parts.length == 2) {
+                        this.doubleInterfacePatterns(Integer.parseInt(parts[0]), Long.parseLong(parts[1]));
+                    }
+                    break;
+                }
+                default:
+                    // 排序/视图配置更新
+                    if (Platform.isServer()) {
+                        for (final Settings set : this.serverCM.getSettings()) {
+                            if (set.name().equals(field)) {
+                                final Enum<?> enumVal = Platform.valueOf(set.getDefault().getDeclaringClass(), value);
+                                this.serverCM.putSetting(set, enumVal);
+                                break;
+                            }
+                        }
+                    }
+                    break;
             }
-
-            final ICraftingPatternDetails details = pattern.getPatternForItem(patternStack, this.getPlayerInv().player.world);
-            if (details == null) {
-                this.markBulkPatternChanged(true);
-                return;
-            }
-
-            this.setCraftingMode(details.isCraftable());
-            this.setSubstitute(details.canSubstitute());
-
-            final IAEStack<?>[] inputs = details.getAEInputs();
-            for (int x = 0; x < this.crafting.getSlots(); x++) {
-                final IAEStack<?> item = inputs != null && x < inputs.length ? inputs[x] : null;
-                this.setStackIfChanged(this.crafting, x, this.toPatternTerminalStack(item));
-            }
-
-            final IAEStack<?>[] outputs = details.getAEOutputs();
-            for (int x = 0; x < this.patternOutput.getSlots(); x++) {
-                final IAEStack<?> item = outputs != null && x < outputs.length ? outputs[x] : null;
-                this.setStackIfChanged(this.patternOutput, x, this.toPatternTerminalStack(item));
-            }
-        } finally {
-            this.endBulkPatternUpdate(false);
+        } catch (NumberFormatException e) {
+            AELog.debug(e);
         }
-    }
-
-    private void clearPatternContents() {
-        for (int x = 0; x < this.crafting.getSlots(); x++) {
-            this.setStackIfChanged(this.crafting, x, ItemStack.EMPTY);
-        }
-        for (int x = 0; x < this.patternOutput.getSlots(); x++) {
-            this.setStackIfChanged(this.patternOutput, x, ItemStack.EMPTY);
-        }
-    }
-
-    private void setStackIfChanged(final IItemHandler inv, final int slot, final ItemStack desired) {
-        final ItemStack current = inv.getStackInSlot(slot);
-        if (ItemStack.areItemStacksEqual(current, desired)) {
-            return;
-        }
-        ItemHandlerUtil.setStackInSlot(inv, slot, desired);
-    }
-
-    private void loadValidPatternSlots(final NBTTagCompound data, final String key) {
-        final AppEngInternalInventory loadedPatternSlots = new AppEngInternalInventory(null, 2);
-        loadedPatternSlots.readFromNBT(data, key);
-
-        final ItemStack blankPattern = loadedPatternSlots.getStackInSlot(0);
-        if (!blankPattern.isEmpty()
-                && AEApi.instance().definitions().materials().blankPattern().isSameAs(blankPattern)) {
-            this.patternSlots.setStackInSlot(0, blankPattern.copy());
-        }
-
-        final ItemStack encodedPattern = loadedPatternSlots.getStackInSlot(1);
-        if (!encodedPattern.isEmpty() && encodedPattern.getItem() instanceof ICraftingPatternItem) {
-            this.patternSlots.setStackInSlot(1, encodedPattern.copy());
-        }
-    }
-
-    private ItemStack toPatternTerminalStack(final IAEStack<?> stack) {
-        if (stack == null) {
-            return ItemStack.EMPTY;
-        }
-        if (stack instanceof IAEItemStack) {
-            return ((IAEItemStack) stack).createItemStack();
-        }
-        if (stack instanceof IAEFluidStack) {
-            return ((IAEFluidStack) stack).asItemStackRepresentation();
-        }
-        return stack.asItemStackRepresentation();
     }
 }

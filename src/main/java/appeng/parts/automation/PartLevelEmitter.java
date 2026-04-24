@@ -53,6 +53,7 @@ import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AECableType;
@@ -74,7 +75,7 @@ import appeng.util.inv.InvOperation;
 import appeng.util.item.AEItemStackType;
 
 public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherHost, IStackWatcherHost,
-        ICraftingWatcherHost, IMEMonitorHandlerReceiver<IAEItemStack>, ICraftingProvider, IIAEStackInventory {
+        ICraftingWatcherHost, IMEMonitorHandlerReceiver<IAEStackBase>, ICraftingProvider, IIAEStackInventory {
 
     @PartModels
     public static final ResourceLocation MODEL_BASE_OFF = new ResourceLocation(AppEng.MOD_ID,
@@ -111,6 +112,8 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     private IStackWatcher myWatcher;
     private IEnergyWatcher myEnergyWatcher;
     private ICraftingWatcher myCraftingWatcher;
+    // Tracks which IAEStackType the listener is currently registered on (null = none)
+    private IAEStackType<?> monitoredType;
     private double centerX;
     private double centerY;
     private double centerZ;
@@ -248,10 +251,8 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
                 this.lastReportedValue = (long) this.getProxy().getEnergy().getStoredPower();
                 this.updateState();
 
-                // no more item stuff..
-                this.getProxy().getStorage()
-                        .getInventory(AEItemStackType.INSTANCE)
-                        .removeListener(this);
+                // no more stack monitoring...
+                this.removeCurrentListener();
             } catch (final GridAccessException e) {
                 // :P
             }
@@ -259,48 +260,88 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
             return;
         }
 
+        // Determine the stack type to monitor from the configured stack
+        final IAEStackType<?> targetType = myStack != null ? myStack.getStackTypeBase() : null;
+
         try {
-            if (this.getInstalledUpgrades(Upgrades.FUZZY) > 0 || myStack == null) {
+            // Remove listener from old type if it changed
+            if (this.monitoredType != null && this.monitoredType != targetType) {
+                this.removeCurrentListener();
+            }
+
+            // Fuzzy mode requires full list listening; also listen if no stack is configured (total count mode)
+            final boolean useFuzzy = myStack instanceof IAEItemStack && this.getInstalledUpgrades(Upgrades.FUZZY) > 0;
+
+            if (targetType != null) {
+                if (useFuzzy || myStack == null) {
+                    this.getProxy()
+                            .getStorage()
+                            .getInventory(targetType)
+                            .addListener(this, this.getProxy().getGrid());
+                    this.monitoredType = targetType;
+                } else {
+                    this.removeCurrentListener();
+
+                    if (this.myWatcher != null) {
+                        this.myWatcher.add(myStack);
+                    }
+                }
+
+                this.updateReportingValue(this.getProxy().getStorage().getInventory(targetType));
+            } else {
+                // No configured stack — monitor all items (legacy behavior for total count)
                 this.getProxy()
                         .getStorage()
                         .getInventory(AEItemStackType.INSTANCE)
-                        .addListener(this,
-                                this.getProxy().getGrid());
-            } else {
-                this.getProxy().getStorage()
-                        .getInventory(AEItemStackType.INSTANCE)
-                        .removeListener(this);
+                        .addListener(this, this.getProxy().getGrid());
+                this.monitoredType = AEItemStackType.INSTANCE;
 
-                if (this.myWatcher != null) {
-                    this.myWatcher.add(myStack);
-                }
+                this.updateReportingValue(this.getProxy().getStorage().getInventory(AEItemStackType.INSTANCE));
             }
-
-            this.updateReportingValue(this.getProxy().getStorage()
-                    .getInventory(AEItemStackType.INSTANCE));
         } catch (final GridAccessException e) {
             // >.>
         }
     }
 
-    private void updateReportingValue(final IMEMonitor<IAEItemStack> monitor) {
+    /**
+     * Remove the current IMEMonitorHandlerReceiver listener from the previously monitored type.
+     */
+    private void removeCurrentListener() {
+        if (this.monitoredType != null) {
+            try {
+                this.getProxy().getStorage()
+                        .getInventory(this.monitoredType)
+                        .removeListener(this);
+            } catch (final GridAccessException e) {
+                // :P
+            }
+            this.monitoredType = null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void updateReportingValue(final IMEMonitor<?> monitor) {
         final IAEStack<?> myStack = this.config.getAEStackInSlot(0);
 
         if (myStack == null) {
+            // No configured stack — report total count of all items in this monitor
             if (monitor instanceof NetworkMonitor) {
-                this.lastReportedValue = ((NetworkMonitor<IAEItemStack>) monitor).getGridCurrentCount();
+                this.lastReportedValue = ((NetworkMonitor<?>) monitor).getGridCurrentCount();
             }
         } else if (myStack instanceof IAEItemStack && this.getInstalledUpgrades(Upgrades.FUZZY) > 0) {
+            // Fuzzy mode: only supported for items (ore dictionary concept)
             final FuzzyMode fzMode = (FuzzyMode) this.getConfigManager().getSetting(Settings.FUZZY_MODE);
 
             this.lastReportedValue = 0;
-            monitor.getStorageList().findFuzzy((IAEItemStack) myStack, fzMode)
-                    .forEach(iaeItemStack -> lastReportedValue += iaeItemStack.getStackSize());
-        } else if (myStack instanceof IAEItemStack) {
+            monitor.getStorageList().findFuzzyGeneric(myStack, fzMode)
+                    .forEach(stack -> lastReportedValue += stack.getStackSize());
+        } else {
+            // Precise match: works for any stack type
             this.lastReportedValue = 0;
-            IAEItemStack precise = monitor.getStorageList().findPrecise((IAEItemStack) myStack);
-            if (precise != null)
+            final IAEStack<?> precise = monitor.getStorageList().findPreciseGeneric(myStack);
+            if (precise != null) {
                 lastReportedValue = precise.getStackSize();
+            }
         }
         this.updateState();
     }
@@ -314,8 +355,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     @Override
     public void onStackChange(final IItemList<?> o, final IAEStack<?> fullStack, final IAEStack<?> diffStack,
             final IActionSource src, final IAEStackType<?> type) {
-        if (type == AEItemStackType.INSTANCE
-                && fullStack.equals(this.config.getAEStackInSlot(0))
+        if (fullStack.equals(this.config.getAEStackInSlot(0))
                 && this.getInstalledUpgrades(Upgrades.FUZZY) == 0) {
             this.lastReportedValue = fullStack.getStackSize();
             this.updateState();
@@ -344,16 +384,16 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     }
 
     @Override
-    public void postChange(final IBaseMonitor<IAEItemStack> monitor, final Iterable<IAEItemStack> change,
+    public void postChange(final IBaseMonitor<IAEStackBase> monitor, final Iterable<IAEStackBase> change,
             final IActionSource actionSource) {
-        this.updateReportingValue((IMEMonitor<IAEItemStack>) monitor);
+        this.updateReportingValue((IMEMonitor<?>) monitor);
     }
 
     @Override
     public void onListUpdate() {
         try {
-            this.updateReportingValue(this.getProxy().getStorage()
-                    .getInventory(AEItemStackType.INSTANCE));
+            final IAEStackType<?> type = this.monitoredType != null ? this.monitoredType : AEItemStackType.INSTANCE;
+            this.updateReportingValue(this.getProxy().getStorage().getInventory(type));
         } catch (final GridAccessException e) {
             // ;P
         }
@@ -486,8 +526,8 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
         if (this.getInstalledUpgrades(Upgrades.CRAFTING) > 0) {
             if (this.getConfigManager().getSetting(Settings.CRAFT_VIA_REDSTONE) == YesNo.YES) {
                 final IAEStack<?> what = this.config.getAEStackInSlot(0);
-                if (what instanceof IAEItemStack) {
-                    craftingTracker.setEmitable((IAEItemStack) what);
+                if (what != null) {
+                    craftingTracker.setEmitable(what);
                 }
             }
         }

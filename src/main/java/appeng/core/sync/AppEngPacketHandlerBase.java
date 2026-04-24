@@ -77,7 +77,8 @@ public class AppEngPacketHandlerBase {
 
         PACKET_PAINTED_ENTITY(PacketPaintedEntity.class),
 
-        PACKET_FLUID_TANK(PacketFluidSlot.class),
+        @Deprecated
+        PACKET_FLUID_TANK_REMOVED(null),
 
         PACKET_INFORM_PLAYER(PacketInformPlayer.class),
 
@@ -99,6 +100,8 @@ public class AppEngPacketHandlerBase {
 
         PACKET_VIRTUAL_SLOT(PacketVirtualSlot.class),
 
+        PACKET_TARGET_STACK(PacketTargetStack.class),
+
         ;
 
         private final Class<? extends AppEngPacket> packetClass;
@@ -108,10 +111,12 @@ public class AppEngPacketHandlerBase {
             this.packetClass = c;
 
             Constructor<? extends AppEngPacket> x = null;
-            try {
-                x = this.packetClass.getConstructor(ByteBuf.class);
-            } catch (final NoSuchMethodException ignored) {
-            } catch (final SecurityException ignored) {
+            if (c != null) {
+                try {
+                    x = this.packetClass.getConstructor(ByteBuf.class);
+                } catch (final NoSuchMethodException ignored) {
+                } catch (final SecurityException ignored) {
+                }
             }
 
             this.packetConstructor = x;

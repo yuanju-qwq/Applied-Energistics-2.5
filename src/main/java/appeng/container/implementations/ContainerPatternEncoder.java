@@ -513,13 +513,10 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
         for (int x = 0; x < inputSize; x++) {
             final IAEStack<?> stack = inv.getAEStackInSlot(x);
-            if (stack instanceof IAEItemStack) {
-                input[x] = ((IAEItemStack) stack).createItemStack();
-                hasValue = true;
-            } else if (stack instanceof IAEFluidStack) {
-                // 流体栈转换为 FluidDummyItem 占位物品
-                input[x] = ((IAEFluidStack) stack).asItemStackRepresentation();
-                if (!input[x].isEmpty()) {
+            if (stack != null) {
+                final ItemStack repr = stack.asItemStackRepresentation();
+                if (repr != null && !repr.isEmpty()) {
+                    input[x] = repr;
                     hasValue = true;
                 } else {
                     input[x] = ItemStack.EMPTY;
@@ -552,13 +549,10 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
             for (int x = 0; x < inv.getSizeInventory(); x++) {
                 final IAEStack<?> stack = inv.getAEStackInSlot(x);
-                if (stack instanceof IAEItemStack) {
-                    output[x] = ((IAEItemStack) stack).createItemStack();
-                    hasValue = true;
-                } else if (stack instanceof IAEFluidStack) {
-                    ItemStack fluidDrop = ((IAEFluidStack) stack).asItemStackRepresentation();
-                    if (!fluidDrop.isEmpty()) {
-                        output[x] = fluidDrop;
+                if (stack != null) {
+                    final ItemStack repr = stack.asItemStackRepresentation();
+                    if (repr != null && !repr.isEmpty()) {
+                        output[x] = repr;
                         hasValue = true;
                     } else {
                         output[x] = ItemStack.EMPTY;

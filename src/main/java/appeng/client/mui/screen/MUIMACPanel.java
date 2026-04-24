@@ -32,7 +32,6 @@ import appeng.tile.crafting.TileMolecularAssembler;
 /**
  * MUI 版分子装配器 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiMAC}。
  * 继承 {@link MUIUpgradeablePanel}，包含红石模式按钮和合成进度条。
  */
 public class MUIMACPanel extends MUIUpgradeablePanel {

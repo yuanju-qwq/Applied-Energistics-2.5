@@ -36,8 +36,8 @@ import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.fluids.items.ItemFluidDrop;
 import appeng.fluids.util.AEFluidStack;
+import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
@@ -97,19 +97,11 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
                 continue;
             }
 
-            // 尝试泛型反序列化（带 aeTypeId）
+            // Try generic deserialization (with StackType key)
             IAEStack<?> generic = tag.hasKey("StackType") ? IAEStack.fromNBTGeneric(tag) : null;
             if (generic != null) {
                 inGeneric.add(generic);
-                if (generic instanceof IAEItemStack itemStack) {
-                    inItems.add(itemStack);
-                } else if (generic instanceof IAEFluidStack fluidStack) {
-                    // 流体 → ItemFluidDrop 伪物品（供合成树使用）
-                    IAEItemStack drop = ItemFluidDrop.newAEStack(fluidStack);
-                    inItems.add(drop);
-                } else {
-                    inItems.add(null);
-                }
+                inItems.add(Platform.stackConvert(generic));
             } else {
                 // 回退：当作普通物品
                 final ItemStack gs = ItemStackHelper.stackFromNBT(tag);
@@ -140,8 +132,7 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
                 IAEFluidStack fluid = AEFluidStack.fromNBT(tag);
                 if (fluid != null) {
                     putIntoFirstNullOrAppend(inGeneric, fluid, PROCESSING_INPUT_LIMIT);
-                    IAEItemStack drop = ItemFluidDrop.newAEStack(fluid);
-                    putIntoFirstNullOrAppend(inItems, drop, PROCESSING_INPUT_LIMIT);
+                    putIntoFirstNullOrAppend(inItems, Platform.stackConvert(fluid), PROCESSING_INPUT_LIMIT);
                 }
             }
         }
@@ -160,14 +151,7 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
             IAEStack<?> generic = tag.hasKey("StackType") ? IAEStack.fromNBTGeneric(tag) : null;
             if (generic != null) {
                 outGeneric.add(generic);
-                if (generic instanceof IAEItemStack itemStack) {
-                    outItems.add(itemStack);
-                } else if (generic instanceof IAEFluidStack fluidStack) {
-                    IAEItemStack drop = ItemFluidDrop.newAEStack(fluidStack);
-                    outItems.add(drop);
-                } else {
-                    outItems.add(null);
-                }
+                outItems.add(Platform.stackConvert(generic));
             } else {
                 final ItemStack gs = ItemStackHelper.stackFromNBT(tag);
                 if (!gs.isEmpty()) {
@@ -197,8 +181,7 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
                 IAEFluidStack fluid = AEFluidStack.fromNBT(tag);
                 if (fluid != null) {
                     putIntoFirstNullOrAppend(outGeneric, fluid, PROCESSING_OUTPUT_LIMIT);
-                    IAEItemStack drop = ItemFluidDrop.newAEStack(fluid);
-                    putIntoFirstNullOrAppend(outItems, drop, PROCESSING_OUTPUT_LIMIT);
+                    putIntoFirstNullOrAppend(outItems, Platform.stackConvert(fluid), PROCESSING_OUTPUT_LIMIT);
                 }
             }
         }

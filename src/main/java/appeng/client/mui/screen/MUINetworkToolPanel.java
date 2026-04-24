@@ -36,7 +36,6 @@ import appeng.core.sync.packets.PacketValueConfig;
 /**
  * MUI 版网络工具 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiNetworkTool}。
  * 提供 3×3 的工具箱物品栏及透明伪装板切换按钮。
  */
 public class MUINetworkToolPanel extends AEBasePanel {

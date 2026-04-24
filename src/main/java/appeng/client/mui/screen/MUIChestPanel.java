@@ -35,7 +35,6 @@ import appeng.tile.storage.TileChest;
 /**
  * MUI 版 ME 箱子 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiChest}。
  * 包含 1 个存储单元槽位和一个优先级标签按钮。
  */
 public class MUIChestPanel extends AEBasePanel {

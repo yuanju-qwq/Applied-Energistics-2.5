@@ -22,12 +22,14 @@ import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.*;
 import appeng.api.storage.StorageName;
+import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.container.guisync.GuiSync;
 import appeng.container.interfaces.IVirtualSlotHolder;
 import appeng.container.interfaces.IVirtualSlotSource;
 import appeng.container.slot.*;
+import appeng.fluids.util.IAEFluidTank;
 import appeng.helpers.IInterfaceLogicHost;
 import appeng.helpers.InterfaceLogic;
 import appeng.tile.inventory.IAEStackInventory;
@@ -43,12 +45,13 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  * <h3>槽位布局（Config 和 Storage 上下排列）</h3>
  * <pre>
  * 行0: [Config×9]  ← VirtualMEPhantomSlot（GUI 层，泛型 IAEStack）
- * 行1: [Storage×9] ← 物品用 SlotOversized / 流体用 GuiFluidSlot（GUI 层根据 Config 类型动态切换）
+ * 行1: [Storage×9] ← 物品用 SlotOversized / 流体用 VirtualMESlot（GUI 层根据 Config 类型动态切换）
  * 行2: [Config×9]  ← VirtualMEPhantomSlot
- * 行3: [Storage×9] ← 物品用 SlotOversized / 流体用 GuiFluidSlot
+ * 行3: [Storage×9] ← 物品用 SlotOversized / 流体用 VirtualMESlot
  * </pre>
  *
- * Container 层注册物品 Storage 的 {@link SlotOversized}（18个），流体 Storage 在 GUI 层用 GuiFluidSlot 渲染。
+ * Container 层注册物品 Storage 的 {@link SlotOversized}（18个）。
+ * 流体 Storage 通过 {@link StorageName#STORAGE} VirtualSlot 同步到客户端 {@link #fluidStorageClientInv}。
  */
 public class ContainerMEInterface extends ContainerUpgradeable
         implements IVirtualSlotHolder, IVirtualSlotSource {
@@ -65,8 +68,18 @@ public class ContainerMEInterface extends ContainerUpgradeable
     @GuiSync(3)
     public YesNo iTermMode = YesNo.YES;
 
-    // 服务端用于增量同步的客户端快照
+    // --- Config VirtualSlot sync (server → client) ---
     private final IAEStack<?>[] configClientSlot = new IAEStack[InterfaceLogic.NUMBER_OF_CONFIG_SLOTS];
+
+    // --- Fluid Storage VirtualSlot sync (server → client) ---
+    // Server-side mirror: populated from fluidTanks each tick for diff comparison
+    private final IAEStackInventory fluidStorageServerMirror =
+            new IAEStackInventory(null, InterfaceLogic.NUMBER_OF_CONFIG_SLOTS, StorageName.STORAGE);
+    // Server-side diff snapshot
+    private final IAEStack<?>[] fluidStorageClientSlot = new IAEStack[InterfaceLogic.NUMBER_OF_CONFIG_SLOTS];
+    // Client-side inventory: GUI reads from this
+    private final IAEStackInventory fluidStorageClientInv =
+            new IAEStackInventory(null, InterfaceLogic.NUMBER_OF_CONFIG_SLOTS, StorageName.STORAGE);
 
     public ContainerMEInterface(final InventoryPlayer ip, final IInterfaceLogicHost host) {
         super(ip, host);
@@ -116,12 +129,28 @@ public class ContainerMEInterface extends ContainerUpgradeable
             final IConfigManager cm = this.logic.getConfigManager();
             this.setInterfaceTerminalMode((YesNo) cm.getSetting(Settings.INTERFACE_TERMINAL));
 
-            // 使用虚拟槽位同步 config
+            // Sync config via VirtualSlot
             final IAEStackInventory config = this.logic.getConfig();
             this.updateVirtualSlots(StorageName.CONFIG, config, this.configClientSlot);
+
+            // Sync fluid storage via VirtualSlot
+            this.syncFluidStorageToMirror();
+            this.updateVirtualSlots(StorageName.STORAGE, this.fluidStorageServerMirror, this.fluidStorageClientSlot);
         }
 
         this.standardDetectAndSendChanges();
+    }
+
+    /**
+     * Copies fluid tank contents into the server-side mirror IAEStackInventory
+     * so that updateVirtualSlots can perform diff-based sync.
+     */
+    private void syncFluidStorageToMirror() {
+        final IAEFluidTank tanks = this.logic.getFluidTanks();
+        for (int i = 0; i < InterfaceLogic.NUMBER_OF_CONFIG_SLOTS; i++) {
+            final IAEFluidStack fs = tanks.getFluidInSlot(i);
+            this.fluidStorageServerMirror.putAEStackInSlot(i, fs);
+        }
     }
 
     @Override
@@ -129,24 +158,34 @@ public class ContainerMEInterface extends ContainerUpgradeable
         this.setInterfaceTerminalMode((YesNo) cm.getSetting(Settings.INTERFACE_TERMINAL));
     }
 
-    // ---- IVirtualSlotHolder 实现（客户端接收服务端推送的虚拟槽位数据）----
+    // ---- IVirtualSlotHolder (client receives server sync) ----
 
     @Override
     public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
-        final IAEStackInventory config = this.logic.getConfig();
-        for (var entry : slotStacks.int2ObjectEntrySet()) {
-            config.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+        if (invName == StorageName.CONFIG) {
+            final IAEStackInventory config = this.logic.getConfig();
+            for (var entry : slotStacks.int2ObjectEntrySet()) {
+                config.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+            }
+        } else if (invName == StorageName.STORAGE) {
+            for (var entry : slotStacks.int2ObjectEntrySet()) {
+                this.fluidStorageClientInv.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+            }
         }
     }
 
-    // ---- IVirtualSlotSource 实现（服务端接收客户端发来的虚拟槽位更新）----
+    // ---- IVirtualSlotSource (server receives client update) ----
 
     @Override
     public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
-        final IAEStackInventory config = this.logic.getConfig();
-        if (config != null && slotId >= 0 && slotId < config.getSizeInventory()) {
-            config.putAEStackInSlot(slotId, aes);
+        // Only config slots are client-writable
+        if (invName == StorageName.CONFIG) {
+            final IAEStackInventory config = this.logic.getConfig();
+            if (config != null && slotId >= 0 && slotId < config.getSizeInventory()) {
+                config.putAEStackInSlot(slotId, aes);
+            }
         }
+        // STORAGE is read-only from client, ignore
     }
 
     // ---- Getter ----
@@ -157,6 +196,14 @@ public class ContainerMEInterface extends ContainerUpgradeable
 
     public IAEStackInventory getConfig() {
         return this.logic.getConfig();
+    }
+
+    /**
+     * Returns the client-side fluid storage inventory, synced from server via VirtualSlot.
+     * GUI panels should read from this for fluid storage display.
+     */
+    public IAEStackInventory getFluidStorageClientInv() {
+        return this.fluidStorageClientInv;
     }
 
     public YesNo getInterfaceTerminalMode() {

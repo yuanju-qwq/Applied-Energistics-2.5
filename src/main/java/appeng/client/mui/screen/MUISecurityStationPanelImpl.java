@@ -34,7 +34,6 @@ import appeng.core.sync.packets.PacketValueConfig;
 /**
  * MUI 版安全终端 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiSecurityStation}。
  * 继承 {@link MUIMEMonitorablePanel} 并实现 {@link MUISecurityStationPanel} 标记接口，
  * 增加了 5 个安全权限切换按钮（注入/提取/合成/建造/安全）。
  */

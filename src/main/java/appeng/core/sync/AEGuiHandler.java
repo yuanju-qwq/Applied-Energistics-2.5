@@ -168,17 +168,10 @@ public final class AEGuiHandler implements IGuiHandler {
             return new ContainerNull();
         }
 
-        // 通过 AEMUIGuiFactory 创建 Container
+        // Through AEMUIGuiFactory create Container
         final Container container = AEMUIGuiFactory.createContainer(guiKey, player.inventory, host);
         if (container != null) {
             return updateOpenContext(container, w, x, y, z, side, host);
-        }
-
-        // 回退：通过 GuiBridge 反射创建（过渡期兼容）
-        final GuiBridge bridge = guiKey.getLegacyBridge();
-        if (bridge != null) {
-            final Object legacyContainer = bridge.ConstructContainer(player.inventory, side, host);
-            return updateOpenContext(legacyContainer, w, x, y, z, side, host);
         }
 
         AELog.warn("No container factory registered for GUI key: %s", guiKey.getId());
@@ -204,16 +197,10 @@ public final class AEGuiHandler implements IGuiHandler {
             return new GuiNull(new ContainerNull());
         }
 
-        // 通过 AEMUIGuiFactory 创建 GUI
+        // Through AEMUIGuiFactory create GUI
         final Object gui = AEMUIGuiFactory.createGui(guiKey, player.inventory, host);
         if (gui != null) {
             return gui;
-        }
-
-        // 回退：通过 GuiBridge 反射/工厂创建（过渡期兼容）
-        final GuiBridge bridge = guiKey.getLegacyBridge();
-        if (bridge != null) {
-            return bridge.ConstructGui(player.inventory, side, host);
         }
 
         AELog.warn("No GUI factory registered for GUI key: %s", guiKey.getId());

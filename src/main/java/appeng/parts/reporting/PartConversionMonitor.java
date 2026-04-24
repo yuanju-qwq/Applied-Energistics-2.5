@@ -18,43 +18,31 @@
 
 package appeng.parts.reporting;
 
-import java.util.Collections;
-import java.util.List;
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.Vec3d;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidUtil;
-import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
-import net.minecraftforge.fluids.capability.IFluidHandlerItem;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.wrapper.PlayerMainInvWrapper;
 
-import appeng.api.config.Actionable;
 import appeng.api.networking.energy.IEnergySource;
+import appeng.api.parts.ConversionMonitorHandlerRegistry;
+import appeng.api.parts.IConversionMonitorHandler;
+import appeng.api.parts.IConversionMonitorHost;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.core.AELog;
+import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.core.AppEng;
-import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.Reflected;
 import appeng.items.parts.PartModels;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.PlayerSource;
 import appeng.parts.PartModel;
-import appeng.util.InventoryAdaptor;
 import appeng.util.Platform;
-import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
-import appeng.fluids.util.AEFluidStackType;
 
-public class PartConversionMonitor extends AbstractPartMonitor {
+public class PartConversionMonitor extends AbstractPartMonitor implements IConversionMonitorHost {
 
     @PartModels
     public static final ResourceLocation MODEL_OFF = new ResourceLocation(AppEng.MOD_ID, "part/conversion_monitor_off");
@@ -80,6 +68,20 @@ public class PartConversionMonitor extends AbstractPartMonitor {
         super(is);
     }
 
+    // ==================== IConversionMonitorHost ====================
+
+    @Override
+    public TileEntity getTile() {
+        return super.getTile();
+    }
+
+    @Override
+    public EnumFacing getSideFacing() {
+        return this.getSide().getFacing();
+    }
+
+    // ==================== Activation (Right-click) ====================
+
     @Override
     public boolean onPartActivate(EntityPlayer player, EnumHand hand, Vec3d pos) {
         if (Platform.isClient()) {
@@ -95,45 +97,90 @@ public class PartConversionMonitor extends AbstractPartMonitor {
         }
 
         final ItemStack eq = player.getHeldItem(hand);
-        FluidStack fluidInTank = null;
-        if (eq.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY, null)) {
-            IFluidHandlerItem fluidHandlerItem = (eq.getCapability(CapabilityFluidHandler.FLUID_HANDLER_ITEM_CAPABILITY,
-                    null));
-            fluidInTank = fluidHandlerItem.drain(Integer.MAX_VALUE, false);
-        }
+
+        // Find a handler whose container can interact with the held item (e.g., fluid container)
+        final IConversionMonitorHandler<?> containerHandler = findContainerHandler(eq);
 
         if (this.isLocked()) {
-            if (eq.isEmpty()) {
-                this.insertItem(player, hand, true);
-            } else if (Platform.isWrench(player, eq, this.getLocation().getPos())
-                    && (this.getDisplayed() == null || !this.getDisplayed().equals(eq))) {
-                // wrench it
-                return super.onPartActivate(player, hand, pos);
-            } else if (fluidInTank != null && fluidInTank.amount > 0) {
-                if (this.getDisplayed() != null && getDisplayed().equals(AEFluidStack.fromFluidStack(fluidInTank))) {
-                    this.drainFluidContainer(player, hand);
-                }
-            } else {
-                this.insertItem(player, hand, false);
-            }
+            return handleLockedActivate(player, hand, pos, eq, containerHandler);
         }
 
-        // If its a fluid container, grab its fluidstack. if its empty pass its itemstack;
+        // Unlocked mode: try container handlers first, then item handler
+        return handleUnlockedActivate(player, hand, pos, eq, containerHandler);
+    }
 
-        if (fluidInTank != null && fluidInTank.amount > 0) {
-            if (getDisplayed() instanceof IAEItemStack || getDisplayed() == null) {
+    /**
+     * Handle right-click when the monitor is locked.
+     */
+    private boolean handleLockedActivate(EntityPlayer player, EnumHand hand, Vec3d pos,
+            ItemStack eq, IConversionMonitorHandler<?> containerHandler) {
+        if (eq.isEmpty()) {
+            // Empty hand + locked = insert all matching items from inventory
+            insertAllMatching(player);
+        } else if (Platform.isWrench(player, eq, this.getLocation().getPos())
+                && (this.getDisplayed() == null || !this.getDisplayed().equals(eq))) {
+            // Wrench interaction
+            return super.onPartActivate(player, hand, pos);
+        } else if (containerHandler != null) {
+            // Held item is a container for some type — check if it matches the displayed stack
+            final IAEStack<?> containerStack = containerHandler.getStackFromContainer(eq);
+            if (this.getDisplayed() != null && containerStack != null
+                    && this.getDisplayed().equals(containerStack)) {
+                insertFromContainer(containerHandler, player, hand);
+            }
+        } else {
+            // Regular item — insert single item
+            insertSingle(player, hand);
+        }
+
+        // Also handle non-locked path below (original code fell through)
+        return handleUnlockedFallthrough(player, hand, pos, eq, containerHandler);
+    }
+
+    /**
+     * Handle the fallthrough logic that the original code had after the locked block.
+     * The original onPartActivate continued execution after the locked block.
+     */
+    private boolean handleUnlockedFallthrough(EntityPlayer player, EnumHand hand, Vec3d pos,
+            ItemStack eq, IConversionMonitorHandler<?> containerHandler) {
+        if (containerHandler != null) {
+            final IAEStack<?> containerStack = containerHandler.getStackFromContainer(eq);
+            if (this.getDisplayed() == null || !isSameStackType(this.getDisplayed(), containerHandler)) {
                 return super.onPartActivate(player, hand, pos);
             }
-            if (((IAEFluidStack) this.getDisplayed()).equals(AEFluidStack.fromFluidStack(fluidInTank))) {
-                this.drainFluidContainer(player, hand);
+            if (containerStack != null && this.getDisplayed().equals(containerStack)) {
+                insertFromContainer(containerHandler, player, hand);
             } else {
                 return super.onPartActivate(player, hand, pos);
             }
         } else if (this.getDisplayed() != null && this.getDisplayed().equals(player.getHeldItem(hand))) {
-            this.insertItem(player, hand, false);
+            insertSingle(player, hand);
         }
         return super.onPartActivate(player, hand, pos);
     }
+
+    /**
+     * Handle right-click when the monitor is unlocked (non-locked path only, no locked block above).
+     */
+    private boolean handleUnlockedActivate(EntityPlayer player, EnumHand hand, Vec3d pos,
+            ItemStack eq, IConversionMonitorHandler<?> containerHandler) {
+        if (containerHandler != null) {
+            final IAEStack<?> containerStack = containerHandler.getStackFromContainer(eq);
+            if (this.getDisplayed() == null || !isSameStackType(this.getDisplayed(), containerHandler)) {
+                return super.onPartActivate(player, hand, pos);
+            }
+            if (containerStack != null && this.getDisplayed().equals(containerStack)) {
+                insertFromContainer(containerHandler, player, hand);
+            } else {
+                return super.onPartActivate(player, hand, pos);
+            }
+        } else if (this.getDisplayed() != null && this.getDisplayed().equals(player.getHeldItem(hand))) {
+            insertSingle(player, hand);
+        }
+        return super.onPartActivate(player, hand, pos);
+    }
+
+    // ==================== Click (Left-click) ====================
 
     @Override
     public boolean onClicked(EntityPlayer player, EnumHand hand, Vec3d pos) {
@@ -149,14 +196,15 @@ public class PartConversionMonitor extends AbstractPartMonitor {
             return false;
         }
 
-        if (this.getDisplayed() != null && this.getDisplayed() instanceof IAEItemStack) {
-            this.extractItem(player, ((IAEItemStack) this.getDisplayed()).getDefinition().getMaxStackSize());
-        } else if (this.getDisplayed() != null && this.getDisplayed() instanceof IAEFluidStack) {
-            this.fillFluidContainer(player, hand);
+        final IAEStack<?> displayed = this.getDisplayed();
+        if (displayed != null) {
+            extractDisplayed(player, hand, displayed, getDefaultExtractCount(displayed));
         }
 
         return true;
     }
+
+    // ==================== Shift-Click ====================
 
     @Override
     public boolean onShiftClicked(EntityPlayer player, EnumHand hand, Vec3d pos) {
@@ -173,210 +221,149 @@ public class PartConversionMonitor extends AbstractPartMonitor {
         }
 
         if (this.getDisplayed() != null) {
-            this.extractItem(player, 1);
+            extractDisplayed(player, hand, this.getDisplayed(), 1);
         }
 
         return true;
     }
 
-    private void insertItem(final EntityPlayer player, final EnumHand hand, final boolean allItems) {
-        try {
-            final IEnergySource energy = this.getProxy().getEnergy();
-            final IMEMonitor<IAEItemStack> cell = this.getProxy()
-                    .getStorage()
-                    .getInventory(AEItemStackType.INSTANCE);
+    // ==================== Generic dispatch methods ====================
 
-            if (allItems) {
-                if (this.getDisplayed() != null && this.getDisplayed() instanceof IAEItemStack) {
-                    final IAEItemStack input = (IAEItemStack) this.getDisplayed().copy();
-                    IItemHandler inv = new PlayerMainInvWrapper(player.inventory);
-
-                    for (int x = 0; x < inv.getSlots(); x++) {
-                        final ItemStack targetStack = inv.getStackInSlot(x);
-                        if (input.equals(targetStack)) {
-                            final ItemStack canExtract = inv.extractItem(x, targetStack.getCount(), true);
-                            if (!canExtract.isEmpty()) {
-                                input.setStackSize(canExtract.getCount());
-                                final IAEItemStack failedToInsert = appeng.util.StorageHelper.poweredInsert(energy, cell, input,
-                                        new PlayerSource(player, this));
-                                inv.extractItem(x,
-                                        failedToInsert == null ? canExtract.getCount()
-                                                : canExtract.getCount() - (int) failedToInsert.getStackSize(),
-                                        false);
-                            }
-                        }
-                    }
-                }
-            } else {
-                final IAEItemStack input = AEItemStack.fromItemStack(player.getHeldItem(hand));
-                final IAEItemStack failedToInsert = appeng.util.StorageHelper.poweredInsert(energy, cell, input,
-                        new PlayerSource(player, this));
-                player.setHeldItem(hand, failedToInsert == null ? ItemStack.EMPTY : failedToInsert.createItemStack());
+    /**
+     * Find a handler that considers the held item as a container (e.g., fluid container).
+     */
+    private IConversionMonitorHandler<?> findContainerHandler(ItemStack heldItem) {
+        if (heldItem.isEmpty()) {
+            return null;
+        }
+        for (IConversionMonitorHandler<?> handler : ConversionMonitorHandlerRegistry.getAllHandlers()) {
+            if (handler.canInteractWithContainer(heldItem)) {
+                return handler;
             }
-        } catch (final GridAccessException e) {
+        }
+        return null;
+    }
+
+    /**
+     * Check if the displayed stack's type matches the handler's type.
+     */
+    private boolean isSameStackType(IAEStack<?> displayed, IConversionMonitorHandler<?> handler) {
+        return displayed.getStackTypeBase() == handler.getStackType();
+    }
+
+    /**
+     * Get the default extraction count for a left-click on the displayed stack.
+     * For items: max stack size of the item. For other types: delegates to handler.
+     */
+    @SuppressWarnings("unchecked")
+    private <T extends IAEStack<T>> long getDefaultExtractCount(IAEStack<?> displayed) {
+        final IAEStackType<T> stackType = (IAEStackType<T>) displayed.getStackTypeBase();
+        // Use the amount per unit as a reasonable default batch size
+        // For items (amountPerUnit=1): extracting 1 means extract one item,
+        //   but we actually want maxStackSize — however that's item-specific.
+        // We let the handler's extractToPlayer handle the actual count interpretation.
+        // For now, use the displayed stack's info through createItemStack if available.
+        if (displayed.asItemStackRepresentation() != ItemStack.EMPTY) {
+            return displayed.asItemStackRepresentation().getMaxStackSize();
+        }
+        return stackType.getAmountPerUnit();
+    }
+
+    /**
+     * Insert from a container (e.g., drain fluid from a bucket into the network).
+     */
+    @SuppressWarnings("unchecked")
+    private <T extends IAEStack<T>> void insertFromContainer(
+            IConversionMonitorHandler<?> rawHandler, EntityPlayer player, EnumHand hand) {
+        try {
+            final IConversionMonitorHandler<T> handler = (IConversionMonitorHandler<T>) rawHandler;
+            final IEnergySource energy = this.getProxy().getEnergy();
+            final IMEMonitor<T> monitor = this.getProxy().getStorage().getInventory(handler.getStackType());
+            handler.insertFromPlayer(player, hand, energy, monitor, new PlayerSource(player, this));
+        } catch (GridAccessException e) {
             // :P
         }
     }
 
-    private void extractItem(final EntityPlayer player, int count) {
-        if (!(this.getDisplayed() instanceof IAEItemStack))
+    /**
+     * Insert a single held item into the network (for item type).
+     */
+    private void insertSingle(EntityPlayer player, EnumHand hand) {
+        final IAEStack<?> displayed = this.getDisplayed();
+        if (displayed == null) {
             return;
-        final IAEItemStack input = (IAEItemStack) this.getDisplayed().copy();
-        if (input != null) {
-            try {
-                if (!this.getProxy().isActive()) {
-                    return;
-                }
-
-                final IEnergySource energy = this.getProxy().getEnergy();
-                final IMEMonitor<IAEItemStack> cell = this.getProxy()
-                        .getStorage()
-                        .getInventory(
-                                AEItemStackType.INSTANCE);
-
-                input.setStackSize(count);
-
-                final IAEItemStack retrieved = appeng.util.StorageHelper.poweredExtraction(energy, cell, input,
-                        new PlayerSource(player, this));
-                if (retrieved != null) {
-                    ItemStack newItems = retrieved.createItemStack();
-                    final InventoryAdaptor adaptor = InventoryAdaptor.getAdaptor(player);
-                    newItems = adaptor.addItems(newItems);
-                    if (!newItems.isEmpty()) {
-                        final TileEntity te = this.getTile();
-                        final List<ItemStack> list = Collections.singletonList(newItems);
-                        appeng.util.WorldHelper.spawnDrops(player.world, te.getPos().offset(this.getSide().getFacing()), list);
-                    }
-
-                    if (player.openContainer != null) {
-                        player.openContainer.detectAndSendChanges();
-                    }
-                }
-            } catch (final GridAccessException e) {
-                // :P
-            }
         }
+        doInsertSingle(displayed, player, hand);
     }
 
-    private void drainFluidContainer(final EntityPlayer player, final EnumHand hand) {
+    @SuppressWarnings("unchecked")
+    private <T extends IAEStack<T>> void doInsertSingle(IAEStack<?> displayed, EntityPlayer player, EnumHand hand) {
         try {
-            final ItemStack held = player.getHeldItem(hand);
-            if (held.getCount() != 1) {
-                // only support stacksize 1 for now
+            final IAEStackType<T> stackType = (IAEStackType<T>) displayed.getStackTypeBase();
+            final IConversionMonitorHandler<T> handler = ConversionMonitorHandlerRegistry.getHandler(stackType);
+            if (handler == null) {
                 return;
             }
-
-            final IFluidHandlerItem fh = FluidUtil.getFluidHandler(held);
-            if (fh == null) {
-                // only fluid handlers items
-                return;
-            }
-
-            // See how much we can drain from the item
-            final FluidStack extract = fh.drain(Integer.MAX_VALUE, false);
-            if (extract == null || extract.amount < 1) {
-                return;
-            }
-
-            // Check if we can push into the system
             final IEnergySource energy = this.getProxy().getEnergy();
-            final IMEMonitor<IAEFluidStack> cell = this.getProxy()
-                    .getStorage()
-                    .getInventory(
-                            AEFluidStackType.INSTANCE);
-            final IAEFluidStack notStorable = appeng.util.StorageHelper.poweredInsert(energy, cell, AEFluidStack.fromFluidStack(extract),
-                    new PlayerSource(player, this), Actionable.SIMULATE);
-
-            if (notStorable != null && notStorable.getStackSize() > 0) {
-                final int toStore = (int) (extract.amount - notStorable.getStackSize());
-                final FluidStack storable = fh.drain(toStore, false);
-
-                if (storable == null || storable.amount == 0) {
-                    return;
-                } else {
-                    extract.amount = storable.amount;
-                }
-            }
-
-            // Actually drain
-            final FluidStack drained = fh.drain(extract, true);
-            extract.amount = drained.amount;
-
-            final IAEFluidStack notInserted = appeng.util.StorageHelper.poweredInsert(energy, cell, AEFluidStack.fromFluidStack(extract),
-                    new PlayerSource(player, this));
-
-            if (notInserted != null && notInserted.getStackSize() > 0) {
-                AELog.error("Fluid item [%s] reported a different possible amount to drain than it actually provided.",
-                        held.getDisplayName());
-            }
-
-            player.setHeldItem(hand, fh.getContainer());
+            final IMEMonitor<T> monitor = this.getProxy().getStorage().getInventory(stackType);
+            handler.insertFromPlayer(player, hand, energy, monitor, new PlayerSource(player, this));
         } catch (GridAccessException e) {
-            e.printStackTrace();
+            // :P
         }
     }
 
-    private void fillFluidContainer(final EntityPlayer player, final EnumHand hand) {
+    /**
+     * Insert all matching items from the player's inventory (locked + empty hand).
+     */
+    private void insertAllMatching(EntityPlayer player) {
+        final IAEStack<?> displayed = this.getDisplayed();
+        if (displayed == null) {
+            return;
+        }
+        doInsertAll(displayed, player);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends IAEStack<T>> void doInsertAll(IAEStack<?> displayed, EntityPlayer player) {
         try {
-            final ItemStack held = player.getHeldItem(hand);
-            if (held.getCount() != 1) {
-                // only support stacksize 1 for now
+            final IAEStackType<T> stackType = (IAEStackType<T>) displayed.getStackTypeBase();
+            final IConversionMonitorHandler<T> handler = ConversionMonitorHandlerRegistry.getHandler(stackType);
+            if (handler == null) {
                 return;
             }
-
-            final IFluidHandlerItem fh = FluidUtil.getFluidHandler(held);
-            if (fh == null) {
-                // only fluid handlers items
-                return;
-            }
-
-            final IAEFluidStack stack = (IAEFluidStack) this.getDisplayed().copy();
-
-            // Check how much we can store in the item
-            stack.setStackSize(Integer.MAX_VALUE);
-            int amountAllowed = fh.fill(stack.getFluidStack(), false);
-            stack.setStackSize(amountAllowed);
-
-            // Check if we can pull out of the system
             final IEnergySource energy = this.getProxy().getEnergy();
-            final IMEMonitor<IAEFluidStack> cell = this.getProxy()
-                    .getStorage()
-                    .getInventory(
-                            AEFluidStackType.INSTANCE);
-            final IAEFluidStack canPull = appeng.util.StorageHelper.poweredExtraction(energy, cell, stack,
-                    new PlayerSource(player, this), Actionable.SIMULATE);
-            if (canPull == null || canPull.getStackSize() < 1) {
-                return;
-            }
-
-            // How much could fit into the container
-            final int canFill = fh.fill(canPull.getFluidStack(), false);
-            if (canFill == 0) {
-                return;
-            }
-
-            // Now actually pull out of the system
-            stack.setStackSize(canFill);
-            final IAEFluidStack pulled = appeng.util.StorageHelper.poweredExtraction(energy, cell, stack,
-                    new PlayerSource(player, this));
-            if (pulled == null || pulled.getStackSize() < 1) {
-                // Something went wrong
-                AELog.error("Unable to pull fluid out of the ME system even though the simulation said yes ");
-                return;
-            }
-
-            // Actually fill
-            final int used = fh.fill(pulled.getFluidStack(), true);
-
-            if (used != canFill) {
-                AELog.error("Fluid item [%s] reported a different possible amount than it actually accepted.",
-                        held.getDisplayName());
-            }
-            player.setHeldItem(hand, fh.getContainer());
+            final IMEMonitor<T> monitor = this.getProxy().getStorage().getInventory(stackType);
+            handler.insertAllFromPlayer(player, (T) displayed, energy, monitor, new PlayerSource(player, this));
         } catch (GridAccessException e) {
-            e.printStackTrace();
+            // :P
         }
     }
+
+    /**
+     * Extract displayed stack to the player (left-click / shift-click).
+     */
+    @SuppressWarnings("unchecked")
+    private <T extends IAEStack<T>> void extractDisplayed(
+            EntityPlayer player, EnumHand hand, IAEStack<?> displayed, long count) {
+        try {
+            final IAEStackType<T> stackType = (IAEStackType<T>) displayed.getStackTypeBase();
+            final IConversionMonitorHandler<T> handler = ConversionMonitorHandlerRegistry.getHandler(stackType);
+            if (handler == null) {
+                return;
+            }
+            if (!this.getProxy().isActive()) {
+                return;
+            }
+            final IEnergySource energy = this.getProxy().getEnergy();
+            final IMEMonitor<T> monitor = this.getProxy().getStorage().getInventory(stackType);
+            handler.extractToPlayer(
+                    player, hand, (T) displayed, count, energy, monitor, new PlayerSource(player, this), this);
+        } catch (GridAccessException e) {
+            // :P
+        }
+    }
+
+    // ==================== Model ====================
 
     @Override
     public IPartModel getStaticModels() {

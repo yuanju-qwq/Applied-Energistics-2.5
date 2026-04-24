@@ -54,7 +54,7 @@ public final class ApiParts implements IParts {
     private final IItemDefinition exportBus;
     private final IItemDefinition iface;
     private final IItemDefinition fluidIface;
-    private final IItemDefinition dualIface;
+    private final IItemDefinition patternProvider;
     private final IItemDefinition levelEmitter;
     private final IItemDefinition fluidLevelEmitter;
     private final IItemDefinition annihilationPlane;
@@ -120,8 +120,8 @@ public final class ApiParts implements IParts {
         this.iface = new DamagedItemDefinition("part.interface", itemPart.createPart(PartType.INTERFACE));
         this.fluidIface = new DamagedItemDefinition("part.fluid_interface",
                 itemPart.createPart(PartType.FLUID_INTERFACE));
-        this.dualIface = new DamagedItemDefinition("part.dual_interface",
-                itemPart.createPart(PartType.DUAL_INTERFACE));
+        this.patternProvider = new DamagedItemDefinition("part.pattern_provider",
+                itemPart.createPart(PartType.PATTERN_PROVIDER));
         this.levelEmitter = new DamagedItemDefinition("part.level_emitter",
                 itemPart.createPart(PartType.LEVEL_EMITTER));
         this.fluidLevelEmitter = new DamagedItemDefinition("part.fluid_level_emitter",
@@ -294,8 +294,8 @@ public final class ApiParts implements IParts {
     }
 
     @Override
-    public IItemDefinition dualIface() {
-        return this.dualIface;
+    public IItemDefinition patternProvider() {
+        return this.patternProvider;
     }
 
     @Override

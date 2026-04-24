@@ -46,7 +46,7 @@ import appeng.core.AELog;
 /**
  * MUI 面板的 JEI 集成处理器。
  * <p>
- * 功能与 {@link appeng.client.gui.AEGuiHandler} 完全对等，但绑定到 {@link AEBasePanel}：
+ * 功能与旧 AEGuiHandler（已删除）完全对等，但绑定到 {@link AEBasePanel}：
  * <ul>
  *   <li>{@link IAdvancedGuiHandler} — JEI 排除区域 + 鼠标下物品识别</li>
  *   <li>{@link IGhostIngredientHandler} — JEI 拖拽物品到幽灵槽位</li>

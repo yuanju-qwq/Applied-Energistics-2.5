@@ -48,9 +48,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
-import appeng.client.gui.implementations.GuiCraftConfirm;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
 import appeng.container.interfaces.ICraftConfirmGuiCallback;
@@ -61,6 +59,7 @@ import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.crafting.MECraftingInventory;
+import appeng.util.item.IAEStackList;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.me.helpers.PlayerSource;
 import appeng.parts.reporting.PartCraftingTerminal;
@@ -199,15 +198,14 @@ public class ContainerCraftConfirm extends AEBaseContainer {
                             : null;
 
                     // 使用泛型多类型列表来存储合成计划（支持物品+流体）
-                    final IItemList<IAEStackBase> plan = new appeng.util.item.IAEStackList();
+                    final IAEStackList plan = new IAEStackList();
                     this.result.populatePlan(plan);
 
                     this.setUsedBytes(this.result.getByteTotal());
 
                     final MECraftingInventory storageAtBeginning = this.result.getStorageAtBeginning();
 
-                    for (final Object obj : plan) {
-                        if (!(obj instanceof IAEStack<?> plannedItem)) continue;
+                    for (final IAEStack<?> plannedItem : plan.typedView()) {
 
                         IAEStack<?> toExtract = plannedItem.copy();
                         toExtract.reset();
@@ -459,14 +457,5 @@ public class ContainerCraftConfirm extends AEBaseContainer {
      */
     public void setGui(ICraftConfirmGuiCallback callback) {
         this.guiCallback = callback;
-    }
-
-    /**
-     * 设置旧 GUI 回调（向后兼容）。
-     * @deprecated 使用 {@link #setGui(ICraftConfirmGuiCallback)} 代替
-     */
-    @Deprecated
-    public void setGui(GuiCraftConfirm guiCraftConfirm) {
-        this.guiCallback = guiCraftConfirm;
     }
 }

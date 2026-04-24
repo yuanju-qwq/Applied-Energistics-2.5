@@ -35,6 +35,7 @@ import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 
 import appeng.api.AEApi;
 import appeng.api.storage.IStorageChannel;
+import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -146,6 +147,54 @@ public class AEFluidStackType implements IAEStackType<IAEFluidStack> {
             return null;
         }
         return AEFluidStack.fromFluidStack(fluid);
+    }
+
+    @Nonnull
+    @Override
+    public ContainerInteractionResult<IAEFluidStack> drainFromContainer(
+            @Nonnull ItemStack container, long maxAmount, boolean simulate) {
+        if (container.isEmpty()) {
+            return ContainerInteractionResult.empty();
+        }
+        final IFluidHandlerItem fh = FluidUtil.getFluidHandler(container);
+        if (fh == null) {
+            return ContainerInteractionResult.empty();
+        }
+
+        final int drainAmount = (int) Math.min(maxAmount, Integer.MAX_VALUE);
+        final FluidStack drained = fh.drain(drainAmount, !simulate);
+        if (drained == null || drained.amount <= 0) {
+            return ContainerInteractionResult.empty();
+        }
+
+        final IAEFluidStack result = AEFluidStack.fromFluidStack(drained);
+        if (result == null) {
+            return ContainerInteractionResult.empty();
+        }
+        return ContainerInteractionResult.of(result, fh.getContainer());
+    }
+
+    @Nonnull
+    @Override
+    public ContainerInteractionResult<IAEFluidStack> fillToContainer(
+            @Nonnull ItemStack container, @Nonnull IAEFluidStack stack, boolean simulate) {
+        if (container.isEmpty()) {
+            return ContainerInteractionResult.empty();
+        }
+        final IFluidHandlerItem fh = FluidUtil.getFluidHandler(container);
+        if (fh == null) {
+            return ContainerInteractionResult.empty();
+        }
+
+        final FluidStack toFill = stack.getFluidStack();
+        final int filled = fh.fill(toFill, !simulate);
+        if (filled <= 0) {
+            return ContainerInteractionResult.empty();
+        }
+
+        final IAEFluidStack result = stack.copy();
+        result.setStackSize(filled);
+        return ContainerInteractionResult.of(result, fh.getContainer());
     }
 
     @Nullable

@@ -32,13 +32,13 @@ import appeng.api.implementations.guiobjects.INetworkTool;
 import appeng.api.implementations.guiobjects.IPortableCell;
 import appeng.api.storage.ITerminalHost;
 import appeng.core.AppEng;
-import appeng.fluids.helper.IFluidInterfaceHost;
 import appeng.fluids.parts.PartFluidFormationPlane;
 import appeng.fluids.parts.PartFluidLevelEmitter;
 import appeng.fluids.parts.PartFluidStorageBus;
 import appeng.fluids.parts.PartSharedFluidBus;
 import appeng.helpers.ICustomNameObject;
-import appeng.helpers.IInterfaceHost;
+import appeng.helpers.IInterfaceLogicHost;
+import appeng.helpers.IPatternProviderHost;
 import appeng.helpers.IPriorityHost;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.items.contents.QuartzKnifeObj;
@@ -48,7 +48,6 @@ import appeng.parts.misc.PartOreDicStorageBus;
 import appeng.parts.misc.PartStorageBus;
 import appeng.parts.reporting.PartCraftingTerminal;
 import appeng.parts.reporting.PartExpandedProcessingPatternTerminal;
-import appeng.parts.reporting.PartFluidInterfaceConfigurationTerminal;
 import appeng.parts.reporting.PartInterfaceConfigurationTerminal;
 import appeng.parts.reporting.PartInterfaceTerminal;
 import appeng.parts.reporting.PartPatternTerminal;
@@ -226,21 +225,13 @@ public final class AEGuiKeys {
 
     // ========== 接口设置 ==========
 
-    public static final AEGuiKey INTERFACE = key("interface")
+    public static final AEGuiKey ME_INTERFACE = key("me_interface")
             .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
-            .hostClass(IInterfaceHost.class).legacyBridge(GuiBridge.GUI_INTERFACE).build();
+            .hostClass(IInterfaceLogicHost.class).legacyBridge(GuiBridge.GUI_ME_INTERFACE).build();
 
-    public static final AEGuiKey FLUID_INTERFACE = key("fluid_interface")
+    public static final AEGuiKey PATTERN_PROVIDER = key("pattern_provider")
             .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
-            .hostClass(IFluidInterfaceHost.class).legacyBridge(GuiBridge.GUI_FLUID_INTERFACE).build();
-
-    public static final AEGuiKey DUAL_ITEM_INTERFACE = key("dual_item_interface")
-            .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
-            .hostClass(IInterfaceHost.class).legacyBridge(GuiBridge.GUI_DUAL_ITEM_INTERFACE).build();
-
-    public static final AEGuiKey DUAL_FLUID_INTERFACE = key("dual_fluid_interface")
-            .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
-            .hostClass(IFluidInterfaceHost.class).legacyBridge(GuiBridge.GUI_DUAL_FLUID_INTERFACE).build();
+            .hostClass(IPatternProviderHost.class).legacyBridge(GuiBridge.GUI_PATTERN_PROVIDER).build();
 
     // ========== 总线/面板 ==========
 
@@ -308,12 +299,6 @@ public final class AEGuiKeys {
             .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
             .hostClass(PartInterfaceConfigurationTerminal.class)
             .legacyBridge(GuiBridge.GUI_INTERFACE_CONFIGURATION_TERMINAL).build();
-
-    public static final AEGuiKey FLUID_INTERFACE_CONFIGURATION_TERMINAL =
-            key("fluid_interface_configuration_terminal")
-                    .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
-                    .hostClass(PartFluidInterfaceConfigurationTerminal.class)
-                    .legacyBridge(GuiBridge.GUI_FLUID_INTERFACE_CONFIGURATION_TERMINAL).build();
 
     // ========== 样板值设置 ==========
 

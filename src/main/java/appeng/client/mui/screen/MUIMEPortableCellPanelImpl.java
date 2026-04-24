@@ -23,7 +23,6 @@ import appeng.container.implementations.ContainerMEPortableCell;
 /**
  * MUI 版 ME 便携单元 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiMEPortableCell}。
  * 继承 {@link MUIMEMonitorablePanel} 并实现 {@link MUIPortableCellPanel} 标记接口，
  * 唯一的差异是将最大行数限制为 3。
  */

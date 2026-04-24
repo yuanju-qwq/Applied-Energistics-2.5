@@ -43,6 +43,7 @@ import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.container.implementations.ContainerCraftingStatus;
 import appeng.container.implementations.CraftingCPUStatus;
+import appeng.container.interfaces.ICraftingStatusGuiCallback;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKey;
@@ -59,12 +60,11 @@ import appeng.parts.reporting.PartTerminal;
 /**
  * MUI 版合成状态面板。
  * <p>
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiCraftingStatus}。
  * 继承 {@link MUICraftingCPUPanel}，在左侧增加 CPU 选择器列表，
  * 右上角增加返回原始终端的 Tab 按钮。
  */
 @SideOnly(Side.CLIENT)
-public class MUICraftingStatusPanel extends MUICraftingCPUPanel {
+public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraftingStatusGuiCallback {
 
     // ========== CPU 选择器表格尺寸常量 ==========
 
@@ -413,6 +413,7 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel {
         return in;
     }
 
+    @Override
     public void postCPUUpdate(CraftingCPUStatus[] cpus) {
         this.status.postCPUUpdate(cpus);
     }

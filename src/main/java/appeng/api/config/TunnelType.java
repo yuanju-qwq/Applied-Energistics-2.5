@@ -36,8 +36,39 @@ import net.minecraftforge.common.util.EnumHelper;
 import appeng.api.AEApi;
 import appeng.api.definitions.IItemDefinition;
 import appeng.api.definitions.IParts;
+import appeng.api.features.IP2PTunnelRegistry;
 import appeng.api.parts.IPartItem;
 
+/**
+ * Defines the available P2P tunnel types.
+ * <p>
+ * Each tunnel type maps to a specific Part implementation (e.g., {@code PartP2PItems},
+ * {@code PartP2PFluids}) via its associated {@link #getPartItemStack() part item stack}.
+ * <p>
+ * <b>Built-in types:</b> ME, IC2_POWER, FE_POWER, GTEU_POWER, REDSTONE, FLUID, ITEM, LIGHT.
+ * <p>
+ * <b>Third-party mods</b> can register new tunnel types at runtime using
+ * {@link #registerTunnelType(String, ItemStack)}. This uses Forge's {@link EnumHelper}
+ * to dynamically add new enum constants. The registration should happen during
+ * mod initialization (e.g., FMLInitializationEvent).
+ * <p>
+ * After registering a new type, use {@link IP2PTunnelRegistry#addNewAttunement} to
+ * define which items or capabilities trigger attunement to this type.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * // During mod init:
+ * ItemStack manaP2PStack = ...; // your P2P part item
+ * TunnelType MANA = TunnelType.registerTunnelType("MANA", manaP2PStack);
+ *
+ * // Register attunement triggers:
+ * AEApi.instance().registries().p2pTunnel().addNewAttunement(manaPoolStack, MANA);
+ * AEApi.instance().registries().p2pTunnel().addNewAttunement(MANA_CAPABILITY, MANA);
+ * }</pre>
+ *
+ * @see PartP2PTunnel
+ * @see IP2PTunnelRegistry
+ */
 public enum TunnelType {
     ME(tryPartStack(IParts::p2PTunnelME)),
     IC2_POWER(tryPartStack(IParts::p2PTunnelEU)),
@@ -73,6 +104,22 @@ public enum TunnelType {
         return () -> supplier.apply(AEApi.instance().definitions().parts()).maybeStack(1).orElse(ItemStack.EMPTY);
     }
 
+    /**
+     * Register a new P2P tunnel type at runtime.
+     * <p>
+     * This dynamically adds a new enum constant to {@code TunnelType} using
+     * Forge's {@link EnumHelper}. The {@code partItemStack} must be an item
+     * implementing {@link IPartItem} that creates a {@link PartP2PTunnel} subclass.
+     * <p>
+     * Call this during mod initialization (e.g., FMLInitializationEvent).
+     * After registering, use {@link IP2PTunnelRegistry#addNewAttunement} to define
+     * attunement triggers.
+     *
+     * @param name          the enum constant name (e.g., "MANA"). Must be unique.
+     * @param partItemStack the ItemStack of the P2P tunnel part item
+     * @return the newly registered TunnelType enum constant
+     * @throws IllegalArgumentException if partItemStack is not an IPartItem
+     */
     public static TunnelType registerTunnelType(@Nonnull String name, @Nonnull ItemStack partItemStack) {
         Preconditions.checkArgument(partItemStack.isEmpty() || partItemStack.getItem() instanceof IPartItem<?>,
                 "Part item must be an instance of IPartItem");

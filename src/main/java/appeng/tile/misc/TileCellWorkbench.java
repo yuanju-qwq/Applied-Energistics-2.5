@@ -31,24 +31,28 @@ import appeng.api.config.Settings;
 import appeng.api.config.Upgrades;
 import appeng.api.implementations.IUpgradeableHost;
 import appeng.api.storage.ICellWorkbenchItem;
+import appeng.api.storage.StorageName;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.tile.AEBaseTile;
-import appeng.tile.inventory.AppEngInternalAEInventory;
 import appeng.tile.inventory.AppEngInternalInventory;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.ConfigManager;
 import appeng.util.IConfigManagerHost;
-import appeng.util.helpers.ItemHandlerUtil;
 import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.InvOperation;
 
-public class TileCellWorkbench extends AEBaseTile implements IUpgradeableHost, IAEAppEngInventory, IConfigManagerHost {
+public class TileCellWorkbench extends AEBaseTile
+        implements IUpgradeableHost, IAEAppEngInventory, IConfigManagerHost, IIAEStackInventory {
 
     private final AppEngInternalInventory cell = new AppEngInternalInventory(this, 1);
-    private final AppEngInternalAEInventory config = new AppEngInternalAEInventory(this, 63);
+    // 泛型 AE 栈库存，支持物品、流体等任意类型的过滤配置
+    private final IAEStackInventory config = new IAEStackInventory(this, 63, StorageName.CONFIG);
     private final ConfigManager manager = new ConfigManager(this);
 
     private IItemHandler cacheUpgrades = null;
-    private IItemHandler cacheConfig = null;
+    private IAEStackInventory cacheConfig = null;
     private boolean locked = false;
 
     public TileCellWorkbench() {
@@ -109,14 +113,25 @@ public class TileCellWorkbench extends AEBaseTile implements IUpgradeableHost, I
 
     @Override
     public IItemHandler getInventoryByName(final String name) {
-        if (name.equals("config")) {
-            return this.config;
-        }
-
         if (name.equals("cell")) {
             return this.cell;
         }
 
+        return null;
+    }
+
+    // ---- IIAEStackInventory 实现 ----
+
+    @Override
+    public void saveAEStackInv() {
+        this.saveChanges();
+    }
+
+    @Override
+    public IAEStackInventory getAEInventoryByName(StorageName name) {
+        if (name == StorageName.CONFIG) {
+            return this.config;
+        }
         return null;
     }
 
@@ -134,45 +149,59 @@ public class TileCellWorkbench extends AEBaseTile implements IUpgradeableHost, I
             this.cacheUpgrades = null;
             this.cacheConfig = null;
 
-            final IItemHandler configInventory = this.getCellConfigInventory();
+            final IAEStackInventory configInventory = this.getCellConfigAEInventory();
             if (configInventory != null) {
                 boolean cellHasConfig = false;
-                for (int x = 0; x < configInventory.getSlots(); x++) {
-                    if (!configInventory.getStackInSlot(x).isEmpty()) {
+                for (int x = 0; x < configInventory.getSizeInventory(); x++) {
+                    if (configInventory.getAEStackInSlot(x) != null) {
                         cellHasConfig = true;
                         break;
                     }
                 }
 
                 if (cellHasConfig) {
-                    for (int x = 0; x < this.config.getSlots(); x++) {
-                        this.config.setStackInSlot(x, configInventory.getStackInSlot(x));
+                    // 单元自带配置 → 复制到工作台
+                    for (int x = 0; x < this.config.getSizeInventory(); x++) {
+                        if (x < configInventory.getSizeInventory()) {
+                            this.config.putAEStackInSlot(x, configInventory.getAEStackInSlot(x));
+                        } else {
+                            this.config.putAEStackInSlot(x, null);
+                        }
                     }
                 } else {
-                    ItemHandlerUtil.copy(this.config, configInventory, false);
+                    // 单元无配置 → 复制工作台到单元
+                    copyAEInv(this.config, configInventory);
                 }
             } else if (this.manager.getSetting(Settings.COPY_MODE) == CopyMode.CLEAR_ON_REMOVE) {
-                for (int x = 0; x < this.config.getSlots(); x++) {
-                    this.config.setStackInSlot(x, ItemStack.EMPTY);
+                for (int x = 0; x < this.config.getSizeInventory(); x++) {
+                    this.config.putAEStackInSlot(x, null);
                 }
 
                 this.saveChanges();
             }
 
             this.locked = false;
-        } else if (inv == this.config && !this.locked) {
+        }
+    }
+
+    /**
+     * 当 config IAEStackInventory 内容被外部修改（如虚拟槽位交互）时，
+     * 将变更同步回单元物品的 config。
+     */
+    public void syncConfigToCell() {
+        if (!this.locked) {
             this.locked = true;
-            final IItemHandler c = this.getCellConfigInventory();
+            final IAEStackInventory c = this.getCellConfigAEInventory();
             if (c != null) {
-                ItemHandlerUtil.copy(this.config, c, false);
-                // copy items back. The ConfigInventory may changed the items on insert
-                ItemHandlerUtil.copy(c, this.config, false);
+                copyAEInv(this.config, c);
+                // 回读：单元可能修改了某些槽位（如不接受的类型）
+                copyAEInv(c, this.config);
             }
             this.locked = false;
         }
     }
 
-    private IItemHandler getCellConfigInventory() {
+    private IAEStackInventory getCellConfigAEInventory() {
         if (this.cacheConfig == null) {
             final ICellWorkbenchItem cell = this.getCell();
             if (cell == null) {
@@ -184,7 +213,7 @@ public class TileCellWorkbench extends AEBaseTile implements IUpgradeableHost, I
                 return null;
             }
 
-            final IItemHandler inv = cell.getConfigInventory(is);
+            final IAEStackInventory inv = cell.getConfigAEInventory(is);
             if (inv == null) {
                 return null;
             }
@@ -192,6 +221,17 @@ public class TileCellWorkbench extends AEBaseTile implements IUpgradeableHost, I
             this.cacheConfig = inv;
         }
         return this.cacheConfig;
+    }
+
+    /**
+     * 将源 IAEStackInventory 的内容复制到目标 IAEStackInventory。
+     */
+    private static void copyAEInv(IAEStackInventory src, IAEStackInventory dst) {
+        final int size = Math.min(src.getSizeInventory(), dst.getSizeInventory());
+        for (int x = 0; x < size; x++) {
+            final IAEStack<?> stack = src.getAEStackInSlot(x);
+            dst.putAEStackInSlot(x, stack != null ? stack.copy() : null);
+        }
     }
 
     @Override

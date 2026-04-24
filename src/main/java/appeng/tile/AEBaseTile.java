@@ -40,22 +40,19 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.items.IItemHandler;
 
-import appeng.api.implementations.tiles.ISegmentedInventory;
+import appeng.api.storage.StorageName;
 import appeng.api.util.ICommonTile;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.api.util.IOrientable;
 import appeng.core.AELog;
 import appeng.core.features.IStackSrc;
-import appeng.fluids.helper.IConfigurableFluidInventory;
-import appeng.fluids.util.AEFluidInventory;
 import appeng.helpers.ICustomNameObject;
 import appeng.helpers.IPriorityHost;
 import appeng.hooks.TickHandler;
-import appeng.tile.inventory.AppEngInternalAEInventory;
+import appeng.tile.inventory.IAEStackInventory;
+import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.SettingsFrom;
 
@@ -326,27 +323,11 @@ public class AEBaseTile extends TileEntity implements IOrientable, ICommonTile, 
             pHost.setPriority(compound.getInteger("priority"));
         }
 
-        if (this instanceof ISegmentedInventory) {
-            final IItemHandler inv = ((ISegmentedInventory) this).getInventoryByName("config");
-            if (inv instanceof AppEngInternalAEInventory) {
-                final AppEngInternalAEInventory target = (AppEngInternalAEInventory) inv;
-                final AppEngInternalAEInventory tmp = new AppEngInternalAEInventory(null, target.getSlots());
-                tmp.readFromNBT(compound, "config");
-                for (int x = 0; x < tmp.getSlots(); x++) {
-                    target.setStackInSlot(x, tmp.getStackInSlot(x));
-                }
-            }
-        }
-
-        if (this instanceof IConfigurableFluidInventory) {
-            final IFluidHandler tank = ((IConfigurableFluidInventory) this).getFluidInventoryByName("config");
-            if (tank instanceof AEFluidInventory) {
-                final AEFluidInventory target = (AEFluidInventory) tank;
-                final AEFluidInventory tmp = new AEFluidInventory(null, target.getSlots());
-                tmp.readFromNBT(compound, "config");
-                for (int x = 0; x < tmp.getSlots(); x++) {
-                    target.setFluidInSlot(x, tmp.getFluidInSlot(x));
-                }
+        // IAEStackInventory path (unified for all config inventories)
+        if (this instanceof IIAEStackInventory iiaeStackInventory) {
+            IAEStackInventory aeInv = iiaeStackInventory.getAEInventoryByName(StorageName.CONFIG);
+            if (aeInv != null) {
+                aeInv.readFromNBT(compound, "config");
             }
         }
     }
@@ -393,17 +374,11 @@ public class AEBaseTile extends TileEntity implements IOrientable, ICommonTile, 
             output.setInteger("priority", pHost.getPriority());
         }
 
-        if (this instanceof ISegmentedInventory) {
-            final IItemHandler inv = ((ISegmentedInventory) this).getInventoryByName("config");
-            if (inv instanceof AppEngInternalAEInventory) {
-                ((AppEngInternalAEInventory) inv).writeToNBT(output, "config");
-            }
-        }
-
-        if (this instanceof IConfigurableFluidInventory) {
-            final IFluidHandler tank = ((IConfigurableFluidInventory) this).getFluidInventoryByName("config");
-            if (tank instanceof AEFluidInventory) {
-                ((AEFluidInventory) tank).writeToNBT(output, "config");
+        // IAEStackInventory path (unified for all config inventories)
+        if (this instanceof IIAEStackInventory iiaeStackInventory) {
+            IAEStackInventory aeInv = iiaeStackInventory.getAEInventoryByName(StorageName.CONFIG);
+            if (aeInv != null) {
+                aeInv.writeToNBT(output, "config");
             }
         }
 

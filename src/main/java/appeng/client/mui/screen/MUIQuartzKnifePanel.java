@@ -34,7 +34,6 @@ import appeng.items.contents.QuartzKnifeObj;
 /**
  * MUI 版石英切割刀 GUI 面板。
  *
- * 对应旧 GUI：{@link appeng.client.gui.implementations.GuiQuartzKnife}。
  * 提供物品命名文本输入框，用于给处理器/存储组件命名。
  */
 public class MUIQuartzKnifePanel extends AEBasePanel {

@@ -33,7 +33,6 @@ import appeng.core.AppEng;
 /**
  * MUI 版 AE2 配置 GUI。
  * <p>
- * 替代旧的 {@link appeng.client.gui.config.AEConfigGui}，
  * 基于 Forge {@link GuiConfig} 框架，展示 AE2 配置文件中的各配置类别。
  * <p>
  * 过滤掉 {@code versionchecker} 和 {@code settings} 类别，

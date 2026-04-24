@@ -7,15 +7,15 @@ import net.minecraft.util.text.TextComponentTranslation;
 import appeng.api.networking.crafting.ICraftingMedium;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.client.render.BlockPosHighlighter;
-import appeng.helpers.DualityInterface;
+import appeng.helpers.PatternProviderLogic;
 import appeng.util.BlockPosUtils;
 import appeng.util.Platform;
 
 public class AETrack {
     public static void trackCrafting(EntityPlayer player, ICraftingMedium latestMedium) {
         if (latestMedium instanceof ICraftingProvider provider) {
-            if (provider instanceof DualityInterface patternInterface) {
-                BlockPos blockPos = patternInterface.getLocation().getPos();
+            if (provider instanceof PatternProviderLogic patternProvider) {
+                BlockPos blockPos = patternProvider.getLocation().getPos();
                 player.sendMessage(new TextComponentTranslation("[合成追踪]正在追踪位于 X:" + blockPos.getX() + " Y:"
                         + blockPos.getY() + " Z:" + blockPos.getZ() + " 的接口"));
                 showPos(blockPos, player);

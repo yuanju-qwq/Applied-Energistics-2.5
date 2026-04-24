@@ -48,7 +48,7 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
 
     private final IMEInventoryHandler<T> internalHandler;
     private final IItemList<T> cachedList;
-    private final HashMap<IMEMonitorHandlerReceiver<T>, Object> listeners = new HashMap<>();
+    private final HashMap<IMEMonitorHandlerReceiver<? super T>, Object> listeners = new HashMap<>();
 
     protected boolean hasChanged = true;
 
@@ -69,12 +69,12 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<T> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver<? super T> l, final Object verificationToken) {
         this.listeners.put(l, verificationToken);
     }
 
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<T> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver<? super T> l) {
         this.listeners.remove(l);
     }
 
@@ -91,21 +91,22 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
         this.notifyListenersOfChange(changes, src);
     }
 
+    @SuppressWarnings("unchecked")
     protected void notifyListenersOfChange(final Iterable<T> diff, final IActionSource src) {
         this.hasChanged = true;// need to update the cache.
-        final Iterator<Entry<IMEMonitorHandlerReceiver<T>, Object>> i = this.getListeners();
+        final Iterator<Entry<IMEMonitorHandlerReceiver<? super T>, Object>> i = this.getListeners();
         while (i.hasNext()) {
-            final Entry<IMEMonitorHandlerReceiver<T>, Object> o = i.next();
-            final IMEMonitorHandlerReceiver<T> receiver = o.getKey();
+            final Entry<IMEMonitorHandlerReceiver<? super T>, Object> o = i.next();
+            final IMEMonitorHandlerReceiver<? super T> receiver = o.getKey();
             if (receiver.isValid(o.getValue())) {
-                receiver.postChange(this, diff, src);
+                ((IMEMonitorHandlerReceiver) receiver).postChange(this, diff, src);
             } else {
                 i.remove();
             }
         }
     }
 
-    protected Iterator<Entry<IMEMonitorHandlerReceiver<T>, Object>> getListeners() {
+    protected Iterator<Entry<IMEMonitorHandlerReceiver<? super T>, Object>> getListeners() {
         return this.listeners.entrySet().iterator();
     }
 

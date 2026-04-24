@@ -21,6 +21,8 @@ package appeng.parts.reporting;
 import java.io.IOException;
 import java.text.DecimalFormat;
 
+import javax.annotation.Nullable;
+
 import appeng.api.util.AEUtils;
 import io.netty.buffer.ByteBuf;
 
@@ -46,8 +48,6 @@ import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -60,8 +60,6 @@ import appeng.me.GridAccessException;
 import appeng.parts.PartModel;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
-import appeng.fluids.util.AEFluidStackType;
 
 public class PartRateMonitor extends AbstractPartDisplay implements IStackWatcherHost {
     private static final int TICKS_PER_SECOND = 20;
@@ -77,8 +75,9 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     public static final IPartModel MODELS_ON = new PartModel(MODEL_BASE, MODEL_ON, MODEL_STATUS_ON);
     public static final IPartModel MODELS_HAS_CHANNEL = new PartModel(MODEL_BASE, MODEL_ON, MODEL_STATUS_HAS_CHANNEL);
 
-    private IAEItemStack configuredItem;
-    private IAEFluidStack configuredFluid;
+    // Unified configured stack (supports item, fluid, or any registered IAEStackType)
+    @Nullable
+    private IAEStack<?> configured;
     private long currentAmount = 0;
     private long lastSecondAmount = 0;
     private long lastSecondTime = 0;
@@ -101,11 +100,9 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     @Override
     public void readFromNBT(final NBTTagCompound data) {
         super.readFromNBT(data);
-        final NBTTagCompound itemTag = data.getCompoundTag("configuredItem");
-        this.configuredItem = AEItemStack.fromNBT(itemTag);
 
-        final NBTTagCompound fluidTag = data.getCompoundTag("configuredFluid");
-        this.configuredFluid = AEFluidStack.fromNBT(fluidTag);
+        final NBTTagCompound stackTag = data.getCompoundTag("configured");
+        this.configured = IAEStack.fromNBTGeneric(stackTag);
 
         this.lastSecondAmount = data.getLong("lastSecondAmount");
         this.lastSecondTime = data.getLong("lastSecondTime");
@@ -123,13 +120,8 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     public void writeToNBT(final NBTTagCompound data) {
         super.writeToNBT(data);
 
-        final NBTTagCompound itemTag = new NBTTagCompound();
-        if (this.configuredItem != null) this.configuredItem.writeToNBT(itemTag);
-        data.setTag("configuredItem", itemTag);
-
-        final NBTTagCompound fluidTag = new NBTTagCompound();
-        if (this.configuredFluid != null) this.configuredFluid.writeToNBT(fluidTag);
-        data.setTag("configuredFluid", fluidTag);
+        final NBTTagCompound stackTag = this.configured != null ? this.configured.toNBTGeneric() : new NBTTagCompound();
+        data.setTag("configured", stackTag);
 
         data.setLong("lastSecondAmount", this.lastSecondAmount);
         data.setLong("lastSecondTime", this.lastSecondTime);
@@ -144,14 +136,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     @Override
     public void writeToStream(final ByteBuf data) throws IOException {
         super.writeToStream(data);
-        data.writeBoolean(this.configuredItem != null);
-        data.writeBoolean(this.configuredFluid != null);
-
-        if (this.configuredItem != null) {
-            this.configuredItem.writeToPacket(data);
-        } else if (this.configuredFluid != null) {
-            this.configuredFluid.writeToPacket(data);
-        }
+        IAEStack.writeToPacketGeneric(data, this.configured);
 
         data.writeLong(this.currentAmount);
 
@@ -166,18 +151,10 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     public boolean readFromStream(final ByteBuf data) throws IOException {
         boolean needRedraw = super.readFromStream(data);
 
-        final boolean isItem = data.readBoolean();
-        final boolean isFluid = data.readBoolean();
-
-        if (isItem) {
-            this.configuredItem = AEItemStack.fromPacket(data);
-            this.configuredFluid = null;
-        } else if (isFluid) {
-            this.configuredFluid = AEFluidStack.fromPacket(data);
-            this.configuredItem = null;
-        } else {
-            this.configuredItem = null;
-            this.configuredFluid = null;
+        final IAEStack<?> old = this.configured;
+        this.configured = IAEStack.fromPacketGeneric(data);
+        if (!java.util.Objects.equals(old, this.configured)) {
+            needRedraw = true;
         }
 
         final long newAmount = data.readLong();
@@ -225,11 +202,9 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
             final AEFluidStack fluidStack = AEFluidStack.fromFluidStack(fluidInTank);
 
             if (fluidStack != null && fluidStack.getStackSize() > 0) {
-                this.configuredFluid = fluidStack.copy().setStackSize(0);
-                this.configuredItem = null;
+                this.configured = fluidStack.copy().setStackSize(0);
             } else {
-                this.configuredItem = AEItemStack.fromItemStack(held).setStackSize(0);
-                this.configuredFluid = null;
+                this.configured = AEItemStack.fromItemStack(held).setStackSize(0);
             }
             this.resetSnapshots();
         }
@@ -264,8 +239,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
      * 娓呯┖閰嶇疆骞堕噸缃揩鐓?
      */
     private void clearConfiguration() {
-        this.configuredItem = null;
-        this.configuredFluid = null;
+        this.configured = null;
         this.currentAmount = 0;
         this.resetSnapshots();
     }
@@ -315,10 +289,8 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     private void configureWatcher() {
         if (this.watcher != null) {
             this.watcher.reset();
-            if (this.configuredItem != null) {
-                this.watcher.add(this.configuredItem);
-            } else if (this.configuredFluid != null) {
-                this.watcher.add(this.configuredFluid);
+            if (this.configured != null) {
+                this.watcher.add(this.configured);
             }
         }
         this.updateCurrentAmount();
@@ -328,17 +300,13 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     /**
      * 鏇存柊褰撳墠搴撳瓨鏁伴噺
      */
-    private void updateCurrentAmount() {
+    @SuppressWarnings("unchecked")
+    private <T extends IAEStack<T>> void updateCurrentAmount() {
         try {
-            if (this.configuredItem != null) {
-                final IMEMonitor<IAEItemStack> inv = this.getProxy().getStorage()
-                        .getInventory(AEItemStackType.INSTANCE);
-                final IAEItemStack found = inv.getStorageList().findPrecise(this.configuredItem);
-                this.currentAmount = found != null ? found.getStackSize() : 0;
-            } else if (this.configuredFluid != null) {
-                final IMEMonitor<IAEFluidStack> inv = this.getProxy().getStorage()
-                        .getInventory(AEFluidStackType.INSTANCE);
-                final IAEFluidStack found = inv.getStorageList().findPrecise(this.configuredFluid);
+            if (this.configured != null) {
+                final IAEStackType<?> stackType = this.configured.getStackTypeBase();
+                final IMEMonitor<T> inv = (IMEMonitor<T>) this.getProxy().getStorage().getInventory(stackType);
+                final T found = inv.getStorageList().findPrecise((T) this.configured);
                 this.currentAmount = found != null ? found.getStackSize() : 0;
             }
         } catch (final GridAccessException e) {
@@ -349,10 +317,10 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     @Override
     public void onStackChange(IItemList<?> o, IAEStack<?> fullStack, IAEStack<?> diffStack, IActionSource src,
                               IAEStackType<?> type) {
-        if (this.configuredItem != null && fullStack instanceof IAEItemStack) {
+        if (this.configured != null && fullStack != null) {
             this.currentAmount = fullStack.getStackSize();
-        } else if (this.configuredFluid != null && fullStack instanceof IAEFluidStack) {
-            this.currentAmount = fullStack.getStackSize();
+        } else if (this.configured != null) {
+            this.currentAmount = 0;
         }
 
         this.updateSnapshots();
@@ -420,23 +388,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
         GlStateManager.disableLighting();
         GlStateManager.depthMask(false);
 
-        if (displayed instanceof IAEItemStack) {
-            TesrRenderHelper.renderItem2dWithRate(
-                    (IAEItemStack) displayed,
-                    0.6f,
-                    0.17f,
-                    rateText,
-                    color
-            );
-        } else if (displayed instanceof IAEFluidStack) {
-            TesrRenderHelper.renderFluid2dWithRate(
-                    (IAEFluidStack) displayed,
-                    0.6f,
-                    0.17f,
-                    rateText,
-                    color
-            );
-        }
+        TesrRenderHelper.renderStack2dWithRate(displayed, 0.6f, 0.17f, rateText, color);
 
         GlStateManager.depthMask(true);
         GlStateManager.enableLighting();
@@ -444,10 +396,8 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     }
 
     private IAEStack<?> getDisplayed() {
-        if (this.configuredItem != null) {
-            return this.configuredItem.copy().setStackSize(this.currentAmount);
-        } else if (this.configuredFluid != null) {
-            return this.configuredFluid.copy().setStackSize(this.currentAmount);
+        if (this.configured != null) {
+            return this.configured.copy().setStackSize(this.currentAmount);
         }
         return null;
     }

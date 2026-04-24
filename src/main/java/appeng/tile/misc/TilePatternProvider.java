@@ -357,8 +357,7 @@ public class TilePatternProvider extends AENetworkInvTile
 
     @Override
     public AEGuiKey getGuiKey() {
-        // TODO: 等 B4（注册）完成后替换为 GUI_PATTERN_PROVIDER
-        return AEGuiKeys.INTERFACE;
+        return AEGuiKeys.PATTERN_PROVIDER;
     }
 
     @Override

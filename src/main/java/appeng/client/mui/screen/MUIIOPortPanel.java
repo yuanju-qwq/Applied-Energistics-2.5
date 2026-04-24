@@ -39,7 +39,6 @@ import appeng.core.sync.packets.PacketConfigButton;
 /**
  * MUI 版 GuiIOPort。
  *
- * 对应旧代码的 {@link appeng.client.gui.implementations.GuiIOPort}。
  * IO 端口配置面板：红石模式、满度模式、操作模式。
  */
 public class MUIIOPortPanel extends MUIUpgradeablePanel {

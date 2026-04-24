@@ -194,8 +194,7 @@ public class PartPatternProvider extends PartBasicState implements IGridTickable
     @Override
     public boolean onPartActivate(final EntityPlayer p, final EnumHand hand, final Vec3d pos) {
         if (Platform.isServer()) {
-            // TODO: 等 B4（Container/GUI）完成后替换为 GUI_PATTERN_PROVIDER
-            Platform.openGUI(p, this.getTileEntity(), this.getSide(), AEGuiKeys.INTERFACE);
+            Platform.openGUI(p, this.getTileEntity(), this.getSide(), AEGuiKeys.PATTERN_PROVIDER);
         }
         return true;
     }
@@ -316,8 +315,7 @@ public class PartPatternProvider extends PartBasicState implements IGridTickable
 
     @Override
     public GuiBridge getGuiBridge() {
-        // TODO: 等 B4（Container/GUI）完成后替换为 GUI_PATTERN_PROVIDER
-        return AEGuiKeys.INTERFACE.getLegacyBridge();
+        return AEGuiKeys.PATTERN_PROVIDER.getLegacyBridge();
     }
 
     // ========== Memory Card ==========

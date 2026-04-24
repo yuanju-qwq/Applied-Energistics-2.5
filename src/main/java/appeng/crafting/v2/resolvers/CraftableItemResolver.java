@@ -262,10 +262,18 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             }
         }
 
+        /**
+         * Validate whether a substitute stack can be used in the given pattern slot.
+         * <p>
+         * MC limitation: isValidItemForSlot() calls MC's CraftingManager recipe matching,
+         * which only works with ItemStack. For non-item types, we skip the validation and
+         * return true (non-item inputs don't go through the MC crafting table).
+         */
         public boolean isValidSubstitute(IAEStack<?> reference, IAEStack<?> stack, World world, int slot) {
             if (!pattern.isCraftable()) {
                 return true;
             }
+            // MC limitation: crafting table validation only works for ItemStack
             if (stack instanceof IAEItemStack) {
                 return pattern.isValidItemForSlot(slot, ((IAEItemStack) stack).createItemStack(), world);
             }
@@ -449,6 +457,8 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                             request, input.copy().setStackSize(amount),
                             childMode, allowSimulation, request.craftingMode,
                             stack -> {
+                                // MC limitation: fuzzy substitution validation via isValidItemForSlot()
+                                // only works for ItemStack. Non-item types fall back to exact type matching.
                                 if (!(stack instanceof IAEItemStack) || !(inputRef instanceof IAEItemStack)) {
                                     return inputRef.isSameType(stack);
                                 }

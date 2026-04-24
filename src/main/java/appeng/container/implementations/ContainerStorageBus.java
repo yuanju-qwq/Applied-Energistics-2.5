@@ -21,29 +21,27 @@ package appeng.container.implementations;
 import java.util.Iterator;
 
 import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.*;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
 import appeng.container.guisync.GuiSync;
-import appeng.container.interfaces.IVirtualSlotHolder;
-import appeng.container.interfaces.IVirtualSlotSource;
 import appeng.container.slot.SlotRestrictedInput;
-import appeng.parts.misc.PartStorageBus;
+import appeng.parts.misc.AbstractPartStorageBus;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.iterators.NullIterator;
-import appeng.util.item.AEItemStackType;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
-public class ContainerStorageBus extends ContainerUpgradeable implements IVirtualSlotHolder, IVirtualSlotSource {
+/**
+ * Unified container for all storage bus types (item, fluid, etc.).
+ * Operates on {@link AbstractPartStorageBus} through the common base class,
+ * eliminating the need for per-type container subclasses.
+ */
+public class ContainerStorageBus extends ContainerUpgradeable implements IStorageBusContainer {
 
-    private final PartStorageBus storageBus;
+    private final AbstractPartStorageBus<?> storageBus;
 
     @GuiSync(3)
     public AccessRestriction rwMode = AccessRestriction.READ_WRITE;
@@ -54,10 +52,7 @@ public class ContainerStorageBus extends ContainerUpgradeable implements IVirtua
     @GuiSync(7)
     public YesNo stickyMode = YesNo.NO;
 
-    // 服务端用于增量同步的客户端快照
-    private final IAEStack<?>[] configClientSlot = new IAEStack[63];
-
-    public ContainerStorageBus(final InventoryPlayer ip, final PartStorageBus te) {
+    public ContainerStorageBus(final InventoryPlayer ip, final AbstractPartStorageBus<?> te) {
         super(ip, te);
         this.storageBus = te;
     }
@@ -69,8 +64,8 @@ public class ContainerStorageBus extends ContainerUpgradeable implements IVirtua
 
     @Override
     protected void setupConfig() {
-        // config 槽位不再使用 Minecraft Slot，改为由 GUI 侧的 VirtualMEPhantomSlot 处理。
-        // 这里只添加升级槽位。
+        // config slots are handled by GUI-side VirtualMEPhantomSlot.
+        // Only add upgrade slots here.
 
         final IItemHandler upgrades = this.getUpgradeable().getInventoryByName("upgrades");
         this.addSlotToContainer((new SlotRestrictedInput(SlotRestrictedInput.PlacableItemType.UPGRADES, upgrades, 0,
@@ -114,11 +109,24 @@ public class ContainerStorageBus extends ContainerUpgradeable implements IVirtua
                     (AccessRestriction) this.getUpgradeable().getConfigManager().getSetting(Settings.ACCESS));
             this.setStorageFilter(
                     (StorageFilter) this.getUpgradeable().getConfigManager().getSetting(Settings.STORAGE_FILTER));
-            this.setStickyMode((YesNo) this.getUpgradeable().getConfigManager().getSetting(Settings.STICKY_MODE));
+            try {
+                this.setStickyMode(
+                        (YesNo) this.getUpgradeable().getConfigManager().getSetting(Settings.STICKY_MODE));
+            } catch (final IllegalArgumentException ignored) {
+                // STICKY_MODE may not be registered for all storage bus types (e.g. fluid)
+            }
 
-            // 使用虚拟槽位同步 config
-            final IAEStackInventory config = this.storageBus.getAEInventoryByName(StorageName.CONFIG);
-            this.updateVirtualSlots(StorageName.CONFIG, config, this.configClientSlot);
+            // Clear config slots that exceed current capacity (e.g. capacity upgrade removed)
+            final IAEStackInventory cfg = this.getConfig();
+            if (cfg != null) {
+                final int upgrades = this.getUpgradeable().getInstalledUpgrades(Upgrades.CAPACITY);
+                final int maxSlots = 18 + (9 * upgrades);
+                for (int i = maxSlots; i < cfg.getSizeInventory(); i++) {
+                    if (cfg.getAEStackInSlot(i) != null) {
+                        cfg.putAEStackInSlot(i, null);
+                    }
+                }
+            }
         }
 
         this.standardDetectAndSendChanges();
@@ -131,31 +139,39 @@ public class ContainerStorageBus extends ContainerUpgradeable implements IVirtua
         return upgrades > idx;
     }
 
+    @Override
     public void clear() {
-        final IAEStackInventory inv = this.storageBus.getAEInventoryByName(StorageName.CONFIG);
-        for (int x = 0; x < inv.getSizeInventory(); x++) {
-            inv.putAEStackInSlot(x, null);
+        final IAEStackInventory inv = this.getConfig();
+        if (inv != null) {
+            for (int x = 0; x < inv.getSizeInventory(); x++) {
+                inv.putAEStackInSlot(x, null);
+            }
         }
         this.detectAndSendChanges();
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Override
     public void partition() {
-        final IAEStackInventory inv = this.storageBus.getAEInventoryByName(StorageName.CONFIG);
+        final IAEStackInventory inv = this.getConfig();
+        if (inv == null) {
+            return;
+        }
 
-        final IMEInventory<IAEItemStack> cellInv = this.storageBus.getInternalHandler();
+        final IMEInventory cellInv = this.storageBus.getInternalHandler();
 
-        Iterator<IAEItemStack> i = new NullIterator<>();
+        Iterator<IAEStack<?>> i = new NullIterator<>();
         if (cellInv != null) {
-            final IItemList<IAEItemStack> list = cellInv
+            final IItemList list = cellInv
                     .getAvailableItems(
-                            AEItemStackType.INSTANCE.createList());
+                            this.storageBus.getStackType().createList());
             i = list.iterator();
         }
 
         for (int x = 0; x < inv.getSizeInventory(); x++) {
             if (i.hasNext() && this.isSlotEnabled((x / 9) - 2)) {
-                final IAEItemStack next = i.next();
-                final IAEItemStack copy = next.copy();
+                final IAEStack<?> next = i.next();
+                final IAEStack<?> copy = next.copy();
                 copy.setStackSize(1);
                 inv.putAEStackInSlot(x, copy);
             } else {
@@ -166,31 +182,8 @@ public class ContainerStorageBus extends ContainerUpgradeable implements IVirtua
         this.detectAndSendChanges();
     }
 
-    // ---- IVirtualSlotHolder 实现（接收服务端推送的虚拟槽位数据，客户端侧）----
-
-    @Override
-    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
-        final IAEStackInventory config = this.storageBus.getAEInventoryByName(StorageName.CONFIG);
-        for (var entry : slotStacks.int2ObjectEntrySet()) {
-            config.putAEStackInSlot(entry.getIntKey(), entry.getValue());
-        }
-    }
-
-    // ---- IVirtualSlotSource 实现（接收客户端发来的虚拟槽位更新，服务端侧）----
-
-    @Override
-    public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
-        final IAEStackInventory config = this.storageBus.getAEInventoryByName(StorageName.CONFIG);
-        if (config != null && slotId >= 0 && slotId < config.getSizeInventory()) {
-            config.putAEStackInSlot(slotId, aes);
-        }
-    }
-
-    /**
-     * 获取 config IAEStackInventory，供 GUI 层使用。
-     */
-    public IAEStackInventory getConfig() {
-        return this.storageBus.getAEInventoryByName(StorageName.CONFIG);
+    public AbstractPartStorageBus<?> getStorageBus() {
+        return this.storageBus;
     }
 
     public AccessRestriction getReadWriteMode() {

@@ -23,7 +23,7 @@ import appeng.util.item.AEItemStack;
 import appeng.util.item.OreReference;
 import appeng.util.item.AEItemStackType;
 
-public class ContainerOreDictStorageBus extends ContainerUpgradeable {
+public class ContainerOreDictStorageBus extends ContainerUpgradeable implements IStorageBusContainer {
     private final PartOreDicStorageBus part;
 
     @GuiSync(3)
@@ -94,6 +94,11 @@ public class ContainerOreDictStorageBus extends ContainerUpgradeable {
         part.saveOreMatch(oreMatch);
 
         this.detectAndSendChanges();
+    }
+
+    @Override
+    public void clear() {
+        // OreDict storage bus does not have traditional config slots to clear
     }
 
     public void saveOreMatch(String value) {
