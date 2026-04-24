@@ -1,4 +1,4 @@
-﻿﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -1456,9 +1456,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         try {
             this.setCraftingMode(details.isCraftable());
             this.setSubstitute(details.canSubstitute());
-            if (details.canBeSubstitute() != null) {
-                this.setBeSubstitute(details.canBeSubstitute());
-            }
+            this.setBeSubstitute(details.canBeSubstitute());
 
             // 还原输入
             final IAEStack<?>[] inputs = (IAEStack<?>[]) details.getInputs();
@@ -1559,7 +1557,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
             IItemList<T> list = (IItemList<T>) mon.getStorageList();
             for (final T stack : list) {
-                piu.appendItem(stack);
+                piu.appendStack(stack);
             }
 
             for (final IContainerListener c : this.listeners) {
@@ -1577,7 +1575,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         try {
             final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
             for (IAEStack<?> stack : changes) {
-                piu.appendItem((T) stack);
+                piu.appendStack((T) stack);
             }
 
             for (final IContainerListener c : this.listeners) {
@@ -1621,9 +1619,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     // ========== PacketValueConfig 处理 ==========
 
-    @Override
     public void onUpdate(final String field, final String value) {
-        super.onUpdate(field, value);
         try {
             switch (field) {
                 case "PatternTerminal.CraftMode":
@@ -1690,7 +1686,9 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                     if (Platform.isServer()) {
                         for (final Settings set : this.serverCM.getSettings()) {
                             if (set.name().equals(field)) {
-                                final Enum<?> enumVal = Platform.valueOf(set.getDefault().getDeclaringClass(), value);
+                                @SuppressWarnings({"unchecked", "rawtypes"})
+                                final Enum<?> enumVal = Enum.valueOf(
+                                        (Class) set.getPossibleValues().iterator().next().getDeclaringClass(), value);
                                 this.serverCM.putSetting(set, enumVal);
                                 break;
                             }

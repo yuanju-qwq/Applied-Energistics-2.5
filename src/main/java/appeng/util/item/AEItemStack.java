@@ -41,6 +41,8 @@ import ic2.api.item.ICustomDamageItem;
 
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.IStorageChannel;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.integration.modules.gregtech.ToolClass;
@@ -372,6 +374,11 @@ public class AEItemStack extends AEStack<IAEItemStack> implements IAEItemStack {
         }
 
         return false;
+    }
+
+    @Override
+    public AEKey toAEKey() {
+        return AEItemKey.of(this.getDefinition());
     }
 
 }

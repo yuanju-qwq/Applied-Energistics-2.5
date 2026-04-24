@@ -8,8 +8,8 @@ import net.minecraft.item.ItemStack;
 import appeng.container.interfaces.ISpecialSlotIngredient;
 
 public abstract class GuiCustomSlot extends Gui implements ITooltip, ISpecialSlotIngredient {
-    protected final int x;
-    protected final int y;
+    protected int x;
+    protected int y;
     protected final int id;
 
     public GuiCustomSlot(final int id, final int x, final int y) {
@@ -20,6 +20,11 @@ public abstract class GuiCustomSlot extends Gui implements ITooltip, ISpecialSlo
 
     public int getId() {
         return this.id;
+    }
+
+    public void setPosition(int x, int y) {
+        this.x = x;
+        this.y = y;
     }
 
     public boolean canClick(final EntityPlayer player) {

@@ -105,6 +105,11 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
     // ========== 初始化 ==========
 
     @Override
+    protected void setupWidgets() {
+        // TODO: Migrate widget initialization here from initGui()
+    }
+
+    @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         super.initGui();

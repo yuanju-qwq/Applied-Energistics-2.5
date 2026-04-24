@@ -86,7 +86,7 @@ public class PartStorageBus extends AbstractPartStorageBus<IAEItemStack>
     // ---- AbstractPartStorageBus abstract method implementations ----
 
     @Override
-    protected IAEStackType<IAEItemStack> getStackType() {
+    public IAEStackType<IAEItemStack> getStackType() {
         return AEItemStackType.INSTANCE;
     }
 

@@ -167,7 +167,7 @@ public final class ApiParts implements IParts {
                 itemPart.createPart(PartType.INTERFACE_CONFIGURATION_TERMINAL));
         this.fluidInterfaceConfigurationTerminal = new DamagedItemDefinition(
                 "part.terminal.fluid_interface_configuration_terminal",
-                itemPart.createPart(PartType.FLUID_INTERFACE_CONFIGURATION_TERMINAL));
+                itemPart.createPart(PartType.INTERFACE_CONFIGURATION_TERMINAL));
         this.craftingTerminal = new DamagedItemDefinition("part.terminal.crafting",
                 itemPart.createPart(PartType.CRAFTING_TERMINAL));
         this.terminal = new DamagedItemDefinition("part.terminal", itemPart.createPart(PartType.TERMINAL));

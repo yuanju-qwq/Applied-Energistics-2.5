@@ -150,7 +150,7 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
      * 包含：物品原始 tooltip + 库存数量 + 可请求数量 + 可合成标记 + 子类追加信息。
      */
     @Override
-    protected void drawTooltip(ITooltip tooltip, int mouseX, int mouseY) {
+    public void drawTooltip(ITooltip tooltip, int mouseX, int mouseY) {
         if (tooltip instanceof VirtualMESlot virtualSlot && tooltip.isVisible()) {
             final int tx = tooltip.xPos();
             int ty = tooltip.yPos();

@@ -40,9 +40,10 @@ public class DriveWatcher<T extends IAEStack<T>> extends MEInventoryHandler<T> {
     private final TileDrive drive;
     private final IActionSource source;
 
+    @SuppressWarnings("unchecked")
     public DriveWatcher(final ICellInventoryHandler<T> i, final ItemStack is, final ICellHandler han,
             final TileDrive drive) {
-        super(i, i.getStackType());
+        super(i, (IAEStackType<T>) i.getStackType());
         this.is = is;
         this.handler = han;
         this.drive = drive;

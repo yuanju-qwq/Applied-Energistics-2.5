@@ -181,6 +181,15 @@ public class IAEStackInventory {
     }
 
     /**
+     * Alias for {@link #getSizeInventory()} for consistency with Collection-style APIs.
+     *
+     * @return the number of slots
+     */
+    public int size() {
+        return this.size;
+    }
+
+    /**
      * 标记库存已修改，通知持有者保存。
      */
     public void markDirty() {

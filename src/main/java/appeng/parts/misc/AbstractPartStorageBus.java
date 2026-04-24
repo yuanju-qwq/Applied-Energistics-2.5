@@ -109,7 +109,7 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
     /**
      * @return the GUI key to open when the player activates this part
      */
-    protected abstract AEGuiKey getGuiKey();
+    public abstract AEGuiKey getGuiKey();
 
     /**
      * Wraps the target tile entity's inventory into an ME inventory for this stack type.

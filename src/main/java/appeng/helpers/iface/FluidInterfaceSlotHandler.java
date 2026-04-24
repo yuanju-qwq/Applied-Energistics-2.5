@@ -184,19 +184,21 @@ public final class FluidInterfaceSlotHandler implements IInterfaceSlotHandler<IA
             this.context = context;
         }
 
+        @SuppressWarnings({"unchecked", "rawtypes"})
         @Override
         public IAEFluidStack injectItems(final IAEFluidStack input, final Actionable type, final IActionSource src) {
-            final Optional<Comparable<Integer>> ctx = src.context(Comparable.class);
+            final Optional<Comparable> ctx = src.context(Comparable.class);
             if (ctx.isPresent()) {
                 return input;
             }
             return super.injectItems(input, type, src);
         }
 
+        @SuppressWarnings({"unchecked", "rawtypes"})
         @Override
         public IAEFluidStack extractItems(final IAEFluidStack request, final Actionable type,
                 final IActionSource src) {
-            final Optional<Comparable<Integer>> ctx = src.context(Comparable.class);
+            final Optional<Comparable> ctx = src.context(Comparable.class);
             final boolean hasLowerOrEqualPriority = ctx
                     .map(c -> c.compareTo(context.getPriority()) <= 0).orElse(false);
             if (hasLowerOrEqualPriority) {

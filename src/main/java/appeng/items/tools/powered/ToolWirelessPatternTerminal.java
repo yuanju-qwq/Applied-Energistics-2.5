@@ -38,7 +38,7 @@ public class ToolWirelessPatternTerminal extends ToolWirelessTerminal implements
     }
 
     @Override
-    public IGuiHandler getGuiHandler(ItemStack is) {
+    public Object getGuiHandler(ItemStack is) {
         return AEGuiKeys.WIRELESS_PATTERN_TERMINAL;
     }
 }

@@ -241,7 +241,9 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
                 this.lastReportedValue = ((NetworkMonitor<IAEFluidStack>) monitor).getGridCurrentCount();
             }
         } else {
-            final IAEFluidStack r = monitor.getStorageList().findPrecise(myStack);
+            final IAEFluidStack r = myStack instanceof IAEFluidStack fs
+                    ? monitor.getStorageList().findPrecise(fs)
+                    : null;
             if (r == null) {
                 this.lastReportedValue = 0;
             } else {

@@ -96,7 +96,7 @@ public class ItemRepo {
         return this.view.get(idx);
     }
 
-    void setSearch(final String search) {
+    public void setSearch(final String search) {
         this.searchString = search == null ? "" : search;
     }
 

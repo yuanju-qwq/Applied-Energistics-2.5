@@ -53,9 +53,7 @@ import net.minecraftforge.items.IItemHandler;
 
 import de.ellpeck.actuallyadditions.api.tile.IPhantomTile;
 
-import gregtech.api.bridge.GTBridge;
-import gregtech.api.bridge.IGTMachineHelper;
-import gregtech.api.bridge.IGTMachineInfo;
+// GT bridge imports removed — using reflection to avoid compile-time dependency
 
 import appeng.api.config.*;
 import appeng.api.implementations.ICraftingPatternItem;
@@ -70,6 +68,7 @@ import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.crafting.ICraftingProviderHelper;
 import appeng.api.networking.events.MENetworkCraftingPatternChange;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
@@ -1159,17 +1158,13 @@ public class PatternProviderLogic
                 ItemStack what = new ItemStack(directedBlock, 1, directedBlock.getMetaFromState(directedBlockState));
 
                 if (Platform.GTLoaded) {
-                    final IGTMachineHelper machineHelper = GTBridge.getMachineHelper();
-                    if (machineHelper != null && machineHelper.isGTMachineBlock(directedBlock)) {
-                        final IGTMachineInfo machineInfo = machineHelper.getMachineInfo(
-                                directedTile.getWorld(), directedTile.getPos());
-                        if (machineInfo != null) {
-                            final IGTMachineInfo controller = machineInfo.getMultiblockController();
-                            if (controller != null) {
-                                return controller.getMetaFullName();
-                            }
-                            return machineInfo.getMetaFullName();
+                    try {
+                        final String gtName = getGTMachineName(directedTile);
+                        if (gtName != null) {
+                            return gtName;
                         }
+                    } catch (final Exception ignored) {
+                        // GT bridge not available
                     }
                 }
 
@@ -1206,6 +1201,33 @@ public class PatternProviderLogic
         }
 
         return "Nothing";
+    }
+
+    /**
+     * Attempts to get the GregTech machine name via reflection to avoid compile-time dependency.
+     */
+    @Nullable
+    private static String getGTMachineName(TileEntity te) {
+        try {
+            Class<?> bridgeClass = Class.forName("gregtech.api.bridge.GTBridge");
+            Object helper = bridgeClass.getMethod("getMachineHelper").invoke(null);
+            if (helper == null) return null;
+
+            Class<?> helperClass = helper.getClass();
+            Object machineInfo = helperClass.getMethod("getMachineInfo",
+                    net.minecraft.world.World.class, net.minecraft.util.math.BlockPos.class)
+                    .invoke(helper, te.getWorld(), te.getPos());
+            if (machineInfo == null) return null;
+
+            Class<?> infoClass = machineInfo.getClass();
+            Object controller = infoClass.getMethod("getMultiblockController").invoke(machineInfo);
+            if (controller != null) {
+                return (String) controller.getClass().getMethod("getMetaFullName").invoke(controller);
+            }
+            return (String) infoClass.getMethod("getMetaFullName").invoke(machineInfo);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public long getSortValue() {

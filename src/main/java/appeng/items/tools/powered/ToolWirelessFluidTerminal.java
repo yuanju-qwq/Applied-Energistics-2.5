@@ -38,7 +38,7 @@ public class ToolWirelessFluidTerminal extends ToolWirelessTerminal implements I
     }
 
     @Override
-    public IGuiHandler getGuiHandler(ItemStack is) {
+    public Object getGuiHandler(ItemStack is) {
         return AEGuiKeys.WIRELESS_FLUID_TERMINAL;
     }
 }

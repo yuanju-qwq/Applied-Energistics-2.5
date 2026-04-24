@@ -19,6 +19,7 @@
 package appeng.fluids.util;
 
 import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTank;
 
 import appeng.api.storage.data.IAEFluidStack;
@@ -62,6 +63,22 @@ public class AEFluidTank extends FluidTank implements IAEFluidTank {
     @Override
     public int getSlots() {
         return 1;
+    }
+
+    @Override
+    public int fill(int slot, FluidStack resource, boolean doFill) {
+        if (slot == 0) {
+            return this.fill(resource, doFill);
+        }
+        return 0;
+    }
+
+    @Override
+    public FluidStack drain(int slot, FluidStack resource, boolean doDrain) {
+        if (slot == 0) {
+            return this.drain(resource, doDrain);
+        }
+        return null;
     }
 
 }

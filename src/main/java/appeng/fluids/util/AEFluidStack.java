@@ -32,6 +32,8 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 import appeng.api.config.FuzzyMode;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEKey;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStackType;
@@ -335,5 +337,10 @@ public final class AEFluidStack extends AEStack<IAEFluidStack> implements IAEFlu
             buffer.writeInt(size);
             buffer.writeBytes(tagBytes);
         }
+    }
+
+    @Override
+    public AEKey toAEKey() {
+        return AEFluidKey.of(this.fluid, this.tagCompound);
     }
 }

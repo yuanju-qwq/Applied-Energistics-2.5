@@ -2,8 +2,8 @@ package appeng.items.tools.powered;
 
 import appeng.api.AEApi;
 import appeng.api.definitions.IItemDefinition;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 
 public enum Terminal {
     WIRELESS_TERMINAL(AEApi.instance().definitions().items().wirelessTerminal(), AEGuiKeys.WIRELESS_TERM),
@@ -20,16 +20,16 @@ public enum Terminal {
     WIRELESS_UNIVERSAL_TERMINAL(AEApi.instance().definitions().items().wirelessUniversalTerminal(),
             AEGuiKeys.WIRELESS_TERM);
 
-    final GuiBridge bridge;
+    final AEGuiKey guiKey;
     final IItemDefinition itemDefinition;
 
-    Terminal(IItemDefinition itemDefinition, GuiBridge guiBridge) {
+    Terminal(IItemDefinition itemDefinition, AEGuiKey guiKey) {
         this.itemDefinition = itemDefinition;
-        this.bridge = guiBridge;
+        this.guiKey = guiKey;
     }
 
-    public GuiBridge getBridge() {
-        return bridge;
+    public AEGuiKey getGuiKey() {
+        return guiKey;
     }
 
     public IItemDefinition getItemDefinition() {

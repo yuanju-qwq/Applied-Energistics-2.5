@@ -142,6 +142,11 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
     // ========== 初始化 ==========
 
     @Override
+    protected void setupWidgets() {
+        // TODO: Migrate widget initialization here from initGui()
+    }
+
+    @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         final int jeiSearchOffset = Platform.isJEICenterSearchBarEnabled() ? 40 : 0;

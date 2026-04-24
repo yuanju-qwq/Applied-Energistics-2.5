@@ -24,6 +24,8 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableSet;
+
 import io.netty.buffer.ByteBuf;
 
 import net.minecraft.item.ItemStack;
@@ -38,6 +40,7 @@ import net.minecraftforge.items.IItemHandler;
 import appeng.api.AEApi;
 import appeng.api.config.Upgrades;
 import appeng.api.networking.IGridNode;
+import appeng.api.networking.crafting.ICraftingLink;
 import appeng.api.networking.events.MENetworkChannelsChanged;
 import appeng.api.networking.events.MENetworkEventSubscribe;
 import appeng.api.networking.events.MENetworkPowerStatusChange;
@@ -225,6 +228,16 @@ public class TileMEInterface extends AENetworkInvTile
     @Override
     public InterfaceLogic getInterfaceLogic() {
         return this.logic;
+    }
+
+    @Override
+    public ImmutableSet<ICraftingLink> getRequestedJobs() {
+        return this.logic.getRequestedJobs();
+    }
+
+    @Override
+    public void jobStateChange(final ICraftingLink link) {
+        this.logic.jobStateChange(link);
     }
 
     @Override

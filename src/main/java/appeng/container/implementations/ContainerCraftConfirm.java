@@ -34,6 +34,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.common.network.IGuiHandler;
 
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
@@ -54,6 +55,7 @@ import appeng.container.guisync.GuiSync;
 import appeng.container.interfaces.ICraftConfirmGuiCallback;
 import appeng.container.interfaces.IInventorySlotAware;
 import appeng.core.AELog;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
@@ -285,13 +287,18 @@ public class ContainerCraftConfirm extends AEBaseContainer {
     }
 
     public void startJob() {
-        GuiBridge originalGui = null;
+        AEGuiKey originalGui = null;
 
         final IActionHost ah = this.getActionHost();
         if (ah instanceof WirelessTerminalGuiObject) {
             ItemStack myIcon = ((WirelessTerminalGuiObject) ah).getItemStack();
-            originalGui = (GuiBridge) AEApi.instance().registries().wireless().getWirelessTerminalHandler(myIcon)
+            Object handler = AEApi.instance().registries().wireless().getWirelessTerminalHandler(myIcon)
                     .getGuiHandler(myIcon);
+            if (handler instanceof AEGuiKey key) {
+                originalGui = key;
+            } else if (handler instanceof GuiBridge gb) {
+                originalGui = AEGuiKeys.fromLegacy(gb);
+            }
         }
 
         if (ah instanceof PartTerminal) {

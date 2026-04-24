@@ -246,7 +246,7 @@ public class MEItemBrowserModule implements ISortSource {
         }
 
         // 清除旧的 ME 虚拟槽位
-        host.getPanel().guiSlots.removeIf(s -> s instanceof VirtualMEMonitorableSlot);
+        host.getPanel().getGuiSlots().removeIf(s -> s instanceof VirtualMEMonitorableSlot);
 
         // 创建 4x4 ME 虚拟槽位
         for (int row = 0; row < ITEM_PANEL_ROWS; row++) {
@@ -254,7 +254,7 @@ public class MEItemBrowserModule implements ISortSource {
                 final int slotIdx = col + row * ITEM_PANEL_COLS;
                 final int slotX = itemRelX + ITEM_GRID_OFFSET_X + col * 18;
                 final int slotY = itemRelY + ITEM_GRID_OFFSET_Y + row * 18;
-                host.getPanel().guiSlots.add(new VirtualMEMonitorableSlot(
+                host.getPanel().getGuiSlots().add(new VirtualMEMonitorableSlot(
                         slotIdx, slotX, slotY, this.itemRepo, slotIdx));
             }
         }

@@ -998,7 +998,7 @@ public abstract class AEBasePanel extends GuiContainer {
     /**
      * 绘制 {@link ITooltip} 控件的工具提示。
      */
-    protected void drawTooltip(ITooltip tooltip, int mouseX, int mouseY) {
+    public void drawTooltip(ITooltip tooltip, int mouseX, int mouseY) {
         final int tx = tooltip.xPos();
         int ty = tooltip.yPos();
 
@@ -1198,6 +1198,13 @@ public abstract class AEBasePanel extends GuiContainer {
      */
     public List<GuiCustomSlot> getGuiSlots() {
         return this.guiSlots;
+    }
+
+    /**
+     * @return JEI exclusion areas for this panel. Subclasses should override to provide exclusion zones.
+     */
+    public List<java.awt.Rectangle> getJEIExclusionArea() {
+        return java.util.Collections.emptyList();
     }
 
     // ========== 内部方法 ==========

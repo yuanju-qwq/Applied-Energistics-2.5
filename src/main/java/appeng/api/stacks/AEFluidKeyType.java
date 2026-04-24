@@ -16,29 +16,39 @@
  * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
  */
 
-package appeng.items.tools.powered;
+package appeng.api.stacks;
 
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.common.network.IGuiHandler;
+import java.io.IOException;
 
-import appeng.api.AEApi;
-import appeng.api.features.IWirelessTermHandler;
-import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-public class ToolWirelessCraftingTerminal extends ToolWirelessTerminal implements IWirelessTermHandler {
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
 
-    public ToolWirelessCraftingTerminal() {
-        super();
+import appeng.fluids.util.AEFluidStackType;
+
+/**
+ * {@link AEKeyType} implementation for fluids.
+ * Delegates metadata to {@link AEFluidStackType#INSTANCE}.
+ */
+final class AEFluidKeyType extends AEKeyType {
+
+    static final AEFluidKeyType INSTANCE = new AEFluidKeyType();
+
+    private AEFluidKeyType() {
+        super(AEFluidStackType.INSTANCE, AEFluidKey.class);
     }
 
+    @Nullable
     @Override
-    public boolean canHandle(final ItemStack is) {
-        return AEApi.instance().definitions().items().wirelessCraftingTerminal().isSameAs(is);
+    public AEKey loadKeyFromTag(@Nonnull NBTTagCompound tag) {
+        return AEFluidKey.fromTag(tag);
     }
 
+    @Nullable
     @Override
-    public Object getGuiHandler(ItemStack is) {
-        return AEGuiKeys.WIRELESS_CRAFTING_TERMINAL;
+    public AEKey readFromPacket(@Nonnull PacketBuffer input) throws IOException {
+        return AEFluidKey.fromPacket(input);
     }
 }

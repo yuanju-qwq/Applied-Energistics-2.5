@@ -34,6 +34,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import appeng.api.config.FuzzyMode;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IStorageChannel;
 import appeng.core.AELog;
 
@@ -252,5 +254,31 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
             return null;
         }
         return type.loadStackFromPacket(buffer);
+    }
+
+    // ==================== AEKey bridge methods ====================
+
+    /**
+     * Converts this stack's identity (without quantity) to an immutable {@link AEKey}.
+     *
+     * @return the corresponding AEKey, or null if conversion is not supported
+     */
+    @Nullable
+    default AEKey toAEKey() {
+        return null;
+    }
+
+    /**
+     * Converts this stack to a {@link GenericStack} (AEKey + amount).
+     *
+     * @return the corresponding GenericStack, or null if {@link #toAEKey()} returns null
+     */
+    @Nullable
+    default GenericStack toGenericStack() {
+        AEKey key = toAEKey();
+        if (key == null) {
+            return null;
+        }
+        return new GenericStack(key, getStackSize());
     }
 }

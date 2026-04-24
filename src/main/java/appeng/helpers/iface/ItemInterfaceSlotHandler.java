@@ -35,7 +35,8 @@ import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.me.GridAccessException;
-import appeng.me.storage.MEMonitorIInventoryHandler;
+import appeng.me.storage.MEMonitorIInventory;
+import appeng.util.inv.AdaptorItemHandler;
 import appeng.me.storage.NullInventory;
 import appeng.util.InventoryAdaptor;
 import appeng.util.StorageHelper;
@@ -199,28 +200,30 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler<IAE
 
     // ========== Inner class: Config-mode ME inventory wrapper ==========
 
-    private static class ItemInterfaceInventory extends MEMonitorIInventoryHandler {
+    private static class ItemInterfaceInventory extends MEMonitorIInventory {
         private final InterfaceSlotContext context;
 
         ItemInterfaceInventory(InterfaceSlotContext context) {
-            super(context.getItemStorage());
+            super(new AdaptorItemHandler(context.getItemStorage()));
             this.context = context;
         }
 
         @Override
         public IAEItemStack injectItems(final IAEItemStack input, final Actionable type, final IActionSource src) {
-            final Optional<Comparable<Integer>> ctx = src.context(Comparable.class);
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            final Optional<Comparable> ctx = src.context(Comparable.class);
             if (ctx.isPresent()) {
                 return input;
             }
             return super.injectItems(input, type, src);
         }
 
+        @SuppressWarnings({"unchecked", "rawtypes"})
         @Override
         public IAEItemStack extractItems(final IAEItemStack request, final Actionable type, final IActionSource src) {
-            final Optional<Comparable<Integer>> ctx = src.context(Comparable.class);
+            final Optional<Comparable> ctx = src.context(Comparable.class);
             final boolean hasLowerOrEqualPriority = ctx
-                    .map(c -> c.compareTo(0) <= 0).orElse(false);
+                    .map(c -> c.compareTo(context.getPriority()) <= 0).orElse(false);
             if (hasLowerOrEqualPriority) {
                 return null;
             }

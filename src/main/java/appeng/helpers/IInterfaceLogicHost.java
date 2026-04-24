@@ -24,6 +24,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 
 import appeng.api.implementations.IUpgradeableHost;
+import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.storage.data.IAEStack;
 import appeng.me.helpers.IGridProxyable;
@@ -35,7 +36,8 @@ import appeng.me.helpers.IGridProxyable;
  * 合并了旧的 {@link IInterfaceHost} 和 {@link appeng.fluids.helper.IFluidInterfaceHost}。
  * 对应高版本 AE2 的 {@code InterfaceLogicHost}。
  */
-public interface IInterfaceLogicHost extends IActionHost, IGridProxyable, IUpgradeableHost {
+public interface IInterfaceLogicHost
+        extends IActionHost, IGridProxyable, IUpgradeableHost, ICraftingRequester {
 
     InterfaceLogic getInterfaceLogic();
 

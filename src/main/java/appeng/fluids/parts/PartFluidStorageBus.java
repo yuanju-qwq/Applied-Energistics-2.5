@@ -84,7 +84,7 @@ public class PartFluidStorageBus extends AbstractPartStorageBus<IAEFluidStack>
     // ---- AbstractPartStorageBus abstract method implementations ----
 
     @Override
-    protected IAEStackType<IAEFluidStack> getStackType() {
+    public IAEStackType<IAEFluidStack> getStackType() {
         return AEFluidStackType.INSTANCE;
     }
 

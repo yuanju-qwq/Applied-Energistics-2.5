@@ -165,7 +165,7 @@ public class ToolWirelessTerminal extends AEBasePoweredItem implements IWireless
     }
 
     @Override
-    public IGuiHandler getGuiHandler(ItemStack is) {
+    public Object getGuiHandler(ItemStack is) {
         return AEGuiKeys.WIRELESS_TERM;
     }
 

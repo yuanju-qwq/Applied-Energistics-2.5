@@ -77,6 +77,7 @@ import appeng.core.sync.packets.PacketPinsUpdate;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.fluids.util.AEFluidStackType;
 import appeng.helpers.IPinsHandler;
+import appeng.helpers.InventoryAction;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.items.contents.PinList;
 import appeng.items.contents.PinsHandler;
@@ -245,6 +246,38 @@ public class ContainerMEMonitorable extends AEBaseContainer
     public ItemStack transferStackInSlot(final EntityPlayer p, final int idx) {
         if (Platform.isClient()) {
             return ItemStack.EMPTY;
+        }
+
+        // Shift-click fluid container (bucket) → auto-empty into network
+        if (p instanceof EntityPlayerMP playerMP) {
+            final Slot clickedSlot = this.inventorySlots.get(idx);
+            if (clickedSlot != null && clickedSlot.getHasStack()) {
+                final ItemStack tis = clickedSlot.getStack();
+                final ContainerInteractionResult<IAEFluidStack> drainResult =
+                        AEFluidStackType.INSTANCE.drainFromContainer(tis.copy(), Integer.MAX_VALUE, true);
+                if (drainResult.isSuccess()) {
+                    @SuppressWarnings("unchecked")
+                    final IMEMonitor<IAEFluidStack> fluidMonitor =
+                            (IMEMonitor<IAEFluidStack>) this.monitors.get(AEFluidStackType.INSTANCE);
+                    if (fluidMonitor != null) {
+                        final IActionSource src = new PlayerSource(playerMP, (IActionHost) this.host);
+                        final IAEFluidStack notInserted = fluidMonitor.injectItems(
+                                drainResult.getTransferred(), Actionable.SIMULATE, src);
+                        if (notInserted == null || notInserted.getStackSize() == 0) {
+                            final ContainerInteractionResult<IAEFluidStack> actualDrain =
+                                    AEFluidStackType.INSTANCE.drainFromContainer(tis,
+                                            drainResult.getTransferred().getStackSize(), false);
+                            if (actualDrain.isSuccess()) {
+                                fluidMonitor.injectItems(actualDrain.getTransferred(),
+                                        Actionable.MODULATE, src);
+                                clickedSlot.putStack(actualDrain.getResultContainer());
+                                this.detectAndSendChanges();
+                                return ItemStack.EMPTY;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Below logic is all about handling shift click for view cells
@@ -765,47 +798,4 @@ public class ContainerMEMonitorable extends AEBaseContainer
         }
     }
 
-    /**
-     * Shift-click 传输时，如果手持流体容器（桶），自动执行 EMPTY_ITEM 操作。
-     */
-    @Override
-    public ItemStack transferStackInSlot(final EntityPlayer player, final int idx) {
-        if (Platform.isClient()) {
-            return ItemStack.EMPTY;
-        }
-
-        if (player instanceof EntityPlayerMP playerMP) {
-            final Slot clickedSlot = this.inventorySlots.get(idx);
-            if (clickedSlot != null && clickedSlot.getHasStack()) {
-                final ItemStack tis = clickedSlot.getStack();
-                final ContainerInteractionResult<IAEFluidStack> drainResult =
-                        AEFluidStackType.INSTANCE.drainFromContainer(tis.copy(), Integer.MAX_VALUE, true);
-                if (drainResult.isSuccess()) {
-                    @SuppressWarnings("unchecked")
-                    final IMEMonitor<IAEFluidStack> fluidMonitor =
-                            (IMEMonitor<IAEFluidStack>) this.monitors.get(
-                                    AEFluidStackType.INSTANCE);
-                    if (fluidMonitor != null) {
-                        final IActionSource src = new PlayerSource(playerMP, (IActionHost) this.host);
-                        final IAEFluidStack notInserted = fluidMonitor.injectItems(
-                                drainResult.getTransferred(), Actionable.SIMULATE, src);
-                        if (notInserted == null || notInserted.getStackSize() == 0) {
-                            final ContainerInteractionResult<IAEFluidStack> actualDrain =
-                                    AEFluidStackType.INSTANCE.drainFromContainer(tis,
-                                            drainResult.getTransferred().getStackSize(), false);
-                            if (actualDrain.isSuccess()) {
-                                fluidMonitor.injectItems(actualDrain.getTransferred(),
-                                        Actionable.MODULATE, src);
-                                clickedSlot.putStack(actualDrain.getResultContainer());
-                                this.detectAndSendChanges();
-                                return ItemStack.EMPTY;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return super.transferStackInSlot(player, idx);
-    }
 }

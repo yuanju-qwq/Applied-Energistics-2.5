@@ -118,9 +118,13 @@ public class MUICraftConfirmPanel extends AEBasePanel
         // 确定来源终端
         if (te instanceof WirelessTerminalGuiObject) {
             ItemStack itemStack = ((WirelessTerminalGuiObject) te).getItemStack();
-            this.originalGui = AEGuiKeys.fromLegacy(
-                    (appeng.core.sync.GuiBridge) AEApi.instance().registries().wireless()
-                            .getWirelessTerminalHandler(itemStack).getGuiHandler(itemStack));
+            Object guiHandler = AEApi.instance().registries().wireless()
+                            .getWirelessTerminalHandler(itemStack).getGuiHandler(itemStack);
+            if (guiHandler instanceof appeng.core.sync.AEGuiKey key) {
+                this.originalGui = key;
+            } else if (guiHandler instanceof appeng.core.sync.GuiBridge gb) {
+                this.originalGui = AEGuiKeys.fromLegacy(gb);
+            }
         }
 
         if (te instanceof PartTerminal) {

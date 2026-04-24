@@ -364,16 +364,18 @@ public class PatternEncodingModule {
 
         this.craftingVirtualSlots = new VirtualMEPatternSlot[craftingInv.getSizeInventory()];
         for (int i = 0; i < craftingInv.getSizeInventory(); i++) {
-            VirtualMEPatternSlot slot = new VirtualMEPatternSlot(i, -9000, -9000, craftingInv, i);
+            VirtualMEPatternSlot slot = new VirtualMEPatternSlot(i, -9000, -9000, craftingInv, i,
+                    (s, type, btn) -> true);
             this.craftingVirtualSlots[i] = slot;
-            host.getPanel().guiSlots.add(slot);
+            host.getPanel().getGuiSlots().add(slot);
         }
 
         this.outputVirtualSlots = new VirtualMEPatternSlot[outputInv.getSizeInventory()];
         for (int i = 0; i < outputInv.getSizeInventory(); i++) {
-            VirtualMEPatternSlot slot = new VirtualMEPatternSlot(i, -9000, -9000, outputInv, i);
+            VirtualMEPatternSlot slot = new VirtualMEPatternSlot(i, -9000, -9000, outputInv, i,
+                    (s, type, btn) -> true);
             this.outputVirtualSlots[i] = slot;
-            host.getPanel().guiSlots.add(slot);
+            host.getPanel().getGuiSlots().add(slot);
         }
     }
 
@@ -394,13 +396,13 @@ public class PatternEncodingModule {
                 final VirtualMEPatternSlot slot = this.craftingVirtualSlots[craftIdx];
                 if (ct.isCraftingMode()) {
                     if (craftIdx >= CRAFTING_INPUT_SLOTS) {
-                        slot.xPos = -9000;
-                        slot.yPos = -9000;
+                        slot.setPosition(-9000, -9000);
                     } else {
                         final int gridX = craftIdx % CRAFTING_GRID_DIMENSION;
                         final int gridY = craftIdx / CRAFTING_GRID_DIMENSION;
-                        slot.xPos = panelX + CRAFTING_GRID_OFFSET_X + gridX * 18;
-                        slot.yPos = panelY + CRAFTING_GRID_OFFSET_Y + gridY * 18;
+                        slot.setPosition(
+                                panelX + CRAFTING_GRID_OFFSET_X + gridX * 18,
+                                panelY + CRAFTING_GRID_OFFSET_Y + gridY * 18);
                     }
                 } else {
                     final boolean inverted = ct.isInverted();
@@ -412,14 +414,14 @@ public class PatternEncodingModule {
                     final int pageEnd = Math.min(pageStart + PatternHelper.PROCESSING_INPUT_PAGE_SLOTS,
                             PatternHelper.PROCESSING_INPUT_LIMIT);
                     if (craftIdx < pageStart || craftIdx >= pageEnd) {
-                        slot.xPos = -9000;
-                        slot.yPos = -9000;
+                        slot.setPosition(-9000, -9000);
                     } else {
                         final int visibleIndex = craftIdx - pageStart;
                         final int gridX = visibleIndex % PROCESSING_INPUT_WIDTH;
                         final int gridY = visibleIndex / PROCESSING_INPUT_WIDTH;
-                        slot.xPos = panelX + processingGridOffsetX + gridX * 18;
-                        slot.yPos = panelY + PROCESSING_GRID_OFFSET_Y + gridY * 18;
+                        slot.setPosition(
+                                panelX + processingGridOffsetX + gridX * 18,
+                                panelY + PROCESSING_GRID_OFFSET_Y + gridY * 18);
                     }
                 }
             }
@@ -430,16 +432,16 @@ public class PatternEncodingModule {
             for (int outIdx = 0; outIdx < this.outputVirtualSlots.length; outIdx++) {
                 final VirtualMEPatternSlot slot = this.outputVirtualSlots[outIdx];
                 if (ct.isCraftingMode()) {
-                    slot.xPos = -9000;
-                    slot.yPos = -9000;
+                    slot.setPosition(-9000, -9000);
                 } else {
                     final int processingOutputOffsetX = ct.isInverted()
                             ? PROCESSING_OUTPUT_INVERTED_OFFSET_X
                             : PROCESSING_OUTPUT_NORMAL_OFFSET_X;
                     final int outX = outIdx % PROCESSING_OUTPUT_COLUMNS;
                     final int outY = outIdx / PROCESSING_OUTPUT_COLUMNS;
-                    slot.xPos = panelX + processingOutputOffsetX + outX * 18;
-                    slot.yPos = panelY + PROCESSING_OUTPUT_OFFSET_Y + outY * 18;
+                    slot.setPosition(
+                            panelX + processingOutputOffsetX + outX * 18,
+                            panelY + PROCESSING_OUTPUT_OFFSET_Y + outY * 18);
                 }
             }
         }

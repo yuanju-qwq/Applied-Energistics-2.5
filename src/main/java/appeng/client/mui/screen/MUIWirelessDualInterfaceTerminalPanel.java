@@ -26,6 +26,7 @@ import java.util.List;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.nbt.NBTTagCompound;
@@ -444,6 +445,11 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     @Override
     public int getScreenHeight() {
         return this.height;
+    }
+
+    @Override
+    public FontRenderer getFontRenderer() {
+        return this.fontRenderer;
     }
 
     @Override

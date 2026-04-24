@@ -157,7 +157,7 @@ public final class AEMUIGuiFactory {
         try {
             return reg.hostContainerFactory.createContainer(ip, host);
         } catch (Exception e) {
-            AELog.warn(e, "Failed to create MUI container for key: %s", key.getId());
+            AELog.warn("Failed to create MUI container for key: %s, %s", key.getId(), e.toString());
             return null;
         }
     }
@@ -180,7 +180,7 @@ public final class AEMUIGuiFactory {
         try {
             return reg.hostGuiFactory.createGui(ip, host);
         } catch (Exception e) {
-            AELog.warn(e, "Failed to create MUI GUI for key: %s", key.getId());
+            AELog.warn("Failed to create MUI GUI for key: %s, %s", key.getId(), e.toString());
             return null;
         }
     }

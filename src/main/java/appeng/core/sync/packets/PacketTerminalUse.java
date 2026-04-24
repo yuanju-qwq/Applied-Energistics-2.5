@@ -14,6 +14,7 @@ import appeng.api.AEApi;
 import appeng.api.features.ILocatable;
 import appeng.api.features.IWirelessTermHandler;
 import appeng.core.localization.PlayerMessages;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.INetworkInfo;
@@ -85,7 +86,13 @@ public class PacketTerminalUse extends AppEngPacket {
         }
 
         if (handler.hasPower(player, 0.5, itemStack)) {
-            if (handler.getGuiHandler(itemStack) instanceof GuiBridge guiBridge) {
+            Object guiObj = handler.getGuiHandler(itemStack);
+            if (guiObj instanceof AEGuiKey aeGuiKey) {
+                GuiBridge legacy = aeGuiKey.getLegacyBridge();
+                if (legacy != null) {
+                    Platform.openGUI(player, slotIdx, legacy, isBauble);
+                }
+            } else if (guiObj instanceof GuiBridge guiBridge) {
                 Platform.openGUI(player, slotIdx, guiBridge, isBauble);
             }
         } else {

@@ -25,7 +25,6 @@ package appeng.api.features;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.common.network.IGuiHandler;
 
 import appeng.api.util.IConfigManager;
 
@@ -66,5 +65,12 @@ public interface IWirelessTermHandler extends INetworkEncodable {
      */
     IConfigManager getConfigManager(ItemStack is);
 
-    IGuiHandler getGuiHandler(ItemStack is);
+    /**
+     * Returns the GUI handler for this wireless terminal.
+     * May return {@link appeng.core.sync.AEGuiKey} or a legacy {@code IGuiHandler}.
+     *
+     * @param is wireless terminal
+     * @return the GUI key or handler
+     */
+    Object getGuiHandler(ItemStack is);
 }

@@ -23,6 +23,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Ints;
 
 import net.minecraft.item.ItemStack;
@@ -43,6 +44,7 @@ import appeng.api.config.YesNo;
 import appeng.api.implementations.IUpgradeableHost;
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGridNode;
+import appeng.api.networking.crafting.ICraftingLink;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.IActionSource;
@@ -105,7 +107,7 @@ import appeng.util.item.AEItemStackType;
  */
 public class InterfaceLogic
         implements IGridTickable, IStorageMonitorable, IInventoryDestination, IAEAppEngInventory,
-        IConfigManagerHost, IUpgradeableHost, IConfigurableFluidInventory, IAEFluidInventory,
+        IConfigManagerHost, IUpgradeableHost, IAEFluidInventory,
         IIAEStackInventory, InterfaceSlotContext {
 
     // ========== 常量 ==========
@@ -498,7 +500,7 @@ public class InterfaceLogic
                 } else if (stack instanceof IAEFluidStack) {
                     final IAEFluidTank tanks = this.getFluidTanks();
                     final FluidStack fluidStack = ((IAEFluidStack) stack).getFluidStack();
-                    hasSpace = tanks.fill(slot, fluidStack, false) == fluidStack.amount;
+                    hasSpace = tanks.fill(fluidStack, false) == fluidStack.amount;
                 } else {
                     // Unknown type: assume space is available, let the system handle it
                     hasSpace = true;
@@ -516,6 +518,14 @@ public class InterfaceLogic
     @Override
     public boolean isCraftingBusy(int slot) {
         return this.craftingTracker.isBusy(slot);
+    }
+
+    public void jobStateChange(final ICraftingLink link) {
+        this.craftingTracker.jobStateChange(link);
+    }
+
+    public ImmutableSet<ICraftingLink> getRequestedJobs() {
+        return this.craftingTracker.getRequestedJobs();
     }
 
     @Override
@@ -656,10 +666,6 @@ public class InterfaceLogic
 
     // ========== 优先级 ==========
 
-    public int getPriority() {
-        return this.priority;
-    }
-
     public void setPriority(final int newValue) {
         this.priority = newValue;
     }
@@ -694,19 +700,13 @@ public class InterfaceLogic
                         directedBlock.getMetaFromState(directedBlockState));
 
                 if (Platform.GTLoaded) {
-                    final gregtech.api.bridge.IGTMachineHelper machineHelper = gregtech.api.bridge.GTBridge
-                            .getMachineHelper();
-                    if (machineHelper != null && machineHelper.isGTMachineBlock(directedBlock)) {
-                        final gregtech.api.bridge.IGTMachineInfo machineInfo = machineHelper.getMachineInfo(
-                                directedTile.getWorld(), directedTile.getPos());
-                        if (machineInfo != null) {
-                            final gregtech.api.bridge.IGTMachineInfo controller = machineInfo
-                                    .getMultiblockController();
-                            if (controller != null) {
-                                return controller.getMetaFullName();
-                            }
-                            return machineInfo.getMetaFullName();
+                    try {
+                        final String gtName = getGTMachineName(directedTile);
+                        if (gtName != null) {
+                            return gtName;
                         }
+                    } catch (final Exception ignored) {
+                        // GT bridge not available
                     }
                 }
 
@@ -721,6 +721,35 @@ public class InterfaceLogic
     public long getSortValue() {
         final TileEntity te = this.iHost.getTileEntity();
         return ((long) te.getPos().getZ() << 24) ^ ((long) te.getPos().getX() << 8) ^ te.getPos().getY();
+    }
+
+    /**
+     * Attempts to get the GregTech machine name via reflection to avoid compile-time dependency.
+     *
+     * @return the machine name, or null if not a GT machine
+     */
+    @Nullable
+    private static String getGTMachineName(TileEntity te) {
+        try {
+            Class<?> bridgeClass = Class.forName("gregtech.api.bridge.GTBridge");
+            Object helper = bridgeClass.getMethod("getMachineHelper").invoke(null);
+            if (helper == null) return null;
+
+            Class<?> helperClass = helper.getClass();
+            Object machineInfo = helperClass.getMethod("getMachineInfo",
+                    net.minecraft.world.World.class, net.minecraft.util.math.BlockPos.class)
+                    .invoke(helper, te.getWorld(), te.getPos());
+            if (machineInfo == null) return null;
+
+            Class<?> infoClass = machineInfo.getClass();
+            Object controller = infoClass.getMethod("getMultiblockController").invoke(machineInfo);
+            if (controller != null) {
+                return (String) controller.getClass().getMethod("getMetaFullName").invoke(controller);
+            }
+            return (String) infoClass.getMethod("getMetaFullName").invoke(machineInfo);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // ========== 掉落物 ==========
@@ -774,7 +803,6 @@ public class InterfaceLogic
         return null;
     }
 
-    @Override
     public IFluidHandler getFluidInventoryByName(final String name) {
         return null;
     }
@@ -791,18 +819,6 @@ public class InterfaceLogic
 
     public IAEStackInventory getConfig() {
         return this.config;
-    }
-
-    public IItemHandler getItemStorage() {
-        return this.itemStorage;
-    }
-
-    public IAEFluidTank getFluidTanks() {
-        return this.fluidTanks;
-    }
-
-    public AENetworkProxy getProxy() {
-        return this.gridProxy;
     }
 
     public IUpgradeableHost getHost() {

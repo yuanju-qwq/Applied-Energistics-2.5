@@ -125,9 +125,13 @@ public class MUICraftAmountPanel extends AEBasePanel {
 
         if (target instanceof WirelessTerminalGuiObject) {
             myIcon = ((WirelessTerminalGuiObject) target).getItemStack();
-            this.originalGui = AEGuiKeys.fromLegacy(
-                    (appeng.core.sync.GuiBridge) AEApi.instance().registries().wireless()
-                            .getWirelessTerminalHandler(myIcon).getGuiHandler(myIcon));
+            Object guiHandler = AEApi.instance().registries().wireless()
+                            .getWirelessTerminalHandler(myIcon).getGuiHandler(myIcon);
+            if (guiHandler instanceof appeng.core.sync.AEGuiKey key) {
+                this.originalGui = key;
+            } else if (guiHandler instanceof appeng.core.sync.GuiBridge gb) {
+                this.originalGui = AEGuiKeys.fromLegacy(gb);
+            }
         }
 
         if (target instanceof PartTerminal) {
