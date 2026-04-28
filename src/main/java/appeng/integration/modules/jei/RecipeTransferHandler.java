@@ -51,6 +51,7 @@ import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketJEIRecipe;
 import appeng.core.sync.packets.PacketValueConfig;
+import appeng.integration.modules.gregtech.CircuitHelper;
 import appeng.util.Platform;
 
 class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandler<T> {
@@ -109,6 +110,16 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         final NBTTagCompound recipe = new NBTTagCompound();
         final NBTTagList outputs = new NBTTagList();
 
+        // GT programmable circuit integration
+        final boolean isProcessingPattern = container instanceof ContainerPatternEncoder
+                && !((ContainerPatternEncoder) container).isCraftingMode();
+        final CircuitHelper circuitHelper = CircuitHelper.getInstance();
+        final boolean shouldApplyToolkitRules = isProcessingPattern
+                && circuitHelper.hasToolkitInInventory(player)
+                && circuitHelper.isProgrammableCircuitAvailable();
+        boolean wrappedCircuitAdded = false;
+        boolean hasProgrammableCircuitInput = false;
+
         int slotIndex = 0;
         for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> ingredientEntry : ingredients.entrySet()) {
             IGuiIngredient<ItemStack> ingredient = ingredientEntry.getValue();
@@ -145,6 +156,25 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
                             }
                         }
 
+                        // GT circuit wrapping: check for programmable circuit input
+                        if (shouldApplyToolkitRules && !list.isEmpty()) {
+                            ItemStack firstItem = list.get(0);
+                            if (circuitHelper.isProgrammableCircuit(firstItem)) {
+                                hasProgrammableCircuitInput = true;
+                            }
+                            if (!wrappedCircuitAdded
+                                    && !circuitHelper.isProgrammableCircuit(firstItem)
+                                    && circuitHelper.isIntegratedCircuit(firstItem)) {
+                                ItemStack wrapped = circuitHelper.wrapItemAsProgrammableStack(firstItem);
+                                if (wrapped != null) {
+                                    list.clear();
+                                    list.add(wrapped);
+                                    wrappedCircuitAdded = true;
+                                    hasProgrammableCircuitInput = true;
+                                }
+                            }
+                        }
+
                         for (final ItemStack is : list) {
                             final NBTTagCompound tag = stackToNBT(is);
                             tags.appendTag(tag);
@@ -159,6 +189,19 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             slotIndex++;
         }
 
+        // GT circuit: if no circuit was wrapped and no programmable circuit found, add one to an empty slot
+        if (shouldApplyToolkitRules && !wrappedCircuitAdded && !hasProgrammableCircuitInput) {
+            ItemStack pcStack = circuitHelper.getProgrammableCircuitStack();
+            if (pcStack != null) {
+                int emptySlotIndex = findFirstEmptySlot(recipe, container);
+                if (emptySlotIndex >= 0) {
+                    final NBTTagList tags = new NBTTagList();
+                    tags.appendTag(stackToNBT(pcStack));
+                    recipe.setTag("#" + emptySlotIndex, tags);
+                }
+            }
+        }
+
         recipe.setTag("outputs", outputs);
 
         try {
@@ -168,5 +211,20 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         }
 
         return null;
+    }
+
+    /**
+     * Find the first empty crafting/pattern slot index that has no recipe data assigned.
+     */
+    private static int findFirstEmptySlot(NBTTagCompound recipe, Container container) {
+        for (final Slot slot : container.inventorySlots) {
+            if (slot instanceof SlotCraftingMatrix || slot instanceof SlotFakeCraftingMatrix) {
+                int idx = slot.getSlotIndex();
+                if (!recipe.hasKey("#" + idx)) {
+                    return idx;
+                }
+            }
+        }
+        return -1;
     }
 }

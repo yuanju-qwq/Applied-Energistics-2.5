@@ -647,15 +647,15 @@ public class ContainerInterfaceTerminal extends AEBaseContainer {
         return super.transferStackInSlot(p, idx);
     }
 
-    private static class ProviderTracker {
-        private final BlockPos pos;
-        private final int dim;
-        private final int tier;
-        private final long which = autoBase++;
-        private final IItemHandler client;
-        private final IItemHandler server;
-        private final String unlocalizedName;
-        private final long sortBy;
+    public static class ProviderTracker {
+        public final BlockPos pos;
+        public final int dim;
+        public final int tier;
+        public final long which = autoBase++;
+        public final IItemHandler client;
+        public final IItemHandler server;
+        public final String unlocalizedName;
+        public final long sortBy;
 
         /**
          * General constructor for GT pattern provider tracking.

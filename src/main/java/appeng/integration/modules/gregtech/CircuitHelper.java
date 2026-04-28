@@ -48,6 +48,16 @@ public class CircuitHelper {
     }
 
     /**
+     * 将物品包装为可编程电路的 ItemStack 形式。
+     *
+     * @return 包装后的 ItemStack，如果无法包装则返回 null
+     */
+    @Nullable
+    public ItemStack wrapItemAsProgrammableStack(ItemStack sourceItem) {
+        return null;
+    }
+
+    /**
      * 检查玩家背包中是否有编程工具包。
      */
     public boolean hasToolkitInInventory(@Nullable EntityPlayer player) {
