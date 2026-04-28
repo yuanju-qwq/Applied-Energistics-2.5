@@ -72,9 +72,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.oredict.OreDictionary;
 
-import gregtech.api.block.machines.BlockMachine;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.util.GTUtility;
 import ic2.api.item.ICustomDamageItem;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
@@ -152,7 +149,6 @@ public class Platform {
 
     private static final ItemComparisonHelper ITEM_COMPARISON_HELPER = new ItemComparisonHelper();
     private static final P2PHelper P2P_HELPER = new P2PHelper();
-    private static Method reflectGTgetMTE;
     public static final boolean GTLoaded = isModLoaded("gregtech");
 
     public static ItemComparisonHelper itemComparisons() {
@@ -1539,25 +1535,6 @@ public class Platform {
     // consider methods below moving to a compability class
     public static boolean isGTDamageableItem(Item item) {
         return ((GTLoaded) && ToolClass.getGTToolClass().isAssignableFrom(item.getClass()));
-    }
-
-    public static MetaTileEntity getMetaTileEntity(IBlockAccess world, BlockPos pos) {
-        if (reflectGTgetMTE == null) {
-            try {
-                reflectGTgetMTE = ReflectionHelper.findMethod(BlockMachine.class, "getMetaTileEntity", null,
-                        IBlockAccess.class, BlockPos.class);
-            } catch (ReflectionHelper.UnableToFindMethodException e) {
-                reflectGTgetMTE = ReflectionHelper.findMethod(GTUtility.class, "getMetaTileEntity", null,
-                        IBlockAccess.class, BlockPos.class);
-            }
-        } else {
-            try {
-                return (MetaTileEntity) reflectGTgetMTE.invoke(reflectGTgetMTE, world, pos);
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
-            }
-        }
-        return null;
     }
 
     public static boolean isIC2DamageableItem(Item item) {

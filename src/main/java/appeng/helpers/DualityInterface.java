@@ -49,9 +49,6 @@ import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 
 import de.ellpeck.actuallyadditions.api.tile.IPhantomTile;
-import gregtech.api.block.machines.BlockMachine;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
 import appeng.api.AEApi;
 import appeng.api.config.*;
@@ -1478,16 +1475,11 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
                 final Block directedBlock = directedBlockState.getBlock();
                 ItemStack what = new ItemStack(directedBlock, 1, directedBlock.getMetaFromState(directedBlockState));
 
-                if (Platform.GTLoaded && directedBlock instanceof BlockMachine) {
-                    MetaTileEntity metaTileEntity = Platform.getMetaTileEntity(directedTile.getWorld(),
-                            directedTile.getPos());
-                    if (metaTileEntity != null) {
-                        if (metaTileEntity instanceof MetaTileEntityMultiblockPart part) {
-                            if (part.getController() != null) {
-                                return part.getController().getMetaFullName();
-                            }
-                        }
-                        return metaTileEntity.getMetaFullName();
+                if (Platform.GTLoaded) {
+                    // GT machine name retrieval — injected by GregTech via Mixin
+                    String gtName = getGTMachineName(directedTile.getWorld(), directedTile.getPos(), directedBlock);
+                    if (gtName != null) {
+                        return gtName;
                     }
                 }
 
@@ -1529,6 +1521,20 @@ public class DualityInterface implements IGridTickable, IStorageMonitorable, IIn
         }
 
         return "Nothing";
+    }
+
+    /**
+     * Get the display name of a GT machine.
+     * Base implementation returns null, actual logic injected by GregTech via Mixin.
+     *
+     * @param world the world
+     * @param pos the block position
+     * @param block the block at the position
+     * @return the machine name, or null if not a GT machine
+     */
+    @javax.annotation.Nullable
+    protected String getGTMachineName(World world, BlockPos pos, Block block) {
+        return null;
     }
 
     public long getSortValue() {
