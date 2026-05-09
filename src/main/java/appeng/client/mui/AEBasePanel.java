@@ -172,9 +172,35 @@ public abstract class AEBasePanel extends GuiContainer {
 
     // ========== 初始化 ==========
 
+    /**
+     * MUI 面板初始化入口。
+     * <p>
+     * <b>生命周期规范（子类必须遵守）：</b>
+     * <ol>
+     *   <li>子类可在 {@code super.initGui()} 之前计算依赖屏幕尺寸的布局参数（行数、ySize、guiTop 等）。</li>
+     *   <li>{@code super.initGui()} 内部会：清理旧 SlotME → 重建 SlotME → 清空 widgets → 调用 {@link #setupWidgets()}。</li>
+     *   <li>子类可在 {@code super.initGui()} 之后执行以下操作：
+     *       <ul>
+     *         <li>滚动条的位置和范围设置</li>
+     *         <li>槽位重新定位（{@link #repositionSlot}）</li>
+     *         <li>guiTop/ySize 等布局坐标修正</li>
+     *       </ul>
+     *   </li>
+     * </ol>
+     * <p>
+     * <b>禁止在 initGui 中做的事情：</b>
+     * <ul>
+     *   <li>创建搜索框、输入框等文本控件 — 应放入 {@link #setupWidgets()}</li>
+     *   <li>创建功能按钮（如排序、过滤、终端样式等） — 应放入 {@link #setupWidgets()}</li>
+     *   <li>注册 MUI widget — 必须通过 {@link #setupWidgets()} 和 {@link #addWidget(IMUIWidget)}</li>
+     * </ul>
+     * <p>
+     * 注意：由于 MC 会在窗口缩放时反复调用 initGui()，所有在此方法中的操作必须是幂等的。
+     */
     @Override
     public void initGui() {
         super.initGui();
+        Keyboard.enableRepeatEvents(true);
 
         // 清理旧的 SlotME 并重建
         final List<Slot> slots = this.getInventorySlots();
@@ -193,10 +219,29 @@ public abstract class AEBasePanel extends GuiContainer {
     }
 
     /**
-     * 子类覆写此方法来添加子控件。
+     * 子类覆写此方法来创建和注册 UI 控件。
+     * <p>
+     * <b>生命周期规范：</b>
+     * <ul>
+     *   <li>此方法在每次 {@link #initGui()} 时被调用（包括窗口缩放）。</li>
+     *   <li>调用时 widgets 列表已被清空，子类无需手动清理。</li>
+     *   <li>子类应在此方法中创建并注册所有 MUI 控件、搜索框、按钮等。</li>
+     *   <li>通过 {@link #addWidget(IMUIWidget)} 注册 MUI 控件。</li>
+     *   <li>通过 {@code this.buttonList.add(...)} 注册旧式按钮（暂时兼容）。</li>
+     *   <li>不应在此方法中执行依赖 guiLeft/guiTop 绝对坐标的布局定位
+     *       （因为某些子类会在 super.initGui() 之后修改 guiTop）。
+     *       按钮的绝对坐标定位应延迟到 initGui() 中 super.initGui() 之后。</li>
+     * </ul>
+     * <p>
      * 在 {@link #initGui()} 中被调用。
      */
     protected abstract void setupWidgets();
+
+    @Override
+    public void onGuiClosed() {
+        super.onGuiClosed();
+        Keyboard.enableRepeatEvents(false);
+    }
 
     /**
      * 添加一个 MUI 控件。
@@ -335,10 +380,23 @@ public abstract class AEBasePanel extends GuiContainer {
     }
 
     /**
-     * 旧式背景绘制钩子。子类可覆写。
+     * 背景绘制钩子。子类覆写以绘制面板背景内容。
      * <p>
-     * 坐标参数说明：
-     * offsetX/offsetY 是面板左上角的屏幕坐标。
+     * <b>职责规范：</b>
+     * <ul>
+     *   <li>绘制面板底板贴图（bindTexture + drawTexturedModalRect）</li>
+     *   <li>绘制分区背景、列表底图、输入框背景承载区等稳定背景内容</li>
+     *   <li>绘制 view cell 变化检测等与布局相关的低频更新逻辑</li>
+     * </ul>
+     * <p>
+     * <b>不应在此方法中做的事情：</b>
+     * <ul>
+     *   <li>创建或注册控件（应在 setupWidgets 中）</li>
+     *   <li>绘制文本标题或动态 tooltip（应在 drawFG 中）</li>
+     *   <li>修改 buttonList 或 inventorySlots（不属于绘制职责）</li>
+     * </ul>
+     * <p>
+     * 坐标参数说明：offsetX/offsetY 是面板左上角的屏幕坐标。
      *
      * @param offsetX 面板左上角屏幕 X（= guiLeft）
      * @param offsetY 面板左上角屏幕 Y（= guiTop）
@@ -349,7 +407,21 @@ public abstract class AEBasePanel extends GuiContainer {
     }
 
     /**
-     * 旧式前景绘制钩子。子类可覆写。
+     * 前景绘制钩子。子类覆写以绘制面板前景内容。
+     * <p>
+     * <b>职责规范：</b>
+     * <ul>
+     *   <li>绘制面板标题文字</li>
+     *   <li>绘制轻量 overlay、局部提示文本</li>
+     *   <li>绘制动态列表的文字标签</li>
+     *   <li>可创建动态 SlotDisconnected（因为需要每帧基于滚动位置重建）</li>
+     * </ul>
+     * <p>
+     * <b>不应在此方法中做的事情：</b>
+     * <ul>
+     *   <li>绘制底板贴图或大面积背景（应在 drawBG 中）</li>
+     *   <li>创建或注册持久控件（应在 setupWidgets 中）</li>
+     * </ul>
      * <p>
      * 绘制坐标系已经被 MC 平移到面板内部（左上角为 0,0）。
      *
@@ -1075,6 +1147,57 @@ public abstract class AEBasePanel extends GuiContainer {
      */
     protected void repositionSlot(final AppEngSlot s) {
         s.yPos = s.getY() + this.ySize - 78 - 5;
+    }
+
+    /**
+     * 遍历容器中所有 AppEngSlot 并调用 {@link #repositionSlot(AppEngSlot)} 重新定位。
+     * <p>
+     * 子类在 initGui() 末尾调用此方法即可批量重定位所有槽位，无需手写循环。
+     * 可通过覆写 {@link #repositionSlot(AppEngSlot)} 来自定义每个槽位的定位逻辑。
+     */
+    protected void repositionAllSlots() {
+        for (final Slot slot : this.getInventorySlots()) {
+            if (slot instanceof AppEngSlot appEngSlot) {
+                this.repositionSlot(appEngSlot);
+            }
+        }
+    }
+
+    // ========== 布局工具方法 ==========
+
+    /**
+     * 根据终端样式设置和最大可用行数，计算实际应显示的行数。
+     * <p>
+     * 消除各面板中重复的 TerminalStyle if-else 分支。
+     *
+     * @param maxRows 屏幕可容纳的最大行数
+     * @return 根据终端样式计算的实际行数
+     */
+    protected static int computeTerminalRows(int maxRows) {
+        final Enum<?> terminalStyle = appeng.core.AEConfig.instance().getConfigManager()
+                .getSetting(appeng.api.config.Settings.TERMINAL_STYLE);
+
+        if (terminalStyle == appeng.api.config.TerminalStyle.FULL) {
+            return maxRows;
+        } else if (terminalStyle == appeng.api.config.TerminalStyle.TALL) {
+            return (int) Math.ceil(maxRows * 0.75);
+        } else if (terminalStyle == appeng.api.config.TerminalStyle.MEDIUM) {
+            return (int) Math.ceil(maxRows * 0.5);
+        } else if (terminalStyle == appeng.api.config.TerminalStyle.SMALL) {
+            return (int) Math.ceil(maxRows * 0.25);
+        } else {
+            return maxRows;
+        }
+    }
+
+    /**
+     * 根据当前面板高度 (ySize) 和屏幕高度 (height) 计算垂直居中位置并设置 guiTop。
+     * <p>
+     * 采用非对称居中策略：当面板比屏幕高时，偏向顶部显示（除数 3.8f），否则正常居中（除数 2.0f）。
+     */
+    protected void centerVertically() {
+        final int unusedSpace = this.height - this.ySize;
+        this.guiTop = (int) Math.floor(unusedSpace / (unusedSpace < 0 ? 3.8f : 2.0f));
     }
 
     // ========== 便利方法 ==========

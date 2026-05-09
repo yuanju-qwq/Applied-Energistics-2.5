@@ -38,6 +38,7 @@ import appeng.core.AELog;
 /**
  * Immutable identifier for something that "stacks" within an ME inventory.
  * <p/>
+ * This is the primary identity model for new resource-oriented AE code.
  * For example, for items this is the combination of an {@link net.minecraft.item.Item} and optional
  * {@link NBTTagCompound}. A key is (optionally) split into a primary and secondary component:
  * <ul>

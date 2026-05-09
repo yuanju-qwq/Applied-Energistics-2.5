@@ -32,10 +32,13 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.storage.IStorageChannel;
 
 /**
- * Represents a list of items in AE.
- *
+ * Represents a legacy typed list of AE stacks.
+ * <p>
+ * New code should prefer {@link KeyCounter} for heterogeneous counting and aggregation,
+ * while this interface remains as a compatibility layer for the pre-AEKey stack model.
+ * <p>
  * Don't Implement.
- *
+ * <p>
  * Construct with - For items: AEApi.instance().storage().getStorageChannel( IItemStorageChannel.class).createList() -
  * For fluids: AEApi.instance().storage().getStorageChannel( IFluidStorageChannel.class).createList() - Replace with the
  * corresponding {@link IStorageChannel} type for non native channels

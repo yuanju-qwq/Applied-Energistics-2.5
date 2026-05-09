@@ -40,8 +40,9 @@ import appeng.api.storage.data.IAEStack;
 /**
  * Represents some amount of some generic resource that AE can store or handle in crafting.
  * <p/>
- * This is the AEKey equivalent of the old {@code IAEStack} — an immutable key paired with a quantity.
+ * This is the primary quantity-carrying model for new AEKey-based code: an immutable key paired with a quantity.
  * Unlike {@code IAEStack}, the key ({@link #what}) is immutable and quantity is a plain {@code long}.
+ * Legacy {@code IAEStack} objects remain available as compatibility wrappers at old API boundaries.
  */
 @Desugar
 public record GenericStack(AEKey what, long amount) {

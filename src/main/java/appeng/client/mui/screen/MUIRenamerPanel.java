@@ -25,8 +25,8 @@ import org.lwjgl.input.Keyboard;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
-import appeng.client.gui.widgets.MEGuiTextField;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.implementations.ContainerRenamer;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
@@ -42,8 +42,13 @@ import appeng.helpers.ICustomNameObject;
  */
 public class MUIRenamerPanel extends AEBasePanel {
 
+    private static final int TEXT_FIELD_X = 9;
+    private static final int TEXT_FIELD_Y = 33;
+    private static final int TEXT_FIELD_WIDTH = 229;
+    private static final int TEXT_FIELD_HEIGHT = 12;
+
     // ========== 控件 ==========
-    private MEGuiTextField textField;
+    private MUITextFieldWidget textField;
     private GuiButton confirmButton;
 
     public MUIRenamerPanel(final InventoryPlayer ip, final ICustomNameObject te) {
@@ -59,28 +64,29 @@ public class MUIRenamerPanel extends AEBasePanel {
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始化
+        // Text input widget initialization is centralized here to align with panel lifecycle rules.
+        this.textField = this.addWidget(new MUITextFieldWidget(
+                TEXT_FIELD_X,
+                TEXT_FIELD_Y,
+                TEXT_FIELD_WIDTH,
+                TEXT_FIELD_HEIGHT)
+                        .setEnableBackground(false)
+                        .setMaxStringLength(32)
+                        .setFocused(true)
+                        .setClearOnRightClick(true));
     }
 
     @Override
     public void initGui() {
-        Keyboard.enableRepeatEvents(true);
         super.initGui();
 
-        this.textField = new MEGuiTextField(this.fontRenderer, this.guiLeft + 9, this.guiTop + 33, 229, 12);
-        this.textField.setEnableBackgroundDrawing(false);
-        this.textField.setMaxStringLength(32);
-        this.textField.setFocused(true);
-
-        this.buttonList.add(this.confirmButton = new GuiButton(0, this.guiLeft + 238, this.guiTop + 33, 12, 12, "↵"));
-
-        ((ContainerRenamer) this.inventorySlots).setTextField(this.textField);
-    }
-
-    @Override
-    public void onGuiClosed() {
-        super.onGuiClosed();
-        Keyboard.enableRepeatEvents(false);
+        this.buttonList.add(this.confirmButton = new GuiButton(
+                0,
+                this.guiLeft + TEXT_FIELD_X + TEXT_FIELD_WIDTH,
+                this.guiTop + TEXT_FIELD_Y,
+                12,
+                12,
+                "↵"));
     }
 
     // ========== 渲染 ==========
@@ -94,18 +100,14 @@ public class MUIRenamerPanel extends AEBasePanel {
     protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.bindTexture("guis/renamer.png");
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
-        this.textField.drawTextBox();
     }
 
     // ========== 输入事件 ==========
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
-        if (this.textField.isMouseIn(xCoord, yCoord)) {
-            if (btn == 1) {
-                this.textField.setText("");
-            }
-            this.textField.mouseClicked(xCoord, yCoord, btn);
+        if (this.textField != null) {
+            this.textField.mouseClicked(xCoord - this.guiLeft, yCoord - this.guiTop, btn);
         }
         super.mouseClicked(xCoord, yCoord, btn);
     }
@@ -113,14 +115,8 @@ public class MUIRenamerPanel extends AEBasePanel {
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
         if (key == Keyboard.KEY_ESCAPE || key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) {
-            try {
-                NetworkHandler.instance().sendToServer(
-                        new PacketValueConfig("QuartzKnife.ReName", this.textField.getText()));
-            } catch (IOException e) {
-                AELog.debug(e);
-            }
-            this.mc.player.closeScreen();
-        } else if (!this.textField.textboxKeyTyped(character, key)) {
+            this.sendRenameAndClose();
+        } else if (this.textField == null || !this.textField.textboxKeyTyped(character, key)) {
             super.keyTyped(character, key);
         }
     }
@@ -130,13 +126,17 @@ public class MUIRenamerPanel extends AEBasePanel {
         super.actionPerformed(btn);
 
         if (btn == this.confirmButton) {
-            try {
-                NetworkHandler.instance().sendToServer(
-                        new PacketValueConfig("QuartzKnife.ReName", this.textField.getText()));
-                this.mc.player.closeScreen();
-            } catch (IOException e) {
-                AELog.debug(e);
-            }
+            this.sendRenameAndClose();
         }
+    }
+
+    private void sendRenameAndClose() {
+        try {
+            NetworkHandler.instance().sendToServer(
+                    new PacketValueConfig("QuartzKnife.ReName", this.textField == null ? "" : this.textField.getText()));
+        } catch (IOException e) {
+            AELog.debug(e);
+        }
+        this.mc.player.closeScreen();
     }
 }

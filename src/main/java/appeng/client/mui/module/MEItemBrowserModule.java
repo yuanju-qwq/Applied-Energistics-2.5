@@ -35,9 +35,9 @@ import appeng.client.gui.slots.VirtualMEMonitorableSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.gui.widgets.ISortSource;
-import appeng.client.gui.widgets.MEGuiTextField;
 import appeng.client.me.ItemRepo;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
@@ -59,6 +59,11 @@ import appeng.util.Platform;
  * </ul>
  */
 public class MEItemBrowserModule implements ISortSource {
+
+    private static final int SEARCH_FIELD_OFFSET_X = 3;
+    private static final int SEARCH_FIELD_OFFSET_Y = 4;
+    private static final int SEARCH_FIELD_WIDTH = 72;
+    private static final int SEARCH_FIELD_HEIGHT = 12;
 
     // ========== 纹理 ==========
 
@@ -108,7 +113,7 @@ public class MEItemBrowserModule implements ISortSource {
     private final ItemRepo itemRepo;
     private final GuiScrollbar itemPanelScrollbar;
 
-    private MEGuiTextField itemSearchField;
+    private MUITextFieldWidget itemSearchField;
     private static String memoryText = "";
 
     // 按钮
@@ -139,7 +144,7 @@ public class MEItemBrowserModule implements ISortSource {
         return itemPanelScrollbar;
     }
 
-    public MEGuiTextField getItemSearchField() {
+    public MUITextFieldWidget getItemSearchField() {
         return itemSearchField;
     }
 
@@ -224,12 +229,16 @@ public class MEItemBrowserModule implements ISortSource {
         buttonList.add(this.searchBoxSettings);
 
         // 搜索框
-        this.itemSearchField = new MEGuiTextField(host.getFontRenderer(),
-                itemAbsX + 3, itemAbsY + 4, 72, 12);
-        this.itemSearchField.setEnableBackgroundDrawing(false);
-        this.itemSearchField.setMaxStringLength(25);
-        this.itemSearchField.setTextColor(0xFFFFFF);
-        this.itemSearchField.setVisible(true);
+        this.itemSearchField = new MUITextFieldWidget(
+                SEARCH_FIELD_OFFSET_X,
+                SEARCH_FIELD_OFFSET_Y,
+                SEARCH_FIELD_WIDTH,
+                SEARCH_FIELD_HEIGHT)
+                        .setEnableBackground(false)
+                        .setMaxStringLength(25)
+                        .setTextColor(0xFFFFFF)
+                        .setVisible(true)
+                        .setTextChangeListener(this::updateSearchText);
 
         // SearchBoxMode JEI 同步
         final Enum searchModeSetting = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
@@ -311,7 +320,8 @@ public class MEItemBrowserModule implements ISortSource {
 
         // 搜索框
         if (this.itemSearchField != null) {
-            this.itemSearchField.drawTextBox();
+            this.itemSearchField.setPosition(getPanelRelX() + SEARCH_FIELD_OFFSET_X, getPanelRelY() + SEARCH_FIELD_OFFSET_Y);
+            this.itemSearchField.drawBackground(host.getPanel(), host.getGuiLeft(), host.getGuiTop(), 0, 0, 0.0F);
         }
     }
 
@@ -381,16 +391,6 @@ public class MEItemBrowserModule implements ISortSource {
     public boolean keyTyped(char character, int key) {
         if (this.itemSearchField != null && this.itemSearchField.isFocused()
                 && this.itemSearchField.textboxKeyTyped(character, key)) {
-            final String searchText = this.itemSearchField.getText();
-            this.itemRepo.setSearchString(searchText);
-            this.itemRepo.updateView();
-            this.updateItemPanelScrollbar();
-            final Enum searchModeSetting = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
-            final boolean isJEISync = SearchBoxMode.JEI_AUTOSEARCH == searchModeSetting
-                    || SearchBoxMode.JEI_MANUAL_SEARCH == searchModeSetting;
-            if (isJEISync && Platform.isJEIEnabled()) {
-                Integrations.jei().setSearchText(searchText);
-            }
             return true;
         }
         return false;
@@ -403,12 +403,10 @@ public class MEItemBrowserModule implements ISortSource {
      */
     public void mouseClicked(int xCoord, int yCoord, int btn) {
         if (this.itemSearchField != null) {
-            this.itemSearchField.mouseClicked(xCoord, yCoord, btn);
+            this.itemSearchField.setPosition(getPanelRelX() + SEARCH_FIELD_OFFSET_X, getPanelRelY() + SEARCH_FIELD_OFFSET_Y);
+            this.itemSearchField.mouseClicked(xCoord - host.getGuiLeft(), yCoord - host.getGuiTop(), btn);
             if (btn == 1 && this.isMouseOverSearchField(xCoord, yCoord)) {
                 this.itemSearchField.setText("");
-                this.itemRepo.setSearchString("");
-                this.itemRepo.updateView();
-                this.updateItemPanelScrollbar();
             }
         }
     }
@@ -525,8 +523,21 @@ public class MEItemBrowserModule implements ISortSource {
     private boolean isMouseOverSearchField(int mouseX, int mouseY) {
         final int itemAbsX = getPanelAbsX();
         final int itemAbsY = getPanelAbsY();
-        return mouseX >= itemAbsX + 3 && mouseX < itemAbsX + 3 + 72
-                && mouseY >= itemAbsY + 4 && mouseY < itemAbsY + 4 + 12;
+        return mouseX >= itemAbsX + SEARCH_FIELD_OFFSET_X && mouseX < itemAbsX + SEARCH_FIELD_OFFSET_X + SEARCH_FIELD_WIDTH
+                && mouseY >= itemAbsY + SEARCH_FIELD_OFFSET_Y && mouseY < itemAbsY + SEARCH_FIELD_OFFSET_Y + SEARCH_FIELD_HEIGHT;
+    }
+
+    private void updateSearchText(String searchText) {
+        this.itemRepo.setSearchString(searchText);
+        this.itemRepo.updateView();
+        this.updateItemPanelScrollbar();
+
+        final Enum searchModeSetting = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
+        final boolean isJEISync = SearchBoxMode.JEI_AUTOSEARCH == searchModeSetting
+                || SearchBoxMode.JEI_MANUAL_SEARCH == searchModeSetting;
+        if (isJEISync && Platform.isJEIEnabled()) {
+            Integrations.jei().setSearchText(searchText);
+        }
     }
 
     /**

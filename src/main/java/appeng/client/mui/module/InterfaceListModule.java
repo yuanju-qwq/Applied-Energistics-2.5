@@ -42,13 +42,12 @@ import net.minecraftforge.common.util.Constants;
 
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
-import appeng.api.config.TerminalStyle;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
-import appeng.client.gui.widgets.MEGuiTooltipTextField;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.core.AEConfig;
 import appeng.core.AppEng;
 import appeng.core.localization.ButtonToolTips;
@@ -150,9 +149,9 @@ public class InterfaceListModule {
     private final Map<String, Set<Object>> cachedSearches = new WeakHashMap<>();
     private final Map<ClientDCInternalInv, Integer> dimHashMap = new HashMap<>();
 
-    private MEGuiTooltipTextField searchFieldOutputs;
-    private MEGuiTooltipTextField searchFieldInputs;
-    private MEGuiTooltipTextField searchFieldNames;
+    private MUITextFieldWidget searchFieldOutputs;
+    private MUITextFieldWidget searchFieldInputs;
+    private MUITextFieldWidget searchFieldNames;
 
     private GuiImgButton guiButtonHideFull;
     private GuiImgButton guiButtonAssemblersOnly;
@@ -218,24 +217,28 @@ public class InterfaceListModule {
         return byId;
     }
 
-    public MEGuiTooltipTextField getSearchFieldNames() {
+    public MUITextFieldWidget getSearchFieldNames() {
         return searchFieldNames;
     }
 
     // ========== 搜索字段创建 ==========
 
-    private MEGuiTooltipTextField createTextField(final int width, final int height, final String tooltip) {
-        MEGuiTooltipTextField textField = new MEGuiTooltipTextField(width, height, tooltip) {
-            @Override
-            public void onTextChange(String oldText) {
-                refreshList();
-            }
-        };
-        textField.setEnableBackgroundDrawing(false);
-        textField.setMaxStringLength(25);
-        textField.setTextColor(0xFFFFFF);
-        textField.setCursorPositionZero();
-        return textField;
+    private MUITextFieldWidget.SearchFieldGroup createSearchFieldGroup() {
+        return MUITextFieldWidget.SearchFieldGroup.builder()
+                .inputs(MUITextFieldWidget.SearchFieldSpec.builder(32, 25, 86)
+                        .tooltip(ButtonToolTips.SearchFieldInputs.getLocal())
+                        .onTextChange(text -> refreshList())
+                        .build())
+                .outputs(MUITextFieldWidget.SearchFieldSpec.builder(32, 38, 86)
+                        .tooltip(ButtonToolTips.SearchFieldOutputs.getLocal())
+                        .onTextChange(text -> refreshList())
+                        .build())
+                .names(MUITextFieldWidget.SearchFieldSpec.builder(32 + 99, 38, 71)
+                        .tooltip(ButtonToolTips.SearchFieldNames.getLocal())
+                        .onTextChange(text -> refreshList())
+                        .focused(true)
+                        .build())
+                .build();
     }
 
     // ========== 初始化 ==========
@@ -249,19 +252,7 @@ public class InterfaceListModule {
         final int maxScreenRows = (int) Math.floor(
                 (double) (host.getScreenHeight() - MAGIC_HEIGHT_NUMBER - jeiSearchOffset) / 18);
 
-        final Enum<?> terminalStyle = AEConfig.instance().getConfigManager().getSetting(Settings.TERMINAL_STYLE);
-
-        if (terminalStyle == TerminalStyle.FULL) {
-            this.rows = maxScreenRows;
-        } else if (terminalStyle == TerminalStyle.TALL) {
-            this.rows = (int) Math.ceil(maxScreenRows * 0.75);
-        } else if (terminalStyle == TerminalStyle.MEDIUM) {
-            this.rows = (int) Math.ceil(maxScreenRows * 0.5);
-        } else if (terminalStyle == TerminalStyle.SMALL) {
-            this.rows = (int) Math.ceil(maxScreenRows * 0.25);
-        } else {
-            this.rows = maxScreenRows;
-        }
+        this.rows = AEBasePanel.computeTerminalRows(maxScreenRows);
 
         this.rows = Math.min(this.rows, Integer.MAX_VALUE);
         this.rows = Math.max(this.rows, 6);
@@ -275,18 +266,12 @@ public class InterfaceListModule {
         final int guiLeft = host.getGuiLeft();
         final int guiTop = host.getGuiTop();
 
-        searchFieldInputs = createTextField(86, 12, ButtonToolTips.SearchFieldInputs.getLocal());
-        searchFieldOutputs = createTextField(86, 12, ButtonToolTips.SearchFieldOutputs.getLocal());
-        searchFieldNames = createTextField(71, 12, ButtonToolTips.SearchFieldNames.getLocal());
-
-        searchFieldInputs.x = guiLeft + 32;
-        searchFieldInputs.y = guiTop + 25;
-        searchFieldOutputs.x = guiLeft + 32;
-        searchFieldOutputs.y = guiTop + 38;
-        searchFieldNames.x = guiLeft + 32 + 99;
-        searchFieldNames.y = guiTop + 38;
-
-        searchFieldNames.setFocused(true);
+        MUITextFieldWidget.SearchFieldWidgets searchFields = MUITextFieldWidget.addSearchFieldGroup(
+                host.getPanel(),
+                this.createSearchFieldGroup());
+        searchFieldInputs = searchFields.getInputs();
+        searchFieldOutputs = searchFields.getOutputs();
+        searchFieldNames = searchFields.getNames();
 
         guiButtonAssemblersOnly = new GuiImgButton(0, 0, Settings.ACTIONS, null);
         guiButtonHideFull = new GuiImgButton(0, 0, Settings.ACTIONS, null);
@@ -363,10 +348,7 @@ public class InterfaceListModule {
         // 底部背景（玩家物品栏）
         host.drawTexturedModalRect(offsetX, offsetY + 50 + this.rows * 18, 0, 158, MAIN_GUI_WIDTH, 99);
 
-        // 搜索框
-        this.searchFieldInputs.drawTextBox();
-        this.searchFieldOutputs.drawTextBox();
-        this.searchFieldNames.drawTextBox();
+        // 搜索框由 panel widget 生命周期统一绘制
     }
 
     // ========== 渲染: drawFG ==========
@@ -500,12 +482,9 @@ public class InterfaceListModule {
     }
 
     /**
-     * 绘制搜索框 tooltip。在 super.drawScreen 之后调用。
+     * 搜索框 tooltip 已由统一 widget 生命周期处理。
      */
     public void drawSearchFieldTooltips(AEBasePanel panel, int mouseX, int mouseY) {
-        panel.drawTooltip(searchFieldInputs, mouseX, mouseY);
-        panel.drawTooltip(searchFieldOutputs, mouseX, mouseY);
-        panel.drawTooltip(searchFieldNames, mouseX, mouseY);
     }
 
     // ========== 输入处理 ==========
@@ -514,9 +493,9 @@ public class InterfaceListModule {
      * 处理鼠标点击（搜索框焦点）。
      */
     public void mouseClicked(int xCoord, int yCoord, int btn) {
-        this.searchFieldInputs.mouseClicked(xCoord, yCoord, btn);
-        this.searchFieldOutputs.mouseClicked(xCoord, yCoord, btn);
-        this.searchFieldNames.mouseClicked(xCoord, yCoord, btn);
+        this.searchFieldInputs.mouseClicked(xCoord - host.getGuiLeft(), yCoord - host.getGuiTop(), btn);
+        this.searchFieldOutputs.mouseClicked(xCoord - host.getGuiLeft(), yCoord - host.getGuiTop(), btn);
+        this.searchFieldNames.mouseClicked(xCoord - host.getGuiLeft(), yCoord - host.getGuiTop(), btn);
     }
 
     /**

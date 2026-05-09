@@ -28,7 +28,6 @@ import java.util.List;
 
 import com.google.common.collect.HashMultimap;
 
-import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
 import net.minecraft.client.gui.GuiButton;
@@ -44,13 +43,12 @@ import net.minecraftforge.common.util.Constants;
 
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
-import appeng.api.config.TerminalStyle;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
-import appeng.client.gui.widgets.MEGuiTooltipTextField;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.implementations.ContainerInterfaceTerminal;
 import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
 import appeng.container.slot.AppEngSlot;
@@ -59,7 +57,6 @@ import appeng.core.AppEng;
 import appeng.core.localization.ButtonToolTips;
 import appeng.core.localization.GuiText;
 import appeng.core.localization.PlayerMessages;
-import appeng.helpers.PatternProviderLogic;
 import appeng.helpers.PatternHelper;
 import appeng.util.BlockPosUtils;
 import appeng.util.Platform;
@@ -77,6 +74,19 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
     private static final int OFFSET_X = 21;
     private static final int MAGIC_HEIGHT_NUMBER = 52 + 99;
     private static final String MOLECULAR_ASSEMBLER = "tile.appliedenergistics2.molecular_assembler";
+    private static final int SEARCH_INPUTS_X = 32;
+    private static final int SEARCH_INPUTS_Y = 25;
+    private static final int SEARCH_INPUTS_WIDTH = 86;
+    private static final int SEARCH_OUTPUTS_X = 32;
+    private static final int SEARCH_OUTPUTS_Y = 38;
+    private static final int SEARCH_OUTPUTS_WIDTH = 86;
+    private static final int SEARCH_NAMES_X = 32 + 99;
+    private static final int SEARCH_NAMES_Y = 38;
+    private static final int SEARCH_NAMES_WIDTH = 71;
+    private static final int SEARCH_FIELD_HEIGHT = 12;
+    private static final int BUTTON_COLUMN_X = -18;
+    private static final int TERMINAL_STYLE_BUTTON_Y = 8;
+    private static final int BUTTON_VERTICAL_SPACING = 20;
 
     // JEI 偏移量，避免按钮遮挡 JEI 区域
     private final int jeiOffset = Platform.isJEIEnabled() ? 24 : 0;
@@ -94,9 +104,9 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
     private final Map<String, Set<Object>> cachedSearches = new WeakHashMap<>();
     private final Map<ClientDCInternalInv, Integer> dimHashMap = new HashMap<>();
 
-    private MEGuiTooltipTextField searchFieldOutputs;
-    private MEGuiTooltipTextField searchFieldInputs;
-    private MEGuiTooltipTextField searchFieldNames;
+    private MUITextFieldWidget searchFieldOutputs;
+    private MUITextFieldWidget searchFieldInputs;
+    private MUITextFieldWidget searchFieldNames;
 
     private GuiImgButton guiButtonHideFull;
     private GuiImgButton guiButtonAssemblersOnly;
@@ -120,18 +130,34 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
         this.ySize = 255;
     }
 
-    private MEGuiTooltipTextField createTextField(final int width, final int height, final String tooltip) {
-        MEGuiTooltipTextField textField = new MEGuiTooltipTextField(width, height, tooltip) {
-            @Override
-            public void onTextChange(String oldText) {
-                refreshList();
-            }
-        };
-        textField.setEnableBackgroundDrawing(false);
-        textField.setMaxStringLength(25);
-        textField.setTextColor(0xFFFFFF);
-        textField.setCursorPositionZero();
-        return textField;
+    private MUITextFieldWidget.SearchFieldGroup createSearchFieldGroup() {
+        return MUITextFieldWidget.SearchFieldGroup.builder()
+                .inputs(MUITextFieldWidget.SearchFieldSpec.builder(
+                        SEARCH_INPUTS_X,
+                        SEARCH_INPUTS_Y,
+                        SEARCH_INPUTS_WIDTH)
+                        .height(SEARCH_FIELD_HEIGHT)
+                        .tooltip(ButtonToolTips.SearchFieldInputs.getLocal())
+                        .onTextChange(text -> this.refreshList())
+                        .build())
+                .outputs(MUITextFieldWidget.SearchFieldSpec.builder(
+                        SEARCH_OUTPUTS_X,
+                        SEARCH_OUTPUTS_Y,
+                        SEARCH_OUTPUTS_WIDTH)
+                        .height(SEARCH_FIELD_HEIGHT)
+                        .tooltip(ButtonToolTips.SearchFieldOutputs.getLocal())
+                        .onTextChange(text -> this.refreshList())
+                        .build())
+                .names(MUITextFieldWidget.SearchFieldSpec.builder(
+                        SEARCH_NAMES_X,
+                        SEARCH_NAMES_Y,
+                        SEARCH_NAMES_WIDTH)
+                        .height(SEARCH_FIELD_HEIGHT)
+                        .tooltip(ButtonToolTips.SearchFieldNames.getLocal())
+                        .onTextChange(text -> this.refreshList())
+                        .focused(true)
+                        .build())
+                .build();
     }
 
     private void setScrollBar() {
@@ -143,83 +169,54 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
 
     @Override
     protected void setupWidgets() {
-        // TODO: Migrate widget initialization here from initGui()
+        // Search widget initialization
+        MUITextFieldWidget.SearchFieldWidgets searchFields = MUITextFieldWidget.addSearchFieldGroup(
+                this,
+                this.createSearchFieldGroup());
+        this.searchFieldInputs = searchFields.getInputs();
+        this.searchFieldOutputs = searchFields.getOutputs();
+        this.searchFieldNames = searchFields.getNames();
+
+        // Toolbar buttons (created here, positioned in initGui after guiTop is finalized)
+        this.guiButtonAssemblersOnly = new GuiImgButton(0, 0, Settings.ACTIONS, null);
+        this.guiButtonHideFull = new GuiImgButton(0, 0, Settings.ACTIONS, null);
+        this.guiButtonBrokenRecipes = new GuiImgButton(0, 0, Settings.ACTIONS, null);
+        this.terminalStyleBox = new GuiImgButton(0, 0, Settings.TERMINAL_STYLE, null);
     }
 
     @Override
     public void initGui() {
-        Keyboard.enableRepeatEvents(true);
         final int jeiSearchOffset = Platform.isJEICenterSearchBarEnabled() ? 40 : 0;
         final int maxScreenRows = (int) Math.floor(
                 (double) (this.height - MAGIC_HEIGHT_NUMBER - jeiSearchOffset) / 18);
 
-        final Enum<?> terminalStyle = AEConfig.instance().getConfigManager().getSetting(Settings.TERMINAL_STYLE);
-
-        if (terminalStyle == TerminalStyle.FULL) {
-            this.rows = maxScreenRows;
-        } else if (terminalStyle == TerminalStyle.TALL) {
-            this.rows = (int) Math.ceil(maxScreenRows * 0.75);
-        } else if (terminalStyle == TerminalStyle.MEDIUM) {
-            this.rows = (int) Math.ceil(maxScreenRows * 0.5);
-        } else if (terminalStyle == TerminalStyle.SMALL) {
-            this.rows = (int) Math.ceil(maxScreenRows * 0.25);
-        } else {
-            this.rows = maxScreenRows;
-        }
-
+        this.rows = computeTerminalRows(maxScreenRows);
         this.rows = Math.min(this.rows, Integer.MAX_VALUE);
         this.rows = Math.max(this.rows, 6);
 
         super.initGui();
 
         this.ySize = MAGIC_HEIGHT_NUMBER + this.rows * 18;
-        final int unusedSpace = this.height - this.ySize;
-        this.guiTop = (int) Math.floor(unusedSpace / (unusedSpace < 0 ? 3.8f : 2.0f));
+        this.centerVertically();
 
-        searchFieldInputs = createTextField(86, 12, ButtonToolTips.SearchFieldInputs.getLocal());
-        searchFieldOutputs = createTextField(86, 12, ButtonToolTips.SearchFieldOutputs.getLocal());
-        searchFieldNames = createTextField(71, 12, ButtonToolTips.SearchFieldNames.getLocal());
-
-        searchFieldInputs.x = guiLeft + 32;
-        searchFieldInputs.y = guiTop + 25;
-        searchFieldOutputs.x = guiLeft + 32;
-        searchFieldOutputs.y = guiTop + 38;
-        searchFieldNames.x = guiLeft + 32 + 99;
-        searchFieldNames.y = guiTop + 38;
-
-        searchFieldNames.setFocused(true);
-
-        guiButtonAssemblersOnly = new GuiImgButton(0, 0, Settings.ACTIONS, null);
-        guiButtonHideFull = new GuiImgButton(0, 0, Settings.ACTIONS, null);
-        guiButtonBrokenRecipes = new GuiImgButton(0, 0, Settings.ACTIONS, null);
-        terminalStyleBox = new GuiImgButton(0, 0, Settings.TERMINAL_STYLE, null);
-
-        terminalStyleBox.x = guiLeft - 18;
-        terminalStyleBox.y = guiTop + 8 + this.jeiOffset;
-        guiButtonBrokenRecipes.x = guiLeft - 18;
-        guiButtonBrokenRecipes.y = terminalStyleBox.y + 20;
-        guiButtonHideFull.x = guiLeft - 18;
-        guiButtonHideFull.y = guiButtonBrokenRecipes.y + 20;
-        guiButtonAssemblersOnly.x = guiLeft - 18;
-        guiButtonAssemblersOnly.y = guiButtonHideFull.y + 20;
+        // Button positioning (buttons created in setupWidgets, positioned here after guiTop is finalized)
+        this.terminalStyleBox.x = this.guiLeft + BUTTON_COLUMN_X;
+        this.terminalStyleBox.y = this.guiTop + TERMINAL_STYLE_BUTTON_Y + this.jeiOffset;
+        this.guiButtonBrokenRecipes.x = this.guiLeft + BUTTON_COLUMN_X;
+        this.guiButtonBrokenRecipes.y = this.terminalStyleBox.y + BUTTON_VERTICAL_SPACING;
+        this.guiButtonHideFull.x = this.guiLeft + BUTTON_COLUMN_X;
+        this.guiButtonHideFull.y = this.guiButtonBrokenRecipes.y + BUTTON_VERTICAL_SPACING;
+        this.guiButtonAssemblersOnly.x = this.guiLeft + BUTTON_COLUMN_X;
+        this.guiButtonAssemblersOnly.y = this.guiButtonHideFull.y + BUTTON_VERTICAL_SPACING;
 
         this.setScrollBar();
-        this.repositionSlots();
+        this.repositionAllSlots();
     }
 
     @Override
-    public void onGuiClosed() {
-        super.onGuiClosed();
-        Keyboard.enableRepeatEvents(false);
-    }
-
-    private void repositionSlots() {
-        for (final Object obj : this.inventorySlots.inventorySlots) {
-            if (obj instanceof AppEngSlot slot) {
-                slot.yPos = this.ySize + slot.getY() - 78 - 7;
-                slot.xPos = slot.getX() + 14;
-            }
-        }
+    protected void repositionSlot(final AppEngSlot s) {
+        s.yPos = this.ySize + s.getY() - 78 - 7;
+        s.xPos = s.getX() + 14;
     }
 
     // ========== JEI 兼容 ==========
@@ -339,10 +336,6 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
-
-        drawTooltip(searchFieldInputs, mouseX, mouseY);
-        drawTooltip(searchFieldOutputs, mouseX, mouseY);
-        drawTooltip(searchFieldNames, mouseX, mouseY);
     }
 
     @Override
@@ -389,20 +382,17 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
 
         // 底部背景（玩家物品栏）
         this.drawTexturedModalRect(offsetX, offsetY + 50 + this.rows * 18, 0, 158, this.xSize, 99);
-
-        // 搜索框
-        this.searchFieldInputs.drawTextBox();
-        this.searchFieldOutputs.drawTextBox();
-        this.searchFieldNames.drawTextBox();
     }
 
     // ========== 输入处理 ==========
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
-        this.searchFieldInputs.mouseClicked(xCoord, yCoord, btn);
-        this.searchFieldOutputs.mouseClicked(xCoord, yCoord, btn);
-        this.searchFieldNames.mouseClicked(xCoord, yCoord, btn);
+        final int localX = xCoord - this.guiLeft;
+        final int localY = yCoord - this.guiTop;
+        this.searchFieldInputs.mouseClicked(localX, localY, btn);
+        this.searchFieldOutputs.mouseClicked(localX, localY, btn);
+        this.searchFieldNames.mouseClicked(localX, localY, btn);
 
         super.mouseClicked(xCoord, yCoord, btn);
     }
@@ -476,11 +466,9 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
                 }
             }
 
-            if (this.searchFieldInputs.textboxKeyTyped(character, key)
+            if (!(this.searchFieldInputs.textboxKeyTyped(character, key)
                     || this.searchFieldOutputs.textboxKeyTyped(character, key)
-                    || this.searchFieldNames.textboxKeyTyped(character, key)) {
-                this.refreshList();
-            } else {
+                    || this.searchFieldNames.textboxKeyTyped(character, key))) {
                 super.keyTyped(character, key);
             }
         }
@@ -490,24 +478,27 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
     private boolean handleTab() {
         if (searchFieldInputs.isFocused()) {
             searchFieldInputs.setFocused(false);
-            if (isShiftKeyDown())
+            if (isShiftKeyDown()) {
                 searchFieldNames.setFocused(true);
-            else
+            } else {
                 searchFieldOutputs.setFocused(true);
+            }
             return true;
         } else if (searchFieldOutputs.isFocused()) {
             searchFieldOutputs.setFocused(false);
-            if (isShiftKeyDown())
+            if (isShiftKeyDown()) {
                 searchFieldInputs.setFocused(true);
-            else
+            } else {
                 searchFieldNames.setFocused(true);
+            }
             return true;
         } else if (searchFieldNames.isFocused()) {
             searchFieldNames.setFocused(false);
-            if (isShiftKeyDown())
+            if (isShiftKeyDown()) {
                 searchFieldOutputs.setFocused(true);
-            else
+            } else {
                 searchFieldInputs.setFocused(true);
+            }
             return true;
         }
         return false;
@@ -679,18 +670,22 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
     }
 
     private boolean recipeIsBroken(final ItemStack stack) {
-        if (stack == null)
+        if (stack == null) {
             return false;
-        if (stack.isEmpty())
+        }
+        if (stack.isEmpty()) {
             return false;
+        }
 
         final NBTTagCompound encodedValue = stack.getTagCompound();
-        if (encodedValue == null)
+        if (encodedValue == null) {
             return true;
+        }
 
         final World w = AppEng.proxy.getWorld();
-        if (w == null)
+        if (w == null) {
             return false;
+        }
 
         try {
             new PatternHelper(stack, w);
@@ -743,43 +738,22 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
         return foundMatchingItemStack;
     }
 
+    private ClientDCInternalInv getById(final long id, final long sortBy, final String unlocalizedName) {
+        return this.byId.computeIfAbsent(id, key -> {
+            this.refreshList = true;
+            return new ClientDCInternalInv(0, sortBy, unlocalizedName);
+        });
+    }
+
+    private ClientDCInternalInv getProviderById(final long id, final long sortBy, final String unlocalizedName,
+            final int slotCount) {
+        return this.providerById.computeIfAbsent(id, key -> {
+            this.refreshList = true;
+            return new ClientDCInternalInv(slotCount, sortBy, unlocalizedName);
+        });
+    }
+
     private Set<Object> getCacheForSearchTerm(final String searchTerm) {
-        if (!this.cachedSearches.containsKey(searchTerm)) {
-            this.cachedSearches.put(searchTerm, new HashSet<>());
-        }
-
-        final Set<Object> cache = this.cachedSearches.get(searchTerm);
-
-        if (cache.isEmpty() && searchTerm.length() > 1) {
-            cache.addAll(this.getCacheForSearchTerm(searchTerm.substring(0, searchTerm.length() - 1)));
-            return cache;
-        }
-
-        return cache;
-    }
-
-    private ClientDCInternalInv getById(final long id, final long sortBy, final String string) {
-        ClientDCInternalInv o = this.byId.get(id);
-
-        if (o == null) {
-            this.byId.put(id,
-                    o = new ClientDCInternalInv(PatternProviderLogic.NUMBER_OF_PATTERN_SLOTS, id, sortBy, string));
-            this.refreshList = true;
-        }
-
-        return o;
-    }
-
-    private ClientDCInternalInv getProviderById(final long id, final long sortBy, final String string,
-            final int stackSize) {
-        ClientDCInternalInv o = this.providerById.get(id);
-
-        if (o == null) {
-            this.providerById.put(id,
-                    o = new ClientDCInternalInv(stackSize, id, sortBy, string));
-            this.refreshList = true;
-        }
-
-        return o;
+        return this.cachedSearches.computeIfAbsent(searchTerm, key -> new HashSet<>(this.byId.values()));
     }
 }

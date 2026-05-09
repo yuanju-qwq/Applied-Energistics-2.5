@@ -251,25 +251,12 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     public void initGui() {
-        Keyboard.enableRepeatEvents(true);
 
         final int jeiSearchOffset = Platform.isJEICenterSearchBarEnabled() ? 40 : 0;
         final int maxScreenRows = (int) Math
                 .floor((double) (this.height - MAGIC_HEIGHT_NUMBER - this.reservedSpace - jeiSearchOffset) / 18);
 
-        final Enum<?> terminalStyle = AEConfig.instance().getConfigManager().getSetting(Settings.TERMINAL_STYLE);
-
-        if (terminalStyle == TerminalStyle.FULL) {
-            this.rows = maxScreenRows;
-        } else if (terminalStyle == TerminalStyle.TALL) {
-            this.rows = (int) Math.ceil(maxScreenRows * 0.75);
-        } else if (terminalStyle == TerminalStyle.MEDIUM) {
-            this.rows = (int) Math.ceil(maxScreenRows * 0.5);
-        } else if (terminalStyle == TerminalStyle.SMALL) {
-            this.rows = (int) Math.ceil(maxScreenRows * 0.25);
-        } else {
-            this.rows = maxScreenRows;
-        }
+        this.rows = computeTerminalRows(maxScreenRows);
 
         this.rows = Math.min(this.rows, this.getMaxRows());
         this.rows = Math.max(this.rows, this.getMinRows());
@@ -329,8 +316,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         }
 
         this.ySize = MAGIC_HEIGHT_NUMBER + this.rows * 18 + this.reservedSpace;
-        final int unusedSpace = this.height - this.ySize;
-        this.guiTop = (int) Math.floor(unusedSpace / (unusedSpace < 0 ? 3.8f : 2.0f));
+        this.centerVertically();
 
         int offset = this.guiTop + 8 + jeiOffset;
 
@@ -646,7 +632,6 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     @Override
     public void onGuiClosed() {
         super.onGuiClosed();
-        Keyboard.enableRepeatEvents(false);
         memoryText = this.searchField.getText();
     }
 

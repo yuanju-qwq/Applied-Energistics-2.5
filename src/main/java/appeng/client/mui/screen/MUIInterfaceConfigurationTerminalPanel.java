@@ -28,9 +28,6 @@ import java.util.List;
 
 import com.google.common.collect.HashMultimap;
 
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.input.Mouse;
-
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.inventory.Slot;
@@ -46,10 +43,10 @@ import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
-import appeng.client.gui.widgets.MEGuiTextField;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.implementations.ContainerInterfaceConfigurationTerminal;
 import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
 import appeng.container.interfaces.IJEIGhostIngredients;
@@ -76,6 +73,13 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
 
     private static final int LINES_ON_PAGE = 6;
     private static final int OFFSET_X = 21;
+    private static final int SEARCH_FIELD_X = Math.max(32, OFFSET_X);
+    private static final int SEARCH_FIELD_Y = 17;
+    private static final int SEARCH_FIELD_WIDTH = 65;
+    private static final int SEARCH_FIELD_HEIGHT = 12;
+    private static final int SCROLL_BAR_LEFT = 189;
+    private static final int SCROLL_BAR_TOP = 31;
+    private static final int SCROLL_BAR_HEIGHT = 106;
 
     private final HashMap<Long, ClientDCInternalInv> byId = new HashMap<>();
     private final HashMultimap<String, ClientDCInternalInv> byName = HashMultimap.create();
@@ -91,7 +95,7 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
     public Map<IGhostIngredientHandler.Target<?>, Object> mapTargetSlot = new HashMap<>();
 
     private boolean refreshList = false;
-    private MEGuiTextField searchFieldInputs;
+    private MUITextFieldWidget searchFieldInputs;
 
     public MUIInterfaceConfigurationTerminalPanel(final ContainerInterfaceConfigurationTerminal container) {
         super(container);
@@ -106,42 +110,33 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
 
     @Override
     protected void setupWidgets() {
-        // TODO: Migrate widget initialization here from initGui()
+        // Search widget registration is centralized here to keep initGui focused on layout refresh.
+        this.searchFieldInputs = MUITextFieldWidget.addSearchField(this,
+                MUITextFieldWidget.SearchFieldSpec.builder(
+                        SEARCH_FIELD_X,
+                        SEARCH_FIELD_Y,
+                        SEARCH_FIELD_WIDTH)
+                        .height(SEARCH_FIELD_HEIGHT)
+                        .tooltip("Inputs OR names")
+                        .onTextChange(text -> this.refreshList())
+                        .build());
     }
 
     @Override
     public void initGui() {
-        Keyboard.enableRepeatEvents(true);
         super.initGui();
 
-        this.getScrollBar().setLeft(189);
-        this.getScrollBar().setHeight(106);
-        this.getScrollBar().setTop(31);
+        this.getScrollBar().setLeft(SCROLL_BAR_LEFT);
+        this.getScrollBar().setHeight(SCROLL_BAR_HEIGHT);
+        this.getScrollBar().setTop(SCROLL_BAR_TOP);
 
-        this.searchFieldInputs = new MEGuiTextField(this.fontRenderer, this.guiLeft + Math.max(32, OFFSET_X),
-                this.guiTop + 17, 65, 12);
-        this.searchFieldInputs.setEnableBackgroundDrawing(false);
-        this.searchFieldInputs.setMaxStringLength(25);
-        this.searchFieldInputs.setTextColor(0xFFFFFF);
-        this.searchFieldInputs.setVisible(true);
-        this.searchFieldInputs.setFocused(false);
-
-        this.repositionSlots();
+        this.repositionAllSlots();
     }
 
     @Override
-    public void onGuiClosed() {
-        super.onGuiClosed();
-        Keyboard.enableRepeatEvents(false);
-    }
-
-    private void repositionSlots() {
-        for (final Object obj : this.inventorySlots.inventorySlots) {
-            if (obj instanceof AppEngSlot slot) {
-                slot.yPos = this.ySize + slot.getY() - 78 - 7;
-                slot.xPos = slot.getX() + 14;
-            }
-        }
+    protected void repositionSlot(final AppEngSlot s) {
+        s.yPos = this.ySize + s.getY() - 78 - 7;
+        s.xPos = s.getX() + 14;
     }
 
     // ========== 渲染 ==========
@@ -197,11 +192,6 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
                 offset += 18;
             }
         }
-
-        if (searchFieldInputs != null && searchFieldInputs.isMouseIn(mouseX, mouseY)) {
-            drawTooltip(Mouse.getEventX() * this.width / this.mc.displayWidth - offsetX, mouseY - guiTop,
-                    "Inputs OR names");
-        }
     }
 
     @Override
@@ -229,23 +219,15 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
                 linesDraw++;
             }
         }
-
-        if (this.searchFieldInputs != null) {
-            this.searchFieldInputs.drawTextBox();
-        }
     }
 
     // ========== 输入处理 ==========
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
-        this.searchFieldInputs.mouseClicked(xCoord, yCoord, btn);
-
-        if (btn == 1 && this.searchFieldInputs.isMouseIn(xCoord, yCoord)) {
-            this.searchFieldInputs.setText("");
-            this.refreshList();
+        if (this.searchFieldInputs != null) {
+            this.searchFieldInputs.mouseClicked(xCoord - this.guiLeft, yCoord - this.guiTop, btn);
         }
-
         super.mouseClicked(xCoord, yCoord, btn);
     }
 
@@ -283,9 +265,7 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
                 return;
             }
 
-            if (this.searchFieldInputs.textboxKeyTyped(character, key)) {
-                this.refreshList();
-            } else {
+            if (!this.searchFieldInputs.textboxKeyTyped(character, key)) {
                 super.keyTyped(character, key);
             }
         }
@@ -338,7 +318,7 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         this.matchedStacks.clear();
         this.matchedInterfaces.clear();
 
-        final String searchTerm = this.searchFieldInputs.getText().toLowerCase();
+        final String searchTerm = this.searchFieldInputs == null ? "" : this.searchFieldInputs.getText().toLowerCase();
         final Set<Object> cachedSearch = this.getCacheForSearchTerm(searchTerm);
         final boolean rebuild = cachedSearch.isEmpty();
 

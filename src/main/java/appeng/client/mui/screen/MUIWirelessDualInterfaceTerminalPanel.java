@@ -108,8 +108,6 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
 
     @Override
     public void initGui() {
-        Keyboard.enableRepeatEvents(true);
-
         // 创建模块
         this.interfaceListModule = new InterfaceListModule(this);
         this.interfaceListModule.setEnableDoubleButton(true);
@@ -129,8 +127,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         // 设置面板尺寸
         final int MAGIC_HEIGHT_NUMBER = 52 + 99;
         this.ySize = MAGIC_HEIGHT_NUMBER + rows * 18;
-        final int unusedSpace = this.height - this.ySize;
-        this.guiTop = (int) Math.floor(unusedSpace / (unusedSpace < 0 ? 3.8f : 2.0f));
+        this.centerVertically();
 
         // 初始化三个模块
         this.interfaceListModule.initSearchFieldsAndButtons();
@@ -151,7 +148,6 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     @Override
     public void onGuiClosed() {
         super.onGuiClosed();
-        Keyboard.enableRepeatEvents(false);
         if (this.meItemBrowserModule != null) {
             this.meItemBrowserModule.onGuiClosed();
         }

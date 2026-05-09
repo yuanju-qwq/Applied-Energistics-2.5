@@ -27,7 +27,14 @@ import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
+import appeng.api.stacks.KeyCounter;
 
+/**
+ * Legacy monitor view over typed ME storage.
+ * <p>
+ * New aggregation and result transport code should prefer {@link KeyCounter} and other AEKey-native
+ * structures, while this monitor interface remains part of the compatibility surface.
+ */
 public interface IMEMonitor<T extends IAEStackBase> extends IMEInventoryHandler<T>, IBaseMonitor<T> {
 
     /**

@@ -260,6 +260,10 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
 
     /**
      * Converts this stack's identity (without quantity) to an immutable {@link AEKey}.
+     * <p>
+     * This is a compatibility bridge for legacy {@link IAEStack}-based APIs.
+     * New code should prefer accepting and returning {@link AEKey} directly instead of
+     * going through mutable stack wrappers.
      *
      * @return the corresponding AEKey, or null if conversion is not supported
      */

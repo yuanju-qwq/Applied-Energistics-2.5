@@ -27,6 +27,7 @@ import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.GenericStack;
 
 /**
  * Handles type-specific storage operations for a single slot in an ME Interface.

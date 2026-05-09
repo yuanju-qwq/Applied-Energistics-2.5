@@ -28,6 +28,7 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.GenericStack;
 import appeng.fluids.util.IAEFluidTank;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.util.inv.AdaptorItemHandler;

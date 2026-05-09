@@ -32,7 +32,7 @@ import appeng.api.config.Settings;
 import appeng.api.config.StorageFilter;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiTabButton;
-import appeng.client.gui.widgets.MEGuiTextField;
+import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.implementations.ContainerOreDictStorageBus;
 import appeng.container.interfaces.IOreDictStorageBusGuiCallback;
 import appeng.core.AELog;
@@ -52,6 +52,11 @@ import appeng.util.item.OreDictFilterMatcher;
  */
 public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IOreDictStorageBusGuiCallback {
 
+    private static final int SEARCH_FIELD_X = 3;
+    private static final int SEARCH_FIELD_Y = 22;
+    private static final int SEARCH_FIELD_WIDTH = 170;
+    private static final int SEARCH_FIELD_HEIGHT = 12;
+
     private final ContainerOreDictStorageBus container;
     private static final Pattern ORE_DICTIONARY_FILTER = Pattern.compile("[0-9a-zA-Z* &|^!()]*");
 
@@ -60,7 +65,7 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
     private GuiImgButton partition;
     private GuiImgButton storageFilter;
     private GuiImgButton rwMode;
-    private MEGuiTextField searchFieldInputs;
+    private MUITextFieldWidget searchFieldInputs;
 
     public MUIOreDictStorageBusPanel(final ContainerOreDictStorageBus container) {
         super(container);
@@ -72,27 +77,26 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
 
     @Override
     public void initGui() {
-        Keyboard.enableRepeatEvents(true);
         super.initGui();
-    }
-
-    @Override
-    public void onGuiClosed() {
-        super.onGuiClosed();
-        Keyboard.enableRepeatEvents(false);
     }
 
     // ========== 按钮管理 ==========
 
     @Override
     protected void addButtons() {
-        this.searchFieldInputs = new MEGuiTextField(this.fontRenderer, this.guiLeft + 3, this.guiTop + 22, 170, 12);
-        this.searchFieldInputs.setEnableBackgroundDrawing(false);
-        this.searchFieldInputs.setMaxStringLength(512);
-        this.searchFieldInputs.setTextColor(0xFFFFFF);
-        this.searchFieldInputs.setVisible(true);
-        this.searchFieldInputs.setFocused(false);
-        this.searchFieldInputs.setValidator(str -> ORE_DICTIONARY_FILTER.matcher(str).matches());
+        // Search input is wrapped as a MUI widget while the surrounding action buttons stay on legacy controls.
+        this.searchFieldInputs = this.addWidget(new MUITextFieldWidget(
+                SEARCH_FIELD_X,
+                SEARCH_FIELD_Y,
+                SEARCH_FIELD_WIDTH,
+                SEARCH_FIELD_HEIGHT)
+                        .setEnableBackground(false)
+                        .setMaxStringLength(512)
+                        .setTextColor(0xFFFFFF)
+                        .setVisible(true)
+                        .setFocused(false)
+                        .setValidator(str -> ORE_DICTIONARY_FILTER.matcher(str).matches())
+                        .setFocusLostListener(this::saveSearchField));
 
         this.buttonList.add(this.priority = new GuiTabButton(this.guiLeft + 154, this.guiTop, 2 + 4 * 16,
                 GuiText.Priority.getLocal(), this.itemRender));
@@ -112,7 +116,9 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
 
     @Override
     public void fillRegex(String regex) {
-        this.searchFieldInputs.setText(regex);
+        if (this.searchFieldInputs != null) {
+            this.searchFieldInputs.setText(regex);
+        }
     }
 
     // ========== 渲染 ==========
@@ -121,7 +127,7 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
         this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.OreDictStorageBus.getLocal()), 8, 6, 4210752);
         this.fontRenderer.drawString(
-                this.searchFieldInputs.getText().length() + " / " + this.searchFieldInputs.getMaxStringLength(), 120,
+                this.getSearchFieldLength() + " / " + this.getSearchFieldMaxLength(), 120,
                 36, 4210752);
         this.fontRenderer.drawString("& = AND    " + "| = OR", 8, 36, 4210752);
         this.fontRenderer.drawString("^ = XOR    " + "! = NOT", 8, 48, 4210752);
@@ -145,9 +151,6 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
     @Override
     protected void drawBG(int offsetX, int offsetY, int mouseX, int mouseY) {
         super.drawBG(offsetX, offsetY, mouseX, mouseY);
-        if (this.searchFieldInputs != null) {
-            this.searchFieldInputs.drawTextBox();
-        }
     }
 
     // ========== 按钮事件 ==========
@@ -178,19 +181,9 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
-        boolean wasFocused = this.searchFieldInputs.isFocused();
-        this.searchFieldInputs.mouseClicked(xCoord, yCoord, btn);
-
-        if (btn == 1 && this.searchFieldInputs.isMouseIn(xCoord, yCoord)) {
-            this.searchFieldInputs.setText("");
+        if (this.searchFieldInputs != null) {
+            this.searchFieldInputs.mouseClicked(xCoord - this.guiLeft, yCoord - this.guiTop, btn);
         }
-
-        if (!searchFieldInputs.isFocused() && wasFocused) {
-            searchFieldInputs.setText(OreDictFilterMatcher.validateExp(searchFieldInputs.getText()));
-            NetworkHandler.instance()
-                    .sendToServer(new PacketValueConfig("OreDictStorageBus.save", searchFieldInputs.getText()));
-        }
-
         super.mouseClicked(xCoord, yCoord, btn);
     }
 
@@ -198,13 +191,34 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
     protected void keyTyped(final char character, final int key) throws IOException {
         if (!this.checkHotbarKeys(key)) {
             if (key == Keyboard.KEY_ESCAPE || key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) {
-                searchFieldInputs.setText(OreDictFilterMatcher.validateExp(searchFieldInputs.getText()));
-                NetworkHandler.instance()
-                        .sendToServer(new PacketValueConfig("OreDictStorageBus.save", searchFieldInputs.getText()));
+                this.saveSearchField(this.searchFieldInputs == null ? "" : this.searchFieldInputs.getText());
             }
-            if (!this.searchFieldInputs.textboxKeyTyped(character, key)) {
+            if (this.searchFieldInputs == null || !this.searchFieldInputs.textboxKeyTyped(character, key)) {
                 super.keyTyped(character, key);
             }
+        }
+    }
+
+    private int getSearchFieldLength() {
+        return this.searchFieldInputs == null ? 0 : this.searchFieldInputs.getText().length();
+    }
+
+    private int getSearchFieldMaxLength() {
+        return this.searchFieldInputs == null ? 0 : this.searchFieldInputs.getMaxStringLength();
+    }
+
+    private void saveSearchField(String text) {
+        if (this.searchFieldInputs == null) {
+            return;
+        }
+
+        String validatedText = OreDictFilterMatcher.validateExp(text);
+        this.searchFieldInputs.setText(validatedText);
+
+        try {
+            NetworkHandler.instance().sendToServer(new PacketValueConfig("OreDictStorageBus.save", validatedText));
+        } catch (IOException e) {
+            AELog.debug(e);
         }
     }
 }
