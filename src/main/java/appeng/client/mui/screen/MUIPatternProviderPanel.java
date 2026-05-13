@@ -27,6 +27,7 @@ import net.minecraft.client.gui.GuiButton;
 import appeng.api.config.LockCraftingMode;
 import appeng.api.config.Settings;
 import appeng.api.config.YesNo;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiImgLabel;
 import appeng.client.gui.widgets.GuiTabButton;
@@ -39,10 +40,10 @@ import appeng.core.sync.packets.PacketConfigButton;
 import appeng.core.sync.packets.PacketSwitchGuis;
 
 /**
- * MUI 版样板供应器 GUI 面板。
+ * MUI 版样板供应器 GUI 面板�?
  *
- * 管理 36 个样板槽位（4 行 × 9 列，后 3 行通过 PATTERN_EXPANSION 升级解锁），
- * 以及阻塞模式、解锁模式、接口终端可见性等配置按钮。
+ * 管理 36 个样板槽位（4 �?× 9 列，�?3 行通过 PATTERN_EXPANSION 升级解锁），
+ * 以及阻塞模式、解锁模式、接口终端可见性等配置按钮�?
  */
 public class MUIPatternProviderPanel extends MUIUpgradeablePanel {
 
@@ -113,8 +114,8 @@ public class MUIPatternProviderPanel extends MUIUpgradeablePanel {
             this.lockReason.set(this.container.getCraftingLockedReason());
         }
 
-        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.PatternProvider.getLocal()), 8, 6, 4210752);
-        this.fontRenderer.drawString(GuiText.Patterns.getLocal(), 8, 25, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.PatternProvider.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.Patterns.getLocal(), 8, 25, AEMUITheme.COLOR_TITLE);
     }
 
     @Override

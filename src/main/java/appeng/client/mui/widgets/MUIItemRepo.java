@@ -27,6 +27,8 @@ import javax.annotation.Nullable;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.gui.widgets.IScrollSource;
 import appeng.client.gui.widgets.ISortSource;
@@ -146,8 +148,24 @@ public class MUIItemRepo implements IMUIWidget {
     // ========== 数据操作（委托到 ItemRepo） ==========
 
     /**
+     * Update a resource entry using AEKey-based input.
+     */
+    public void postUpdate(AEKey key, long amount, boolean craftable) {
+        this.repo.postUpdate(key, amount, craftable);
+    }
+
+    /**
+     * Update a resource entry from a RepoEntry.
+     */
+    public void postUpdate(ItemRepo.RepoEntry entry) {
+        this.repo.postUpdate(entry);
+    }
+
+    /**
+     * @deprecated Use {@link #postUpdate(AEKey, long, boolean)} instead.
      * 更新一个 AE 栈。
      */
+    @Deprecated
     public void postUpdate(IAEStack<?> stack) {
         this.repo.postUpdate(stack);
     }

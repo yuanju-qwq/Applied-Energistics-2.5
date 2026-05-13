@@ -33,7 +33,11 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AmountFormat;
 import appeng.api.storage.data.IAEStack;
+import appeng.client.me.ItemRepo;
 import appeng.client.render.stack.AEStackTypeRendererRegistry;
 import appeng.client.render.stack.IAEStackTypeRenderer;
 import appeng.core.AEConfig;
@@ -154,6 +158,83 @@ public final class MUIStackRenderer {
         }
 
         if (stack.isCraftable()) {
+            lines.add("\u00a7e" + GuiText.Craftable.getLocal());
+        }
+
+        return lines;
+    }
+
+    // ========== RepoEntry-based rendering (AEKey system) ==========
+
+    /**
+     * Render a 16x16 icon for an {@link ItemRepo.RepoEntry} at the given position.
+     * Delegates to the legacy IAEStack renderer via conversion.
+     */
+    public static void renderEntryIcon(Minecraft mc, @Nullable ItemRepo.RepoEntry entry, int x, int y) {
+        if (entry == null) {
+            return;
+        }
+        IAEStack<?> legacyStack = entry.toIAEStack();
+        if (legacyStack != null) {
+            AEStackTypeRendererRegistry.getRenderer(legacyStack).renderIcon(mc, legacyStack, x, y);
+        }
+    }
+
+    /**
+     * Render the quantity/craftable overlay for an {@link ItemRepo.RepoEntry}.
+     */
+    public static void renderEntryOverlay(Minecraft mc, @Nullable ItemRepo.RepoEntry entry, int x, int y,
+            boolean showAmount, boolean showCraftable) {
+        if (entry == null) {
+            return;
+        }
+
+        FontRenderer fr = mc.fontRenderer;
+        boolean largeFont = AEConfig.instance().useTerminalUseLargeFont();
+        float scale = largeFont ? 0.85f : 0.5f;
+        float invScale = 1.0f / scale;
+        int offset = largeFont ? 0 : -1;
+
+        boolean unicode = fr.getUnicodeFlag();
+        fr.setUnicodeFlag(false);
+
+        if ((entry.amount() == 0 || GuiScreen.isAltKeyDown()) && entry.craftable() && showCraftable) {
+            String craftLabel = largeFont
+                    ? GuiText.LargeFontCraft.getLocal()
+                    : GuiText.SmallFontCraft.getLocal();
+            renderOverlayText(fr, craftLabel, x, y, scale, invScale, offset, 0xFFFFFF);
+        } else if (entry.amount() > 0 && showAmount) {
+            String sizeStr = entry.what().getType().formatAmount(entry.amount(),
+                    largeFont ? AmountFormat.PREVIEW_LARGE_FONT : AmountFormat.PREVIEW_REGULAR);
+            renderOverlayText(fr, sizeStr, x, y, scale, invScale, offset, 0xFFFFFF);
+        }
+
+        fr.setUnicodeFlag(unicode);
+    }
+
+    /**
+     * Build a tooltip for an {@link ItemRepo.RepoEntry}.
+     */
+    public static List<String> buildTooltip(@Nullable ItemRepo.RepoEntry entry) {
+        List<String> lines = new ArrayList<>();
+        if (entry == null) {
+            return lines;
+        }
+
+        IAEStack<?> legacyStack = entry.toIAEStack();
+        if (legacyStack != null) {
+            IAEStackTypeRenderer renderer = AEStackTypeRendererRegistry.getRenderer(legacyStack);
+            lines.addAll(renderer.buildBaseTooltip(legacyStack));
+        } else {
+            lines.add(entry.what().getDisplayName());
+        }
+
+        if (entry.amount() > 999) {
+            String formatted = NumberFormat.getNumberInstance(Locale.US).format(entry.amount());
+            lines.add("\u00a77" + formatted);
+        }
+
+        if (entry.craftable()) {
             lines.add("\u00a7e" + GuiText.Craftable.getLocal());
         }
 

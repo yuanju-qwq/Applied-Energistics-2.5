@@ -24,6 +24,8 @@
 package appeng.api.stacks;
 
 import java.io.IOException;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -39,6 +41,7 @@ import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
+import appeng.util.ReadableNumberConverter;
 
 /**
  * Defines the properties of a specific subclass of {@link AEKey}.
@@ -259,14 +262,25 @@ public abstract class AEKeyType {
 
     /**
      * Formats the given amount for display in the UI.
-     * Subclasses can override this for type-specific formatting (e.g. mB for fluids).
+     * <p>
+     * Subclasses should override this for type-specific formatting
+     * (e.g. items use SI suffixes, fluids use mB→Bucket conversion).
+     * The default implementation uses {@link ReadableNumberConverter}.
      *
      * @param amount the amount to format
      * @param format the desired format style
      * @return the formatted string
      */
     public String formatAmount(long amount, AmountFormat format) {
-        return Long.toString(amount);
+        switch (format) {
+            case FULL:
+                return NumberFormat.getNumberInstance(Locale.US).format(amount);
+            case PREVIEW_LARGE_FONT:
+                return ReadableNumberConverter.INSTANCE.toSlimReadableForm(amount);
+            case PREVIEW_REGULAR:
+            default:
+                return ReadableNumberConverter.INSTANCE.toWideReadableForm(amount);
+        }
     }
 
     // ==================== Fuzzy search support ====================

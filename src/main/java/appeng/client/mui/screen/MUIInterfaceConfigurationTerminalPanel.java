@@ -41,6 +41,7 @@ import mezz.jei.api.gui.IGhostIngredientHandler;
 
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.me.ClientDCInternalInv;
@@ -62,12 +63,8 @@ import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
 /**
- * MUI 版接口 Config 配置终端面板。
- *
- * 显示 ME 网络中所有旧物品接口的 Config 配置列表，
- * 支持搜索过滤（物品名/接口名）、滚动列表、方块高亮定位、
- * SlotDisconnected Config 操作、JEI ghost 拖放。
- */
+ * MUI 版接�?Config 配置终端面板�? *
+ * 显示 ME 网络中所有旧物品接口�?Config 配置列表�? * 支持搜索过滤（物品名/接口名）、滚动列表、方块高亮定位�? * SlotDisconnected Config 操作、JEI ghost 拖放�? */
 public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         implements IInterfaceTerminalGuiCallback, IJEIGhostIngredients {
 
@@ -106,7 +103,7 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         this.ySize = 235;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
@@ -147,8 +144,8 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         this.guiButtonHashMap.clear();
 
         this.fontRenderer.drawString(
-                this.getGuiDisplayName(GuiText.InterfaceConfigurationTerminal.getLocal()), 8, 6, 4210752);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), OFFSET_X + 2, this.ySize - 96 + 3, 4210752);
+                this.getGuiDisplayName(GuiText.InterfaceConfigurationTerminal.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), OFFSET_X + 2, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
 
         final int currentScroll = this.getScrollBar().getCurrentScroll();
         this.inventorySlots.inventorySlots.removeIf(slot -> slot instanceof SlotDisconnected);
@@ -187,7 +184,7 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
                 while (name.length() > 2 && this.fontRenderer.getStringWidth(name) > 155) {
                     name = name.substring(0, name.length() - 1);
                 }
-                this.fontRenderer.drawString(name, OFFSET_X + 2, 5 + offset, 4210752);
+                this.fontRenderer.drawString(name, OFFSET_X + 2, 5 + offset, AEMUITheme.COLOR_TITLE);
                 linesDraw++;
                 offset += 18;
             }

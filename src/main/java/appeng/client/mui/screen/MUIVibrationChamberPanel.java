@@ -21,6 +21,7 @@ package appeng.client.mui.screen;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiProgressBar;
 import appeng.client.gui.widgets.GuiProgressBar.Direction;
 import appeng.client.mui.AEBasePanel;
@@ -29,15 +30,15 @@ import appeng.core.localization.GuiText;
 import appeng.tile.misc.TileVibrationChamber;
 
 /**
- * MUI 版振动仓 GUI 面板。
+ * MUI 版振动仓 GUI 面板�?
  *
- * 显示 AE/t 功率输出进度条和燃烧火焰动画。
+ * 显示 AE/t 功率输出进度条和燃烧火焰动画�?
  */
 public class MUIVibrationChamberPanel extends AEBasePanel {
 
     private final ContainerVibrationChamber cvc;
 
-    // ========== 进度条 ==========
+    // ========== 进度�?==========
     private GuiProgressBar pb;
 
     public MUIVibrationChamberPanel(final InventoryPlayer ip, final TileVibrationChamber te) {
@@ -50,11 +51,11 @@ public class MUIVibrationChamberPanel extends AEBasePanel {
         this.ySize = 166;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始化
+        // initGui 处理初始�?
     }
 
     @Override
@@ -69,8 +70,8 @@ public class MUIVibrationChamberPanel extends AEBasePanel {
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.VibrationChamber.getLocal()), 8, 6, 4210752);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.VibrationChamber.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
 
         this.pb.setFullMsg(TileVibrationChamber.POWER_PER_TICK * this.cvc.getCurrentProgress()
                 / TileVibrationChamber.DILATION_SCALING + " AE/t");

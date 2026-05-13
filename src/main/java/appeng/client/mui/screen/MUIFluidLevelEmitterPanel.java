@@ -28,6 +28,7 @@ import appeng.api.storage.data.IAEStackType;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiNumberBox;
+import appeng.client.mui.AEMUITheme;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
@@ -38,16 +39,16 @@ import appeng.fluids.util.AEFluidStackType;
 import appeng.tile.inventory.IAEStackInventory;
 
 /**
- * MUI 版流体级别发射器 GUI 面板。
+ * MUI 版流体级别发射器 GUI 面板�?
  *
- * 包含数字输入框（阈值设置，单位为 millibucket）、±增减按钮、
- * 红石发射模式按钮，以及 1 个 VirtualMEPhantomSlot 配置槽（fluid-only）。
+ * 包含数字输入框（阈值设置，单位�?millibucket）、±增减按钮�?
+ * 红石发射模式按钮，以�?1 �?VirtualMEPhantomSlot 配置槽（fluid-only）�?
  */
 public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
 
     private final ContainerFluidLevelEmitter container;
 
-    // ========== 数字输入框 ==========
+    // ========== 数字输入�?==========
     private GuiNumberBox level;
 
     // ========== ±增减按钮 ==========
@@ -65,7 +66,7 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
         this.container = container;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     public void initGui() {
@@ -75,7 +76,7 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
                 this.fontRenderer.FONT_HEIGHT, Long.class);
         this.level.setEnableBackgroundDrawing(false);
         this.level.setMaxStringLength(16);
-        this.level.setTextColor(0xFFFFFF);
+        this.level.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
         this.level.setVisible(true);
         this.level.setFocused(true);
         this.container.setTextField(this.level);
@@ -126,7 +127,7 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        // 数字输入框 tooltip：鼠标悬浮时提示单位为 millibuckets
+        // 数字输入�?tooltip：鼠标悬浮时提示单位�?millibuckets
         if (isPointInRegion(24, 43, 89, this.fontRenderer.FONT_HEIGHT, mouseX + this.guiLeft, mouseY + this.guiTop)) {
             drawTooltip(mouseX - 7, mouseY + 25, "Amount in millibuckets");
         }

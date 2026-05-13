@@ -30,6 +30,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
 import appeng.api.storage.ITerminalHost;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.container.implementations.ContainerCraftingTerm;
 import appeng.container.slot.SlotCraftingMatrix;
@@ -39,9 +40,9 @@ import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.helpers.InventoryAction;
 
 /**
- * MUI 版合成终端面板。
+ * MUI 版合成终端面板�?
  * <p>
- * 继承 {@link MUIMEMonitorablePanel}，增加 3×3 合成网格 + 清除按钮。
+ * 继承 {@link MUIMEMonitorablePanel}，增�?3×3 合成网格 + 清除按钮�?
  */
 @SideOnly(Side.CLIENT)
 public class MUICraftingTermPanel extends MUIMEMonitorablePanel {
@@ -85,7 +86,7 @@ public class MUICraftingTermPanel extends MUIMEMonitorablePanel {
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         super.drawFG(offsetX, offsetY, mouseX, mouseY);
         this.fontRenderer.drawString(GuiText.CraftingTerminal.getLocal(), 8,
-                this.ySize - 96 + 1 - this.getReservedSpace(), 4210752);
+                this.ySize - 96 + 1 - this.getReservedSpace(), AEMUITheme.COLOR_TITLE);
     }
 
     @Override

@@ -26,6 +26,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.Settings;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiProgressBar;
 import appeng.client.gui.widgets.GuiProgressBar.Direction;
@@ -37,15 +38,15 @@ import appeng.core.sync.packets.PacketConfigButton;
 import appeng.tile.misc.TileCondenser;
 
 /**
- * MUI 版物质聚合器 GUI 面板。
+ * MUI 版物质聚合器 GUI 面板�?
  *
- * 包含存储能量进度条和输出模式按钮。
+ * 包含存储能量进度条和输出模式按钮�?
  */
 public class MUICondenserPanel extends AEBasePanel {
 
     private final ContainerCondenser cvc;
 
-    // ========== 按钮/进度条 ==========
+    // ========== 按钮/进度�?==========
     private GuiProgressBar pb;
     private GuiImgButton mode;
 
@@ -59,11 +60,11 @@ public class MUICondenserPanel extends AEBasePanel {
         this.ySize = 197;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始化
+        // initGui 处理初始�?
     }
 
     @Override
@@ -84,8 +85,8 @@ public class MUICondenserPanel extends AEBasePanel {
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.Condenser.getLocal()), 8, 6, 4210752);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.Condenser.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
 
         this.mode.set(this.cvc.getOutput());
         this.mode.setFillVar(String.valueOf(this.cvc.getOutput().requiredPower));

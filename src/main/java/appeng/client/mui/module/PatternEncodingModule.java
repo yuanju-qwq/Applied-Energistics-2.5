@@ -45,6 +45,7 @@ import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.client.me.ClientDCInternalInv;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.AEBasePanel;
 import appeng.container.implementations.ContainerWirelessDualInterfaceTerminal;
 import appeng.container.slot.AppEngSlot;
@@ -57,15 +58,15 @@ import appeng.helpers.PatternHelper;
 import appeng.tile.inventory.IAEStackInventory;
 
 /**
- * 样板编码模块 — 从 GuiWirelessDualInterfaceTerminal 中提取的可复用组件。
+ * 样板编码模块 �?�?GuiWirelessDualInterfaceTerminal 中提取的可复用组件�?
  *
- * <p>负责：
+ * <p>负责�?
  * <ul>
- *   <li>样板编码按钮的创建、布局、可见性管理</li>
+ *   <li>样板编码按钮的创建、布局、可见性管�?/li>
  *   <li>绘制 pattern.png / pattern3.png 面板背景</li>
- *   <li>按钮点击事件 → PacketValueConfig 发送</li>
- *   <li>repositionSlots: 根据 crafting/processing 模式动态定位槽位</li>
- *   <li>processing 模式输入/输出滚动条管理</li>
+ *   <li>按钮点击事件 �?PacketValueConfig 发�?/li>
+ *   <li>repositionSlots: 根据 crafting/processing 模式动态定位槽�?/li>
+ *   <li>processing 模式输入/输出滚动条管�?/li>
  *   <li>PlacePattern 自动放入功能</li>
  *   <li>面板拖拽支持</li>
  * </ul>
@@ -116,7 +117,7 @@ public class PatternEncodingModule {
     // ========== 宿主接口 ==========
 
     /**
-     * 宿主 GUI 必须实现此接口来提供模块所需的上下文。
+     * 宿主 GUI 必须实现此接口来提供模块所需的上下文�?
      */
     public interface Host {
         int getGuiLeft();
@@ -134,12 +135,12 @@ public class PatternEncodingModule {
         List<GuiButton> getButtonList();
 
         /**
-         * 请求宿主重新初始化 GUI。
+         * 请求宿主重新初始�?GUI�?
          */
         void requestReinitialize();
 
         /**
-         * 获取接口列表模块（用于 PlacePattern）。
+         * 获取接口列表模块（用�?PlacePattern）�?
          */
         InterfaceListModule getInterfaceListModule();
     }
@@ -170,12 +171,12 @@ public class PatternEncodingModule {
     private GuiImgButton minusOneBtn;
     private GuiImgButton doubleBtn;
 
-    // 滚动条
+    // 滚动�?
     private final GuiScrollbar processingInputScrollbar;
     private int processingInputPage = 0;
     private final GuiScrollbar processingScrollBar;
 
-    // 虚拟槽位：crafting 输入和 pattern 输出
+    // 虚拟槽位：crafting 输入�?pattern 输出
     private VirtualMEPatternSlot[] craftingVirtualSlots;
     private VirtualMEPatternSlot[] outputVirtualSlots;
 
@@ -185,7 +186,7 @@ public class PatternEncodingModule {
     // 面板拖拽
     private PanelDragState dragState;
 
-    // ========== 构造 ==========
+    // ========== 构�?==========
 
     public PatternEncodingModule(Host host) {
         this.host = host;
@@ -193,7 +194,7 @@ public class PatternEncodingModule {
         this.processingScrollBar = new GuiScrollbar();
     }
 
-    // ========== 访问器 ==========
+    // ========== 访问�?==========
 
     public int getPanelX() {
         return PATTERN_PANEL_X_OFFSET + (dragState != null ? dragState.getDragOffsetX() : 0);
@@ -223,10 +224,10 @@ public class PatternEncodingModule {
         return dragState;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     /**
-     * 初始化拖拽状态。必须在 initGui 开始时调用。
+     * 初始化拖拽状态。必须在 initGui 开始时调用�?
      */
     public void initDragState() {
         this.dragState = new PanelDragState((mouseX, mouseY) -> {
@@ -239,7 +240,7 @@ public class PatternEncodingModule {
     }
 
     /**
-     * 创建所有按钮。在 initGui 中调用。
+     * 创建所有按钮。在 initGui 中调用�?
      */
     public void initButtons() {
         final int panelScreenX = host.getGuiLeft() + getPanelX();
@@ -268,7 +269,7 @@ public class PatternEncodingModule {
                 GuiText.ProcessingPattern.getLocal(), host.getItemRenderer());
         buttonList.add(this.tabProcessButton);
 
-        // 替代品按钮
+        // 替代品按�?
         this.substitutionsEnabledBtn = new GuiImgButton(panelScreenX + 97, panelScreenY + 10,
                 Settings.ACTIONS, ItemSubstitution.ENABLED);
         this.substitutionsEnabledBtn.setHalfSize(true);
@@ -354,8 +355,8 @@ public class PatternEncodingModule {
     // ========== 槽位定位 ==========
 
     /**
-     * 初始化虚拟槽位：crafting 输入和 pattern 输出。
-     * 必须在 initGui 中调用。
+     * 初始化虚拟槽位：crafting 输入�?pattern 输出�?
+     * 必须�?initGui 中调用�?
      */
     public void initVirtualSlots() {
         final ContainerWirelessDualInterfaceTerminal ct = host.getDualContainer();
@@ -380,10 +381,10 @@ public class PatternEncodingModule {
     }
 
     /**
-     * 重新定位所有样板相关槽位（crafting/processing/pattern IN/OUT）。
-     * 虚拟槽位（crafting/output）由本模块直接管理坐标。
-     * Container 中注册的 Slot（craftSlot/patternIN/patternOUT）仍然遍历 inventorySlots。
-     * 必须在 initGui 和 updateScreen 中调用。
+     * 重新定位所有样板相关槽位（crafting/processing/pattern IN/OUT）�?
+     * 虚拟槽位（crafting/output）由本模块直接管理坐标�?
+     * Container 中注册的 Slot（craftSlot/patternIN/patternOUT）仍然遍�?inventorySlots�?
+     * 必须�?initGui �?updateScreen 中调用�?
      */
     public void repositionSlots() {
         final int panelX = getPanelX();
@@ -467,7 +468,7 @@ public class PatternEncodingModule {
                         slot.xPos = panelX + PATTERN_OUT_OFFSET_X;
                         slot.yPos = panelY + PATTERN_OUT_OFFSET_Y;
                     } else {
-                        // 玩家物品栏槽位 — 由宿主处理
+                        // 玩家物品栏槽�?�?由宿主处�?
                         slot.yPos = host.getYSize() + slot.getY() - 78 - 7;
                         slot.xPos = slot.getX() + 14;
                     }
@@ -483,7 +484,7 @@ public class PatternEncodingModule {
     // ========== 渲染: drawBG ==========
 
     /**
-     * 绘制样板编码面板的背景。
+     * 绘制样板编码面板的背景�?
      */
     public void drawBG(int offsetX, int offsetY) {
         final int panelX = offsetX + getPanelX();
@@ -493,7 +494,7 @@ public class PatternEncodingModule {
 
         GlStateManager.color(1, 1, 1, 1);
 
-        // 上半部分：制作模式=pattern3.png, 加工模式=pattern.png (正/反)
+        // 上半部分：制作模�?pattern3.png, 加工模式=pattern.png (�?�?
         if (ct.isCraftingMode()) {
             panel.mc.getTextureManager().bindTexture(PATTERN3_TEXTURE);
             panel.drawTexturedModalRect(panelX, panelY, 0, 0,
@@ -515,7 +516,7 @@ public class PatternEncodingModule {
         panel.drawTexturedModalRect(panelX, panelY + PATTERN_PANEL_HEIGHT,
                 173, 0, PATTERN_PANEL_FOOTER_WIDTH, PATTERN_PANEL_FOOTER_HEIGHT);
 
-        // processing 模式滚动条
+        // processing 模式滚动�?
         GlStateManager.pushMatrix();
         GlStateManager.translate(offsetX, offsetY, 0);
         if (!ct.isCraftingMode()) {
@@ -532,7 +533,7 @@ public class PatternEncodingModule {
     // ========== 渲染: drawFG ==========
 
     /**
-     * 绘制样板编码面板的前景（标题文字和按钮可见性管理）。
+     * 绘制样板编码面板的前景（标题文字和按钮可见性管理）�?
      */
     public void drawFG() {
         final ContainerWirelessDualInterfaceTerminal ct = host.getDualContainer();
@@ -540,9 +541,9 @@ public class PatternEncodingModule {
         final int panelY = getPanelY();
 
         host.getPanel().mc.fontRenderer.drawString(GuiText.PatternEncoding.getLocal(),
-                panelX + 4, panelY + 4, 4210752);
+                panelX + 4, panelY + 4, AEMUITheme.COLOR_TITLE);
 
-        // 按钮可见性
+        // 按钮可见�?
         if (ct.isCraftingMode()) {
             this.tabCraftButton.visible = true;
             this.tabProcessButton.visible = false;
@@ -589,8 +590,8 @@ public class PatternEncodingModule {
     // ========== drawScreen: 按钮重建 ==========
 
     /**
-     * 在 drawScreen 中调用，更新按钮位置和添加到 buttonList。
-     * 在 buttonList.clear() 之后调用。
+     * �?drawScreen 中调用，更新按钮位置和添加到 buttonList�?
+     * �?buttonList.clear() 之后调用�?
      */
     public void populateButtons() {
         final List<GuiButton> buttonList = host.getButtonList();
@@ -674,9 +675,9 @@ public class PatternEncodingModule {
     // ========== 输入处理: actionPerformed ==========
 
     /**
-     * 处理按钮点击。
+     * 处理按钮点击�?
      *
-     * @return true 如果事件被消费
+     * @return true 如果事件被消�?
      */
     public boolean actionPerformed(GuiButton btn) {
         final ContainerWirelessDualInterfaceTerminal ct = host.getDualContainer();
@@ -691,7 +692,7 @@ public class PatternEncodingModule {
                         | (AEBasePanel.isShiftKeyDown() ? 1 : 0);
                 NetworkHandler.instance()
                         .sendToServer(new PacketValueConfig("PatternTerminal.Encode", String.valueOf(value)));
-                // Alt + 编码 → PlacePattern
+                // Alt + 编码 �?PlacePattern
                 if (value == 0 && AEBasePanel.isAltKeyDown()) {
                     this.pendingPlacePattern = true;
                 }
@@ -757,9 +758,9 @@ public class PatternEncodingModule {
     // ========== 输入处理: mouseWheel ==========
 
     /**
-     * 处理鼠标滚轮（processing 模式输入/输出区域）。
+     * 处理鼠标滚轮（processing 模式输入/输出区域）�?
      *
-     * @return true 如果事件被消费
+     * @return true 如果事件被消�?
      */
     public boolean mouseWheelEvent(int x, int y, int wheel) {
         final ContainerWirelessDualInterfaceTerminal ct = host.getDualContainer();
@@ -790,12 +791,12 @@ public class PatternEncodingModule {
         return false;
     }
 
-    // ========== 输入处理: 鼠标点击（滚动条拖动） ==========
+    // ========== 输入处理: 鼠标点击（滚动条拖动�?==========
 
     /**
-     * 尝试处理 processing 模式滚动条的鼠标拖动。
+     * 尝试处理 processing 模式滚动条的鼠标拖动�?
      *
-     * @return true 如果事件被消费
+     * @return true 如果事件被消�?
      */
     public boolean handleScrollbarClick(int mouseX, int mouseY) {
         return this.updatePatternInputScrollFromMouse(mouseX, mouseY)
@@ -805,14 +806,14 @@ public class PatternEncodingModule {
     // ========== updateScreen ==========
 
     /**
-     * 每 tick 更新。在 updateScreen 中调用。
+     * �?tick 更新。在 updateScreen 中调用�?
      */
     public void updateScreen() {
         this.updateProcessingInputScrollbar();
         this.repositionSlots();
         this.updateProcessingScrollbar();
 
-        // PlacePattern: 编码完成后自动放入接口空位
+        // PlacePattern: 编码完成后自动放入接口空�?
         if (this.pendingPlacePattern) {
             this.pendingPlacePattern = false;
             final ContainerWirelessDualInterfaceTerminal ct = host.getDualContainer();
@@ -846,7 +847,7 @@ public class PatternEncodingModule {
         }
     }
 
-    // ========== 滚动条管理 ==========
+    // ========== 滚动条管�?==========
 
     private void sendActivePageUpdate() {
         final int newPage = this.processingScrollBar.getCurrentScroll();
@@ -940,7 +941,7 @@ public class PatternEncodingModule {
         this.repositionSlots();
     }
 
-    // ========== 区域检测 ==========
+    // ========== 区域检�?==========
 
     private boolean isMouseOverProcessingInputArea(final int mouseX, final int mouseY) {
         final int panelAbsX = host.getGuiLeft() + getPanelX();
@@ -963,7 +964,7 @@ public class PatternEncodingModule {
     }
 
     /**
-     * 获取面板的绝对屏幕坐标（JEI 排除区用）。
+     * 获取面板的绝对屏幕坐标（JEI 排除区用）�?
      */
     public java.awt.Rectangle getJEIExclusionRect() {
         final int panelScreenX = host.getGuiLeft() + getPanelX();
@@ -975,8 +976,8 @@ public class PatternEncodingModule {
     // ========== 面板拖拽 ==========
 
     /**
-     * 面板拖拽状态管理器。
-     * 支持中键拖拽来调整面板位置。
+     * 面板拖拽状态管理器�?
+     * 支持中键拖拽来调整面板位置�?
      */
     public static class PanelDragState {
 

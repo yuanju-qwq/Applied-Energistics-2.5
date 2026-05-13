@@ -68,6 +68,7 @@ import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -333,6 +334,21 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         if (this.meGui instanceof IMEInventoryUpdateReceiver receiver) {
             receiver.postUpdate(list);
         }
+    }
+
+    /**
+     * Client-side handler for {@link appeng.core.sync.packets.PacketMEGenericStackUpdate}.
+     * Converts GenericStack list to IAEStack and delegates to the legacy method.
+     */
+    public void postGenericStackUpdate(final List<GenericStack> list) {
+        final List<IAEStack<?>> converted = new java.util.ArrayList<>(list.size());
+        for (GenericStack gs : list) {
+            IAEStack<?> aeStack = gs.toIAEStack();
+            if (aeStack != null) {
+                converted.add(aeStack);
+            }
+        }
+        this.postUpdate(converted);
     }
 
     /**

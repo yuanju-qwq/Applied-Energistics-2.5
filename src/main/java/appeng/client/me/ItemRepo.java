@@ -21,6 +21,12 @@ package appeng.client.me;
 
 
 import appeng.api.config.*;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
@@ -33,6 +39,7 @@ import appeng.integration.modules.bogosorter.InventoryBogoSortModule;
 import appeng.items.storage.ItemViewCell;
 import appeng.util.ItemSorters;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 import appeng.util.prioritylist.IPartitionList;
 import net.minecraft.item.ItemStack;
@@ -42,26 +49,102 @@ import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.oredict.OreDictionary;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.*;
 
+/**
+ * Client-side item repository for ME terminal display.
+ * <p>
+ * Stores all resource entries (items, fluids, etc.) using the AEKey system
+ * ({@link KeyCounter} + craftable set), applies search/filter/sort to produce
+ * a flat view of {@link RepoEntry} for rendering.
+ * <p>
+ * Legacy {@link IAEStack}-based input is supported via deprecated bridge methods.
+ */
 public class ItemRepo {
 
-    /**
-     * 多类型存储列表：每种 IAEStackType 对应一个 IItemList。
-     */
-    private final Map<IAEStackType<?>, IItemList<?>> lists = new IdentityHashMap<>();
+    // ==================== RepoEntry: self-contained view entry ====================
 
     /**
-     * 视图列表：经过搜索、过滤、排序后的展示列表，包含所有类型的栈。
+     * A self-contained view entry for rendering in the terminal grid.
+     * <p>
+     * Combines an {@link AEKey} identity, a quantity, and a craftable flag into a single
+     * immutable record. This replaces the old approach of passing mutable {@link IAEStack}
+     * objects through the view pipeline.
+     *
+     * @param what      the resource identity (item, fluid, etc.)
+     * @param amount    the stored quantity (0 if only craftable)
+     * @param craftable whether this resource can be auto-crafted
      */
-    private List<IAEStack<?>> view = new ArrayList<>();
+    public record RepoEntry(AEKey what, long amount, boolean craftable) {
+
+        public RepoEntry {
+            Objects.requireNonNull(what, "what");
+        }
+
+        /**
+         * @return a GenericStack projection of this entry (without craftable info)
+         */
+        public GenericStack toGenericStack() {
+            return new GenericStack(what, amount);
+        }
+
+        /**
+         * Bridge: create a RepoEntry from a legacy IAEStack.
+         *
+         * @return the converted entry, or null if input is null or conversion fails
+         */
+        @Nullable
+        public static RepoEntry fromIAEStack(@Nullable IAEStack<?> stack) {
+            if (stack == null) {
+                return null;
+            }
+            var key = stack.toAEKey();
+            if (key == null) {
+                return null;
+            }
+            return new RepoEntry(key, stack.getStackSize(), stack.isCraftable());
+        }
+
+        /**
+         * Bridge: convert this entry to a legacy IAEStack.
+         *
+         * @return the legacy stack, or null if conversion fails
+         */
+        @Nullable
+        public IAEStack<?> toIAEStack() {
+            IAEStack<?> stack = what.toIAEStack(amount);
+            if (stack != null) {
+                stack.setCraftable(craftable);
+            }
+            return stack;
+        }
+    }
+
+    // ==================== Internal storage (AEKey-based) ====================
+
+    /**
+     * Primary counter: maps AEKey -> amount for all resource types.
+     */
+    private final KeyCounter counter = new KeyCounter();
+
+    /**
+     * Craftable flag set: keys present here are craftable.
+     */
+    private final Set<AEKey> craftableKeys = new HashSet<>();
+
+    /**
+     * Sorted/filtered view list produced by {@link #updateView()}.
+     */
+    private List<RepoEntry> view = new ArrayList<>();
+
     private final IScrollSource src;
     private final ISortSource sortSrc;
 
     /**
-     * 类型过滤：某种类型是否在终端中启用显示。
+     * Type filter: whether a given AEKeyType is enabled for display.
      */
-    private final Map<IAEStackType<?>, Boolean> typeFilters = new IdentityHashMap<>();
+    private final Map<AEKeyType, Boolean> typeFilters = new IdentityHashMap<>();
 
     private int rowSize = 9;
 
@@ -84,10 +167,15 @@ public class ItemRepo {
         this.sortSrc = sortSrc;
     }
 
+    // ==================== View access ====================
+
     /**
-     * 获取指定索引处的 AE 栈（考虑滚动偏移）。
+     * Get the RepoEntry at the given view index (scroll-offset aware).
+     *
+     * @return the entry, or null if index is out of bounds
      */
-    public IAEStack<?> getReferenceItem(int idx) {
+    @Nullable
+    public RepoEntry getEntry(int idx) {
         idx += this.src.getCurrentScroll() * this.rowSize;
 
         if (idx >= this.view.size()) {
@@ -96,40 +184,93 @@ public class ItemRepo {
         return this.view.get(idx);
     }
 
-    public void setSearch(final String search) {
-        this.searchString = search == null ? "" : search;
+    /**
+     * @deprecated Use {@link #getEntry(int)} instead. This method converts to legacy IAEStack.
+     */
+    @Deprecated
+    @Nullable
+    public IAEStack<?> getReferenceItem(int idx) {
+        RepoEntry entry = getEntry(idx);
+        return entry != null ? entry.toIAEStack() : null;
+    }
+
+    // ==================== Data mutation (AEKey-based primary API) ====================
+
+    /**
+     * Update a resource entry using AEKey-based input.
+     *
+     * @param key       the resource identity
+     * @param amount    the new total amount
+     * @param craftable whether this resource is craftable
+     */
+    public void postUpdate(AEKey key, long amount, boolean craftable) {
+        this.counter.set(key, amount);
+        if (craftable) {
+            this.craftableKeys.add(key);
+        } else {
+            this.craftableKeys.remove(key);
+        }
+        this.changed = true;
     }
 
     /**
-     * 更新一个 AE 栈（任意类型：物品、流体等）。
+     * Update a resource entry using a GenericStack with craftable flag.
      */
-    public void postUpdate(final IAEStack<?> is) {
-        IAEStackType<?> type = is.getStackType();
-        IItemList<?> list = this.lists.computeIfAbsent(type, t -> t.createList());
-
-        final IAEStack<?> st = list.findPreciseGeneric(is);
-        if (st != null) {
-            st.reset();
-            st.addGeneric(is);
-        } else {
-            list.addGeneric(is);
-        }
-
-        changed = true;
+    public void postUpdate(GenericStack stack, boolean craftable) {
+        postUpdate(stack.what(), stack.amount(), craftable);
     }
 
+    /**
+     * Update a resource entry from a RepoEntry.
+     */
+    public void postUpdate(RepoEntry entry) {
+        postUpdate(entry.what(), entry.amount(), entry.craftable());
+    }
+
+    /**
+     * @deprecated Use {@link #postUpdate(AEKey, long, boolean)} instead.
+     *             Legacy bridge: accepts IAEStack and converts to AEKey internally.
+     */
+    @Deprecated
+    public void postUpdate(final IAEStack<?> is) {
+        var key = is.toAEKey();
+        if (key != null) {
+            postUpdate(key, is.getStackSize(), is.isCraftable());
+        }
+    }
+
+    // ==================== Query ====================
+
+    /**
+     * Get the stored amount for the given AEKey.
+     */
+    public long getAmount(AEKey key) {
+        return this.counter.get(key);
+    }
+
+    /**
+     * Check if a key is craftable.
+     */
+    public boolean isCraftable(AEKey key) {
+        return this.craftableKeys.contains(key);
+    }
+
+    /**
+     * @deprecated Use {@link #getAmount(AEKey)} instead. Legacy bridge.
+     */
+    @Deprecated
     public long getItemCount(final IAEItemStack is) {
-        IItemList<IAEItemStack> list = this.getTypedList(is);
-        if (list == null) {
+        var key = AEItemKey.fromIAEItemStack(is);
+        if (key == null) {
             return 0;
         }
-        IAEItemStack st = list.findPrecise(is);
-        return st == null ? 0 : st.getStackSize();
+        return this.counter.get(key);
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> IItemList<T> getTypedList(T stack) {
-        return (IItemList<T>) this.lists.get(stack.getStackType());
+    // ==================== Configuration ====================
+
+    public void setSearch(final String search) {
+        this.searchString = search == null ? "" : search;
     }
 
     public void setViewCell(final ItemStack[] list) {
@@ -137,7 +278,8 @@ public class ItemRepo {
         this.changed = true;
     }
 
-    @SuppressWarnings("unchecked")
+    // ==================== View update ====================
+
     public void updateView() {
 
         final Enum<?> viewMode = this.sortSrc.getSortDisplay();
@@ -184,118 +326,149 @@ public class ItemRepo {
             ItemSorters.setDirection((appeng.api.config.SortDir) sortDir);
             ItemSorters.init();
 
-            // 遍历所有类型的列表
-            for (var entry : this.lists.entrySet()) {
-                IAEStackType<?> type = entry.getKey();
+            // Iterate all entries in the KeyCounter
+            for (var entry : this.counter) {
+                AEKey key = entry.getKey();
+                long amount = entry.getLongValue();
+                boolean craftable = this.craftableKeys.contains(key);
 
-                // 检查类型过滤
-                if (!this.typeFilters.getOrDefault(type, true)) {
+                // Type filter check
+                AEKeyType keyType = key.getType();
+                if (!this.typeFilters.getOrDefault(keyType, true)) {
                     continue;
                 }
 
-                IItemList<?> list = entry.getValue();
-                for (Object stackObj : list) {
-                    addIAE((IAEStack<?>) stackObj, viewMode);
-                }
+                addEntry(key, amount, craftable, viewMode);
             }
 
-            // 排序：物品使用 ItemSorters，流体按名称排序
-            Comparator<IAEStack<?>> c = getGenericComparator(sortBy);
+            // Sort the view
+            Comparator<RepoEntry> c = getRepoEntryComparator(sortBy);
             view.sort(c);
         }
     }
 
+    // ==================== Sorting ====================
+
     /**
-     * 获取支持多类型的排序比较器。
+     * Build a comparator for RepoEntry based on the current sort settings.
      */
-    private static Comparator<IAEStack<?>> getGenericComparator(final Enum<?> sortBy) {
+    private static Comparator<RepoEntry> getRepoEntryComparator(final Enum<?> sortBy) {
         return (a, b) -> {
-            // 不同类型之间：物品优先于流体
-            if (a.getStackType() != b.getStackType()) {
-                return a.getStackType().getId().compareTo(b.getStackType().getId());
+            // Different types: items before fluids (alphabetical by type id)
+            if (a.what().getType() != b.what().getType()) {
+                return a.what().getType().getId().compareTo(b.what().getType().getId());
             }
 
-            // 同一类型内部：使用对应的排序逻辑
-            if (a instanceof IAEItemStack ia && b instanceof IAEItemStack ib) {
-                return getItemComparator(sortBy).compare(ia, ib);
+            // Same type: use type-specific sorting
+            if (a.what() instanceof AEItemKey && b.what() instanceof AEItemKey) {
+                return getItemKeyComparator(sortBy).compare(a, b);
             }
 
-            // 流体或其他类型：按名称 → 数量排序
-            String nameA = a.asItemStackRepresentation().getDisplayName();
-            String nameB = b.asItemStackRepresentation().getDisplayName();
+            // Fluids or other types: sort by name -> amount
+            String nameA = a.what().getDisplayName();
+            String nameB = b.what().getDisplayName();
             int cmp = nameA.compareToIgnoreCase(nameB);
             if (cmp != 0) return cmp;
-            return Long.compare(b.getStackSize(), a.getStackSize());
+            return Long.compare(b.amount(), a.amount());
         };
     }
 
-    private static Comparator<IAEItemStack> getItemComparator(final Enum<?> sortBy) {
-        Comparator<IAEItemStack> c;
-
+    /**
+     * Item-specific comparator that delegates to the existing ItemSorters infrastructure.
+     */
+    private static Comparator<RepoEntry> getItemKeyComparator(final Enum<?> sortBy) {
         if (sortBy == SortOrder.MOD) {
-            c = ItemSorters.CONFIG_BASED_SORT_BY_MOD;
+            return (a, b) -> {
+                int cmp = a.what().getModId().compareToIgnoreCase(b.what().getModId());
+                if (cmp == 0) {
+                    cmp = a.what().getDisplayName().compareToIgnoreCase(b.what().getDisplayName());
+                }
+                return ItemSorters.applyCurrentDirection(cmp);
+            };
         } else if (sortBy == SortOrder.AMOUNT) {
-            c = ItemSorters.CONFIG_BASED_SORT_BY_SIZE;
+            return (a, b) -> {
+                int cmp = Long.compare(b.amount(), a.amount());
+                return ItemSorters.applyCurrentDirection(cmp);
+            };
         } else if (sortBy == SortOrder.INVTWEAKS) {
             if (InventoryBogoSortModule.isLoaded()) {
-                c = InventoryBogoSortModule.COMPARATOR;
+                return (a, b) -> {
+                    // Delegate to bogosorter via ItemStack comparison
+                    ItemStack stackA = a.what().asItemStackRepresentation();
+                    ItemStack stackB = b.what().asItemStackRepresentation();
+                    return InventoryBogoSortModule.COMPARATOR.compare(
+                            AEItemStack.fromItemStack(stackA),
+                            AEItemStack.fromItemStack(stackB));
+                };
             } else {
-                c = ItemSorters.CONFIG_BASED_SORT_BY_INV_TWEAKS;
+                return (a, b) -> {
+                    ItemStack stackA = a.what().asItemStackRepresentation();
+                    ItemStack stackB = b.what().asItemStackRepresentation();
+                    return ItemSorters.CONFIG_BASED_SORT_BY_INV_TWEAKS.compare(
+                            AEItemStack.fromItemStack(stackA),
+                            AEItemStack.fromItemStack(stackB));
+                };
             }
         } else {
-            c = ItemSorters.CONFIG_BASED_SORT_BY_NAME;
+            // Default: sort by name
+            return (a, b) -> {
+                int cmp = a.what().getDisplayName().compareToIgnoreCase(b.what().getDisplayName());
+                return ItemSorters.applyCurrentDirection(cmp);
+            };
         }
-        return c;
     }
 
-    @SuppressWarnings("unchecked")
-    private void addIAE(final IAEStack<?> is, final Enum<?> viewMode) {
+    // ==================== Filter & search ====================
+
+    private void addEntry(AEKey key, long amount, boolean craftable, final Enum<?> viewMode) {
 
         final boolean needsZeroCopy = viewMode == ViewItems.CRAFTABLE;
 
-        // ViewCell 过滤只对物品类型生效
-        if (is instanceof IAEItemStack itemStack) {
-            if (this.myPartitionList != null && !this.myPartitionList.isListed(itemStack)) {
-                return;
+        // ViewCell filter: only applies to item keys
+        if (key instanceof AEItemKey itemKey) {
+            if (this.myPartitionList != null) {
+                // Bridge: create a temporary IAEItemStack to check against the legacy partition list
+                IAEItemStack tempStack = AEItemStack.fromItemStack(itemKey.toStack());
+                if (tempStack != null && !this.myPartitionList.isListed(tempStack)) {
+                    return;
+                }
             }
         }
 
-        if (viewMode == ViewItems.CRAFTABLE && !is.isCraftable()) {
+        // View mode filter
+        if (viewMode == ViewItems.CRAFTABLE && !craftable) {
             return;
         }
-        if (viewMode == ViewItems.STORED && is.getStackSize() == 0) {
+        if (viewMode == ViewItems.STORED && amount == 0) {
             return;
         }
 
         final String query = lower(this.searchString).trim();
         if (query.isEmpty()) {
             if (needsZeroCopy) {
-                IAEStack<?> copy = is.copy();
-                copy.setStackSize(0);
-                this.view.add(copy);
+                this.view.add(new RepoEntry(key, 0, craftable));
             } else {
-                this.view.add(is);
+                this.view.add(new RepoEntry(key, amount, craftable));
             }
             return;
         }
 
-        // 对于非物品类型，仅按显示名称搜索
-        if (!(is instanceof IAEItemStack)) {
-            String displayName = lower(is.asItemStackRepresentation().getDisplayName());
+        // For non-item types, simple display name search
+        if (!(key instanceof AEItemKey)) {
+            String displayName = lower(key.getDisplayName());
             boolean found = matchSimpleSearch(displayName, query);
             if (found) {
                 if (needsZeroCopy) {
-                    IAEStack<?> copy = is.copy();
-                    copy.setStackSize(0);
-                    this.view.add(copy);
+                    this.view.add(new RepoEntry(key, 0, craftable));
                 } else {
-                    this.view.add(is);
+                    this.view.add(new RepoEntry(key, amount, craftable));
                 }
             }
             return;
         }
 
-        IAEItemStack itemStack = (IAEItemStack) is;
+        // Item-specific advanced search
+        AEItemKey itemKey = (AEItemKey) key;
 
         // Original setting behavior:
         // enabled = normal terms also search tooltip
@@ -304,7 +477,7 @@ public class ItemRepo {
                 AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_TOOLTIPS) != YesNo.NO;
 
         // Base strings (null-safe)
-        final String itemName = lower(Platform.getItemDisplayName(itemStack));
+        final String itemName = lower(itemKey.getDisplayName());
         String modId = null;
         String modName = null;
 
@@ -376,7 +549,10 @@ public class ItemRepo {
 
                         if (!termMatches && tooltipSearchEnabled) {
                             if (tooltipLower == null) {
-                                List<String> lines = Platform.getTooltip(itemStack);
+                                if (stack == null) {
+                                    stack = safeItemStack(itemKey);
+                                }
+                                List<String> lines = Platform.getTooltip(stack);
                                 StringBuilder sb = new StringBuilder();
                                 for (int i = 0; i < lines.size(); i++) {
                                     String line = lines.get(i);
@@ -396,7 +572,7 @@ public class ItemRepo {
 
                     case MOD:
                         if (modId == null) {
-                            modId = lower(Platform.getModId(itemStack));
+                            modId = lower(itemKey.getModId());
                         }
 
                         if (modId.contains(term)) {
@@ -412,7 +588,10 @@ public class ItemRepo {
 
                     case TOOLTIP:
                         if (tooltipText == null) {
-                            List<String> lines = Platform.getTooltip(itemStack);
+                            if (stack == null) {
+                                stack = safeItemStack(itemKey);
+                            }
+                            List<String> lines = Platform.getTooltip(stack);
                             StringBuilder sb = new StringBuilder();
                             for (int i = 0; i < lines.size(); i++) {
                                 String line = lines.get(i);
@@ -429,7 +608,7 @@ public class ItemRepo {
 
                     case OREDICT:
                         if (stack == null) {
-                            stack = safeItemStack(itemStack);
+                            stack = safeItemStack(itemKey);
                         }
                         if (!stack.isEmpty()) {
                             if (oreIds == null) {
@@ -448,7 +627,7 @@ public class ItemRepo {
 
                     case REGISTRY:
                         if (stack == null) {
-                            stack = safeItemStack(itemStack);
+                            stack = safeItemStack(itemKey);
                         }
                         if (!stack.isEmpty()) {
                             if (registryId == null) {
@@ -475,27 +654,28 @@ public class ItemRepo {
 
         if (found) {
             if (needsZeroCopy) {
-                itemStack = itemStack.copy();
-                itemStack.setStackSize(0);
+                this.view.add(new RepoEntry(key, 0, craftable));
+            } else {
+                this.view.add(new RepoEntry(key, amount, craftable));
             }
-            this.view.add(itemStack);
         }
     }
 
-
+    // ==================== JEI sync ====================
 
     private void updateJEI(String filter) {
         Integrations.jei().setSearchText(filter);
     }
+
+    // ==================== Size / state ====================
 
     public int size() {
         return this.view.size();
     }
 
     public void clear() {
-        for (IItemList<?> list : this.lists.values()) {
-            list.resetStatus();
-        }
+        this.counter.reset();
+        this.craftableKeys.clear();
     }
 
     public boolean hasPower() {
@@ -522,35 +702,78 @@ public class ItemRepo {
         this.searchString = searchString;
     }
 
-    @SuppressWarnings("unchecked")
-    public IItemList<IAEItemStack> getList() {
-        IAEStackType<?> itemType = appeng.api.storage.data.AEStackTypeRegistry.getType("item");
-        if (itemType != null) {
-            IItemList<?> list = this.lists.get(itemType);
-            if (list != null) {
-                return (IItemList<IAEItemStack>) list;
-            }
-        }
-        return AEItemStackType.INSTANCE.createList();
+    // ==================== KeyCounter access ====================
+
+    /**
+     * @return the internal KeyCounter (read-only view recommended)
+     */
+    public KeyCounter getKeyCounter() {
+        return this.counter;
     }
 
     /**
-     * 设置某种类型在终端中是否启用显示。
+     * @deprecated Use {@link #getKeyCounter()} instead.
+     *             Legacy bridge: returns an IItemList view of item-type entries only.
      */
-    public void setTypeFilter(IAEStackType<?> type, boolean enabled) {
+    @Deprecated
+    @SuppressWarnings("unchecked")
+    public IItemList<IAEItemStack> getList() {
+        IItemList<IAEItemStack> list = AEItemStackType.INSTANCE.createList();
+        for (var entry : this.counter) {
+            if (entry.getKey() instanceof AEItemKey itemKey) {
+                IAEItemStack aeStack = AEItemStack.fromItemStack(itemKey.toStack());
+                if (aeStack != null) {
+                    aeStack.setStackSize(entry.getLongValue());
+                    aeStack.setCraftable(this.craftableKeys.contains(itemKey));
+                    list.add(aeStack);
+                }
+            }
+        }
+        return list;
+    }
+
+    // ==================== Type filter (AEKeyType-based) ====================
+
+    /**
+     * Set whether a given AEKeyType is enabled for display.
+     */
+    public void setTypeFilter(AEKeyType type, boolean enabled) {
         this.typeFilters.put(type, enabled);
         this.resort = true;
     }
 
     /**
-     * @return 某种类型在终端中是否启用显示
+     * @return whether a given AEKeyType is enabled for display
      */
-    public boolean isTypeEnabled(IAEStackType<?> type) {
+    public boolean isTypeEnabled(AEKeyType type) {
         return this.typeFilters.getOrDefault(type, true);
     }
 
     /**
-     * 简单搜索：支持 OR (|) 和 NOT (-) 逻辑，用于非物品类型。
+     * @deprecated Use {@link #setTypeFilter(AEKeyType, boolean)} instead.
+     *             Legacy bridge: accepts IAEStackType and converts to AEKeyType.
+     */
+    @Deprecated
+    public void setTypeFilter(IAEStackType<?> type, boolean enabled) {
+        AEKeyType keyType = AEKeyType.fromLegacyType(type);
+        if (keyType != null) {
+            setTypeFilter(keyType, enabled);
+        }
+    }
+
+    /**
+     * @deprecated Use {@link #isTypeEnabled(AEKeyType)} instead.
+     */
+    @Deprecated
+    public boolean isTypeEnabled(IAEStackType<?> type) {
+        AEKeyType keyType = AEKeyType.fromLegacyType(type);
+        return keyType != null && isTypeEnabled(keyType);
+    }
+
+    // ==================== Simple search for non-item types ====================
+
+    /**
+     * Simple search: supports OR (|) and NOT (-) logic for non-item types.
      */
     private static boolean matchSimpleSearch(String displayName, String query) {
         final String[] orGroups = query.split("\\|");
@@ -572,6 +795,7 @@ public class ItemRepo {
         return false;
     }
 
+    // ==================== String utilities ====================
 
     private static String lower(String s) {
         return s == null ? "" : s.toLowerCase(Locale.ROOT);
@@ -581,17 +805,11 @@ public class ItemRepo {
         return lower(s).replace(" ", "");
     }
 
-    private static ItemStack safeItemStack(IAEItemStack ae) {
+    private static ItemStack safeItemStack(AEItemKey itemKey) {
         try {
-            ItemStack s = ae.createItemStack();
-            return s == null ? ItemStack.EMPTY : s;
+            return itemKey.toStack();
         } catch (Throwable t) {
-            try {
-                ItemStack s = ae.getDefinition();
-                return s == null ? ItemStack.EMPTY : s;
-            } catch (Throwable t2) {
-                return ItemStack.EMPTY;
-            }
+            return ItemStack.EMPTY;
         }
     }
 

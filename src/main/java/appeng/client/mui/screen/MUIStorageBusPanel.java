@@ -26,6 +26,7 @@ import net.minecraft.client.gui.GuiButton;
 
 import appeng.api.config.*;
 import appeng.api.storage.data.IAEStackType;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiTabButton;
@@ -109,8 +110,8 @@ public class MUIStorageBusPanel extends MUIUpgradeablePanel {
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        this.fontRenderer.drawString(this.getGuiDisplayName(this.title.getLocal()), 8, 6, 4210752);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(this.title.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
 
         if (this.configSlots != null) {
             this.updateVirtualSlotVisibility();

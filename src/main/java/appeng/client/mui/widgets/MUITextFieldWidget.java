@@ -258,7 +258,7 @@ public class MUITextFieldWidget implements IMUIWidget {
             }
         };
         this.delegate.setEnableBackgroundDrawing(true);
-        this.delegate.setTextColor(AEMUITheme.COLOR_SEARCH_TEXT);
+        this.delegate.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
     }
 
     /**

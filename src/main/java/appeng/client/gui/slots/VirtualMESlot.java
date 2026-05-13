@@ -29,28 +29,30 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AmountFormat;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.gui.widgets.GuiCustomSlot;
+import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.client.render.stack.AEStackTypeRendererRegistry;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
-import appeng.util.ISlimReadableNumberConverter;
-import appeng.util.IWideReadableNumberConverter;
-import appeng.util.ReadableNumberConverter;
 
 /**
- * ME 终端的虚拟槽位抽象基类。
+ * Abstract base class for virtual ME terminal slots.
  * <p>
- * 用于在终端 GUI 中显示 ME 网络中的栈（物品、流体等），不像 Minecraft 的 {@link net.minecraft.inventory.Slot}
- * 那样直接关联物品栏。渲染和交互完全由客户端 GUI 控制。
+ * Used to display ME network stacks (items, fluids, etc.) in the terminal GUI.
+ * Unlike Minecraft's {@link net.minecraft.inventory.Slot}, these are not backed
+ * by an inventory. Rendering and interaction are fully controlled by the client GUI.
+ * <p>
+ * The rendering core uses the AEKey system: subclasses provide data via either
+ * {@link #getRepoEntry()} (preferred) or {@link #getAEStack()} (legacy bridge).
+ * The {@link #drawContent} method extracts {@link AEKey}, amount, and craftable flag
+ * from the data source and delegates to AEKey-based rendering helpers.
  */
 public abstract class VirtualMESlot extends GuiCustomSlot {
-
-    private static final ISlimReadableNumberConverter SLIM_CONVERTER = ReadableNumberConverter.INSTANCE;
-    private static final IWideReadableNumberConverter WIDE_CONVERTER = ReadableNumberConverter.INSTANCE;
 
     protected final int slotIndex;
 
@@ -64,14 +66,33 @@ public abstract class VirtualMESlot extends GuiCustomSlot {
         this.slotIndex = slotIndex;
     }
 
+    // ========== Data access (AEKey-based primary, IAEStack legacy bridge) ==========
+
     /**
-     * @return 此槽位当前显示的 AE 栈，可能为 null
+     * Returns the current display data as a {@link RepoEntry}.
+     * <p>
+     * Subclasses backed by {@link appeng.client.me.ItemRepo} should override this
+     * to return the entry directly. The default implementation bridges from
+     * {@link #getAEStack()} for backward compatibility.
+     *
+     * @return the entry, or null if this slot has nothing to display
      */
+    @Nullable
+    public RepoEntry getRepoEntry() {
+        IAEStack<?> stack = this.getAEStack();
+        return RepoEntry.fromIAEStack(stack);
+    }
+
+    /**
+     * @deprecated Use {@link #getRepoEntry()} instead.
+     * @return the current AE stack for this slot, may be null
+     */
+    @Deprecated
     @Nullable
     public abstract IAEStack<?> getAEStack();
 
     /**
-     * @return 此槽位在 Repo 中的索引
+     * @return the slot index (in Repo or inventory)
      */
     public int getSlotIndex() {
         return this.slotIndex;
@@ -82,25 +103,28 @@ public abstract class VirtualMESlot extends GuiCustomSlot {
         return true;
     }
 
+    // ========== AEKey-based rendering core ==========
+
     @Override
     public void drawContent(Minecraft mc, int mouseX, int mouseY, float partialTicks) {
-        IAEStack<?> stack = this.getAEStack();
-        if (stack == null) {
+        RepoEntry entry = this.getRepoEntry();
+        if (entry == null) {
             return;
         }
 
-        // 渲染物品/流体图标
-        this.drawStackIcon(mc, stack, this.xPos(), this.yPos());
+        // Render stack icon (16x16)
+        this.drawStackIcon(mc, entry.what(), this.xPos(), this.yPos());
 
-        // 渲染数量叠加层
-        this.drawStackOverlay(mc, stack, this.xPos(), this.yPos());
+        // Render amount/craftable overlay
+        this.drawStackOverlay(mc, entry.what(), entry.amount(), entry.craftable(), this.xPos(), this.yPos());
     }
 
     /**
-     * 渲染栈的图标（物品的 16x16 图标）。
+     * Render the stack icon using AEKey.
+     * Uses {@link AEKey#asItemStackRepresentation()} to obtain a renderable ItemStack.
      */
-    protected void drawStackIcon(Minecraft mc, IAEStack<?> stack, int x, int y) {
-        ItemStack displayStack = stack.asItemStackRepresentation();
+    protected void drawStackIcon(Minecraft mc, AEKey what, int x, int y) {
+        ItemStack displayStack = what.asItemStackRepresentation();
         if (!displayStack.isEmpty()) {
             GlStateManager.pushMatrix();
             GlStateManager.enableDepth();
@@ -116,9 +140,9 @@ public abstract class VirtualMESlot extends GuiCustomSlot {
     }
 
     /**
-     * 渲染栈的数量叠加层（数字文本或合成标记）。
+     * Render the amount overlay (numeric text or craft label) using AEKey data.
      */
-    protected void drawStackOverlay(Minecraft mc, IAEStack<?> stack, int x, int y) {
+    protected void drawStackOverlay(Minecraft mc, AEKey what, long amount, boolean craftable, int x, int y) {
         FontRenderer fontRenderer = mc.fontRenderer;
 
         final float scaleFactor = AEConfig.instance().useTerminalUseLargeFont() ? 0.85f : 0.5f;
@@ -128,53 +152,82 @@ public abstract class VirtualMESlot extends GuiCustomSlot {
         final boolean unicodeFlag = fontRenderer.getUnicodeFlag();
         fontRenderer.setUnicodeFlag(false);
 
-        if ((stack.getStackSize() == 0 || GuiScreen.isAltKeyDown()) && stack.isCraftable()
-                && this.showCraftableText) {
+        if ((amount == 0 || GuiScreen.isAltKeyDown()) && craftable && this.showCraftableText) {
+            // Craftable label
             final String craftLabelText = AEConfig.instance().useTerminalUseLargeFont()
                     ? GuiText.LargeFontCraft.getLocal()
                     : GuiText.SmallFontCraft.getLocal();
 
-            GlStateManager.disableLighting();
-            GlStateManager.disableDepth();
-            GlStateManager.disableBlend();
-            GlStateManager.pushMatrix();
-            GlStateManager.scale(scaleFactor, scaleFactor, scaleFactor);
-            final int X = (int) (((float) x + offset + 16.0f
-                    - fontRenderer.getStringWidth(craftLabelText) * scaleFactor) * inverseScaleFactor);
-            final int Y = (int) (((float) y + offset + 16.0f - 7.0f * scaleFactor) * inverseScaleFactor);
-            fontRenderer.drawStringWithShadow(craftLabelText, X, Y, 16777215);
-            GlStateManager.popMatrix();
-            GlStateManager.enableLighting();
-            GlStateManager.enableDepth();
-            GlStateManager.enableBlend();
-        } else if (stack.getStackSize() > 0 && this.showAmount) {
-            final String stackSize = this.getToBeRenderedStackSize(stack.getStackSize());
+            renderOverlayText(fontRenderer, craftLabelText, x, y, scaleFactor, inverseScaleFactor, offset);
+        } else if (amount > 0 && this.showAmount) {
+            // Amount text: delegate to type-aware formatting via the legacy renderer
+            final String stackSize = this.formatAmount(what, amount);
 
-            GlStateManager.disableLighting();
-            GlStateManager.disableDepth();
-            GlStateManager.disableBlend();
-            GlStateManager.pushMatrix();
-            GlStateManager.scale(scaleFactor, scaleFactor, scaleFactor);
-            final int X = (int) (((float) x + offset + 16.0f
-                    - fontRenderer.getStringWidth(stackSize) * scaleFactor) * inverseScaleFactor);
-            final int Y = (int) (((float) y + offset + 16.0f - 7.0f * scaleFactor) * inverseScaleFactor);
-            fontRenderer.drawStringWithShadow(stackSize, X, Y, 16777215);
-            GlStateManager.popMatrix();
-            GlStateManager.enableLighting();
-            GlStateManager.enableDepth();
-            GlStateManager.enableBlend();
+            renderOverlayText(fontRenderer, stackSize, x, y, scaleFactor, inverseScaleFactor, offset);
         }
 
         fontRenderer.setUnicodeFlag(unicodeFlag);
     }
 
-    private String getToBeRenderedStackSize(final long originalSize) {
-        if (AEConfig.instance().useTerminalUseLargeFont()) {
-            return SLIM_CONVERTER.toSlimReadableForm(originalSize);
-        } else {
-            return WIDE_CONVERTER.toWideReadableForm(originalSize);
+    /**
+     * Format the amount for overlay display, using {@link AEKeyType#formatAmount}.
+     * <p>
+     * Delegates to the AEKey type system for type-specific formatting
+     * (items use SI suffixes, fluids use mB→Bucket conversion, etc.).
+     */
+    protected String formatAmount(AEKey what, long amount) {
+        boolean largeFont = AEConfig.instance().useTerminalUseLargeFont();
+        return what.getType().formatAmount(amount,
+                largeFont ? AmountFormat.PREVIEW_LARGE_FONT : AmountFormat.PREVIEW_REGULAR);
+    }
+
+    /**
+     * Common helper to render overlay text at the bottom-right of a slot.
+     */
+    private static void renderOverlayText(FontRenderer fontRenderer, String text, int x, int y,
+            float scaleFactor, float inverseScaleFactor, int offset) {
+        GlStateManager.disableLighting();
+        GlStateManager.disableDepth();
+        GlStateManager.disableBlend();
+        GlStateManager.pushMatrix();
+        GlStateManager.scale(scaleFactor, scaleFactor, scaleFactor);
+        final int X = (int) (((float) x + offset + 16.0f
+                - fontRenderer.getStringWidth(text) * scaleFactor) * inverseScaleFactor);
+        final int Y = (int) (((float) y + offset + 16.0f - 7.0f * scaleFactor) * inverseScaleFactor);
+        fontRenderer.drawStringWithShadow(text, X, Y, 16777215);
+        GlStateManager.popMatrix();
+        GlStateManager.enableLighting();
+        GlStateManager.enableDepth();
+        GlStateManager.enableBlend();
+    }
+
+    // ========== Legacy rendering bridge (for subclasses that override old methods) ==========
+
+    /**
+     * @deprecated Use {@link #drawStackIcon(Minecraft, AEKey, int, int)} instead.
+     *             Legacy bridge: renders using IAEStack.
+     */
+    @Deprecated
+    protected void drawStackIcon(Minecraft mc, IAEStack<?> stack, int x, int y) {
+        AEKey key = stack.toAEKey();
+        if (key != null) {
+            drawStackIcon(mc, key, x, y);
         }
     }
+
+    /**
+     * @deprecated Use {@link #drawStackOverlay(Minecraft, AEKey, long, boolean, int, int)} instead.
+     *             Legacy bridge: renders using IAEStack.
+     */
+    @Deprecated
+    protected void drawStackOverlay(Minecraft mc, IAEStack<?> stack, int x, int y) {
+        AEKey key = stack.toAEKey();
+        if (key != null) {
+            drawStackOverlay(mc, key, stack.getStackSize(), stack.isCraftable(), x, y);
+        }
+    }
+
+    // ========== Tooltip ==========
 
     @Override
     @Nullable
@@ -185,20 +238,24 @@ public abstract class VirtualMESlot extends GuiCustomSlot {
     @Override
     @Nullable
     public Object getIngredient() {
+        // Bridge to legacy renderer for JEI ingredient extraction
         IAEStack<?> stack = this.getAEStack();
-        if (stack == null) {
-            return null;
+        if (stack != null) {
+            return AEStackTypeRendererRegistry.getRenderer(stack).getIngredient(stack);
         }
-        return AEStackTypeRendererRegistry.getRenderer(stack).getIngredient(stack);
+        return null;
     }
 
     /**
-     * 向 tooltip 列表中添加额外信息（如大数字格式化的精确数量）。子类可覆盖。
+     * Append extra information to the tooltip lines.
+     * <p>
+     * The default implementation appends a formatted exact amount for large numbers.
+     * Subclasses may override to add additional info.
      */
     public void addTooltip(List<String> lines) {
-        IAEStack<?> stack = this.getAEStack();
-        if (stack != null && stack.getStackSize() > 999) {
-            final String formattedAmount = NumberFormat.getNumberInstance(Locale.US).format(stack.getStackSize());
+        RepoEntry entry = this.getRepoEntry();
+        if (entry != null && entry.amount() > 999) {
+            final String formattedAmount = NumberFormat.getNumberInstance(Locale.US).format(entry.amount());
             lines.add("\u00a77" + formattedAmount);
         }
     }

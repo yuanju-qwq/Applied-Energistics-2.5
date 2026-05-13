@@ -44,6 +44,7 @@ import appeng.api.config.Settings;
 import appeng.api.config.YesNo;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.slots.VirtualMESlot;
 import appeng.client.gui.widgets.GuiCustomSlot;
@@ -59,18 +60,18 @@ import appeng.helpers.InterfaceLogic;
 import appeng.tile.inventory.IAEStackInventory;
 
 /**
- * MUI 版 ME 接口 GUI 面板。
+ * MUI �?ME 接口 GUI 面板�?
  *
- * 显示 18 个 Config 槽（VirtualMEPhantomSlot，可标记物品或流体）和 18 个 Storage 槽
- * （物品使用 Container 层的 SlotOversized，流体使用 VirtualSlot 从服务端同步显示，
- * 根据 Config 类型动态切换显示）。
+ * 显示 18 �?Config 槽（VirtualMEPhantomSlot，可标记物品或流体）�?18 �?Storage �?
+ * （物品使�?Container 层的 SlotOversized，流体使�?VirtualSlot 从服务端同步显示�?
+ * 根据 Config 类型动态切换显示）�?
  *
  * <h3>布局</h3>
  * <pre>
- * Config 行0 (y=30):  [VirtualMEPhantomSlot × 9]
- * Storage 行0 (y=48): [SlotOversized / FluidStorageVirtualSlot × 9]
- * Config 行1 (y=70):  [VirtualMEPhantomSlot × 9]
- * Storage 行1 (y=88): [SlotOversized / FluidStorageVirtualSlot × 9]
+ * Config �? (y=30):  [VirtualMEPhantomSlot × 9]
+ * Storage �? (y=48): [SlotOversized / FluidStorageVirtualSlot × 9]
+ * Config �? (y=70):  [VirtualMEPhantomSlot × 9]
+ * Storage �? (y=88): [SlotOversized / FluidStorageVirtualSlot × 9]
  * </pre>
  */
 public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhostIngredients {
@@ -86,7 +87,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
     // ========== 流体 Storage 虚拟槽位（只读，可控可见性）==========
     private FluidStorageVirtualSlot[] fluidStorageSlots;
 
-    // ========== 物品 Storage slot 引用及原始 xPos（用于隐藏/恢复）==========
+    // ========== 物品 Storage slot 引用及原�?xPos（用于隐�?恢复�?=========
     private AppEngSlot[] itemStorageSlots;
     private int[] itemStorageOrigX;
 
@@ -99,7 +100,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         this.ySize = 222;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     public void initGui() {
@@ -119,7 +120,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         this.buttonList.add(this.interfaceMode);
     }
 
-    // ========== Config 虚拟槽位初始化 ==========
+    // ========== Config 虚拟槽位初始�?==========
 
     private void initConfigSlots() {
         this.guiSlots.removeIf(slot -> slot instanceof VirtualMEPhantomSlot);
@@ -139,7 +140,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         }
     }
 
-    // ========== 流体 Storage 槽位初始化 ==========
+    // ========== 流体 Storage 槽位初始�?==========
 
     private void initFluidStorageSlots() {
         this.guiSlots.removeIf(slot -> slot instanceof FluidStorageVirtualSlot);
@@ -179,8 +180,8 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
      * Dynamically toggle each storage slot between item slot and fluid virtual slot
      * based on the Config stack type.
      * <ul>
-     *   <li>Config = non-item type (fluid, etc.) → hide item slot, show FluidStorageVirtualSlot</li>
-     *   <li>Config = item type or null → show item slot, hide FluidStorageVirtualSlot</li>
+     *   <li>Config = non-item type (fluid, etc.) �?hide item slot, show FluidStorageVirtualSlot</li>
+     *   <li>Config = item type or null �?show item slot, hide FluidStorageVirtualSlot</li>
      * </ul>
      */
     private void updateStorageSlotVisibility() {
@@ -220,9 +221,9 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
             this.interfaceMode.setState(this.container.getInterfaceTerminalMode() == YesNo.YES);
         }
 
-        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.MEInterface.getLocal()), 8, 6, 4210752);
-        this.fontRenderer.drawString(GuiText.Config.getLocal(), 8, 20, 4210752);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.MEInterface.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.Config.getLocal(), 8, 20, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
     }
 
     @Override
@@ -265,7 +266,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
 
         List<Target<?>> targets = new ArrayList<>();
 
-        // Config VirtualMEPhantomSlot — 接受物品和流体
+        // Config VirtualMEPhantomSlot �?接受物品和流�?
         for (GuiCustomSlot slot : this.getGuiSlots()) {
             if (slot instanceof VirtualMEPhantomSlot phantomSlot && phantomSlot.isSlotEnabled()) {
                 addConfigTarget(targets, phantomSlot, itemStack, fluidStack);

@@ -31,6 +31,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.storage.data.IAEStack;
 import appeng.client.me.ItemRepo;
+import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 
@@ -84,11 +85,22 @@ public class MUIVirtualSlot implements IMUIWidget {
     // ========== 数据 ==========
 
     /**
-     * @return 此槽位当前应显示的 AE 栈（从 Repo 中根据索引+滚动偏移获取）
+     * @return the RepoEntry this slot should display (from Repo by index + scroll offset)
      */
     @Nullable
+    public RepoEntry getRepoEntry() {
+        return this.repo != null ? this.repo.getEntry(this.slotIndex) : null;
+    }
+
+    /**
+     * @deprecated Use {@link #getRepoEntry()} instead.
+     * @return 此槽位当前应显示的 AE 栈（从 Repo 中根据索引+滚动偏移获取）
+     */
+    @Deprecated
+    @Nullable
     public IAEStack<?> getAEStack() {
-        return this.repo != null ? this.repo.getReferenceItem(this.slotIndex) : null;
+        RepoEntry entry = getRepoEntry();
+        return entry != null ? entry.toIAEStack() : null;
     }
 
     // ========== 绘制 ==========
@@ -102,18 +114,18 @@ public class MUIVirtualSlot implements IMUIWidget {
         this.hovered = mouseX >= screenX && mouseY >= screenY
                 && mouseX < screenX + this.size && mouseY < screenY + this.size;
 
-        IAEStack<?> stack = this.getAEStack();
-        if (stack == null) {
+        RepoEntry entry = this.getRepoEntry();
+        if (entry == null) {
             return;
         }
 
         Minecraft mc = Minecraft.getMinecraft();
 
         // 图标
-        MUIStackRenderer.renderStackIcon(mc, stack, screenX, screenY);
+        MUIStackRenderer.renderEntryIcon(mc, entry, screenX, screenY);
 
         // 数量叠加
-        MUIStackRenderer.renderStackOverlay(mc, stack, screenX, screenY,
+        MUIStackRenderer.renderEntryOverlay(mc, entry, screenX, screenY,
                 this.showAmount, this.showCraftableText);
 
         // 悬停高亮
@@ -131,9 +143,9 @@ public class MUIVirtualSlot implements IMUIWidget {
     @Override
     public void drawForeground(AEBasePanel panel, int localX, int localY) {
         if (this.hovered) {
-            IAEStack<?> stack = this.getAEStack();
-            if (stack != null) {
-                List<String> tooltip = MUIStackRenderer.buildTooltip(stack);
+            RepoEntry entry = this.getRepoEntry();
+            if (entry != null) {
+                List<String> tooltip = MUIStackRenderer.buildTooltip(entry);
                 if (!tooltip.isEmpty()) {
                     Minecraft mc = Minecraft.getMinecraft();
                     net.minecraftforge.fml.client.config.GuiUtils.drawHoveringText(

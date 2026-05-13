@@ -99,4 +99,12 @@ public class ItemSorters {
         }
         return -cmp;
     }
+
+    /**
+     * Public variant of direction application for use by external comparators
+     * (e.g. {@link appeng.client.me.ItemRepo.RepoEntry}-based sorting).
+     */
+    public static int applyCurrentDirection(int cmp) {
+        return applyDirection(cmp);
+    }
 }

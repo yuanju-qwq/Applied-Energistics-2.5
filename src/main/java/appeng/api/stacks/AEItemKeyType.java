@@ -19,6 +19,8 @@
 package appeng.api.stacks;
 
 import java.io.IOException;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -26,6 +28,7 @@ import javax.annotation.Nullable;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 
+import appeng.util.ReadableNumberConverter;
 import appeng.util.item.AEItemStackType;
 
 /**
@@ -43,6 +46,21 @@ final class AEItemKeyType extends AEKeyType {
     @Override
     public boolean supportsFuzzyRangeSearch() {
         return true;
+    }
+
+    // ========== Amount formatting for items ==========
+
+    @Override
+    public String formatAmount(long amount, AmountFormat format) {
+        switch (format) {
+            case FULL:
+                return NumberFormat.getNumberInstance(Locale.US).format(amount);
+            case PREVIEW_LARGE_FONT:
+                return ReadableNumberConverter.INSTANCE.toSlimReadableForm(amount);
+            case PREVIEW_REGULAR:
+            default:
+                return ReadableNumberConverter.INSTANCE.toWideReadableForm(amount);
+        }
     }
 
     @Nullable

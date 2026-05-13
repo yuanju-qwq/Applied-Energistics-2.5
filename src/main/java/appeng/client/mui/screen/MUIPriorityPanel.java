@@ -24,6 +24,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiNumberBox;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.client.mui.AEBasePanel;
@@ -38,9 +39,9 @@ import appeng.core.sync.packets.PacketValueConfig;
 import appeng.helpers.IPriorityHost;
 
 /**
- * MUI 版优先级设置 GUI 面板。
+ * MUI 版优先级设置 GUI 面板�?
  *
- * 包含数字输入框、8 个加减按钮（±1/±10/±100/±1000）和返回原始 GUI 的标签按钮。
+ * 包含数字输入框�? 个加减按钮（±1/±10/±100/±1000）和返回原始 GUI 的标签按钮�?
  */
 public class MUIPriorityPanel extends AEBasePanel {
 
@@ -68,11 +69,11 @@ public class MUIPriorityPanel extends AEBasePanel {
         super(container);
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始化
+        // initGui 处理初始�?
     }
 
     @Override
@@ -107,7 +108,7 @@ public class MUIPriorityPanel extends AEBasePanel {
                 this.fontRenderer.FONT_HEIGHT, Long.class);
         this.priority.setEnableBackgroundDrawing(false);
         this.priority.setMaxStringLength(16);
-        this.priority.setTextColor(0xFFFFFF);
+        this.priority.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
         this.priority.setVisible(true);
         this.priority.setFocused(true);
         ((ContainerPriority) this.inventorySlots).setTextField(this.priority);
@@ -117,7 +118,7 @@ public class MUIPriorityPanel extends AEBasePanel {
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        this.fontRenderer.drawString(GuiText.Priority.getLocal(), 8, 6, 4210752);
+        this.fontRenderer.drawString(GuiText.Priority.getLocal(), 8, 6, AEMUITheme.COLOR_TITLE);
     }
 
     @Override
@@ -146,7 +147,7 @@ public class MUIPriorityPanel extends AEBasePanel {
         }
     }
 
-    // ========== 数值增减 ==========
+    // ========== 数值增�?==========
 
     private void addQty(final int i) {
         try {

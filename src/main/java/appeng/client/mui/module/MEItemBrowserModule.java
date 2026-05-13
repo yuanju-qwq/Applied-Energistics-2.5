@@ -288,9 +288,22 @@ public class MEItemBrowserModule implements ISortSource {
     // ========== IMEInventoryUpdateReceiver 数据接收 ==========
 
     /**
+     * Receive ME network inventory updates using RepoEntry (preferred path).
+     */
+    public void postRepoEntryUpdate(final List<ItemRepo.RepoEntry> entries) {
+        for (final ItemRepo.RepoEntry entry : entries) {
+            this.itemRepo.postUpdate(entry);
+        }
+        this.itemRepo.updateView();
+        this.updateItemPanelScrollbar();
+    }
+
+    /**
+     * @deprecated Use {@link #postRepoEntryUpdate(List)} instead.
      * 接收 ME 网络库存变化通知，更新 ItemRepo。
      * 由宿主的 IMEInventoryUpdateReceiver.postUpdate 转发调用。
      */
+    @Deprecated
     public void postUpdate(final List<IAEStack<?>> list) {
         for (final IAEStack<?> is : list) {
             this.itemRepo.postUpdate(is);

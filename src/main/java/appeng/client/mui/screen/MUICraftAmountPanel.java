@@ -33,6 +33,7 @@ import appeng.api.AEApi;
 import appeng.api.definitions.IDefinitions;
 import appeng.api.definitions.IParts;
 import appeng.api.storage.ITerminalHost;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.MathExpressionParser;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.client.mui.AEBasePanel;
@@ -52,17 +53,17 @@ import appeng.parts.reporting.PartPatternTerminal;
 import appeng.parts.reporting.PartTerminal;
 
 /**
- * MUI 版合成数量输入面板。
+ * MUI 版合成数量输入面板�?
  * <p>
- * 功能：输入合成数量 → 点击 Next/Start 发起合成请求。
+ * 功能：输入合成数�?�?点击 Next/Start 发起合成请求�?
  * <p>
  * 特性：
  * <ul>
  *   <li>数量输入框支持数学表达式（加减乘除）</li>
  *   <li>4 组增减按钮（可在 AEConfig 中配置增量）</li>
- *   <li>回车键快捷提交</li>
- *   <li>Shift+Next 直接开始合成（跳过确认）</li>
- *   <li>左上角返回按钮（返回来源终端）</li>
+ *   <li>回车键快捷提�?/li>
+ *   <li>Shift+Next 直接开始合成（跳过确认�?/li>
+ *   <li>左上角返回按钮（返回来源终端�?/li>
  * </ul>
  */
 @SideOnly(Side.CLIENT)
@@ -84,30 +85,30 @@ public class MUICraftAmountPanel extends AEBasePanel {
     private GuiButton minus100;
     private GuiButton minus1000;
 
-    /** 来源终端的 AEGuiKey（用于返回按钮） */
+    /** 来源终端�?AEGuiKey（用于返回按钮） */
     private AEGuiKey originalGui;
 
     public MUICraftAmountPanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(new ContainerCraftAmount(inventoryPlayer, te));
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
-        // 从配置读取增量值
+        // 从配置读取增量�?
         final int a = AEConfig.instance().craftItemsByStackAmounts(0);
         final int b = AEConfig.instance().craftItemsByStackAmounts(1);
         final int c = AEConfig.instance().craftItemsByStackAmounts(2);
         final int d = AEConfig.instance().craftItemsByStackAmounts(3);
 
-        // 增加按钮行
+        // 增加按钮�?
         this.buttonList.add(this.plus1 = new GuiButton(0, this.guiLeft + 20, this.guiTop + 26, 22, 20, "+" + a));
         this.buttonList.add(this.plus10 = new GuiButton(0, this.guiLeft + 48, this.guiTop + 26, 28, 20, "+" + b));
         this.buttonList.add(this.plus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 26, 32, 20, "+" + c));
         this.buttonList.add(this.plus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 26, 38, 20, "+" + d));
 
-        // 减少按钮行
+        // 减少按钮�?
         this.buttonList.add(this.minus1 = new GuiButton(0, this.guiLeft + 20, this.guiTop + 75, 22, 20, "-" + a));
         this.buttonList.add(this.minus10 = new GuiButton(0, this.guiLeft + 48, this.guiTop + 75, 28, 20, "-" + b));
         this.buttonList.add(this.minus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 75, 32, 20, "-" + c));
@@ -117,7 +118,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
         this.buttonList.add(
                 this.next = new GuiButton(0, this.guiLeft + 128, this.guiTop + 51, 38, 20, GuiText.Next.getLocal()));
 
-        // 返回按钮（根据来源终端决定图标和目标）
+        // 返回按钮（根据来源终端决定图标和目标�?
         ItemStack myIcon = null;
         final Object target = ((AEBaseContainer) this.inventorySlots).getTarget();
         final IDefinitions definitions = AEApi.instance().definitions();
@@ -159,12 +160,12 @@ public class MUICraftAmountPanel extends AEBasePanel {
                     myIcon.getDisplayName(), this.itemRender));
         }
 
-        // 数量输入框
+        // 数量输入�?
         this.amountToCraft = new GuiTextField(0, this.fontRenderer, this.guiLeft + 62, this.guiTop + 57, 59,
                 this.fontRenderer.FONT_HEIGHT);
         this.amountToCraft.setEnableBackgroundDrawing(false);
         this.amountToCraft.setMaxStringLength(16);
-        this.amountToCraft.setTextColor(0xFFFFFF);
+        this.amountToCraft.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
         this.amountToCraft.setVisible(true);
         this.amountToCraft.setFocused(true);
         this.amountToCraft.setText("1");
@@ -175,7 +176,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        this.fontRenderer.drawString(GuiText.SelectAmount.getLocal(), 8, 6, 4210752);
+        this.fontRenderer.drawString(GuiText.SelectAmount.getLocal(), 8, 6, AEMUITheme.COLOR_TITLE);
     }
 
     @Override
@@ -186,7 +187,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
         this.bindTexture("guis/craft_amt.png");
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
 
-        // 验证输入并启用/禁用 Next 按钮
+        // 验证输入并启�?禁用 Next 按钮
         try {
             String out = this.amountToCraft.getText();
             double resultD = MathExpressionParser.parse(out);
@@ -211,11 +212,11 @@ public class MUICraftAmountPanel extends AEBasePanel {
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
         if (!this.checkHotbarKeys(key)) {
-            // 回车键提交
+            // 回车键提�?
             if (key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) {
                 this.actionPerformed(this.next);
             }
-            // 输入框处理
+            // 输入框处�?
             if (!this.amountToCraft.textboxKeyTyped(character, key)) {
                 super.keyTyped(character, key);
             }
@@ -262,7 +263,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
     // ========== 内部方法 ==========
 
     /**
-     * 向当前数量添加增量值。
+     * 向当前数量添加增量值�?
      */
     private void addQty(final int i) {
         try {
@@ -277,7 +278,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
                 result = (int) MathExpressionParser.round(resultD, 0);
             }
 
-            // 如果当前为 1 且增量大于 1，从 0 开始加
+            // 如果当前�?1 且增量大�?1，从 0 开始加
             if (result == 1 && i > 1) {
                 result = 0;
             }

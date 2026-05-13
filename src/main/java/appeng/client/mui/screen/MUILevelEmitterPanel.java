@@ -29,6 +29,7 @@ import appeng.api.storage.data.IAEStackType;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiNumberBox;
+import appeng.client.mui.AEMUITheme;
 import appeng.container.implementations.ContainerLevelEmitter;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
@@ -40,17 +41,17 @@ import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStackType;
 
 /**
- * MUI 版物品级别发射器 GUI 面板。
+ * MUI 版物品级别发射器 GUI 面板�?
  *
- * 包含数字输入框（阈值设置）、±增减按钮、级别模式、红石发射模式、
- * 模糊模式、合成模式按钮，以及 1 个 VirtualMEPhantomSlot 配置槽。
- * 当安装合成升级时，数字相关控件和级别模式按钮被禁用。
+ * 包含数字输入框（阈值设置）、±增减按钮、级别模式、红石发射模式�?
+ * 模糊模式、合成模式按钮，以及 1 �?VirtualMEPhantomSlot 配置槽�?
+ * 当安装合成升级时，数字相关控件和级别模式按钮被禁用�?
  */
 public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
 
     private final ContainerLevelEmitter container;
 
-    // ========== 数字输入框 ==========
+    // ========== 数字输入�?==========
     private GuiNumberBox level;
 
     // ========== ±增减按钮 ==========
@@ -75,7 +76,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
         this.container = container;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     public void initGui() {
@@ -85,7 +86,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
                 this.fontRenderer.FONT_HEIGHT, Long.class);
         this.level.setEnableBackgroundDrawing(false);
         this.level.setMaxStringLength(16);
-        this.level.setTextColor(0xFFFFFF);
+        this.level.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
         this.level.setVisible(true);
         this.level.setFocused(true);
         this.container.setTextField(this.level);
@@ -133,7 +134,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
         final boolean notCraftingMode = this.bc.getInstalledUpgrades(Upgrades.CRAFTING) == 0;
 
-        // 根据合成升级安装状态禁用/启用数字相关控件
+        // 根据合成升级安装状态禁�?启用数字相关控件
         this.level.setEnabled(notCraftingMode);
         this.plus1.enabled = notCraftingMode;
         this.plus10.enabled = notCraftingMode;

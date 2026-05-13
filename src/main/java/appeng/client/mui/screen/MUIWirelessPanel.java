@@ -26,6 +26,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.Settings;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.mui.AEBasePanel;
 import appeng.container.implementations.ContainerWireless;
@@ -35,9 +36,9 @@ import appeng.tile.networking.TileWireless;
 import appeng.util.Platform;
 
 /**
- * MUI 版无线接入点 GUI 面板。
+ * MUI 版无线接入点 GUI 面板�?
  *
- * 显示无线信号范围和功率消耗，以及电源单位切换按钮。
+ * 显示无线信号范围和功率消耗，以及电源单位切换按钮�?
  */
 public class MUIWirelessPanel extends AEBasePanel {
 
@@ -53,11 +54,11 @@ public class MUIWirelessPanel extends AEBasePanel {
         this.ySize = 166;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理按钮初始化
+        // initGui 处理按钮初始�?
     }
 
     @Override
@@ -73,8 +74,8 @@ public class MUIWirelessPanel extends AEBasePanel {
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.Wireless.getLocal()), 8, 6, 4210752);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.Wireless.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
 
         final ContainerWireless cw = (ContainerWireless) this.inventorySlots;
 
@@ -86,8 +87,8 @@ public class MUIWirelessPanel extends AEBasePanel {
             final int strWidth = Math.max(this.fontRenderer.getStringWidth(firstMessage),
                     this.fontRenderer.getStringWidth(secondMessage));
             final int cOffset = (this.xSize / 2) - (strWidth / 2);
-            this.fontRenderer.drawString(firstMessage, cOffset, 20, 4210752);
-            this.fontRenderer.drawString(secondMessage, cOffset, 20 + 12, 4210752);
+            this.fontRenderer.drawString(firstMessage, cOffset, 20, AEMUITheme.COLOR_TITLE);
+            this.fontRenderer.drawString(secondMessage, cOffset, 20 + 12, AEMUITheme.COLOR_TITLE);
         }
     }
 

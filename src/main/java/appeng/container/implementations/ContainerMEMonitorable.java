@@ -61,6 +61,7 @@ import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
+import appeng.api.stacks.GenericStack;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
@@ -609,6 +610,26 @@ public class ContainerMEMonitorable extends AEBaseContainer
         }
         if (this.gui instanceof IMEMonitorableGuiCallback guiMonitorable) {
             guiMonitorable.postUpdate(list);
+        }
+    }
+
+    /**
+     * Client-side handler for {@link appeng.core.sync.packets.PacketMEGenericStackUpdate}.
+     * <p>
+     * Converts GenericStack list directly to RepoEntry and dispatches via
+     * {@link IMEMonitorableGuiCallback#postRepoEntryUpdate(List)}.
+     * Falls back to the legacy IAEStack path for non-MUI GUIs.
+     */
+    public void postGenericStackUpdate(final List<GenericStack> list) {
+        if (this.gui instanceof IMEMonitorableGuiCallback guiMonitorable) {
+            // Convert GenericStack -> RepoEntry directly (no IAEStack intermediate)
+            final List<appeng.client.me.ItemRepo.RepoEntry> entries = new java.util.ArrayList<>(list.size());
+            for (GenericStack gs : list) {
+                // GenericStack does not carry craftable info; default to false.
+                // The server sends craftable stacks with amount=0 as a separate entry.
+                entries.add(new appeng.client.me.ItemRepo.RepoEntry(gs.what(), gs.amount(), false));
+            }
+            guiMonitorable.postRepoEntryUpdate(entries);
         }
     }
 

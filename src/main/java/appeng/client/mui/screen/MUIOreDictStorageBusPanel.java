@@ -30,6 +30,7 @@ import appeng.api.config.AccessRestriction;
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
 import appeng.api.config.StorageFilter;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.client.mui.widgets.MUITextFieldWidget;
@@ -45,11 +46,8 @@ import appeng.core.sync.packets.PacketValueConfig;
 import appeng.util.item.OreDictFilterMatcher;
 
 /**
- * MUI 版矿辞存储总线 GUI 面板。
- *
- * 继承 {@link MUIUpgradeablePanel}，包含矿辞正则表达式输入框、
- * 优先级/分区/读写模式/存储过滤按钮。
- */
+ * MUI 版矿辞存储总线 GUI 面板�? *
+ * 继承 {@link MUIUpgradeablePanel}，包含矿辞正则表达式输入框�? * 优先�?分区/读写模式/存储过滤按钮�? */
 public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IOreDictStorageBusGuiCallback {
 
     private static final int SEARCH_FIELD_X = 3;
@@ -73,7 +71,7 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
         this.ySize = 170;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     public void initGui() {
@@ -92,7 +90,7 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
                 SEARCH_FIELD_HEIGHT)
                         .setEnableBackground(false)
                         .setMaxStringLength(512)
-                        .setTextColor(0xFFFFFF)
+                        .setTextColor(AEMUITheme.COLOR_TEXT_FIELD)
                         .setVisible(true)
                         .setFocused(false)
                         .setValidator(str -> ORE_DICTIONARY_FILTER.matcher(str).matches())
@@ -125,14 +123,14 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.OreDictStorageBus.getLocal()), 8, 6, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.OreDictStorageBus.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
         this.fontRenderer.drawString(
                 this.getSearchFieldLength() + " / " + this.getSearchFieldMaxLength(), 120,
-                36, 4210752);
-        this.fontRenderer.drawString("& = AND    " + "| = OR", 8, 36, 4210752);
-        this.fontRenderer.drawString("^ = XOR    " + "! = NOT", 8, 48, 4210752);
-        this.fontRenderer.drawString("() for priority    " + "* for wildcard", 8, 60, 4210752);
-        this.fontRenderer.drawString("Ex.: *Redstone*&!dustRedstone", 8, 72, 4210752);
+                36, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString("& = AND    " + "| = OR", 8, 36, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString("^ = XOR    " + "! = NOT", 8, 48, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString("() for priority    " + "* for wildcard", 8, 60, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString("Ex.: *Redstone*&!dustRedstone", 8, 72, AEMUITheme.COLOR_TITLE);
 
         if (this.storageFilter != null) {
             this.storageFilter.set(container.getStorageFilter());

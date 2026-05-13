@@ -39,6 +39,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import appeng.api.AEApi;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEStack;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEBasePanelGuiHandler;
@@ -61,16 +62,16 @@ import appeng.util.item.IMixedStackList;
 import appeng.util.item.IAEStackList;
 
 /**
- * MUI 版合成确认面板。
+ * MUI 版合成确认面板�?
  * <p>
- * 功能：显示合成计划（从仓库/待合成/缺失的物品列表），选择 CPU，确认开始合成。
+ * 功能：显示合成计划（从仓�?待合�?缺失的物品列表），选择 CPU，确认开始合成�?
  * <p>
  * 特性：
  * <ul>
- *   <li>3 列 × 5 行网格显示物品</li>
- *   <li>从仓库 / 待合成 / 缺失 三种状态指示</li>
+ *   <li>3 �?× 5 行网格显示物�?/li>
+ *   <li>从仓�?/ 待合�?/ 缺失 三种状态指�?/li>
  *   <li>缺失物品红色高亮</li>
- *   <li>CPU 选择按钮（左右键切换）</li>
+ *   <li>CPU 选择按钮（左右键切换�?/li>
  *   <li>字节使用量和协处理器信息</li>
  *   <li>模拟模式标识</li>
  *   <li>合成执行次数（样板）显示</li>
@@ -102,7 +103,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
     private GuiButton selectCPU;
     private int tooltip = -1;
 
-    // ========== 构造 ==========
+    // ========== 构�?==========
 
     public MUICraftConfirmPanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(new ContainerCraftConfirm(inventoryPlayer, te));
@@ -186,7 +187,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
         this.updateScrollBar();
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
@@ -232,7 +233,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
 
         this.tooltip = -1;
 
-        // 计算鼠标悬停的物品索引
+        // 计算鼠标悬停的物品索�?
         final int offY = 23;
         int y = 0;
         int x = 0;
@@ -282,14 +283,14 @@ public class MUICraftConfirmPanel extends AEBasePanel
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        // 标题行
+        // 标题�?
         final long BytesUsed = this.ccc.getUsedBytes();
         final String byteUsed = NumberFormat.getInstance().format(BytesUsed);
         final String Add = BytesUsed > 0 ? (byteUsed + ' ' + GuiText.BytesUsed.getLocal())
                 : GuiText.CalculatingWait.getLocal();
-        this.fontRenderer.drawString(GuiText.CraftingPlan.getLocal() + " - " + Add, 8, 7, 4210752);
+        this.fontRenderer.drawString(GuiText.CraftingPlan.getLocal() + " - " + Add, 8, 7, AEMUITheme.COLOR_TITLE);
 
-        // CPU 信息行
+        // CPU 信息�?
         String dsp = null;
 
         if (this.isSimulation()) {
@@ -302,7 +303,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
         }
 
         final int offset = (219 - this.fontRenderer.getStringWidth(dsp)) / 2;
-        this.fontRenderer.drawString(dsp, offset, 165, 4210752);
+        this.fontRenderer.drawString(dsp, offset, 165, AEMUITheme.COLOR_TITLE);
 
         // 物品列表
         final int sectionLength = 67;
@@ -349,7 +350,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
                 final int negY = ((lines - 1) * 5) / 2;
                 int downY = 0;
 
-                // 从仓库
+                // 从仓�?
                 if (stored != null && stored.getStackSize() > 0) {
                     String str = Long.toString(stored.getStackSize());
                     if (stored.getStackSize() >= 10000) {
@@ -363,7 +364,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
                     final int w = 4 + this.fontRenderer.getStringWidth(str);
                     this.fontRenderer.drawString(str,
                             (int) ((x * (1 + sectionLength) + xo + sectionLength - 19 - (w * 0.5)) * 2),
-                            (y * offY + yo + 6 - negY + downY) * 2, 4210752);
+                            (y * offY + yo + 6 - negY + downY) * 2, AEMUITheme.COLOR_TITLE);
 
                     if (this.tooltip == z - viewStart) {
                         lineList.add(GuiText.FromStorage.getLocal() + ": " + stored.getStackSize());
@@ -387,7 +388,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
                     final int w = 4 + this.fontRenderer.getStringWidth(str);
                     this.fontRenderer.drawString(str,
                             (int) ((x * (1 + sectionLength) + xo + sectionLength - 19 - (w * 0.5)) * 2),
-                            (y * offY + yo + 6 - negY + downY) * 2, 4210752);
+                            (y * offY + yo + 6 - negY + downY) * 2, AEMUITheme.COLOR_TITLE);
 
                     if (this.tooltip == z - viewStart) {
                         lineList.add(GuiText.Missing.getLocal() + ": " + missingStack.getStackSize());
@@ -397,7 +398,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
                     downY += 5;
                 }
 
-                // 待合成
+                // 待合�?
                 if (pendingStack != null && pendingStack.getStackSize() > 0) {
                     String str = Long.toString(pendingStack.getStackSize());
                     if (pendingStack.getStackSize() >= 10000) {
@@ -411,7 +412,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
                     final int w = 4 + this.fontRenderer.getStringWidth(str);
                     this.fontRenderer.drawString(str,
                             (int) ((x * (1 + sectionLength) + xo + sectionLength - 19 - (w * 0.5)) * 2),
-                            (y * offY + yo + 6 - negY + downY) * 2, 4210752);
+                            (y * offY + yo + 6 - negY + downY) * 2, AEMUITheme.COLOR_TITLE);
 
                     if (this.tooltip == z - viewStart) {
                         lineList.add(GuiText.ToCraft.getLocal() + ": " + pendingStack.getStackSize());
@@ -427,7 +428,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
                         final int wRounds = 4 + this.fontRenderer.getStringWidth(roundsStr);
                         this.fontRenderer.drawString(roundsStr,
                                 (int) ((x * (1 + sectionLength) + xo + sectionLength - 19 - (wRounds * 0.5)) * 2),
-                                (y * offY + yo + 6 - negY + downY) * 2, 4210752);
+                                (y * offY + yo + 6 - negY + downY) * 2, AEMUITheme.COLOR_TITLE);
                         downY += 5;
                     }
                 }
@@ -595,7 +596,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
         return stack;
     }
 
-    // ========== 公共访问器 ==========
+    // ========== 公共访问�?==========
 
     public List<IAEStack<?>> getVisual() {
         return visual;

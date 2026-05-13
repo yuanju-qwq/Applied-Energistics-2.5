@@ -47,6 +47,7 @@ import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.core.AEConfig;
 import appeng.core.AppEng;
@@ -60,20 +61,20 @@ import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
 
 /**
- * 接口列表模块 — 从 MUIInterfaceTerminalPanel / GuiWirelessDualInterfaceTerminal 中提取的可复用组件。
+ * 接口列表模块 �?�?MUIInterfaceTerminalPanel / GuiWirelessDualInterfaceTerminal 中提取的可复用组件�?
  *
- * <p>负责：
+ * <p>负责�?
  * <ul>
  *   <li>管理 byId / providerById 数据（通过 {@link #postUpdate(NBTTagCompound)} 接收服务端同步）</li>
- *   <li>三个搜索字段（输入/输出/名称）及过滤按钮（装配器过滤/空位过滤/坏配方过滤/终端样式）</li>
+ *   <li>三个搜索字段（输�?输出/名称）及过滤按钮（装配器过滤/空位过滤/坏配方过�?终端样式�?/li>
  *   <li>刷新列表、滚动条管理</li>
  *   <li>drawBG/drawFG 中渲染接口列表行</li>
- *   <li>drawScreen 中动态创建 SlotDisconnected 和高亮按钮</li>
+ *   <li>drawScreen 中动态创�?SlotDisconnected 和高亮按�?/li>
  *   <li>键盘/鼠标事件转发</li>
  *   <li>方块高亮定位</li>
  * </ul>
  *
- * <p>宿主 GUI 通过 {@link Host} 接口提供上下文。
+ * <p>宿主 GUI 通过 {@link Host} 接口提供上下文�?
  */
 public class InterfaceListModule {
 
@@ -87,7 +88,7 @@ public class InterfaceListModule {
     // ========== 宿主接口 ==========
 
     /**
-     * 宿主 GUI 必须实现此接口来提供模块所需的上下文。
+     * 宿主 GUI 必须实现此接口来提供模块所需的上下文�?
      */
     public interface Host {
         int getGuiLeft();
@@ -111,22 +112,22 @@ public class InterfaceListModule {
         AEBasePanel getPanel();
 
         /**
-         * 请求宿主重新初始化 GUI。
+         * 请求宿主重新初始�?GUI�?
          */
         void requestReinitialize();
 
         /**
-         * 绑定纹理。
+         * 绑定纹理�?
          */
         void bindTexture(String file);
 
         /**
-         * 在指定位置绘制纹理矩形。
+         * 在指定位置绘制纹理矩形�?
          */
         void drawTexturedModalRect(int x, int y, int textureX, int textureY, int width, int height);
 
         /**
-         * 获取 JEI 偏移量（如果 JEI 启用则为 24，否则为 0）。
+         * 获取 JEI 偏移量（如果 JEI 启用则为 24，否则为 0）�?
          */
         int getJeiOffset();
     }
@@ -164,10 +165,10 @@ public class InterfaceListModule {
     private boolean onlyBrokenRecipes = false;
     private int rows = 6;
 
-    /** 是否启用每行"加倍"按钮（WirelessDualInterfaceTerminal 独有功能） */
+    /** 是否启用每行"加�?按钮（WirelessDualInterfaceTerminal 独有功能�?*/
     private boolean enableDoubleButton = false;
 
-    // ========== 构造 ==========
+    // ========== 构�?==========
 
     public InterfaceListModule(Host host) {
         this.host = host;
@@ -176,14 +177,14 @@ public class InterfaceListModule {
     // ========== 配置 ==========
 
     /**
-     * 设置是否启用每行"加倍"按钮。
-     * WirelessDualInterfaceTerminal 使用此功能，普通接口终端不使用。
+     * 设置是否启用每行"加�?按钮�?
+     * WirelessDualInterfaceTerminal 使用此功能，普通接口终端不使用�?
      */
     public void setEnableDoubleButton(boolean enable) {
         this.enableDoubleButton = enable;
     }
 
-    // ========== 访问器 ==========
+    // ========== 访问�?==========
 
     public int getRows() {
         return rows;
@@ -241,11 +242,11 @@ public class InterfaceListModule {
                 .build();
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     /**
-     * 计算行数（根据终端样式和屏幕高度）。
-     * 必须在 initGui 流程中调用。
+     * 计算行数（根据终端样式和屏幕高度）�?
+     * 必须�?initGui 流程中调用�?
      */
     public void calculateRows() {
         final int jeiSearchOffset = Platform.isJEICenterSearchBarEnabled() ? 40 : 0;
@@ -259,8 +260,8 @@ public class InterfaceListModule {
     }
 
     /**
-     * 初始化搜索字段和过滤按钮。
-     * 必须在 calculateRows 之后、宿主设置 ySize/guiTop 之后调用。
+     * 初始化搜索字段和过滤按钮�?
+     * 必须�?calculateRows 之后、宿主设�?ySize/guiTop 之后调用�?
      */
     public void initSearchFieldsAndButtons() {
         final int guiLeft = host.getGuiLeft();
@@ -290,7 +291,7 @@ public class InterfaceListModule {
         this.updateScrollBar();
     }
 
-    // ========== 滚动条 ==========
+    // ========== 滚动�?==========
 
     public void updateScrollBar() {
         GuiScrollbar sb = host.getInterfaceScrollBar();
@@ -301,8 +302,8 @@ public class InterfaceListModule {
     // ========== 渲染: drawBG ==========
 
     /**
-     * 绘制接口列表的背景部分（行背景 + 槽位背景 + 搜索框）。
-     * 不包括顶部和底部（由宿主绘制）。
+     * 绘制接口列表的背景部分（行背�?+ 槽位背景 + 搜索框）�?
+     * 不包括顶部和底部（由宿主绘制）�?
      */
     public void drawBG(int offsetX, int offsetY) {
         host.bindTexture("guis/newinterfaceterminal.png");
@@ -310,7 +311,7 @@ public class InterfaceListModule {
         // 顶部背景
         host.drawTexturedModalRect(offsetX, offsetY, 0, 0, MAIN_GUI_WIDTH, 53);
 
-        // 行背景
+        // 行背�?
         for (int x = 0; x < this.rows; x++) {
             host.drawTexturedModalRect(offsetX, offsetY + 53 + x * 18, 0, 52, MAIN_GUI_WIDTH, 18);
         }
@@ -345,7 +346,7 @@ public class InterfaceListModule {
             }
         }
 
-        // 底部背景（玩家物品栏）
+        // 底部背景（玩家物品栏�?
         host.drawTexturedModalRect(offsetX, offsetY + 50 + this.rows * 18, 0, 158, MAIN_GUI_WIDTH, 99);
 
         // 搜索框由 panel widget 生命周期统一绘制
@@ -354,12 +355,12 @@ public class InterfaceListModule {
     // ========== 渲染: drawFG ==========
 
     /**
-     * 绘制接口列表的前景部分（标题、接口名、匹配高亮）。
+     * 绘制接口列表的前景部分（标题、接口名、匹配高亮）�?
      */
     public void drawFG(int offsetX, int offsetY, String title) {
         FontRenderer fr = host.getFontRenderer();
-        fr.drawString(title, OFFSET_X + 2, 6, 4210752);
-        fr.drawString(GuiText.inventory.getLocal(), OFFSET_X + 2, host.getYSize() - 96, 4210752);
+        fr.drawString(title, OFFSET_X + 2, 6, AEMUITheme.COLOR_TITLE);
+        fr.drawString(GuiText.inventory.getLocal(), OFFSET_X + 2, host.getYSize() - 96, AEMUITheme.COLOR_TITLE);
 
         final int currentScroll = host.getInterfaceScrollBar().getCurrentScroll();
 
@@ -398,18 +399,18 @@ public class InterfaceListModule {
                 while (name.length() > 2 && fr.getStringWidth(name) > 158) {
                     name = name.substring(0, name.length() - 1);
                 }
-                fr.drawString(name, OFFSET_X + 3, 6 + offset, 4210752);
+                fr.drawString(name, OFFSET_X + 3, 6 + offset, AEMUITheme.COLOR_TITLE);
                 linesDraw++;
                 offset += 18;
             }
         }
     }
 
-    // ========== 渲染: drawScreen（动态槽位/按钮创建） ==========
+    // ========== 渲染: drawScreen（动态槽�?按钮创建�?==========
 
     /**
-     * 在 drawScreen 中调用，创建动态 SlotDisconnected 和高亮/加倍按钮。
-     * 必须在 buttonList.clear() 之后、super.drawScreen() 之前调用。
+     * �?drawScreen 中调用，创建动�?SlotDisconnected 和高�?加倍按钮�?
+     * 必须�?buttonList.clear() 之后、super.drawScreen() 之前调用�?
      */
     public void populateDynamicSlots() {
         final List<GuiButton> buttonList = host.getButtonList();
@@ -482,7 +483,7 @@ public class InterfaceListModule {
     }
 
     /**
-     * 搜索框 tooltip 已由统一 widget 生命周期处理。
+     * 搜索�?tooltip 已由统一 widget 生命周期处理�?
      */
     public void drawSearchFieldTooltips(AEBasePanel panel, int mouseX, int mouseY) {
     }
@@ -490,7 +491,7 @@ public class InterfaceListModule {
     // ========== 输入处理 ==========
 
     /**
-     * 处理鼠标点击（搜索框焦点）。
+     * 处理鼠标点击（搜索框焦点）�?
      */
     public void mouseClicked(int xCoord, int yCoord, int btn) {
         this.searchFieldInputs.mouseClicked(xCoord - host.getGuiLeft(), yCoord - host.getGuiTop(), btn);
@@ -499,9 +500,9 @@ public class InterfaceListModule {
     }
 
     /**
-     * 处理键盘事件。
+     * 处理键盘事件�?
      *
-     * @return true 如果事件被消费（不应传递给宿主 super.keyTyped）
+     * @return true 如果事件被消费（不应传递给宿主 super.keyTyped�?
      */
     public boolean keyTyped(char character, int key) {
         if (character == ' ') {
@@ -527,9 +528,9 @@ public class InterfaceListModule {
     }
 
     /**
-     * 处理按钮点击。
+     * 处理按钮点击�?
      *
-     * @return true 如果事件被消费
+     * @return true 如果事件被消�?
      */
     public boolean actionPerformed(GuiButton btn, GuiButton selectedButton) {
         if (guiButtonHashMap.containsKey(btn)) {
@@ -593,10 +594,10 @@ public class InterfaceListModule {
         return false;
     }
 
-    // ========== Tab 键循环 ==========
+    // ========== Tab 键循�?==========
 
     /**
-     * Tab 键循环搜索框焦点。
+     * Tab 键循环搜索框焦点�?
      *
      * @return true 如果焦点切换成功
      */
@@ -630,7 +631,7 @@ public class InterfaceListModule {
     }
 
     /**
-     * 检查任一搜索框是否有焦点。
+     * 检查任一搜索框是否有焦点�?
      */
     public boolean isAnySearchFieldFocused() {
         return (searchFieldInputs != null && searchFieldInputs.isFocused())
@@ -639,7 +640,7 @@ public class InterfaceListModule {
     }
 
     /**
-     * 获取当前有焦点的搜索框索引（0=Inputs, 1=Outputs, 2=Names, -1=无）。
+     * 获取当前有焦点的搜索框索引（0=Inputs, 1=Outputs, 2=Names, -1=无）�?
      */
     public int getFocusedFieldIndex() {
         if (searchFieldInputs != null && searchFieldInputs.isFocused()) return 0;
@@ -649,7 +650,7 @@ public class InterfaceListModule {
     }
 
     /**
-     * 设置搜索框焦点。
+     * 设置搜索框焦点�?
      */
     public void setFocusedField(int index) {
         if (searchFieldInputs != null) searchFieldInputs.setFocused(index == 0);
@@ -658,7 +659,7 @@ public class InterfaceListModule {
     }
 
     /**
-     * 取消所有搜索框焦点。
+     * 取消所有搜索框焦点�?
      */
     public void clearFocus() {
         if (searchFieldInputs != null) searchFieldInputs.setFocused(false);
@@ -669,8 +670,8 @@ public class InterfaceListModule {
     // ========== 数据更新 ==========
 
     /**
-     * 处理来自服务端的 NBT 增量更新。
-     * 由宿主的 IInterfaceTerminalGuiCallback.postUpdate 转发调用。
+     * 处理来自服务端的 NBT 增量更新�?
+     * 由宿主的 IInterfaceTerminalGuiCallback.postUpdate 转发调用�?
      */
     public void postUpdate(final NBTTagCompound in) {
         if (in.getBoolean("clear")) {
@@ -729,8 +730,8 @@ public class InterfaceListModule {
     // ========== 列表管理 ==========
 
     /**
-     * 重建接口列表。
-     * 根据搜索条件过滤，并更新 lines 和滚动条。
+     * 重建接口列表�?
+     * 根据搜索条件过滤，并更新 lines 和滚动条�?
      */
     public void refreshList() {
         this.byName.clear();
@@ -745,11 +746,11 @@ public class InterfaceListModule {
                         + "NAME:" + searchNames + onlyShowWithSpace + onlyMolecularAssemblers + onlyBrokenRecipes);
         final boolean rebuild = cachedSearch.isEmpty();
 
-        // 搜索旧接口
+        // 搜索旧接�?
         this.filterEntries(this.byId.values(), cachedSearch, rebuild, searchInputs, searchOutputs,
                 searchNames);
 
-        // 搜索样板供应器
+        // 搜索样板供应�?
         this.filterEntries(this.providerById.values(), cachedSearch, rebuild, searchInputs, searchOutputs,
                 searchNames);
 

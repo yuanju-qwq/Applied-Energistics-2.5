@@ -45,6 +45,7 @@ import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
@@ -512,5 +513,20 @@ public class ContainerFluidTerminal extends AEBaseContainer
         if (gui instanceof IPortableFluidCellGuiCallback callback) {
             callback.postUpdate(list);
         }
+    }
+
+    /**
+     * Client-side handler for {@link appeng.core.sync.packets.PacketMEGenericStackUpdate}.
+     * Converts GenericStack list to IAEStack and delegates to the legacy method.
+     */
+    public void postGenericStackUpdate(final List<GenericStack> list) {
+        final List<IAEStack<?>> converted = new java.util.ArrayList<>(list.size());
+        for (GenericStack gs : list) {
+            IAEStack<?> aeStack = gs.toIAEStack();
+            if (aeStack != null) {
+                converted.add(aeStack);
+            }
+        }
+        this.postUpdate(converted);
     }
 }

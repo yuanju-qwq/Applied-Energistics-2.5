@@ -23,6 +23,7 @@ import java.io.IOException;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.entity.player.InventoryPlayer;
 
+import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.AEBasePanel;
 import appeng.container.implementations.ContainerQuartzKnife;
 import appeng.core.AELog;
@@ -32,13 +33,13 @@ import appeng.core.sync.packets.PacketValueConfig;
 import appeng.items.contents.QuartzKnifeObj;
 
 /**
- * MUI 版石英切割刀 GUI 面板。
+ * MUI 版石英切割刀 GUI 面板�?
  *
- * 提供物品命名文本输入框，用于给处理器/存储组件命名。
+ * 提供物品命名文本输入框，用于给处理器/存储组件命名�?
  */
 public class MUIQuartzKnifePanel extends AEBasePanel {
 
-    // ========== 文本框 ==========
+    // ========== 文本�?==========
     private GuiTextField name;
 
     public MUIQuartzKnifePanel(final InventoryPlayer ip, final QuartzKnifeObj te) {
@@ -50,11 +51,11 @@ public class MUIQuartzKnifePanel extends AEBasePanel {
         this.ySize = 184;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始化
+        // initGui 处理初始�?
     }
 
     @Override
@@ -65,7 +66,7 @@ public class MUIQuartzKnifePanel extends AEBasePanel {
                 this.fontRenderer.FONT_HEIGHT);
         this.name.setEnableBackgroundDrawing(false);
         this.name.setMaxStringLength(32);
-        this.name.setTextColor(0xFFFFFF);
+        this.name.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
         this.name.setVisible(true);
         this.name.setFocused(true);
     }
@@ -74,8 +75,8 @@ public class MUIQuartzKnifePanel extends AEBasePanel {
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.QuartzCuttingKnife.getLocal()), 8, 6, 4210752);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.QuartzCuttingKnife.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
     }
 
     @Override

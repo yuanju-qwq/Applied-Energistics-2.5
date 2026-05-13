@@ -29,10 +29,12 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import appeng.api.stacks.AEKey;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.gui.slots.VirtualMESlot;
 import appeng.client.gui.widgets.ITooltip;
+import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.client.me.SlotME;
 import appeng.container.slot.AppEngSlot;
 import appeng.container.slot.SlotPlayerHotBar;
@@ -142,12 +144,15 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
         super.renderToolTip(stack, x, y);
     }
 
-    // ========== VirtualMESlot Tooltip ==========
+    // ========== VirtualMESlot Tooltip (AEKey-based) ==========
 
     /**
-     * 覆写 tooltip 绘制，为 VirtualMESlot 提供富信息 tooltip。
+     * Override tooltip drawing to provide rich tooltip for VirtualMESlot.
      * <p>
-     * 包含：物品原始 tooltip + 库存数量 + 可请求数量 + 可合成标记 + 子类追加信息。
+     * Uses AEKey-based {@link RepoEntry} as the primary data source, with
+     * fallback to legacy IAEStack for requestable count (not available in RepoEntry).
+     * <p>
+     * Includes: item original tooltip + stored amount + craftable flag + subclass additions.
      */
     @Override
     public void drawTooltip(ITooltip tooltip, int mouseX, int mouseY) {
@@ -158,35 +163,37 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
             if (tx < mouseX && tx + tooltip.getWidth() > mouseX
                     && ty < mouseY && ty + tooltip.getHeight() > mouseY) {
 
-                IAEStack<?> aeStack = virtualSlot.getAEStack();
-                if (aeStack != null) {
-                    // 获取物品的原始 tooltip
-                    ItemStack displayStack = aeStack.asItemStackRepresentation();
+                // Use AEKey-based RepoEntry as primary data source
+                RepoEntry entry = virtualSlot.getRepoEntry();
+                if (entry != null) {
+                    AEKey what = entry.what();
+                    ItemStack displayStack = what.asItemStackRepresentation();
                     if (!displayStack.isEmpty()) {
                         final List<String> lines = this.getItemToolTip(displayStack);
 
-                        // 添加大数字格式化的精确数量
-                        if (aeStack.getStackSize() > 1) {
+                        // Stored amount (from RepoEntry)
+                        if (entry.amount() > 1) {
                             final String local = ButtonToolTips.ItemsStored.getLocal();
                             final String formattedAmount = NumberFormat.getNumberInstance(Locale.US)
-                                    .format(aeStack.getStackSize());
+                                    .format(entry.amount());
                             lines.add(TextFormatting.GRAY + String.format(local, formattedAmount));
                         }
 
-                        // 添加可请求数量
-                        if (aeStack.getCountRequestable() > 0) {
+                        // Requestable count: requires legacy IAEStack (not available in RepoEntry)
+                        IAEStack<?> aeStack = virtualSlot.getAEStack();
+                        if (aeStack != null && aeStack.getCountRequestable() > 0) {
                             final String local = ButtonToolTips.ItemsRequestable.getLocal();
                             final String formattedAmount = NumberFormat.getNumberInstance(Locale.US)
                                     .format(aeStack.getCountRequestable());
                             lines.add(String.format(local, formattedAmount));
                         }
 
-                        // 添加可合成标记
-                        if (aeStack.isCraftable() && AEConfig.instance().isShowCraftableTooltip()) {
+                        // Craftable flag (from RepoEntry)
+                        if (entry.craftable() && AEConfig.instance().isShowCraftableTooltip()) {
                             lines.add(TextFormatting.GRAY + ButtonToolTips.ItemsCraftable.getLocal());
                         }
 
-                        // 调用子类追加 tooltip
+                        // Subclass additions
                         virtualSlot.addTooltip(lines);
 
                         if (ty < 15) {

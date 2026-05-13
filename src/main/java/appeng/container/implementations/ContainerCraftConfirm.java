@@ -50,6 +50,7 @@ import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
+import appeng.api.stacks.GenericStack;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
 import appeng.container.interfaces.ICraftConfirmGuiCallback;
@@ -457,6 +458,21 @@ public class ContainerCraftConfirm extends AEBaseContainer {
         if (this.guiCallback != null) {
             this.guiCallback.postGenericUpdate(list, ref);
         }
+    }
+
+    /**
+     * Client-side handler for {@link appeng.core.sync.packets.PacketMEGenericStackUpdate}.
+     * Converts GenericStack list to IAEStack and delegates to the legacy method.
+     */
+    public void postGenericStackUpdate(final List<GenericStack> list, final byte ref) {
+        final List<IAEStack<?>> converted = new java.util.ArrayList<>(list.size());
+        for (GenericStack gs : list) {
+            IAEStack<?> aeStack = gs.toIAEStack();
+            if (aeStack != null) {
+                converted.add(aeStack);
+            }
+        }
+        this.postGenericUpdate(converted, ref);
     }
 
     /**

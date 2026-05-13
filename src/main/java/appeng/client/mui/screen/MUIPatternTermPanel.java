@@ -40,6 +40,7 @@ import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.slots.VirtualMEPatternSlot;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
@@ -60,14 +61,14 @@ import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStackType;
 
 /**
- * MUI 版样板终端面板。
+ * MUI 版样板终端面板�?
  * <p>
  * 继承 {@link MUIMEMonitorablePanel}，增加样板编码功能：
  * <ul>
- *   <li>合成/处理双模式切换</li>
- *   <li>3×3 虚拟合成网格（VirtualMEPatternSlot）</li>
- *   <li>输出槽虚拟显示</li>
- *   <li>材料替代开关</li>
+ *   <li>合成/处理双模式切�?/li>
+ *   <li>3×3 虚拟合成网格（VirtualMEPatternSlot�?/li>
+ *   <li>输出槽虚拟显�?/li>
+ *   <li>材料替代开�?/li>
  *   <li>数量乘除按钮</li>
  *   <li>编码/清除按钮</li>
  *   <li>JEI 幽灵拖拽支持</li>
@@ -112,7 +113,7 @@ public class MUIPatternTermPanel extends MUIMEMonitorablePanel implements IJEIGh
     protected VirtualMEPatternSlot[] outputVSlots;
     protected Boolean lastCraftingMode;
 
-    // ========== 构造 ==========
+    // ========== 构�?==========
 
     public MUIPatternTermPanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(inventoryPlayer, te, new ContainerPatternTerm(inventoryPlayer, te));
@@ -185,7 +186,7 @@ public class MUIPatternTermPanel extends MUIMEMonitorablePanel implements IJEIGh
         }
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     public void initGui() {
@@ -308,7 +309,7 @@ public class MUIPatternTermPanel extends MUIMEMonitorablePanel implements IJEIGh
 
         super.drawFG(offsetX, offsetY, mouseX, mouseY);
         this.fontRenderer.drawString(GuiText.PatternTerminal.getLocal(), 8,
-                this.ySize - 96 + 2 - this.getReservedSpace(), 4210752);
+                this.ySize - 96 + 2 - this.getReservedSpace(), AEMUITheme.COLOR_TITLE);
     }
 
     @Override

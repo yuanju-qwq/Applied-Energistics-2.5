@@ -30,6 +30,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStackType;
 import appeng.client.me.ItemRepo;
@@ -40,7 +41,7 @@ import appeng.client.mui.IMUIWidget;
  * MUI 类型筛选控件。
  * <p>
  * 显示一排类型切换按钮（物品、流体等），点击切换某类型的显示/隐藏。
- * 与 {@link ItemRepo} 联动：点击时自动调用 {@link ItemRepo#setTypeFilter(IAEStackType, boolean)}。
+ * 与 {@link ItemRepo} 联动：点击时自动调用 {@link ItemRepo#setTypeFilter(AEKeyType, boolean)}。
  */
 @SideOnly(Side.CLIENT)
 public class MUITypeFilter implements IMUIWidget {
@@ -49,16 +50,18 @@ public class MUITypeFilter implements IMUIWidget {
             "textures/guis/states.png");
 
     /**
-     * 类型按钮数据。
+     * Type button data, now uses AEKeyType.
      */
     private static final class TypeButton {
-        final IAEStackType<?> type;
+        final AEKeyType keyType;
+        final IAEStackType<?> legacyType;
         boolean enabled;
         int x;
         int y;
 
-        TypeButton(IAEStackType<?> type, boolean enabled, int x, int y) {
-            this.type = type;
+        TypeButton(AEKeyType keyType, IAEStackType<?> legacyType, boolean enabled, int x, int y) {
+            this.keyType = keyType;
+            this.legacyType = legacyType;
             this.enabled = enabled;
             this.x = x;
             this.y = y;
@@ -85,29 +88,50 @@ public class MUITypeFilter implements IMUIWidget {
     }
 
     /**
-     * 根据已注册的所有 IAEStackType 自动构建按钮。
-     * 全部默认启用。
+     * Build buttons from all registered IAEStackTypes, using AEKeyType as identity.
+     * All types default to enabled.
      */
     public MUITypeFilter buildFromRegistry() {
         this.buttons.clear();
         int idx = 0;
-        for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
-            int x = this.baseX + idx * this.spacing;
-            this.buttons.add(new TypeButton(type, true, x, this.baseY));
-            idx++;
+        for (IAEStackType<?> legacyType : AEStackTypeRegistry.getAllTypes()) {
+            AEKeyType keyType = AEKeyType.fromLegacyType(legacyType);
+            if (keyType != null) {
+                int x = this.baseX + idx * this.spacing;
+                this.buttons.add(new TypeButton(keyType, legacyType, true, x, this.baseY));
+                idx++;
+            }
         }
         syncToRepo();
         return this;
     }
 
     /**
-     * 从指定类型列表构建按钮。
+     * Build buttons from an array of AEKeyTypes.
      */
-    public MUITypeFilter buildFromTypes(IAEStackType<?>... types) {
+    public MUITypeFilter buildFromKeyTypes(AEKeyType... types) {
         this.buttons.clear();
         for (int i = 0; i < types.length; i++) {
             int x = this.baseX + i * this.spacing;
-            this.buttons.add(new TypeButton(types[i], true, x, this.baseY));
+            this.buttons.add(new TypeButton(types[i], types[i].getLegacyType(), true, x, this.baseY));
+        }
+        syncToRepo();
+        return this;
+    }
+
+    /**
+     * @deprecated Use {@link #buildFromKeyTypes(AEKeyType...)} instead.
+     * 从指定类型列表构建按钮。
+     */
+    @Deprecated
+    public MUITypeFilter buildFromTypes(IAEStackType<?>... types) {
+        this.buttons.clear();
+        for (int i = 0; i < types.length; i++) {
+            AEKeyType keyType = AEKeyType.fromLegacyType(types[i]);
+            if (keyType != null) {
+                int x = this.baseX + i * this.spacing;
+                this.buttons.add(new TypeButton(keyType, types[i], true, x, this.baseY));
+            }
         }
         syncToRepo();
         return this;
@@ -129,13 +153,13 @@ public class MUITypeFilter implements IMUIWidget {
             mc.getTextureManager().bindTexture(STATES_TEXTURE);
             Gui.drawModalRectWithCustomSizedTexture(screenX, screenY, 240, 240, 16, 16, 256, 256);
 
-            // 类型图标
-            ResourceLocation tex = btn.type.getButtonTexture();
+            // 类型图标 (use legacyType for texture references)
+            ResourceLocation tex = btn.legacyType.getButtonTexture();
             if (tex != null) {
                 mc.getTextureManager().bindTexture(tex);
             }
-            int iconU = btn.type.getButtonIconU();
-            int iconV = btn.type.getButtonIconV();
+            int iconU = btn.legacyType.getButtonIconU();
+            int iconV = btn.legacyType.getButtonIconV();
 
             if (btn.enabled) {
                 GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
@@ -165,14 +189,14 @@ public class MUITypeFilter implements IMUIWidget {
     // ========== 联动 ==========
 
     /**
-     * 将当前按钮状态同步到关联的 ItemRepo。
+     * Sync current button states to the associated ItemRepo using AEKeyType.
      */
     private void syncToRepo() {
         if (this.repo == null) {
             return;
         }
         for (TypeButton btn : this.buttons) {
-            this.repo.setTypeFilter(btn.type, btn.enabled);
+            this.repo.setTypeFilter(btn.keyType, btn.enabled);
         }
     }
 
@@ -185,11 +209,11 @@ public class MUITypeFilter implements IMUIWidget {
     }
 
     /**
-     * 判断指定类型是否启用。
+     * Check if a given AEKeyType is enabled.
      */
-    public boolean isTypeEnabled(IAEStackType<?> type) {
+    public boolean isTypeEnabled(AEKeyType type) {
         for (TypeButton btn : this.buttons) {
-            if (btn.type == type) {
+            if (btn.keyType == type) {
                 return btn.enabled;
             }
         }
@@ -197,16 +221,39 @@ public class MUITypeFilter implements IMUIWidget {
     }
 
     /**
-     * 设置指定类型的启用状态。
+     * @deprecated Use {@link #isTypeEnabled(AEKeyType)} instead.
+     * 判断指定类型是否启用。
      */
-    public MUITypeFilter setTypeEnabled(IAEStackType<?> type, boolean enabled) {
+    @Deprecated
+    public boolean isTypeEnabled(IAEStackType<?> type) {
+        AEKeyType keyType = AEKeyType.fromLegacyType(type);
+        return keyType != null && isTypeEnabled(keyType);
+    }
+
+    /**
+     * Set enable state for an AEKeyType.
+     */
+    public MUITypeFilter setTypeEnabled(AEKeyType type, boolean enabled) {
         for (TypeButton btn : this.buttons) {
-            if (btn.type == type) {
+            if (btn.keyType == type) {
                 btn.enabled = enabled;
                 break;
             }
         }
         syncToRepo();
+        return this;
+    }
+
+    /**
+     * @deprecated Use {@link #setTypeEnabled(AEKeyType, boolean)} instead.
+     * 设置指定类型的启用状态。
+     */
+    @Deprecated
+    public MUITypeFilter setTypeEnabled(IAEStackType<?> type, boolean enabled) {
+        AEKeyType keyType = AEKeyType.fromLegacyType(type);
+        if (keyType != null) {
+            setTypeEnabled(keyType, enabled);
+        }
         return this;
     }
 }

@@ -43,6 +43,7 @@ import net.minecraftforge.common.util.Constants;
 
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.me.ClientDCInternalInv;
@@ -63,11 +64,11 @@ import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
 
 /**
- * MUI 版接口终端 GUI 面板。
+ * MUI 版接口终�?GUI 面板�?
  *
- * 显示 ME 网络中所有接口和样板供应器的样板列表，
- * 支持搜索过滤（输入/输出/名称）、分子装配器过滤、空位过滤、坏配方过滤、
- * 滚动列表、方块高亮定位、SlotDisconnected 样板操作。
+ * 显示 ME 网络中所有接口和样板供应器的样板列表�?
+ * 支持搜索过滤（输�?输出/名称）、分子装配器过滤、空位过滤、坏配方过滤�?
+ * 滚动列表、方块高亮定位、SlotDisconnected 样板操作�?
  */
 public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterfaceTerminalGuiCallback {
 
@@ -165,7 +166,7 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
         this.getScrollBar().setRange(0, this.lines.size() - 1, 1);
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
@@ -234,8 +235,8 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.InterfaceTerminal.getLocal()), OFFSET_X + 2, 6,
-                4210752);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), OFFSET_X + 2, this.ySize - 96, 4210752);
+                AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), OFFSET_X + 2, this.ySize - 96, AEMUITheme.COLOR_TITLE);
 
         final int currentScroll = this.getScrollBar().getCurrentScroll();
 
@@ -273,7 +274,7 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
                 while (name.length() > 2 && this.fontRenderer.getStringWidth(name) > 158) {
                     name = name.substring(0, name.length() - 1);
                 }
-                this.fontRenderer.drawString(name, OFFSET_X + 3, 6 + offset, 4210752);
+                this.fontRenderer.drawString(name, OFFSET_X + 3, 6 + offset, AEMUITheme.COLOR_TITLE);
                 linesDraw++;
                 offset += 18;
             }
@@ -345,7 +346,7 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
         // 顶部背景
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, 53);
 
-        // 行背景
+        // 行背�?
         for (int x = 0; x < this.rows; x++) {
             this.drawTexturedModalRect(offsetX, offsetY + 53 + x * 18, 0, 52, this.xSize, 18);
         }
@@ -380,7 +381,7 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
             }
         }
 
-        // 底部背景（玩家物品栏）
+        // 底部背景（玩家物品栏�?
         this.drawTexturedModalRect(offsetX, offsetY + 50 + this.rows * 18, 0, 158, this.xSize, 99);
     }
 
@@ -581,11 +582,11 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
                         + "NAME:" + searchFieldNames + onlyShowWithSpace + onlyMolecularAssemblers + onlyBrokenRecipes);
         final boolean rebuild = cachedSearch.isEmpty();
 
-        // 搜索旧接口
+        // 搜索旧接�?
         this.filterEntries(this.byId.values(), cachedSearch, rebuild, searchFieldInputs, searchFieldOutputs,
                 searchFieldNames);
 
-        // 搜索样板供应器
+        // 搜索样板供应�?
         this.filterEntries(this.providerById.values(), cachedSearch, rebuild, searchFieldInputs, searchFieldOutputs,
                 searchFieldNames);
 

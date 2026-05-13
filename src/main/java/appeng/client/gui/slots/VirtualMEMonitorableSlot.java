@@ -30,6 +30,7 @@ import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.me.ItemRepo;
+import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.container.AEBaseContainer;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
@@ -53,10 +54,20 @@ public class VirtualMEMonitorableSlot extends VirtualMESlot {
         this.showCraftableIcon = true;
     }
 
+    /**
+     * Returns the RepoEntry directly from ItemRepo (no IAEStack intermediate).
+     */
+    @Override
+    @Nullable
+    public RepoEntry getRepoEntry() {
+        return this.repo.getEntry(this.slotIndex);
+    }
+
     @Override
     @Nullable
     public IAEStack<?> getAEStack() {
-        return this.repo.getReferenceItem(this.slotIndex);
+        RepoEntry entry = this.repo.getEntry(this.slotIndex);
+        return entry != null ? entry.toIAEStack() : null;
     }
 
     @Override

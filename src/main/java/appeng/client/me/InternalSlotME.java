@@ -20,6 +20,7 @@ package appeng.client.me;
 
 import net.minecraft.item.ItemStack;
 
+import appeng.api.stacks.AEItemKey;
 import appeng.api.storage.data.IAEItemStack;
 
 public class InternalSlotME {
@@ -37,11 +38,19 @@ public class InternalSlotME {
     }
 
     ItemStack getStack() {
-        return this.getAEStack() == null ? ItemStack.EMPTY : this.getAEStack().asItemStackRepresentation();
+        ItemRepo.RepoEntry entry = this.repo.getEntry(this.offset);
+        if (entry == null) {
+            return ItemStack.EMPTY;
+        }
+        return entry.what().asItemStackRepresentation();
     }
 
     IAEItemStack getAEStack() {
-        final appeng.api.storage.data.IAEStack<?> stack = this.repo.getReferenceItem(this.offset);
+        ItemRepo.RepoEntry entry = this.repo.getEntry(this.offset);
+        if (entry == null) {
+            return null;
+        }
+        var stack = entry.toIAEStack();
         return stack instanceof IAEItemStack itemStack ? itemStack : null;
     }
 

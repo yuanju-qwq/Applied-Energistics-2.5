@@ -34,6 +34,7 @@ import appeng.api.networking.IGridNode;
 import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.container.AEBaseContainer;
@@ -60,6 +61,25 @@ public class ContainerNetworkStatus extends AEBaseContainer {
      * GUI 回调接口，用于接收网络状态更新。
      */
     public interface INetworkStatusGuiCallback {
+        /**
+         * Receive updates using RepoEntry list (preferred path).
+         */
+        default void postRepoEntryUpdate(List<appeng.client.me.ItemRepo.RepoEntry> entries) {
+            // Default: convert to legacy path
+            java.util.ArrayList<IAEStack<?>> legacyList = new java.util.ArrayList<>(entries.size());
+            for (appeng.client.me.ItemRepo.RepoEntry entry : entries) {
+                IAEStack<?> stack = entry.toIAEStack();
+                if (stack != null) {
+                    legacyList.add(stack);
+                }
+            }
+            postUpdate(legacyList);
+        }
+
+        /**
+         * @deprecated Use {@link #postRepoEntryUpdate(List)} instead.
+         */
+        @Deprecated
         void postUpdate(List<IAEStack<?>> list);
     }
 
@@ -171,6 +191,20 @@ public class ContainerNetworkStatus extends AEBaseContainer {
 
     public void postUpdate(final List<IAEStack<?>> list) {
         this.guiNetworkStatus.postUpdate(list);
+    }
+
+    /**
+     * Client-side handler for {@link appeng.core.sync.packets.PacketMEGenericStackUpdate}.
+     * Converts GenericStack list directly to RepoEntry and dispatches to GUI.
+     */
+    public void postGenericStackUpdate(final List<GenericStack> list) {
+        if (this.guiNetworkStatus != null) {
+            final List<appeng.client.me.ItemRepo.RepoEntry> entries = new java.util.ArrayList<>(list.size());
+            for (GenericStack gs : list) {
+                entries.add(new appeng.client.me.ItemRepo.RepoEntry(gs.what(), gs.amount(), false));
+            }
+            this.guiNetworkStatus.postRepoEntryUpdate(entries);
+        }
     }
 
     public void setGui(INetworkStatusGuiCallback guiNetworkStatus) {

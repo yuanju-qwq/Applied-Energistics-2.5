@@ -26,6 +26,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.Settings;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.mui.AEBasePanel;
 import appeng.container.implementations.ContainerSpatialIOPort;
@@ -35,9 +36,9 @@ import appeng.tile.spatial.TileSpatialIOPort;
 import appeng.util.Platform;
 
 /**
- * MUI 版空间 IO 端口 GUI 面板。
+ * MUI 版空�?IO 端口 GUI 面板�?
  *
- * 显示存储/最大功率、所需功率、效率、SCS 尺寸等信息，以及电源单位切换按钮。
+ * 显示存储/最大功率、所需功率、效率、SCS 尺寸等信息，以及电源单位切换按钮�?
  */
 public class MUISpatialIOPortPanel extends AEBasePanel {
 
@@ -56,11 +57,11 @@ public class MUISpatialIOPortPanel extends AEBasePanel {
         this.ySize = 199;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始化
+        // initGui 处理初始�?
     }
 
     @Override
@@ -79,28 +80,28 @@ public class MUISpatialIOPortPanel extends AEBasePanel {
         this.fontRenderer.drawString(
                 GuiText.StoredPower.getLocal() + ": "
                         + Platform.formatPowerLong(this.container.getCurrentPower(), false),
-                13, 21, 4210752);
+                13, 21, AEMUITheme.COLOR_TITLE);
         this.fontRenderer.drawString(
                 GuiText.MaxPower.getLocal() + ": " + Platform.formatPowerLong(this.container.getMaxPower(), false), 13,
-                31, 4210752);
+                31, AEMUITheme.COLOR_TITLE);
         this.fontRenderer.drawString(
                 GuiText.RequiredPower.getLocal() + ": "
                         + Platform.formatPowerLong(this.container.getRequiredPower(), false),
-                13, 73, 4210752);
+                13, 73, AEMUITheme.COLOR_TITLE);
         this.fontRenderer.drawString(
                 GuiText.Efficiency.getLocal() + ": " + (((float) this.container.getEfficency()) / 100) + '%', 13, 83,
-                4210752);
+                AEMUITheme.COLOR_TITLE);
 
-        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.SpatialIOPort.getLocal()), 8, 6, 4210752);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.SpatialIOPort.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96, AEMUITheme.COLOR_TITLE);
 
         if (this.container.xSize != 0 && this.container.ySize != 0 && this.container.zSize != 0) {
             final String text = GuiText.SCSSize.getLocal() + ": " + this.container.xSize + "x" + this.container.ySize
                     + "x" + this.container.zSize;
-            this.fontRenderer.drawString(text, 13, 93, 4210752);
+            this.fontRenderer.drawString(text, 13, 93, AEMUITheme.COLOR_TITLE);
         } else {
             this.fontRenderer.drawString(GuiText.SCSSize.getLocal() + ": " + GuiText.SCSInvalid.getLocal(), 13, 93,
-                    4210752);
+                    AEMUITheme.COLOR_TITLE);
         }
     }
 

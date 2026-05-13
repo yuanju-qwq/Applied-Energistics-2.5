@@ -23,6 +23,7 @@ import java.io.IOException;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.client.mui.AEBasePanel;
 import appeng.container.implementations.ContainerChest;
@@ -33,9 +34,9 @@ import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.tile.storage.TileChest;
 
 /**
- * MUI 版 ME 箱子 GUI 面板。
+ * MUI �?ME 箱子 GUI 面板�?
  *
- * 包含 1 个存储单元槽位和一个优先级标签按钮。
+ * 包含 1 个存储单元槽位和一个优先级标签按钮�?
  */
 public class MUIChestPanel extends AEBasePanel {
 
@@ -51,11 +52,11 @@ public class MUIChestPanel extends AEBasePanel {
         this.ySize = 166;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理按钮初始化
+        // initGui 处理按钮初始�?
     }
 
     @Override
@@ -70,8 +71,8 @@ public class MUIChestPanel extends AEBasePanel {
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.Chest.getLocal()), 8, 6, 4210752);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.Chest.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
     }
 
     @Override

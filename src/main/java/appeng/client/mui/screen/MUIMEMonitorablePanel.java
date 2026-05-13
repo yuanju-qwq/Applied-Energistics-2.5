@@ -53,6 +53,7 @@ import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.ActionKey;
 import appeng.client.gui.slots.VirtualMEMonitorableSlot;
 import appeng.client.gui.slots.VirtualMEPinSlot;
@@ -86,20 +87,20 @@ import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 
 /**
- * MUI 版 ME 终端面板。
+ * MUI �?ME 终端面板�?
  * <p>
- * 这是所有终端（合成终端、样板终端等）的基类。
+ * 这是所有终端（合成终端、样板终端等）的基类�?
  * <p>
- * 核心功能：
+ * 核心功能�?
  * <ul>
- *   <li>可变行数的物品网格（9列 × N行，根据终端样式和屏幕大小动态调整）</li>
+ *   <li>可变行数的物品网格（9�?× N行，根据终端样式和屏幕大小动态调整）</li>
  *   <li>搜索框（支持自动聚焦、JEI同步、正则搜索、记忆搜索）</li>
  *   <li>排序/视图/搜索模式/终端样式按钮</li>
- *   <li>类型过滤切换按钮（物品/流体等）</li>
+ *   <li>类型过滤切换按钮（物�?流体等）</li>
  *   <li>ViewCell 支持</li>
- *   <li>合成状态返回按钮</li>
- *   <li>动态槽位重新定位</li>
- *   <li>VirtualMEMonitorableSlot 的滚轮交互</li>
+ *   <li>合成状态返回按�?/li>
+ *   <li>动态槽位重新定�?/li>
+ *   <li>VirtualMEMonitorableSlot 的滚轮交�?/li>
  *   <li>Shift+悬停暂停更新</li>
  * </ul>
  */
@@ -107,7 +108,7 @@ import appeng.util.Platform;
 public class MUIMEMonitorablePanel extends AEBaseMEPanel
         implements ISortSource, IConfigManagerHost, IMEMonitorableGuiCallback {
 
-    // ========== 静态字段 ==========
+    // ========== 静态字�?==========
 
     private static int craftingGridOffsetX;
     private static int craftingGridOffsetY;
@@ -155,24 +156,24 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     private VirtualMEPinSlot[] pinSlots = null;
     private int totalPinRows = 0;
 
-    // 类型过滤切换按钮（每种 IAEStackType 一个）
+    // 类型过滤切换按钮（每�?IAEStackType 一个）
     private final List<TypeToggleButton> typeToggleButtons = new ArrayList<>();
-    // 各类型启用状态缓存
+    // 各类型启用状态缓�?
     private final Map<IAEStackType<?>, Boolean> enabledTypes = new HashMap<>();
 
     // To make JEI look nicer. Otherwise, the buttons will make JEI in a strange place.
     protected final int jeiOffset = Platform.isJEIEnabled() ? 24 : 0;
 
-    // ========== 构造 ==========
+    // ========== 构�?==========
 
     public MUIMEMonitorablePanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         this(inventoryPlayer, te, new ContainerMEMonitorable(inventoryPlayer, te));
     }
 
     /**
-     * 仅通过 Container 实例构造，host 从 container 中获取。
-     * 用于子类（如 MUISecurityStationPanelImpl、MUIMEPortableCellPanelImpl）
-     * 需要自行创建 Container 后再传入面板的场景。
+     * 仅通过 Container 实例构造，host �?container 中获取�?
+     * 用于子类（如 MUISecurityStationPanelImpl、MUIMEPortableCellPanelImpl�?
+     * 需要自行创�?Container 后再传入面板的场景�?
      */
     protected MUIMEMonitorablePanel(final ContainerMEMonitorable c) {
         this(c.getPlayerInv(), c.getHost(), c);
@@ -216,11 +217,27 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     // ========== IMEMonitorableGuiCallback ==========
 
     @Override
+    public void postRepoEntryUpdate(final List<ItemRepo.RepoEntry> entries) {
+        for (final ItemRepo.RepoEntry entry : entries) {
+            this.repo.postUpdate(entry);
+        }
+
+        handlePostUpdatePauseAndRefresh();
+    }
+
+    @Override
     public void postUpdate(final List<IAEStack<?>> list) {
         for (final IAEStack<?> is : list) {
             this.repo.postUpdate(is);
         }
 
+        handlePostUpdatePauseAndRefresh();
+    }
+
+    /**
+     * Common logic for pause-when-shift and view refresh after postUpdate/postRepoEntryUpdate.
+     */
+    private void handlePostUpdatePauseAndRefresh() {
         final boolean pauseEnabled = AEConfig.instance().getConfigManager()
                 .getSetting(Settings.PAUSE_WHEN_HOLDING_SHIFT) == YesNo.YES;
 
@@ -247,7 +264,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
                 Math.max(1, this.rows / 6));
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     public void initGui() {
@@ -359,7 +376,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             offset += 20;
         }
 
-        // 类型过滤按钮（当注册的栈类型多于1种时显示）
+        // 类型过滤按钮（当注册的栈类型多于1种时显示�?
         this.typeToggleButtons.clear();
         if (AEStackTypeRegistry.getAllTypes().size() > 1) {
             int typeButtonX = this.guiLeft - 18;
@@ -372,7 +389,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             }
         }
 
-        // 搜索框
+        // 搜索�?
         this.searchField = new MEGuiTextField(this.fontRenderer, this.guiLeft + Math.max(80, this.offsetX),
                 this.guiTop + 4, 90, 12);
 
@@ -385,11 +402,11 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
                         ActionItems.PINS));
         this.searchField.setEnableBackgroundDrawing(false);
         this.searchField.setMaxStringLength(50);
-        this.searchField.setTextColor(0xFFFFFF);
+        this.searchField.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
         this.searchField.setSelectionColor(0xFF008000);
         this.searchField.setVisible(true);
 
-        // 合成状态按钮
+        // 合成状态按�?
         if (this.viewCell || this instanceof MUIWirelessTermPanel) {
             this.buttonList.add(this.craftingStatusBtn = new GuiTabButton(this.guiLeft + 170, this.guiTop - 4,
                     2 + 11 * 16, GuiText.CraftingStatus.getLocal(), this.itemRender));
@@ -456,8 +473,8 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        this.fontRenderer.drawString(this.getGuiDisplayName(this.myName.getLocal()), 8, 6, 4210752);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(this.myName.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
 
         // Draw pin slot backgrounds and icons
         if (this.pinSlots != null && this.pinSlots.length > 0) {
@@ -819,7 +836,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         return exclusionArea;
     }
 
-    // ========== 子类可扩展方法 ==========
+    // ========== 子类可扩展方�?==========
 
     // For some special cases, like the Portable Cell, which only has 63 slots.
     protected int getMaxRows() {
@@ -835,7 +852,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         s.yPos = s.getY() + this.ySize - 78 - 5;
     }
 
-    // ========== 访问器 ==========
+    // ========== 访问�?==========
 
     int getReservedSpace() {
         return this.reservedSpace;

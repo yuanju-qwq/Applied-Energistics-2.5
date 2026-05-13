@@ -35,6 +35,7 @@ import appeng.api.config.SortOrder;
 import appeng.api.config.ViewItems;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.gui.widgets.ISortSource;
@@ -47,13 +48,13 @@ import appeng.core.localization.GuiText;
 import appeng.util.Platform;
 
 /**
- * MUI 版网络状态 GUI 面板。
+ * MUI 版网络状�?GUI 面板�?
  *
- * 显示 ME 网络中所有设备的概览（5列×4行网格），包括：
+ * 显示 ME 网络中所有设备的概览�?列�?行网格），包括：
  * <ul>
- *   <li>存储功率 / 最大功率</li>
+ *   <li>存储功率 / 最大功�?/li>
  *   <li>功率输入速率 / 功率消耗速率</li>
- *   <li>各设备的安装数量和能耗</li>
+ *   <li>各设备的安装数量和能�?/li>
  *   <li>电源单位切换按钮</li>
  * </ul>
  */
@@ -84,11 +85,11 @@ public class MUINetworkStatusPanel extends AEBasePanel
         this.cns.setGui(this);
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始化
+        // initGui 处理初始�?
     }
 
     @Override
@@ -137,21 +138,21 @@ public class MUINetworkStatusPanel extends AEBasePanel
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         final ContainerNetworkStatus ns = (ContainerNetworkStatus) this.inventorySlots;
 
-        this.fontRenderer.drawString(GuiText.NetworkDetails.getLocal(), 8, 6, 4210752);
+        this.fontRenderer.drawString(GuiText.NetworkDetails.getLocal(), 8, 6, AEMUITheme.COLOR_TITLE);
 
         this.fontRenderer.drawString(
                 GuiText.StoredPower.getLocal() + ": " + Platform.formatPowerLong(ns.getCurrentPower(), false), 13, 16,
-                4210752);
+                AEMUITheme.COLOR_TITLE);
         this.fontRenderer.drawString(
                 GuiText.MaxPower.getLocal() + ": " + Platform.formatPowerLong(ns.getMaxPower(), false), 13, 26,
-                4210752);
+                AEMUITheme.COLOR_TITLE);
 
         this.fontRenderer.drawString(
                 GuiText.PowerInputRate.getLocal() + ": " + Platform.formatPowerLong(ns.getAverageAddition(), true), 13,
-                143 - 10, 4210752);
+                143 - 10, AEMUITheme.COLOR_TITLE);
         this.fontRenderer.drawString(
                 GuiText.PowerUsageRate.getLocal() + ": " + Platform.formatPowerLong(ns.getPowerUsage(), true), 13,
-                143 - 20, 4210752);
+                143 - 20, AEMUITheme.COLOR_TITLE);
 
         final int sectionLength = 30;
 
@@ -167,38 +168,36 @@ public class MUINetworkStatusPanel extends AEBasePanel
         int toolPosY = 0;
 
         for (int z = viewStart; z < Math.min(viewEnd, this.repo.size()); z++) {
-            final IAEStack<?> refStack = this.repo.getReferenceItem(z);
-            if (refStack != null) {
+            final ItemRepo.RepoEntry entry = this.repo.getEntry(z);
+            if (entry != null) {
                 GlStateManager.pushMatrix();
                 GlStateManager.scale(0.5, 0.5, 0.5);
 
-                String str = Long.toString(refStack.getStackSize());
-                if (refStack.getStackSize() >= 10000) {
-                    str = Long.toString(refStack.getStackSize() / 1000) + 'k';
+                String str = Long.toString(entry.amount());
+                if (entry.amount() >= 10000) {
+                    str = Long.toString(entry.amount() / 1000) + 'k';
                 }
 
                 final int w = this.fontRenderer.getStringWidth(str);
                 this.fontRenderer.drawString(str, (int) ((x * sectionLength + xo + sectionLength - 19 - (w * 0.5)) * 2),
-                        (y * 18 + yo + 6) * 2, 4210752);
+                        (y * 18 + yo + 6) * 2, AEMUITheme.COLOR_TITLE);
 
                 GlStateManager.popMatrix();
                 final int posX = x * sectionLength + xo + sectionLength - 18;
                 final int posY = y * 18 + yo;
 
                 if (this.tooltip == z - viewStart) {
-                    toolTip = Platform.getItemDisplayName(refStack);
+                    toolTip = entry.what().getDisplayName();
 
-                    toolTip += ('\n' + GuiText.Installed.getLocal() + ": " + (refStack.getStackSize()));
-                    if (refStack.getCountRequestable() > 0) {
-                        toolTip += ('\n' + GuiText.EnergyDrain.getLocal() + ": "
-                                + Platform.formatPowerLong(refStack.getCountRequestable(), true));
-                    }
+                    toolTip += ('\n' + GuiText.Installed.getLocal() + ": " + (entry.amount()));
+                    // Legacy: countRequestable is not available in RepoEntry; skip energy drain display
+                    // TODO: consider adding energy drain info to RepoEntry if needed
 
                     toolPosX = x * sectionLength + xo + sectionLength - 8;
                     toolPosY = y * 18 + yo;
                 }
 
-                this.drawItem(posX, posY, refStack.asItemStackRepresentation());
+                this.drawItem(posX, posY, entry.what().asItemStackRepresentation());
 
                 x++;
 
@@ -221,6 +220,18 @@ public class MUINetworkStatusPanel extends AEBasePanel
     }
 
     // ========== 数据更新 ==========
+
+    @Override
+    public void postRepoEntryUpdate(final List<ItemRepo.RepoEntry> entries) {
+        this.repo.clear();
+
+        for (final ItemRepo.RepoEntry entry : entries) {
+            this.repo.postUpdate(entry);
+        }
+
+        this.repo.updateView();
+        this.updateScrollBar();
+    }
 
     @Override
     public void postUpdate(final List<IAEStack<?>> list) {

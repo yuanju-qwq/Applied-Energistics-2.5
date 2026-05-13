@@ -102,6 +102,8 @@ public class AppEngPacketHandlerBase {
 
         PACKET_TARGET_STACK(PacketTargetStack.class),
 
+        PACKET_ME_GENERIC_STACK_UPDATE(PacketMEGenericStackUpdate.class),
+
         ;
 
         private final Class<? extends AppEngPacket> packetClass;

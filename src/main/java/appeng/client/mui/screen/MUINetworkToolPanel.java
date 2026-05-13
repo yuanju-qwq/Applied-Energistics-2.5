@@ -25,6 +25,7 @@ import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.implementations.guiobjects.INetworkTool;
 
+import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiToggleButton;
 import appeng.client.mui.AEBasePanel;
 import appeng.container.implementations.ContainerNetworkTool;
@@ -34,9 +35,9 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
 
 /**
- * MUI 版网络工具 GUI 面板。
+ * MUI 版网络工�?GUI 面板�?
  *
- * 提供 3×3 的工具箱物品栏及透明伪装板切换按钮。
+ * 提供 3×3 的工具箱物品栏及透明伪装板切换按钮�?
  */
 public class MUINetworkToolPanel extends AEBasePanel {
 
@@ -52,11 +53,11 @@ public class MUINetworkToolPanel extends AEBasePanel {
         this.ySize = 166;
     }
 
-    // ========== 初始化 ==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理按钮初始化
+        // initGui 处理按钮初始�?
     }
 
     @Override
@@ -77,8 +78,8 @@ public class MUINetworkToolPanel extends AEBasePanel {
             this.tFacades.setState(((ContainerNetworkTool) this.inventorySlots).isFacadeMode());
         }
 
-        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.NetworkTool.getLocal()), 8, 6, 4210752);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, 4210752);
+        this.fontRenderer.drawString(this.getGuiDisplayName(GuiText.NetworkTool.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
     }
 
     @Override
