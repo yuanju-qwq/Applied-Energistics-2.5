@@ -68,7 +68,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         PatternEncodingModule.Host,
         MEItemBrowserModule.Host {
 
-    // ========== 常量 ==========
+    // ========== Constants ==========
 
     private static final int MAIN_GUI_WIDTH = 208;
 
@@ -88,7 +88,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     // 无线终端共通功能（无线升级图标）
     private final WirelessTerminalHelper wirelessHelper = new WirelessTerminalHelper();
 
-    // ========== 构造 ==========
+    // ========== Construction ==========
 
     public MUIWirelessDualInterfaceTerminalPanel(final ContainerWirelessDualInterfaceTerminal container) {
         super(container);
@@ -104,13 +104,22 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         this.ySize = 255;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
         // 创建模块
         this.interfaceListModule = new InterfaceListModule(this);
         this.interfaceListModule.setEnableDoubleButton(true);
+        this.interfaceListModule.setDoubleStacksHandler(inv -> {
+            try {
+                appeng.core.sync.network.NetworkHandler.instance().sendToServer(
+                        new appeng.core.sync.packets.PacketValueConfig(
+                                "WirelessDualInterface.Double", String.valueOf(inv.getId())));
+            } catch (IOException e) {
+                // ignore
+            }
+        });
 
         this.patternEncodingModule = new PatternEncodingModule(this);
         this.patternEncodingModule.initDragState();
@@ -232,9 +241,6 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
 
     @Override
     public void drawScreen(final int mouseX, final int mouseY, final float partialTicks) {
-        // 清除并重建 buttonList
-        this.buttonList.clear();
-
         // 各模块填充按钮和槽位
         if (this.interfaceListModule != null) {
             this.interfaceListModule.populateDynamicSlots();
@@ -254,31 +260,10 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         }
     }
 
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
-        // 接口列表模块的按钮
-        if (this.interfaceListModule != null && this.interfaceListModule.actionPerformed(btn, this.selectedButton)) {
-            return;
-        }
-
-        // 加倍按钮
-        if (this.interfaceListModule != null
-                && this.interfaceListModule.getDoubleButtonHashMap().containsKey(btn)) {
-            final var inv = this.interfaceListModule.getDoubleButtonHashMap().get(btn);
-            if (inv != null) {
-                try {
-                    appeng.core.sync.network.NetworkHandler.instance().sendToServer(
-                            new appeng.core.sync.packets.PacketValueConfig(
-                                    "WirelessDualInterface.Double", String.valueOf(inv.getId())));
-                } catch (IOException e) {
-                    // ignore
-                }
-            }
-            return;
-        }
-
         // 样板编码模块的按钮
         if (this.patternEncodingModule != null && this.patternEncodingModule.actionPerformed(btn)) {
             return;
@@ -316,12 +301,12 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
             }
         }
 
-        // 样板编码滚动条点击
+        // 样板编码Scrollbar点击
         if (this.patternEncodingModule != null && this.patternEncodingModule.handleScrollbarClick(xCoord, yCoord)) {
             return;
         }
 
-        // ME物品浏览滚动条点击
+        // ME物品浏览Scrollbar点击
         if (this.meItemBrowserModule != null && this.meItemBrowserModule.handleScrollbarClick(xCoord, yCoord)) {
             return;
         }
@@ -391,7 +376,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
             return;
         }
 
-        // 接口列表主滚动条滚轮
+        // 接口列表主Scrollbar滚轮
         super.mouseWheelEvent(x, y, wheel);
     }
 
@@ -454,8 +439,8 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     }
 
     @Override
-    public List<GuiButton> getButtonList() {
-        return this.buttonList;
+    public <T extends appeng.client.mui.IMUIWidget> T addModuleWidget(T widget) {
+        return this.addWidget(widget);
     }
 
     @Override

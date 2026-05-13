@@ -65,6 +65,7 @@ import appeng.client.gui.widgets.ITooltip;
 import appeng.client.me.InternalSlotME;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.me.SlotME;
+import appeng.client.mui.widgets.MUIButtonPool;
 import appeng.client.render.StackSizeRenderer;
 import appeng.client.render.stack.AEStackTypeRendererRegistry;
 import appeng.client.render.stack.IAEStackTypeRenderer;
@@ -103,7 +104,7 @@ import appeng.util.item.AEItemStack;
  *   <li>可组合的子面板系统（{@link IMUIWidget}）</li>
  *   <li>统一的绘制管线（背景 → 控件 → 前景）</li>
  *   <li>旧式 drawBG/drawFG 钩子（兼容旧 GUI 移植）</li>
- *   <li>滚动条集成（{@link GuiScrollbar}）</li>
+ *   <li>Scrollbar集成（{@link GuiScrollbar}）</li>
  *   <li>GuiCustomSlot 绘制和交互</li>
  *   <li>特殊槽位渲染（SlotME、流体槽、SlotFake 等）</li>
  *   <li>滚轮事件分发</li>
@@ -113,47 +114,47 @@ import appeng.util.item.AEItemStack;
 @SideOnly(Side.CLIENT)
 public abstract class AEBasePanel extends GuiContainer {
 
-    // ========== MUI 控件系统 ==========
+    // ========== MUI widget system ==========
 
-    /** 子控件列表 */
+    /** Child widget list */
     protected final List<IMUIWidget> widgets = new ArrayList<>();
 
-    /** 面板标题（显示在顶部） */
+    /** Panel title (displayed at top) */
     protected String panelTitle = "";
 
-    /** 背景贴图（默认使用主题的通用面板贴图） */
+    /** Background texture (defaults to theme's common panel texture) */
     protected ResourceLocation backgroundTexture = AEMUITheme.TEX_PANEL_BG;
 
-    // ========== 旧 GUI 兼容层 ==========
+    // ========== Legacy GUI compatibility layer ==========
 
-    /** 自定义槽位列表（兼容旧 GuiCustomSlot 体系） */
+    /** Custom slot list (compatible with legacy GuiCustomSlot system) */
     protected final List<GuiCustomSlot> guiSlots = new ArrayList<>();
 
-    /** ME 内部槽位列表 */
+    /** ME internal slot list */
     private final List<InternalSlotME> meSlots = new ArrayList<>();
 
-    /** 滚动条 */
+    /** Scrollbar */
     private GuiScrollbar myScrollBar = null;
 
-    /** 物品数量渲染器 */
+    /** Item quantity renderer */
     private final StackSizeRenderer stackSizeRenderer = new StackSizeRenderer();
 
-    /** 拖拽点击槽位记录（防止重复触发） */
+    /** Drag-click slot record (prevents duplicate triggers) */
     private final Set<Slot> dragClick = new HashSet<>();
 
-    /** 是否正在处理 GuiCustomSlot 点击 */
+    /** Whether GuiCustomSlot click is being processed */
     private boolean handlingCustomSlotClick = false;
 
-    /** 双击逻辑相关 */
+    /** Double-click logic related */
     private boolean disableShiftClick = false;
     private Stopwatch dblClickTimer = Stopwatch.createStarted();
     private ItemStack dblWhichItem = ItemStack.EMPTY;
     private Slot blClicked;
 
-    /** 键盘事件是否已被处理（阻止 Forge 继续传播） */
+    /** Whether keyboard event has been handled (prevents Forge propagation) */
     protected boolean keyHandled = false;
 
-    /** JEI 书签覆盖层当前悬停的物品（供 ClientHelper 事件取消逻辑使用） */
+    /** JEI bookmark overlay currently hovered item (used by ClientHelper event cancellation logic) */
     private Object bookmarkedIngredient;
 
     public Object getBookmarkedIngredient() {
@@ -170,7 +171,7 @@ public abstract class AEBasePanel extends GuiContainer {
         this.ySize = ySize;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     /**
      * MUI 面板初始化入口。
@@ -181,7 +182,7 @@ public abstract class AEBasePanel extends GuiContainer {
      *   <li>{@code super.initGui()} 内部会：清理旧 SlotME → 重建 SlotME → 清空 widgets → 调用 {@link #setupWidgets()}。</li>
      *   <li>子类可在 {@code super.initGui()} 之后执行以下操作：
      *       <ul>
-     *         <li>滚动条的位置和范围设置</li>
+     *         <li>Scrollbar的位置和范围设置</li>
      *         <li>槽位重新定位（{@link #repositionSlot}）</li>
      *         <li>guiTop/ySize 等布局坐标修正</li>
      *       </ul>
@@ -202,7 +203,7 @@ public abstract class AEBasePanel extends GuiContainer {
         super.initGui();
         Keyboard.enableRepeatEvents(true);
 
-        // 清理旧的 SlotME 并重建
+        // Clean up old SlotME and rebuild
         final List<Slot> slots = this.getInventorySlots();
         final Iterator<Slot> it = slots.iterator();
         while (it.hasNext()) {
@@ -254,14 +255,14 @@ public abstract class AEBasePanel extends GuiContainer {
         return widget;
     }
 
-    // ========== 绘制管线 ==========
+    // ========== Rendering pipeline ==========
 
     @Override
     public void drawScreen(final int mouseX, final int mouseY, final float partialTicks) {
         super.drawDefaultBackground();
         super.drawScreen(mouseX, mouseY, partialTicks);
 
-        // 绘制 GuiCustomSlot（在面板坐标系内）
+        // Draw GuiCustomSlot (in panel coordinate space)
         GlStateManager.pushMatrix();
         GlStateManager.translate(this.guiLeft, this.guiTop, 0.0F);
         GlStateManager.enableDepth();
@@ -274,10 +275,10 @@ public abstract class AEBasePanel extends GuiContainer {
         }
         GlStateManager.popMatrix();
 
-        // 悬停工具提示（MC 原生槽位）
+        // Hover tooltip (MC native slots)
         this.renderHoveredToolTip(mouseX, mouseY);
 
-        // 按钮和标签的工具提示
+        // Button and label tooltips
         for (final Object c : this.buttonList) {
             if (c instanceof ITooltip) {
                 this.drawTooltip((ITooltip) c, mouseX, mouseY);
@@ -288,9 +289,19 @@ public abstract class AEBasePanel extends GuiContainer {
                 this.drawTooltip((ITooltip) o, mouseX, mouseY);
             }
         }
+        // MUI widget tooltips (for widgets implementing ITooltip but not in buttonList)
+        for (final IMUIWidget w : this.widgets) {
+            if (w instanceof ITooltip && !(w instanceof net.minecraft.client.gui.GuiButton)) {
+                this.drawTooltip((ITooltip) w, mouseX, mouseY);
+            }
+            // Draw tooltips for active buttons inside MUIButtonPool
+            if (w instanceof MUIButtonPool) {
+                ((MUIButtonPool) w).drawTooltips(this, mouseX, mouseY);
+            }
+        }
         GlStateManager.enableDepth();
 
-        // 更新 JEI 书签悬停物品（供 ClientHelper 事件取消逻辑使用）
+        // Update JEI bookmark hovered item (for ClientHelper event cancellation logic)
         if (appeng.util.Platform.isModLoaded("jei") && !appeng.client.ClientHelper.isHei) {
             updateBookmarkedIngredient();
         }
@@ -310,16 +321,16 @@ public abstract class AEBasePanel extends GuiContainer {
         final int oy = this.guiTop;
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
 
-        // 背景贴图
+        // Background texture
         if (this.backgroundTexture != null) {
             this.mc.getTextureManager().bindTexture(this.backgroundTexture);
             this.drawTexturedModalRect(ox, oy, 0, 0, this.xSize, this.ySize);
         }
 
-        // 旧式 drawBG 钩子
+        // Legacy drawBG hook
         this.drawBG(ox, oy, mouseX, mouseY);
 
-        // 可选槽位背景渲染
+        // Optional slot background rendering
         final List<Slot> slots = this.getInventorySlots();
         for (final Slot slot : slots) {
             if (slot instanceof IOptionalSlot) {
@@ -340,12 +351,12 @@ public abstract class AEBasePanel extends GuiContainer {
             }
         }
 
-        // GuiCustomSlot 背景绘制
+        // GuiCustomSlot background drawing
         for (final GuiCustomSlot slot : this.guiSlots) {
             slot.drawBackground(ox, oy);
         }
 
-        // MUI 控件背景层
+        // MUI widget background layer
         for (IMUIWidget widget : this.widgets) {
             widget.drawBackground(this, this.guiLeft, this.guiTop, mouseX, mouseY, partialTicks);
         }
@@ -357,12 +368,12 @@ public abstract class AEBasePanel extends GuiContainer {
         final int oy = this.guiTop;
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 
-        // 滚动条绘制
+        // Scrollbar绘制
         if (this.myScrollBar != null) {
             this.myScrollBar.draw(this);
         }
 
-        // 面板标题
+        // Panel title
         if (this.panelTitle != null && !this.panelTitle.isEmpty()) {
             this.fontRenderer.drawString(this.panelTitle,
                     AEMUITheme.PANEL_PADDING,
@@ -370,10 +381,10 @@ public abstract class AEBasePanel extends GuiContainer {
                     AEMUITheme.COLOR_TITLE);
         }
 
-        // 旧式 drawFG 钩子
+        // Legacy drawFG hook
         this.drawFG(ox, oy, mouseX, mouseY);
 
-        // MUI 控件前景层
+        // MUI widget foreground layer
         for (IMUIWidget widget : this.widgets) {
             widget.drawForeground(this, mouseX - this.guiLeft, mouseY - this.guiTop);
         }
@@ -411,7 +422,7 @@ public abstract class AEBasePanel extends GuiContainer {
      * <p>
      * <b>职责规范：</b>
      * <ul>
-     *   <li>绘制面板标题文字</li>
+     *   <li>绘制Panel title文字</li>
      *   <li>绘制轻量 overlay、局部提示文本</li>
      *   <li>绘制动态列表的文字标签</li>
      *   <li>可创建动态 SlotDisconnected（因为需要每帧基于滚动位置重建）</li>
@@ -433,7 +444,7 @@ public abstract class AEBasePanel extends GuiContainer {
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
     }
 
-    // ========== GuiCustomSlot 绘制 ==========
+    // ========== GuiCustomSlot rendering ==========
 
     /**
      * 绘制单个 GuiCustomSlot（内容 + 悬停高亮）。
@@ -458,7 +469,7 @@ public abstract class AEBasePanel extends GuiContainer {
         }
     }
 
-    // ========== 特殊槽位渲染 ==========
+    // ========== Special slot rendering ==========
 
     /**
      * 覆写 MC 的槽位渲染，处理 SlotME、流体槽、SlotFake(FluidDrop) 等特殊类型。
@@ -553,7 +564,7 @@ public abstract class AEBasePanel extends GuiContainer {
                                     .color(1.0f, 1.0f, 1.0f, aes.getOpacityOfIcon()).endVertex();
                             tessellator.draw();
                         } catch (final Exception err) {
-                            // 忽略图标渲染错误
+                            // Ignore icon rendering error
                         }
                     }
                 }
@@ -676,21 +687,21 @@ public abstract class AEBasePanel extends GuiContainer {
         super.drawSlot(s);
     }
 
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
         this.dragClick.clear();
         this.handlingCustomSlotClick = false;
 
-        // MUI 控件优先
+        // MUI widgets have priority
         for (IMUIWidget widget : this.widgets) {
             if (widget.mouseClicked(mouseX - this.guiLeft, mouseY - this.guiTop, mouseButton)) {
                 return;
             }
         }
 
-        // 右键触发按钮
+        // Right-click triggers button
         if (mouseButton == 1) {
             for (final Object o : this.buttonList) {
                 final GuiButton guibutton = (GuiButton) o;
@@ -701,7 +712,7 @@ public abstract class AEBasePanel extends GuiContainer {
             }
         }
 
-        // GuiCustomSlot 点击
+        // GuiCustomSlot click
         for (GuiCustomSlot slot : this.guiSlots) {
             if (this.isPointInRegion(slot.xPos(), slot.yPos(), slot.getWidth(), slot.getHeight(), mouseX, mouseY)
                     && slot.canClick(this.mc.player)) {
@@ -711,7 +722,7 @@ public abstract class AEBasePanel extends GuiContainer {
             }
         }
 
-        // 滚动条点击
+        // Scrollbar点击
         if (this.myScrollBar != null) {
             this.myScrollBar.click(this, mouseX - this.guiLeft, mouseY - this.guiTop);
         }
@@ -960,7 +971,7 @@ public abstract class AEBasePanel extends GuiContainer {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        // MUI 控件优先
+        // MUI widgets have priority
         for (IMUIWidget widget : this.widgets) {
             if (widget.keyTyped(typedChar, keyCode)) {
                 return;
@@ -1010,7 +1021,7 @@ public abstract class AEBasePanel extends GuiContainer {
         return false;
     }
 
-    // ========== 鼠标滚轮 ==========
+    // ========== Mouse wheel ==========
 
     @Override
     public void handleMouseInput() throws IOException {
@@ -1065,7 +1076,7 @@ public abstract class AEBasePanel extends GuiContainer {
         }
     }
 
-    // ========== 工具提示 ==========
+    // ========== Tooltips ==========
 
     /**
      * 绘制 {@link ITooltip} 控件的工具提示。
@@ -1112,7 +1123,7 @@ public abstract class AEBasePanel extends GuiContainer {
         this.drawHoveringText(lines, x, y, this.fontRenderer);
     }
 
-    // ========== 贴图绑定 ==========
+    // ========== Texture binding ==========
 
     /**
      * 绑定 AE2 贴图资源。
@@ -1135,7 +1146,7 @@ public abstract class AEBasePanel extends GuiContainer {
         this.mc.getTextureManager().bindTexture(loc);
     }
 
-    // ========== 槽位定位 ==========
+    // ========== Slot positioning ==========
 
     /**
      * 重新定位 AppEngSlot 的 Y 坐标（用于动态大小的 GUI）。
@@ -1163,7 +1174,7 @@ public abstract class AEBasePanel extends GuiContainer {
         }
     }
 
-    // ========== 布局工具方法 ==========
+    // ========== Layout utility methods ==========
 
     /**
      * 根据终端样式设置和最大可用行数，计算实际应显示的行数。
@@ -1200,7 +1211,7 @@ public abstract class AEBasePanel extends GuiContainer {
         this.guiTop = (int) Math.floor(unusedSpace / (unusedSpace < 0 ? 3.8f : 2.0f));
     }
 
-    // ========== 便利方法 ==========
+    // ========== Convenience methods ==========
 
     /**
      * @return 关联的 AE 容器，如果不是 AEBaseContainer 则返回 null
@@ -1291,26 +1302,26 @@ public abstract class AEBasePanel extends GuiContainer {
         }
     }
 
-    // ========== 滚动条 ==========
+    // ========== Scrollbar ==========
 
     /**
-     * @return 当前滚动条实例，可能为 null
+     * @return 当前Scrollbar实例，可能为 null
      */
     protected GuiScrollbar getScrollBar() {
         return this.myScrollBar;
     }
 
     /**
-     * 设置滚动条实例。
+     * 设置Scrollbar实例。
      */
     protected void setScrollBar(final GuiScrollbar scrollBar) {
         this.myScrollBar = scrollBar;
     }
 
-    // ========== ME 槽位 ==========
+    // ========== ME slots ==========
 
     /**
-     * @return ME 内部槽位列表
+     * @return ME internal slot list
      */
     protected List<InternalSlotME> getMeSlots() {
         return this.meSlots;
@@ -1330,7 +1341,7 @@ public abstract class AEBasePanel extends GuiContainer {
         return java.util.Collections.emptyList();
     }
 
-    // ========== 内部方法 ==========
+    // ========== Internal methods ==========
 
     /**
      * 获取容器的槽位列表引用。

@@ -171,7 +171,7 @@ public class MUITypeFilter implements IMUIWidget {
         }
     }
 
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     public boolean mouseClicked(int localX, int localY, int mouseButton) {

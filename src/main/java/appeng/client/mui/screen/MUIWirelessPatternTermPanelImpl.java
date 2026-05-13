@@ -35,7 +35,7 @@ import appeng.helpers.WirelessTerminalGuiObject;
  * 继承 {@link MUIPatternTermPanel}（通过其无线构造函数），
  * 添加无线升级图标和终端模式切换按钮。
  * <p>
- * 样板编码功能（合成/处理模式、虚拟槽位、4×4 扩展处理布局等）全部复用父类逻辑。
+ * 样板编码功能（合成/处理模式、Virtual slot、4×4 扩展处理布局等）全部复用父类逻辑。
  */
 @SideOnly(Side.CLIENT)
 public class MUIWirelessPatternTermPanelImpl extends MUIPatternTermPanel implements MUIWirelessTermPanel {

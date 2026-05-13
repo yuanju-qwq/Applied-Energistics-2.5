@@ -23,16 +23,16 @@ import appeng.api.storage.data.IAEStack;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 /**
- * 由客户端 Container 或 GUI 实现，用于接收服务端通过
- * {@link appeng.core.sync.packets.PacketVirtualSlot} 同步过来的虚拟槽位数据。
+ * Implemented by client-side Container or GUI to receive virtual slot data synchronized
+ * from the server via {@link appeng.core.sync.packets.PacketVirtualSlot}.
  */
 public interface IVirtualSlotHolder {
 
     /**
-     * 接收批量虚拟槽位栈数据。
+     * Receive batch virtual slot stack data.
      *
-     * @param invName    库存名称
-     * @param slotStacks 槽位索引到 IAEStack 的映射（null 值表示该槽位被清空）
+     * @param invName    inventory name
+     * @param slotStacks mapping from slot index to IAEStack (null value means the slot is cleared)
      */
     void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks);
 }

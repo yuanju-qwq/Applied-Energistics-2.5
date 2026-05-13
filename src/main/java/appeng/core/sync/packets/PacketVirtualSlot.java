@@ -36,7 +36,7 @@ import appeng.core.sync.network.INetworkInfo;
 import appeng.util.Platform;
 
 /**
- * 用于在客户端和服务端之间同步虚拟槽位（IAEStack<?> 泛型栈）的网络包。
+ * 用于在客户端和服务端之间同步Virtual slot（IAEStack<?> 泛型栈）的网络包。
  * <p>
  * 服务端通过此包将 IAEStackInventory 的变更批量推送到客户端；
  * 客户端通过此包将 VirtualMEPhantomSlot 的用户操作发送到服务端。

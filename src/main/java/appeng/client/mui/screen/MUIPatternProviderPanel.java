@@ -18,20 +18,14 @@
 
 package appeng.client.mui.screen;
 
-import java.io.IOException;
-
-import org.lwjgl.input.Mouse;
-
-import net.minecraft.client.gui.GuiButton;
-
 import appeng.api.config.LockCraftingMode;
 import appeng.api.config.Settings;
 import appeng.api.config.YesNo;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiImgLabel;
-import appeng.client.gui.widgets.GuiTabButton;
-import appeng.client.gui.widgets.GuiToggleButton;
+import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUITabContainer;
+import appeng.client.mui.widgets.MUIToggleButton;
 import appeng.container.implementations.ContainerPatternProvider;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;
@@ -40,20 +34,20 @@ import appeng.core.sync.packets.PacketConfigButton;
 import appeng.core.sync.packets.PacketSwitchGuis;
 
 /**
- * MUI 版样板供应器 GUI 面板�?
+ * MUI pattern provider GUI panel.
  *
- * 管理 36 个样板槽位（4 �?× 9 列，�?3 行通过 PATTERN_EXPANSION 升级解锁），
- * 以及阻塞模式、解锁模式、接口终端可见性等配置按钮�?
+ * Manages 36 pattern slots (4 rows x 9 columns, rows 2-3 unlocked via PATTERN_EXPANSION upgrade),
+ * along with block mode, unlock mode, interface terminal visibility, and other config buttons.
  */
 public class MUIPatternProviderPanel extends MUIUpgradeablePanel {
 
     private final ContainerPatternProvider container;
 
-    // ========== 按钮 ==========
-    private GuiTabButton priority;
-    private GuiImgButton blockMode;
-    private GuiImgButton unlockMode;
-    private GuiToggleButton interfaceMode;
+    // ========== Buttons ==========
+    private MUITabContainer priority;
+    private MUIButtonWidget blockMode;
+    private MUIButtonWidget unlockMode;
+    private MUIToggleButton interfaceMode;
     private GuiImgLabel lockReason;
 
     public MUIPatternProviderPanel(final ContainerPatternProvider container) {
@@ -72,20 +66,27 @@ public class MUIPatternProviderPanel extends MUIUpgradeablePanel {
 
     @Override
     protected void addButtons() {
-        this.priority = new GuiTabButton(this.guiLeft + 154, this.guiTop, 2 + 4 * 16, GuiText.Priority.getLocal(),
-                this.itemRender);
-        this.buttonList.add(this.priority);
+        this.priority = new MUITabContainer(154, 0, 2 + 4 * 16, GuiText.Priority.getLocal());
+        this.priority.setOnClick(tab -> {
+            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
+        });
+        this.addWidget(this.priority);
 
-        this.blockMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 8, Settings.BLOCK, YesNo.NO);
-        this.buttonList.add(this.blockMode);
+        this.blockMode = new MUIButtonWidget(-18, 8, Settings.BLOCK, YesNo.NO);
+        this.blockMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.blockMode);
 
-        this.unlockMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 26, Settings.UNLOCK,
-                LockCraftingMode.NONE);
-        this.buttonList.add(this.unlockMode);
+        this.unlockMode = new MUIButtonWidget(-18, 26, Settings.UNLOCK, LockCraftingMode.NONE);
+        this.unlockMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.unlockMode);
 
-        this.interfaceMode = new GuiToggleButton(this.guiLeft - 18, this.guiTop + 44, 84, 85,
+        this.interfaceMode = new MUIToggleButton(-18, 44, 84, 85,
                 GuiText.InterfaceTerminal.getLocal(), GuiText.InterfaceTerminalHint.getLocal());
-        this.buttonList.add(this.interfaceMode);
+        this.interfaceMode.setOnToggle(btn -> {
+            final boolean backwards = org.lwjgl.input.Mouse.isButtonDown(1);
+            NetworkHandler.instance().sendToServer(new PacketConfigButton(Settings.INTERFACE_TERMINAL, backwards));
+        });
+        this.addWidget(this.interfaceMode);
     }
 
     protected void addLabel() {
@@ -125,28 +126,6 @@ public class MUIPatternProviderPanel extends MUIUpgradeablePanel {
             return "guis/patternprovider.png";
         } else {
             return "guis/patternprovider" + upgrades + ".png";
-        }
-    }
-
-    // ========== 按钮事件 ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        final boolean backwards = Mouse.isButtonDown(1);
-
-        if (btn == this.priority) {
-            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
-        }
-        if (btn == this.interfaceMode) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(Settings.INTERFACE_TERMINAL, backwards));
-        }
-        if (btn == this.blockMode) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(this.blockMode.getSetting(), backwards));
-        }
-        if (btn == this.unlockMode) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(this.unlockMode.getSetting(), backwards));
         }
     }
 }

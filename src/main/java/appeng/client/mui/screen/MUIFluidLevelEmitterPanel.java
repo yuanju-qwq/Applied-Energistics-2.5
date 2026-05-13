@@ -26,9 +26,9 @@ import appeng.api.config.RedstoneMode;
 import appeng.api.config.Settings;
 import appeng.api.storage.data.IAEStackType;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
-import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiNumberBox;
 import appeng.client.mui.AEMUITheme;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
@@ -39,16 +39,16 @@ import appeng.fluids.util.AEFluidStackType;
 import appeng.tile.inventory.IAEStackInventory;
 
 /**
- * MUI 版流体级别发射器 GUI 面板�?
+ * MUI fluid Level emitter GUI panel.
  *
- * 包含数字输入框（阈值设置，单位�?millibucket）、±增减按钮�?
- * 红石发射模式按钮，以�?1 �?VirtualMEPhantomSlot 配置槽（fluid-only）�?
+ * Contains a number input field (threshold setting, unit: millibucket), +/- increment buttons,
+ * redstone emitter mode button, and 1 VirtualMEPhantomSlot config slot (fluid-only).
  */
 public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
 
     private final ContainerFluidLevelEmitter container;
 
-    // ========== 数字输入�?==========
+    // ========== Number input field ==========
     private GuiNumberBox level;
 
     // ========== ±增减按钮 ==========
@@ -66,7 +66,7 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
         this.container = container;
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
@@ -96,8 +96,9 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
 
     @Override
     protected void addButtons() {
-        this.redstoneMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 28, Settings.REDSTONE_EMITTER,
-                RedstoneMode.LOW_SIGNAL);
+        this.redstoneMode = new MUIButtonWidget(-18, 28, Settings.REDSTONE_EMITTER, RedstoneMode.LOW_SIGNAL);
+        this.redstoneMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.redstoneMode);
 
         final int a = AEConfig.instance().levelByMillyBuckets(0);
         final int b = AEConfig.instance().levelByMillyBuckets(1);
@@ -113,8 +114,6 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
         this.buttonList.add(this.minus10 = new GuiButton(0, this.guiLeft + 48, this.guiTop + 59, 28, 20, "-" + b));
         this.buttonList.add(this.minus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 59, 32, 20, "-" + c));
         this.buttonList.add(this.minus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 59, 38, 20, "-" + d));
-
-        this.buttonList.add(this.redstoneMode);
     }
 
     // ========== 渲染 ==========
@@ -127,7 +126,7 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        // 数字输入�?tooltip：鼠标悬浮时提示单位�?millibuckets
+        // Number input field tooltip: show unit hint (millibuckets) on mouse hover
         if (isPointInRegion(24, 43, 89, this.fontRenderer.FONT_HEIGHT, mouseX + this.guiLeft, mouseY + this.guiTop)) {
             drawTooltip(mouseX - 7, mouseY + 25, "Amount in millibuckets");
         }

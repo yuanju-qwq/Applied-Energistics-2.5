@@ -24,8 +24,8 @@ import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
 
 /**
- * 娉涘瀷鐗堟湰鐨?CellConfig锛屽熀浜?{@link IAEStackInventory} 瀛樺偍 {@link appeng.api.storage.data.IAEStack}銆?
- * 鍙互瀛樺偍鐗╁搧銆佹祦浣撶瓑浠绘剰绫诲瀷鐨?AE 鏍堜綔涓鸿繃婊ら厤缃€?
+ * Generic version of CellConfig, based on {@link IAEStackInventory} to store {@link appeng.api.storage.data.IAEStack}.
+ * Can store items, fluids, and any other type of AE stack as filter configuration.
  */
 public class CellAEConfig extends IAEStackInventory {
 

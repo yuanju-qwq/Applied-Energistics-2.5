@@ -42,7 +42,6 @@ import appeng.api.config.SearchBoxMode;
 import appeng.api.config.Settings;
 import appeng.api.config.TerminalStyle;
 import appeng.api.config.YesNo;
-import appeng.api.config.SearchBoxFocusPriority;
 import appeng.api.implementations.guiobjects.IPortableCell;
 import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStackType;
@@ -62,6 +61,9 @@ import appeng.client.me.InternalSlotME;
 import appeng.client.me.ItemRepo;
 import appeng.client.me.SlotME;
 import appeng.client.mui.AEBaseMEPanel;
+import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUITabContainer;
+import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerMEMonitorable;
 import appeng.container.interfaces.IMEMonitorableGuiCallback;
@@ -80,27 +82,26 @@ import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.helpers.InventoryAction;
 import appeng.helpers.WirelessTerminalGuiObject;
-import appeng.integration.Integrations;
 import appeng.parts.reporting.AbstractPartTerminal;
 import appeng.tile.misc.TileSecurityStation;
 import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 
 /**
- * MUI �?ME 终端面板�?
+ * MUI ME terminal panel.
  * <p>
- * 这是所有终端（合成终端、样板终端等）的基类�?
+ * This is the base class for all terminals (crafting terminal, pattern terminal, etc.).
  * <p>
- * 核心功能�?
+ *   <li>Search field (supports auto-focus, JEI sync, regex search, remembered search)</li>
  * <ul>
- *   <li>可变行数的物品网格（9�?× N行，根据终端样式和屏幕大小动态调整）</li>
+ *   <li>Type filter toggle buttons (items, fluids, etc.)</li>
  *   <li>搜索框（支持自动聚焦、JEI同步、正则搜索、记忆搜索）</li>
  *   <li>排序/视图/搜索模式/终端样式按钮</li>
- *   <li>类型过滤切换按钮（物�?流体等）</li>
+ *   <li>Dynamic slot repositioning</li>
  *   <li>ViewCell 支持</li>
- *   <li>合成状态返回按�?/li>
- *   <li>动态槽位重新定�?/li>
- *   <li>VirtualMEMonitorableSlot 的滚轮交�?/li>
+ *   <li>Shift+hover pause updates</li>
+ *   <li>Dynamic slot repositioning</li>
+ *   <li>VirtualMEMonitorableSlot scroll wheel interaction</li>
  *   <li>Shift+悬停暂停更新</li>
  * </ul>
  */
@@ -108,16 +109,25 @@ import appeng.util.Platform;
 public class MUIMEMonitorablePanel extends AEBaseMEPanel
         implements ISortSource, IConfigManagerHost, IMEMonitorableGuiCallback {
 
-    // ========== 静态字�?==========
+    // ========== Static fields ==========
 
     private static int craftingGridOffsetX;
     private static int craftingGridOffsetY;
     private static String memoryText = "";
 
-    // ========== 常量 ==========
+    // ========== Constants ==========
 
     // So mysterious, so magic.
     private static final int MAGIC_HEIGHT_NUMBER = 114 + 1;
+
+    // ========== Terminal search field constants ==========
+
+    private static final int SEARCH_FIELD_X_MIN = 80;
+    private static final int SEARCH_FIELD_Y = 4;
+    private static final int SEARCH_FIELD_WIDTH = 90;
+    private static final int SEARCH_FIELD_HEIGHT = 12;
+    private static final int SEARCH_FIELD_MAX_LENGTH = 50;
+    private static final int SEARCH_FIELD_SELECTION_COLOR = 0xFF008000;
 
     // ========== 数据字段 ==========
 
@@ -129,21 +139,21 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     private final ItemStack[] myCurrentViewCells = new ItemStack[5];
     private final ContainerMEMonitorable monitorableContainer;
 
-    // ========== UI 控件 ==========
+    // ========== UI controls ==========
 
-    private GuiTabButton craftingStatusBtn;
-    private MEGuiTextField searchField;
+    private MUITabContainer craftingStatusBtn;
+    private MUITextFieldWidget searchField;
     private GuiText myName;
     private int perRow = 9;
     private int reservedSpace = 0;
     private boolean customSortOrder = true;
     private int rows = 0;
-    private GuiImgButton ViewBox;
-    private GuiImgButton SortByBox;
-    private GuiImgButton SortDirBox;
-    private GuiImgButton searchBoxSettings;
-    private GuiImgButton terminalStyleBox;
-    private GuiImgButton pinsStateButton;
+    private MUIButtonWidget viewBox;
+    private MUIButtonWidget sortByBox;
+    private MUIButtonWidget sortDirBox;
+    private MUIButtonWidget searchBoxSettings;
+    private MUIButtonWidget terminalStyleBox;
+    private MUIButtonWidget pinsStateButton;
     private boolean isAutoFocus = false;
     private int currentMouseX = 0;
     private int currentMouseY = 0;
@@ -156,24 +166,24 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     private VirtualMEPinSlot[] pinSlots = null;
     private int totalPinRows = 0;
 
-    // 类型过滤切换按钮（每�?IAEStackType 一个）
+    // Type filter toggle buttons (one per IAEStackType)
     private final List<TypeToggleButton> typeToggleButtons = new ArrayList<>();
-    // 各类型启用状态缓�?
+    // Per-type enabled state cache
     private final Map<IAEStackType<?>, Boolean> enabledTypes = new HashMap<>();
 
     // To make JEI look nicer. Otherwise, the buttons will make JEI in a strange place.
     protected final int jeiOffset = Platform.isJEIEnabled() ? 24 : 0;
 
-    // ========== 构�?==========
+    // ========== Constructor ==========
 
     public MUIMEMonitorablePanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         this(inventoryPlayer, te, new ContainerMEMonitorable(inventoryPlayer, te));
     }
 
     /**
-     * 仅通过 Container 实例构造，host �?container 中获取�?
-     * 用于子类（如 MUISecurityStationPanelImpl、MUIMEPortableCellPanelImpl�?
-     * 需要自行创�?Container 后再传入面板的场景�?
+     * Constructs via Container instance only; host is obtained from the container.
+     * Used by subclasses (e.g. MUISecurityStationPanelImpl, MUIMEPortableCellPanelImpl)
+     * that need to create a Container first before passing it to the panel.
      */
     protected MUIMEMonitorablePanel(final ContainerMEMonitorable c) {
         this(c.getPlayerInv(), c.getHost(), c);
@@ -264,7 +274,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
                 Math.max(1, this.rows / 6));
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
@@ -335,110 +345,41 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         this.ySize = MAGIC_HEIGHT_NUMBER + this.rows * 18 + this.reservedSpace;
         this.centerVertically();
 
-        int offset = this.guiTop + 8 + jeiOffset;
-
-        // 排序按钮
-        if (this.customSortOrder) {
-            this.buttonList
-                    .add(this.SortByBox = new GuiImgButton(this.guiLeft - 18, offset, Settings.SORT_BY,
-                            this.configSrc.getSetting(Settings.SORT_BY)));
-            offset += 20;
-        }
-
-        // 视图模式按钮
-        if (this.viewCell || this instanceof MUIWirelessTermPanel) {
-            this.buttonList
-                    .add(this.ViewBox = new GuiImgButton(this.guiLeft - 18, offset, Settings.VIEW_MODE,
-                            this.configSrc.getSetting(Settings.VIEW_MODE)));
-            offset += 20;
-        }
-
-        // 排序方向按钮
-        this.buttonList.add(
-                this.SortDirBox = new GuiImgButton(this.guiLeft - 18, offset, Settings.SORT_DIRECTION, this.configSrc
-                        .getSetting(Settings.SORT_DIRECTION)));
-        offset += 20;
-
-        // 搜索模式按钮
-        this.buttonList.add(
-                this.searchBoxSettings = new GuiImgButton(this.guiLeft - 18, offset, Settings.SEARCH_MODE,
-                        AEConfig.instance()
-                                .getConfigManager()
-                                .getSetting(Settings.SEARCH_MODE)));
-        offset += 20;
-
-        // 终端样式按钮
-        if (!(this instanceof MUIPortableCellPanel) || this instanceof MUIWirelessTermPanel) {
-            this.buttonList.add(this.terminalStyleBox = new GuiImgButton(this.guiLeft - 18, offset,
-                    Settings.TERMINAL_STYLE, AEConfig.instance()
-                            .getConfigManager()
-                            .getSetting(Settings.TERMINAL_STYLE)));
-            offset += 20;
-        }
-
-        // 类型过滤按钮（当注册的栈类型多于1种时显示�?
+        // Type filter toggle buttons (still using legacy buttonList — not yet migrated to MUI)
         this.typeToggleButtons.clear();
         if (AEStackTypeRegistry.getAllTypes().size() > 1) {
             int typeButtonX = this.guiLeft - 18;
+            // Calculate the Y offset: after all settings buttons
+            int settingsButtonCount = 0;
+            if (this.customSortOrder) {
+                settingsButtonCount++;
+            }
+            if (this.viewCell || this instanceof MUIWirelessTermPanel) {
+                settingsButtonCount++;
+            }
+            settingsButtonCount += 2; // sort direction + search mode (always present)
+            if (!(this instanceof MUIPortableCellPanel) || this instanceof MUIWirelessTermPanel) {
+                settingsButtonCount++;
+            }
+            int typeOffset = this.guiTop + 8 + jeiOffset + settingsButtonCount * 20;
             for (IAEStackType<?> type : AEStackTypeRegistry.getSortedTypes()) {
-                TypeToggleButton btn = new TypeToggleButton(typeButtonX, offset, type);
+                TypeToggleButton btn = new TypeToggleButton(typeButtonX, typeOffset, type);
                 btn.setTypeEnabled(this.enabledTypes.getOrDefault(type, true));
                 this.typeToggleButtons.add(btn);
                 this.buttonList.add(btn);
-                offset += 18;
+                typeOffset += 18;
             }
         }
 
-        // 搜索�?
-        this.searchField = new MEGuiTextField(this.fontRenderer, this.guiLeft + Math.max(80, this.offsetX),
-                this.guiTop + 4, 90, 12);
+        // Search mode configuration (applied via unified TerminalSearchConfig)
+        final MUITextFieldWidget.TerminalSearchConfig searchConfig =
+                MUITextFieldWidget.TerminalSearchConfig.fromCurrentSetting();
+        this.isAutoFocus = searchConfig.isAutoFocus();
 
-        // Pins button (placed at bottom-right of the ME grid area)
-        this.buttonList.add(
-                this.pinsStateButton = new GuiImgButton(
-                        this.guiLeft + 178,
-                        this.guiTop + 18 + (this.rows * 18) + 25,
-                        Settings.ACTIONS,
-                        ActionItems.PINS));
-        this.searchField.setEnableBackgroundDrawing(false);
-        this.searchField.setMaxStringLength(50);
-        this.searchField.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
-        this.searchField.setSelectionColor(0xFF008000);
-        this.searchField.setVisible(true);
-
-        // 合成状态按�?
-        if (this.viewCell || this instanceof MUIWirelessTermPanel) {
-            this.buttonList.add(this.craftingStatusBtn = new GuiTabButton(this.guiLeft + 170, this.guiTop - 4,
-                    2 + 11 * 16, GuiText.CraftingStatus.getLocal(), this.itemRender));
-            this.craftingStatusBtn.setHideEdge(13);
-        }
-
-        // 搜索模式设置
-        final Enum searchModeSetting = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
-
-        this.isAutoFocus = SearchBoxMode.AUTOSEARCH == searchModeSetting
-                || SearchBoxMode.JEI_AUTOSEARCH == searchModeSetting
-                || SearchBoxMode.AUTOSEARCH_KEEP == searchModeSetting
-                || SearchBoxMode.JEI_AUTOSEARCH_KEEP == searchModeSetting;
-        final boolean isKeepFilter = SearchBoxMode.AUTOSEARCH_KEEP == searchModeSetting
-                || SearchBoxMode.JEI_AUTOSEARCH_KEEP == searchModeSetting
-                || SearchBoxMode.MANUAL_SEARCH_KEEP == searchModeSetting
-                || SearchBoxMode.JEI_MANUAL_SEARCH_KEEP == searchModeSetting;
-        final boolean isJEIEnabled = SearchBoxMode.JEI_AUTOSEARCH == searchModeSetting
-                || SearchBoxMode.JEI_MANUAL_SEARCH == searchModeSetting;
-
-        this.searchField.setFocused(this.isAutoFocus);
-
-        if (isJEIEnabled) {
-            memoryText = Integrations.jei().getSearchText();
-        }
-
-        if (isKeepFilter && memoryText != null && !memoryText.isEmpty()) {
-            this.searchField.setText(memoryText);
-            this.searchField.selectAll();
-            this.repo.setSearchString(memoryText);
+        this.searchField.applyTerminalSearchConfig(searchConfig, memoryText, text -> {
+            this.repo.setSearchString(text);
             this.updateScrollBar();
-        }
+        });
 
         // 合成网格偏移计算
         craftingGridOffsetX = Integer.MAX_VALUE;
@@ -466,7 +407,81 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     protected void setupWidgets() {
-        // initGui 已经处理了所有初始化，此方法留空
+        // Terminal search field registration
+        this.searchField = MUITextFieldWidget.addSearchField(this,
+                MUITextFieldWidget.SearchFieldSpec.builder(
+                        Math.max(SEARCH_FIELD_X_MIN, this.offsetX),
+                        SEARCH_FIELD_Y,
+                        SEARCH_FIELD_WIDTH)
+                        .height(SEARCH_FIELD_HEIGHT)
+                        .onTextChange(text -> {
+                            this.repo.setSearchString(text);
+                            this.updateScrollBar();
+                        })
+                        .build());
+        this.searchField.setMaxStringLength(SEARCH_FIELD_MAX_LENGTH);
+        this.searchField.setSelectionColor(SEARCH_FIELD_SELECTION_COLOR);
+
+        // ========== Left-side settings buttons (panel-relative coordinates) ==========
+        int offset = 8 + this.jeiOffset;
+
+        // Sort by button
+        if (this.customSortOrder) {
+            this.sortByBox = new MUIButtonWidget(-18, offset, Settings.SORT_BY,
+                    this.configSrc.getSetting(Settings.SORT_BY));
+            this.sortByBox.setOnClick(btn -> this.handleSettingsButtonClick(btn));
+            this.addWidget(this.sortByBox);
+            offset += 20;
+        }
+
+        // View mode button
+        if (this.viewCell || this instanceof MUIWirelessTermPanel) {
+            this.viewBox = new MUIButtonWidget(-18, offset, Settings.VIEW_MODE,
+                    this.configSrc.getSetting(Settings.VIEW_MODE));
+            this.viewBox.setOnClick(btn -> this.handleSettingsButtonClick(btn));
+            this.addWidget(this.viewBox);
+            offset += 20;
+        }
+
+        // Sort direction button
+        this.sortDirBox = new MUIButtonWidget(-18, offset, Settings.SORT_DIRECTION,
+                this.configSrc.getSetting(Settings.SORT_DIRECTION));
+        this.sortDirBox.setOnClick(btn -> this.handleSettingsButtonClick(btn));
+        this.addWidget(this.sortDirBox);
+        offset += 20;
+
+        // Search mode button
+        this.searchBoxSettings = new MUIButtonWidget(-18, offset, Settings.SEARCH_MODE,
+                AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE));
+        this.searchBoxSettings.setOnClick(btn -> this.handleSettingsButtonClick(btn));
+        this.addWidget(this.searchBoxSettings);
+        offset += 20;
+
+        // Terminal style button
+        if (!(this instanceof MUIPortableCellPanel) || this instanceof MUIWirelessTermPanel) {
+            this.terminalStyleBox = new MUIButtonWidget(-18, offset, Settings.TERMINAL_STYLE,
+                    AEConfig.instance().getConfigManager().getSetting(Settings.TERMINAL_STYLE));
+            this.terminalStyleBox.setOnClick(btn -> this.handleSettingsButtonClick(btn));
+            this.addWidget(this.terminalStyleBox);
+            offset += 20;
+        }
+
+        // Pins button (placed at bottom-right of the ME grid area)
+        this.pinsStateButton = new MUIButtonWidget(178, 18 + (this.rows * 18) + 25,
+                Settings.ACTIONS, ActionItems.PINS);
+        this.pinsStateButton.setOnClick(btn -> this.handlePinsButtonClick());
+        this.addWidget(this.pinsStateButton);
+
+        // Crafting status tab button
+        if (this.viewCell || this instanceof MUIWirelessTermPanel) {
+            this.craftingStatusBtn = new MUITabContainer(170, -4, 2 + 11 * 16,
+                    GuiText.CraftingStatus.getLocal());
+            this.craftingStatusBtn.setHideEdge(13);
+            this.craftingStatusBtn.setOnClick(tab -> {
+                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.CRAFTING_STATUS));
+            });
+            this.addWidget(this.craftingStatusBtn);
+        }
     }
 
     // ========== 绘制 ==========
@@ -518,9 +533,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             }
         }
 
-        if (this.searchField != null) {
-            this.searchField.drawTextBox();
-        }
+        // Search field drawing is handled automatically by the MUI widget system
     }
 
     protected String getBackground() {
@@ -532,70 +545,73 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         return this.repo.hasPower();
     }
 
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
-        if (btn == this.craftingStatusBtn) {
-            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.CRAFTING_STATUS));
-        }
-
-        // Pins button: left-click cycles player rows, right-click cycles crafting rows
-        if (btn == this.pinsStateButton) {
-            final boolean rmb = Mouse.isButtonDown(1);
-            if (rmb) {
-                int c = Math.min(this.craftingPinsRows.ordinal() + 1, 16);
-                if (c + this.playerPinsRows.ordinal() >= this.rows) {
-                    c = 0;
-                }
-                this.sendPinRowsUpdate(PinsRows.fromOrdinal(c), this.playerPinsRows);
-            } else {
-                int p = Math.min(this.playerPinsRows.ordinal() + 1, 16);
-                if (p + this.craftingPinsRows.ordinal() >= this.rows) {
-                    p = 0;
-                }
-                this.sendPinRowsUpdate(this.craftingPinsRows, PinsRows.fromOrdinal(p));
-            }
-            return;
-        }
-
-        // 类型过滤切换按钮
+        // Type filter toggle buttons (still in legacy buttonList)
         if (btn instanceof TypeToggleButton typeBtn) {
             typeBtn.setTypeEnabled(!typeBtn.isTypeEnabled());
             this.enabledTypes.put(typeBtn.getStackType(), typeBtn.isTypeEnabled());
             this.repo.setTypeFilter(typeBtn.getStackType(), typeBtn.isTypeEnabled());
             this.repo.updateView();
             this.updateScrollBar();
+        }
+    }
+
+    /**
+     * Common click handler for all settings-mode MUI buttons (sort, view, search mode, terminal style).
+     * <p>
+     * Cycles the setting value forward (or backward if right mouse button is held),
+     * sends the appropriate config update, and reinitializes the GUI if needed.
+     */
+    private void handleSettingsButtonClick(MUIButtonWidget btn) {
+        final Settings setting = btn.getSetting();
+        if (setting == null || setting == Settings.ACTIONS) {
             return;
         }
 
-        if (btn instanceof GuiImgButton iBtn) {
-            final boolean backwards = Mouse.isButtonDown(1);
+        final boolean backwards = Mouse.isButtonDown(1);
+        final Enum<?> cv = btn.getCurrentValue();
+        final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
+                setting.getPossibleValues());
 
-            if (iBtn.getSetting() != Settings.ACTIONS) {
-                final Enum cv = iBtn.getCurrentValue();
-                final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
-                        iBtn.getSetting().getPossibleValues());
-
-                if (btn == this.terminalStyleBox) {
-                    AEConfig.instance().getConfigManager().putSetting(iBtn.getSetting(), next);
-                } else if (btn == this.searchBoxSettings) {
-                    AEConfig.instance().getConfigManager().putSetting(iBtn.getSetting(), next);
-                } else {
-                    try {
-                        NetworkHandler.instance()
-                                .sendToServer(new PacketValueConfig(iBtn.getSetting().name(), next.name()));
-                    } catch (final IOException e) {
-                        AELog.debug(e);
-                    }
-                }
-
-                iBtn.set(next);
-
-                if (next.getClass() == SearchBoxMode.class || next.getClass() == TerminalStyle.class) {
-                    this.reinitalize();
-                }
+        if (btn == this.terminalStyleBox || btn == this.searchBoxSettings) {
+            AEConfig.instance().getConfigManager().putSetting(setting, next);
+        } else {
+            try {
+                NetworkHandler.instance()
+                        .sendToServer(new PacketValueConfig(setting.name(), next.name()));
+            } catch (final IOException e) {
+                AELog.debug(e);
             }
+        }
+
+        btn.set(next);
+
+        if (next.getClass() == SearchBoxMode.class || next.getClass() == TerminalStyle.class) {
+            this.reinitalize();
+        }
+    }
+
+    /**
+     * Click handler for the pins button.
+     * Left-click cycles player pin rows; right-click cycles crafting pin rows.
+     */
+    private void handlePinsButtonClick() {
+        final boolean rmb = Mouse.isButtonDown(1);
+        if (rmb) {
+            int c = Math.min(this.craftingPinsRows.ordinal() + 1, 16);
+            if (c + this.playerPinsRows.ordinal() >= this.rows) {
+                c = 0;
+            }
+            this.sendPinRowsUpdate(PinsRows.fromOrdinal(c), this.playerPinsRows);
+        } else {
+            int p = Math.min(this.playerPinsRows.ordinal() + 1, 16);
+            if (p + this.craftingPinsRows.ordinal() >= this.rows) {
+                p = 0;
+            }
+            this.sendPinRowsUpdate(this.craftingPinsRows, PinsRows.fromOrdinal(p));
         }
     }
 
@@ -606,13 +622,8 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
-        this.searchField.mouseClicked(xCoord, yCoord, btn);
-
-        if (btn == 1 && this.searchField.isMouseIn(xCoord, yCoord)) {
-            this.searchField.setText("");
-            this.repo.setSearchString("");
-            this.updateScrollBar();
-        }
+        // Search field click and right-click clearing are handled automatically
+        // by the MUI widget system in AEBasePanel.mouseClicked() via MUITextFieldWidget.
 
         // Pin interaction: Ctrl+left-click on ME slot to pin; Shift+right-click on pin slot to unpin
         for (final GuiCustomSlot slot : this.guiSlots) {
@@ -665,35 +676,22 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
                 return;
             }
 
-            if (character == ' ' && this.searchField.getText().isEmpty()) {
-                return;
-            }
-
             final boolean mouseInGui = this.isPointInRegion(0, 0, this.xSize, this.ySize, this.currentMouseX,
                     this.currentMouseY);
-            final boolean wasSearchFieldFocused = this.searchField.isFocused();
 
-            // 搜索框焦点优先级
-            final SearchBoxFocusPriority focusPriority = (SearchBoxFocusPriority) AEConfig.instance()
-                    .getConfigManager().getSetting(Settings.SEARCH_BOX_FOCUS_PRIORITY);
+            final MUITextFieldWidget.TerminalKeyResult result =
+                    this.searchField.handleTerminalKeyTyped(character, key, this.isAutoFocus, mouseInGui);
 
-            if (this.isAutoFocus && !this.searchField.isFocused() && mouseInGui) {
-                if (focusPriority != SearchBoxFocusPriority.NEVER) {
-                    this.searchField.setFocused(true);
-                }
-            }
-
-            if (this.searchField.textboxKeyTyped(character, key)) {
-                this.repo.setSearchString(this.searchField.getText());
-                this.updateScrollBar();
-                // tell forge the key event is handled and should not be sent out
-                this.keyHandled = mouseInGui;
-            } else {
-                if (!wasSearchFieldFocused) {
-                    // prevent unhandled keys (like shift) from focusing the search field
-                    searchField.setFocused(false);
-                }
-                super.keyTyped(character, key);
+            switch (result) {
+                case HANDLED:
+                    // tell forge the key event is handled and should not be sent out
+                    this.keyHandled = mouseInGui;
+                    break;
+                case SUPPRESSED:
+                    return;
+                case NOT_HANDLED:
+                    super.keyTyped(character, key);
+                    break;
             }
         }
     }
@@ -801,16 +799,16 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
-        if (this.SortByBox != null) {
-            this.SortByBox.set(this.configSrc.getSetting(Settings.SORT_BY));
+        if (this.sortByBox != null) {
+            this.sortByBox.set(this.configSrc.getSetting(Settings.SORT_BY));
         }
 
-        if (this.SortDirBox != null) {
-            this.SortDirBox.set(this.configSrc.getSetting(Settings.SORT_DIRECTION));
+        if (this.sortDirBox != null) {
+            this.sortDirBox.set(this.configSrc.getSetting(Settings.SORT_DIRECTION));
         }
 
-        if (this.ViewBox != null) {
-            this.ViewBox.set(this.configSrc.getSetting(Settings.VIEW_MODE));
+        if (this.viewBox != null) {
+            this.viewBox.set(this.configSrc.getSetting(Settings.VIEW_MODE));
         }
 
         this.repo.updateView();
@@ -823,8 +821,28 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
         int yOffset = guiTop + 8 + this.jeiOffset;
 
-        int visibleButtons = (int) this.buttonList.stream().filter(v -> v.enabled && v.x < guiLeft).count();
-        Rectangle sortDir = new Rectangle(guiLeft - 18, yOffset, 20, visibleButtons * 20 + visibleButtons - 2);
+        // Count left-side buttons: MUI settings buttons + legacy type toggle buttons
+        int visibleMuiButtons = 0;
+        if (this.sortByBox != null && this.sortByBox.isVisible()) {
+            visibleMuiButtons++;
+        }
+        if (this.viewBox != null && this.viewBox.isVisible()) {
+            visibleMuiButtons++;
+        }
+        if (this.sortDirBox != null && this.sortDirBox.isVisible()) {
+            visibleMuiButtons++;
+        }
+        if (this.searchBoxSettings != null && this.searchBoxSettings.isVisible()) {
+            visibleMuiButtons++;
+        }
+        if (this.terminalStyleBox != null && this.terminalStyleBox.isVisible()) {
+            visibleMuiButtons++;
+        }
+        int visibleLegacyButtons = (int) this.buttonList.stream()
+                .filter(v -> v.enabled && v.x < guiLeft).count();
+        int totalVisibleButtons = visibleMuiButtons + visibleLegacyButtons;
+        Rectangle sortDir = new Rectangle(guiLeft - 18, yOffset, 20,
+                totalVisibleButtons * 20 + totalVisibleButtons - 2);
         exclusionArea.add(sortDir);
 
         if (this.viewCell) {
@@ -836,7 +854,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         return exclusionArea;
     }
 
-    // ========== 子类可扩展方�?==========
+    // ========== Subclass extension methods ==========
 
     // For some special cases, like the Portable Cell, which only has 63 slots.
     protected int getMaxRows() {
@@ -852,7 +870,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         s.yPos = s.getY() + this.ySize - 78 - 5;
     }
 
-    // ========== 访问�?==========
+    // ========== Accessors ==========
 
     int getReservedSpace() {
         return this.reservedSpace;

@@ -143,7 +143,7 @@ public class MUICycleButtonWidget implements IMUIWidget {
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     public boolean mouseClicked(int localX, int localY, int mouseButton) {

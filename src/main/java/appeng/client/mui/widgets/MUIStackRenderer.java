@@ -44,7 +44,7 @@ import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
 
 /**
- * 多类型栈渲染器。
+ * 多类型Stack renderer。
  * <p>
  * 统一物品和流体（以及未来扩展类型）的图标渲染、数量叠加层和工具提示。
  * 独立于 GUI 框架，可在 MUI 和旧 GUI 系统中复用。
@@ -137,7 +137,7 @@ public final class MUIStackRenderer {
         GlStateManager.enableBlend();
     }
 
-    // ========== 工具提示 ==========
+    // ========== Tooltips ==========
 
     /**
      * 为任意 AE 栈构建工具提示。

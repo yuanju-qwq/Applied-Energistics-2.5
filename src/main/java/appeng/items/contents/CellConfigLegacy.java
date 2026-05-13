@@ -30,11 +30,11 @@ import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStack;
 
 /**
- * 将 {@link IAEStackInventory} 包装为 {@link IItemHandler} 的兼容适配器。
+ * Compatibility adapter that wraps {@link IAEStackInventory} as {@link IItemHandler}.
  * <p>
- * 当调用旧版 getConfigInventory() 接口（返回 IItemHandler）时使用，
- * 内部委托给新的 IAEStackInventory。
- * 只能处理物品类型的栈，非物品类型的槽位返回空。
+ * Used when the legacy getConfigInventory() interface (returning IItemHandler) is called,
+ * internally delegating to the new IAEStackInventory.
+ * Can only handle item-type stacks; non-item-type slots return empty.
  * </p>
  */
 public class CellConfigLegacy implements IItemHandler {

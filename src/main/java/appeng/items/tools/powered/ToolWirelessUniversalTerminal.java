@@ -40,10 +40,10 @@ import appeng.core.localization.GuiText;
 import appeng.util.Platform;
 
 /**
- * 閫氱敤鏃犵嚎缁堢鐗╁搧銆?
- * 灏嗘墍鏈夋棤绾跨粓绔紙鍚堟垚缁堢銆佹牱鏉跨粓绔€佹祦浣撶粓绔€佹帴鍙ｇ粓绔€佸弻鎺ュ彛缁堢锛夊悎骞朵负涓€涓墿鍝併€?
- * 閫氳繃 NBT 涓殑 "mode" 瀛楁锛坽@link WirelessTerminalMode}锛夊垏鎹㈠綋鍓嶇粓绔被鍨嬨€?
- * 閫氳繃 NBT 涓殑 "modes" 瀛楁锛坕nt[]锛夎褰曞凡瀹夎鐨勭粓绔ā寮忓垪琛ㄣ€?
+ * Universal wireless terminal item.
+ * Merges all wireless terminals (crafting, pattern, fluid, interface, dual interface) into a single item.
+ * Switches the current terminal type via the "mode" field in NBT ({@link WirelessTerminalMode}).
+ * Records installed terminal mode list via the "modes" field in NBT (int[]).
  */
 public class ToolWirelessUniversalTerminal extends ToolWirelessTerminal {
 
@@ -51,10 +51,10 @@ public class ToolWirelessUniversalTerminal extends ToolWirelessTerminal {
         super();
     }
 
-    // ========== 妯″紡绠＄悊 ==========
+    // ========== Mode management ==========
 
     /**
-     * 鑾峰彇鐗╁搧褰撳墠鐨勭粓绔ā寮忋€?
+     * Get the current terminal mode of the item.
      */
     public static WirelessTerminalMode getMode(ItemStack stack) {
         NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(stack);
@@ -62,7 +62,7 @@ public class ToolWirelessUniversalTerminal extends ToolWirelessTerminal {
     }
 
     /**
-     * 璁剧疆鐗╁搧褰撳墠鐨勭粓绔ā寮忋€?
+     * Set the current terminal mode of the item.
      */
     public static void setMode(ItemStack stack, WirelessTerminalMode mode) {
         NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(stack);
@@ -70,7 +70,7 @@ public class ToolWirelessUniversalTerminal extends ToolWirelessTerminal {
     }
 
     /**
-     * 鑾峰彇鐗╁搧宸插畨瑁呯殑鎵€鏈夌粓绔ā寮?ID 鍒楄〃銆?
+     * Get the list of all installed terminal mode IDs on the item.
      */
     public static int[] getInstalledModes(ItemStack stack) {
         NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(stack);
@@ -81,7 +81,7 @@ public class ToolWirelessUniversalTerminal extends ToolWirelessTerminal {
     }
 
     /**
-     * 妫€鏌ョ墿鍝佹槸鍚﹀凡瀹夎鎸囧畾鐨勭粓绔ā寮忋€?
+     * Check whether the item has the specified terminal mode installed.
      */
     public static boolean hasMode(ItemStack stack, WirelessTerminalMode mode) {
         int[] modes = getInstalledModes(stack);
@@ -94,7 +94,7 @@ public class ToolWirelessUniversalTerminal extends ToolWirelessTerminal {
     }
 
     /**
-     * 娣诲姞涓€涓粓绔ā寮忓埌鐗╁搧涓紙濡傛灉灏氭湭瀹夎锛夈€?
+     * Add a terminal mode to the item (if not already installed).
      */
     public static void addMode(ItemStack stack, WirelessTerminalMode mode) {
         if (hasMode(stack, mode)) {
@@ -109,7 +109,7 @@ public class ToolWirelessUniversalTerminal extends ToolWirelessTerminal {
     }
 
     /**
-     * 鍒囨崲鍒颁笅涓€涓凡瀹夎鐨勭粓绔ā寮忥紙寰幆鍒囨崲锛夈€?
+     * Switch to the next installed terminal mode (cyclic switching).
      */
     public static void cycleMode(ItemStack stack) {
         int[] modes = getInstalledModes(stack);
@@ -128,7 +128,7 @@ public class ToolWirelessUniversalTerminal extends ToolWirelessTerminal {
         setMode(stack, WirelessTerminalMode.fromId((byte) modes[nextIndex]));
     }
 
-    // ========== IWirelessTermHandler 瀹炵幇 ==========
+    // ========== IWirelessTermHandler implementation ==========
 
     @Override
     public boolean canHandle(final ItemStack is) {
@@ -149,7 +149,7 @@ public class ToolWirelessUniversalTerminal extends ToolWirelessTerminal {
             return new ActionResult<>(EnumActionResult.FAIL, stack);
         }
 
-        // 濡傛灉褰撳墠妯″紡鏃犳晥锛堝灏氭湭瀹夎锛夛紝鍒囨崲鍒扮涓€涓凡瀹夎妯″紡
+        // If current mode is invalid (e.g. not yet installed), switch to the first installed mode
         WirelessTerminalMode current = getMode(stack);
         if (!hasMode(stack, current)) {
             setMode(stack, WirelessTerminalMode.fromId((byte) modes[0]));
@@ -159,7 +159,7 @@ public class ToolWirelessUniversalTerminal extends ToolWirelessTerminal {
         return new ActionResult<>(EnumActionResult.SUCCESS, stack);
     }
 
-    // ========== 鏄剧ず鐩稿叧 ==========
+    // ========== Display related ==========
 
     @SideOnly(Side.CLIENT)
     @Override
@@ -184,13 +184,13 @@ public class ToolWirelessUniversalTerminal extends ToolWirelessTerminal {
 
     @Override
     protected void getCheckedSubItems(CreativeTabs creativeTab, NonNullList<ItemStack> itemStacks) {
-        // 鍒涢€犳ā寮忎笅鎻愪緵涓€涓弧鐢点€佸畨瑁呮墍鏈夋ā寮忕殑鐗堟湰
+        // Provide a fully charged version with all modes installed in creative mode
         ItemStack charged = new ItemStack(this, 1);
         NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(charged);
         tag.setDouble("internalCurrentPower", this.getAEMaxPower(charged));
         tag.setDouble("internalMaxPower", this.getAEMaxPower(charged));
 
-        // 瀹夎鎵€鏈夋ā寮?
+        // Install all modes
         WirelessTerminalMode[] allModes = WirelessTerminalMode.values();
         int[] modeIds = new int[allModes.length];
         for (int i = 0; i < allModes.length; i++) {

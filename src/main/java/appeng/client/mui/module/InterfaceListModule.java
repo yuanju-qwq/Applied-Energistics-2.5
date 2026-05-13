@@ -23,6 +23,7 @@ import static appeng.helpers.ItemStackHelper.stackFromNBT;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Consumer;
 
 import com.google.common.collect.HashMultimap;
 
@@ -42,12 +43,14 @@ import net.minecraftforge.common.util.Constants;
 
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
-import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEMUITheme;
+import appeng.client.mui.IMUIWidget;
+import appeng.client.mui.widgets.MUIButtonPool;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.core.AEConfig;
 import appeng.core.AppEng;
@@ -61,24 +64,24 @@ import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
 
 /**
- * 接口列表模块 �?�?MUIInterfaceTerminalPanel / GuiWirelessDualInterfaceTerminal 中提取的可复用组件�?
+ * Interface list module extracted from MUIInterfaceTerminalPanel / GuiWirelessDualInterfaceTerminal as a reusable component.
  *
- * <p>负责�?
+ * <p>Responsible for:
  * <ul>
- *   <li>管理 byId / providerById 数据（通过 {@link #postUpdate(NBTTagCompound)} 接收服务端同步）</li>
- *   <li>三个搜索字段（输�?输出/名称）及过滤按钮（装配器过滤/空位过滤/坏配方过�?终端样式�?/li>
- *   <li>刷新列表、滚动条管理</li>
- *   <li>drawBG/drawFG 中渲染接口列表行</li>
- *   <li>drawScreen 中动态创�?SlotDisconnected 和高亮按�?/li>
- *   <li>键盘/鼠标事件转发</li>
- *   <li>方块高亮定位</li>
+ *   <li>Managing byId / providerById data (receiving server sync via {@link #postUpdate(NBTTagCompound)})</li>
+ *   <li>Three search fields (inputs/outputs/names) and filter buttons (assembler filter/empty slot filter/broken recipe filter/terminal style)</li>
+ *   <li>Refreshing the list, scrollbar management</li>
+ *   <li>Rendering interface list rows in drawBG/drawFG</li>
+ *   <li>Dynamically creating SlotDisconnected and highlight buttons in drawScreen</li>
+ *   <li>Keyboard/mouse event forwarding</li>
+ *   <li>Block highlight positioning</li>
  * </ul>
  *
- * <p>宿主 GUI 通过 {@link Host} 接口提供上下文�?
+ * <p>The host GUI provides context via the {@link Host} interface.
  */
 public class InterfaceListModule {
 
-    // ========== 常量 ==========
+    // ========== Constants ==========
 
     private static final int OFFSET_X = 21;
     private static final int MAIN_GUI_WIDTH = 208;
@@ -88,7 +91,7 @@ public class InterfaceListModule {
     // ========== 宿主接口 ==========
 
     /**
-     * 宿主 GUI 必须实现此接口来提供模块所需的上下文�?
+     * The host GUI must implement this interface to provide the context required by the module.
      */
     public interface Host {
         int getGuiLeft();
@@ -107,27 +110,31 @@ public class InterfaceListModule {
 
         GuiScrollbar getInterfaceScrollBar();
 
-        List<GuiButton> getButtonList();
+        /**
+         * Register an MUI widget on the host panel.
+         * Called during module initialization to add toolbar buttons and button pools.
+         */
+        <T extends IMUIWidget> T addModuleWidget(T widget);
 
         AEBasePanel getPanel();
 
         /**
-         * 请求宿主重新初始�?GUI�?
+         * Request the host to reinitialize the GUI.
          */
         void requestReinitialize();
 
         /**
-         * 绑定纹理�?
+         * Bind a texture.
          */
         void bindTexture(String file);
 
         /**
-         * 在指定位置绘制纹理矩形�?
+         * Draw a textured rectangle at the specified position.
          */
         void drawTexturedModalRect(int x, int y, int textureX, int textureY, int width, int height);
 
         /**
-         * 获取 JEI 偏移量（如果 JEI 启用则为 24，否则为 0）�?
+         * Get the JEI offset (24 if JEI is enabled, 0 otherwise).
          */
         int getJeiOffset();
     }
@@ -141,8 +148,8 @@ public class InterfaceListModule {
 
     private final HashMultimap<String, ClientDCInternalInv> byName = HashMultimap.create();
     private final HashMap<ClientDCInternalInv, BlockPos> blockPosHashMap = new HashMap<>();
-    private final HashMap<GuiButton, ClientDCInternalInv> guiButtonHashMap = new HashMap<>();
-    private final HashMap<GuiButton, ClientDCInternalInv> doubleButtonHashMap = new HashMap<>();
+    private final HashMap<MUIButtonWidget, ClientDCInternalInv> highlightButtonMap = new HashMap<>();
+    private final HashMap<MUIButtonWidget, ClientDCInternalInv> doubleButtonMap = new HashMap<>();
     private final Map<ClientDCInternalInv, Integer> numUpgradesMap = new HashMap<>();
     private final ArrayList<String> names = new ArrayList<>();
     private final ArrayList<Object> lines = new ArrayList<>();
@@ -154,10 +161,17 @@ public class InterfaceListModule {
     private MUITextFieldWidget searchFieldInputs;
     private MUITextFieldWidget searchFieldNames;
 
-    private GuiImgButton guiButtonHideFull;
-    private GuiImgButton guiButtonAssemblersOnly;
-    private GuiImgButton guiButtonBrokenRecipes;
-    private GuiImgButton terminalStyleBox;
+    // Toolbar buttons (MUI widgets, registered on host panel)
+    private MUIButtonWidget guiButtonHideFull;
+    private MUIButtonWidget guiButtonAssemblersOnly;
+    private MUIButtonWidget guiButtonBrokenRecipes;
+    private MUIButtonWidget terminalStyleBox;
+
+    /** Dynamic highlight button pool */
+    private MUIButtonPool highlightButtonPool;
+
+    /** Dynamic double-stacks button pool (only active if enableDoubleButton is true) */
+    private MUIButtonPool doubleButtonPool;
 
     private boolean refreshList = false;
     private boolean onlyShowWithSpace = false;
@@ -165,10 +179,14 @@ public class InterfaceListModule {
     private boolean onlyBrokenRecipes = false;
     private int rows = 6;
 
-    /** 是否启用每行"加�?按钮（WirelessDualInterfaceTerminal 独有功能�?*/
+    /** Whether to enable per-row double-stacks button (WirelessDualInterfaceTerminal specific feature) */
     private boolean enableDoubleButton = false;
 
-    // ========== 构�?==========
+    /** Callback for double-stacks button clicks, set by the host panel */
+    @javax.annotation.Nullable
+    private Consumer<ClientDCInternalInv> doubleStacksHandler;
+
+    // ========== Constructor ==========
 
     public InterfaceListModule(Host host) {
         this.host = host;
@@ -177,14 +195,22 @@ public class InterfaceListModule {
     // ========== 配置 ==========
 
     /**
-     * 设置是否启用每行"加�?按钮�?
-     * WirelessDualInterfaceTerminal 使用此功能，普通接口终端不使用�?
+     * Set whether to enable the per-row double-stacks button.
+     * WirelessDualInterfaceTerminal uses this feature; regular interface terminals do not.
      */
     public void setEnableDoubleButton(boolean enable) {
         this.enableDoubleButton = enable;
     }
 
-    // ========== 访问�?==========
+    /**
+     * Set the callback handler for double-stacks button clicks.
+     * The host panel provides this to handle the actual double-stacks inventory action.
+     */
+    public void setDoubleStacksHandler(@javax.annotation.Nullable Consumer<ClientDCInternalInv> handler) {
+        this.doubleStacksHandler = handler;
+    }
+
+    // ========== Accessors ==========
 
     public int getRows() {
         return rows;
@@ -194,12 +220,12 @@ public class InterfaceListModule {
         return lines;
     }
 
-    public HashMap<GuiButton, ClientDCInternalInv> getGuiButtonHashMap() {
-        return guiButtonHashMap;
+    public HashMap<MUIButtonWidget, ClientDCInternalInv> getHighlightButtonMap() {
+        return highlightButtonMap;
     }
 
-    public HashMap<GuiButton, ClientDCInternalInv> getDoubleButtonHashMap() {
-        return doubleButtonHashMap;
+    public HashMap<MUIButtonWidget, ClientDCInternalInv> getDoubleButtonMap() {
+        return doubleButtonMap;
     }
 
     public Map<ClientDCInternalInv, Integer> getNumUpgradesMap() {
@@ -242,11 +268,11 @@ public class InterfaceListModule {
                 .build();
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     /**
-     * 计算行数（根据终端样式和屏幕高度）�?
-     * 必须�?initGui 流程中调用�?
+     * Calculate the number of rows (based on terminal style and screen height).
+     * Must be called during the initGui flow.
      */
     public void calculateRows() {
         final int jeiSearchOffset = Platform.isJEICenterSearchBarEnabled() ? 40 : 0;
@@ -260,13 +286,10 @@ public class InterfaceListModule {
     }
 
     /**
-     * 初始化搜索字段和过滤按钮�?
-     * 必须�?calculateRows 之后、宿主设�?ySize/guiTop 之后调用�?
+     * Initialize search fields and filter buttons.
+     * Must be called after calculateRows and after the host sets ySize/guiTop.
      */
     public void initSearchFieldsAndButtons() {
-        final int guiLeft = host.getGuiLeft();
-        final int guiTop = host.getGuiTop();
-
         MUITextFieldWidget.SearchFieldWidgets searchFields = MUITextFieldWidget.addSearchFieldGroup(
                 host.getPanel(),
                 this.createSearchFieldGroup());
@@ -274,24 +297,46 @@ public class InterfaceListModule {
         searchFieldOutputs = searchFields.getOutputs();
         searchFieldNames = searchFields.getNames();
 
-        guiButtonAssemblersOnly = new GuiImgButton(0, 0, Settings.ACTIONS, null);
-        guiButtonHideFull = new GuiImgButton(0, 0, Settings.ACTIONS, null);
-        guiButtonBrokenRecipes = new GuiImgButton(0, 0, Settings.ACTIONS, null);
-        terminalStyleBox = new GuiImgButton(0, 0, Settings.TERMINAL_STYLE, null);
+        // Toolbar buttons (MUI widgets — panel-relative coordinates)
+        final int btnX = -18;
+        final int jeiOff = host.getJeiOffset();
 
-        terminalStyleBox.x = guiLeft - 18;
-        terminalStyleBox.y = guiTop + 8 + host.getJeiOffset();
-        guiButtonBrokenRecipes.x = guiLeft - 18;
-        guiButtonBrokenRecipes.y = terminalStyleBox.y + 20;
-        guiButtonHideFull.x = guiLeft - 18;
-        guiButtonHideFull.y = guiButtonBrokenRecipes.y + 20;
-        guiButtonAssemblersOnly.x = guiLeft - 18;
-        guiButtonAssemblersOnly.y = guiButtonHideFull.y + 20;
+        this.terminalStyleBox = host.addModuleWidget(
+                new MUIButtonWidget(btnX, 8 + jeiOff, Settings.TERMINAL_STYLE, null)
+                        .setOnClick(btn -> this.onTerminalStyleClicked()));
+        this.guiButtonBrokenRecipes = host.addModuleWidget(
+                new MUIButtonWidget(btnX, 8 + jeiOff + 20, Settings.ACTIONS, null)
+                        .setOnClick(btn -> {
+                            this.onlyBrokenRecipes = !this.onlyBrokenRecipes;
+                            this.refreshList();
+                        }));
+        this.guiButtonHideFull = host.addModuleWidget(
+                new MUIButtonWidget(btnX, 8 + jeiOff + 40, Settings.ACTIONS, null)
+                        .setOnClick(btn -> {
+                            this.onlyShowWithSpace = !this.onlyShowWithSpace;
+                            this.refreshList();
+                        }));
+        this.guiButtonAssemblersOnly = host.addModuleWidget(
+                new MUIButtonWidget(btnX, 8 + jeiOff + 60, Settings.ACTIONS, null)
+                        .setOnClick(btn -> {
+                            this.onlyMolecularAssemblers = !this.onlyMolecularAssemblers;
+                            this.refreshList();
+                        }));
+
+        // Dynamic highlight button pool
+        this.highlightButtonPool = new MUIButtonPool()
+                .setDefaultOnClick(btn -> this.onHighlightClicked(btn));
+        host.addModuleWidget(this.highlightButtonPool);
+
+        // Dynamic double-stacks button pool (only used when enableDoubleButton is true)
+        this.doubleButtonPool = new MUIButtonPool()
+                .setDefaultOnClick(btn -> this.onDoubleStacksClicked(btn));
+        host.addModuleWidget(this.doubleButtonPool);
 
         this.updateScrollBar();
     }
 
-    // ========== 滚动�?==========
+    // ========== Scrolling ==========
 
     public void updateScrollBar() {
         GuiScrollbar sb = host.getInterfaceScrollBar();
@@ -302,8 +347,8 @@ public class InterfaceListModule {
     // ========== 渲染: drawBG ==========
 
     /**
-     * 绘制接口列表的背景部分（行背�?+ 槽位背景 + 搜索框）�?
-     * 不包括顶部和底部（由宿主绘制）�?
+     * Draw the background portion of the interface list (row backgrounds + slot backgrounds + search boxes).
+     * Does not include the top and bottom (drawn by the host).
      */
     public void drawBG(int offsetX, int offsetY) {
         host.bindTexture("guis/newinterfaceterminal.png");
@@ -311,7 +356,7 @@ public class InterfaceListModule {
         // 顶部背景
         host.drawTexturedModalRect(offsetX, offsetY, 0, 0, MAIN_GUI_WIDTH, 53);
 
-        // 行背�?
+        // Row backgrounds
         for (int x = 0; x < this.rows; x++) {
             host.drawTexturedModalRect(offsetX, offsetY + 53 + x * 18, 0, 52, MAIN_GUI_WIDTH, 18);
         }
@@ -346,7 +391,7 @@ public class InterfaceListModule {
             }
         }
 
-        // 底部背景（玩家物品栏�?
+        // Bottom background (player inventory area)
         host.drawTexturedModalRect(offsetX, offsetY + 50 + this.rows * 18, 0, 158, MAIN_GUI_WIDTH, 99);
 
         // 搜索框由 panel widget 生命周期统一绘制
@@ -355,7 +400,7 @@ public class InterfaceListModule {
     // ========== 渲染: drawFG ==========
 
     /**
-     * 绘制接口列表的前景部分（标题、接口名、匹配高亮）�?
+     * Draw the foreground portion of the interface list (title, interface names, match highlights).
      */
     public void drawFG(int offsetX, int offsetY, String title) {
         FontRenderer fr = host.getFontRenderer();
@@ -406,20 +451,23 @@ public class InterfaceListModule {
         }
     }
 
-    // ========== 渲染: drawScreen（动态槽�?按钮创建�?==========
+    // ========== Rendering: drawScreen (dynamic slot/button creation) ==========
 
     /**
-     * �?drawScreen 中调用，创建动�?SlotDisconnected 和高�?加倍按钮�?
-     * 必须�?buttonList.clear() 之后、super.drawScreen() 之前调用�?
+     * Called in drawScreen to create dynamic SlotDisconnected and highlight/double buttons.
+     * Must be called after buttonList.clear() and before super.drawScreen().
      */
     public void populateDynamicSlots() {
-        final List<GuiButton> buttonList = host.getButtonList();
         final AEBasePanel panel = host.getPanel();
 
-        guiButtonHashMap.clear();
-        doubleButtonHashMap.clear();
+        // Reset dynamic button pools
+        highlightButtonPool.reset();
+        highlightButtonMap.clear();
+        doubleButtonPool.reset();
+        doubleButtonMap.clear();
         panel.inventorySlots.inventorySlots.removeIf(slot -> slot instanceof SlotDisconnected);
 
+        // Update toolbar button values
         guiButtonAssemblersOnly.set(
                 onlyMolecularAssemblers ? ActionItems.MOLECULAR_ASSEMBLERS_ON
                         : ActionItems.MOLECULAR_ASSEMBLERS_OFF);
@@ -429,33 +477,25 @@ public class InterfaceListModule {
                 : ActionItems.TOGGLE_SHOW_ONLY_INVALID_PATTERNS_OFF);
         terminalStyleBox.set(AEConfig.instance().getConfigManager().getSetting(Settings.TERMINAL_STYLE));
 
-        buttonList.add(guiButtonAssemblersOnly);
-        buttonList.add(guiButtonHideFull);
-        buttonList.add(guiButtonBrokenRecipes);
-        buttonList.add(terminalStyleBox);
-
         int offset = 51;
         final int currentScroll = host.getInterfaceScrollBar().getCurrentScroll();
         int linesDraw = 0;
-
-        final int guiLeft = host.getGuiLeft();
-        final int guiTop = host.getGuiTop();
 
         for (int x = 0; x < rows && linesDraw < rows && currentScroll + x < this.lines.size(); x++) {
             final Object lineObj = this.lines.get(currentScroll + x);
             if (lineObj instanceof ClientDCInternalInv inv) {
 
-                GuiButton guiButton = new GuiImgButton(guiLeft + 4, guiTop + offset + 1, Settings.ACTIONS,
-                        ActionItems.HIGHLIGHT_INTERFACE);
-                guiButtonHashMap.put(guiButton, inv);
-                buttonList.add(guiButton);
+                // Acquire highlight button from pool (panel-relative coordinates)
+                MUIButtonWidget hlBtn = this.highlightButtonPool.acquireSettings(
+                        4, offset + 1, Settings.ACTIONS, ActionItems.HIGHLIGHT_INTERFACE);
+                highlightButtonMap.put(hlBtn, inv);
 
+                // Acquire double-stacks button from pool (if enabled)
                 if (enableDoubleButton) {
-                    GuiImgButton interfaceDoubleBtn = new GuiImgButton(guiLeft + 8, guiTop + offset + 10,
-                            Settings.ACTIONS, ActionItems.DOUBLE_STACKS);
-                    interfaceDoubleBtn.setHalfSize(true);
-                    doubleButtonHashMap.put(interfaceDoubleBtn, inv);
-                    buttonList.add(interfaceDoubleBtn);
+                    MUIButtonWidget dblBtn = this.doubleButtonPool.acquireSettings(
+                            8, offset + 10, Settings.ACTIONS, ActionItems.DOUBLE_STACKS);
+                    dblBtn.setHalfSize(true);
+                    doubleButtonMap.put(dblBtn, inv);
                 }
 
                 final int extraLines = numUpgradesMap.get(inv);
@@ -483,7 +523,7 @@ public class InterfaceListModule {
     }
 
     /**
-     * 搜索�?tooltip 已由统一 widget 生命周期处理�?
+     * Search field tooltips are now handled by the unified widget lifecycle.
      */
     public void drawSearchFieldTooltips(AEBasePanel panel, int mouseX, int mouseY) {
     }
@@ -491,7 +531,7 @@ public class InterfaceListModule {
     // ========== 输入处理 ==========
 
     /**
-     * 处理鼠标点击（搜索框焦点）�?
+     * Handle mouse clicks (search field focus).
      */
     public void mouseClicked(int xCoord, int yCoord, int btn) {
         this.searchFieldInputs.mouseClicked(xCoord - host.getGuiLeft(), yCoord - host.getGuiTop(), btn);
@@ -500,9 +540,9 @@ public class InterfaceListModule {
     }
 
     /**
-     * 处理键盘事件�?
+     * Handle keyboard events.
      *
-     * @return true 如果事件被消费（不应传递给宿主 super.keyTyped�?
+     * @return true if the event was consumed (should not be passed to the host super.keyTyped)
      */
     public boolean keyTyped(char character, int key) {
         if (character == ' ') {
@@ -528,76 +568,83 @@ public class InterfaceListModule {
     }
 
     /**
-     * 处理按钮点击�?
+     * Handle legacy button clicks (for backward compatibility with host actionPerformed).
+     * All button logic has been migrated to MUI onClick callbacks, so this always returns false.
      *
-     * @return true 如果事件被消�?
+     * @return true if the event was consumed (always false now)
+     * @deprecated All button handling is now via MUI widget onClick callbacks.
      */
+    @Deprecated
     public boolean actionPerformed(GuiButton btn, GuiButton selectedButton) {
-        if (guiButtonHashMap.containsKey(btn)) {
-            ClientDCInternalInv inv = guiButtonHashMap.get(selectedButton);
-            if (inv == null) {
-                return true;
-            }
-            BlockPos blockPos = blockPosHashMap.get(inv);
-            BlockPos blockPos2 = host.getPanel().mc.player.getPosition();
-            int playerDim = host.getPanel().mc.world.provider.getDimension();
-            int interfaceDim = dimHashMap.getOrDefault(inv, playerDim);
-            if (playerDim != interfaceDim) {
-                try {
-                    host.getPanel().mc.player.sendStatusMessage(
-                            PlayerMessages.InterfaceInOtherDimParam.get(interfaceDim,
-                                    DimensionManager.getWorld(interfaceDim).provider.getDimensionType().getName()),
-                            false);
-                } catch (Exception e) {
-                    host.getPanel().mc.player.sendStatusMessage(PlayerMessages.InterfaceInOtherDim.get(), false);
-                }
-            } else {
-                hilightBlock(blockPos,
-                        System.currentTimeMillis() + 500 * BlockPosUtils.getDistance(blockPos, blockPos2), playerDim);
-                host.getPanel().mc.player.sendStatusMessage(
-                        PlayerMessages.InterfaceHighlighted.get(blockPos.getX(), blockPos.getY(), blockPos.getZ()),
-                        false);
-            }
-            host.getPanel().mc.player.closeScreen();
-            return true;
-        }
-
-        if (btn == guiButtonHideFull) {
-            onlyShowWithSpace = !onlyShowWithSpace;
-            this.refreshList();
-            return true;
-        }
-        if (btn == guiButtonAssemblersOnly) {
-            onlyMolecularAssemblers = !onlyMolecularAssemblers;
-            this.refreshList();
-            return true;
-        }
-        if (btn == guiButtonBrokenRecipes) {
-            onlyBrokenRecipes = !onlyBrokenRecipes;
-            this.refreshList();
-            return true;
-        }
-
-        if (btn instanceof GuiImgButton iBtn && iBtn.getSetting() != Settings.ACTIONS) {
-            if (btn == this.terminalStyleBox) {
-                final Enum<?> cv = iBtn.getCurrentValue();
-                final boolean backwards = Mouse.isButtonDown(1);
-                final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
-                        iBtn.getSetting().getPossibleValues());
-                AEConfig.instance().getConfigManager().putSetting(iBtn.getSetting(), next);
-                iBtn.set(next);
-                host.requestReinitialize();
-                return true;
-            }
-        }
-
         return false;
     }
 
-    // ========== Tab 键循�?==========
+    // ========== MUI button onClick handlers ==========
 
     /**
-     * Tab 键循环搜索框焦点�?
+     * Handle highlight button click (from MUIButtonPool onClick callback).
+     * Locates the interface in the world and highlights its block position.
+     */
+    private void onHighlightClicked(MUIButtonWidget btn) {
+        ClientDCInternalInv inv = highlightButtonMap.get(btn);
+        if (inv == null) {
+            return;
+        }
+        BlockPos blockPos = blockPosHashMap.get(inv);
+        BlockPos blockPos2 = host.getPanel().mc.player.getPosition();
+        int playerDim = host.getPanel().mc.world.provider.getDimension();
+        int interfaceDim = dimHashMap.getOrDefault(inv, playerDim);
+        if (playerDim != interfaceDim) {
+            try {
+                host.getPanel().mc.player.sendStatusMessage(
+                        PlayerMessages.InterfaceInOtherDimParam.get(interfaceDim,
+                                DimensionManager.getWorld(interfaceDim).provider.getDimensionType().getName()),
+                        false);
+            } catch (Exception e) {
+                host.getPanel().mc.player.sendStatusMessage(PlayerMessages.InterfaceInOtherDim.get(), false);
+            }
+        } else {
+            hilightBlock(blockPos,
+                    System.currentTimeMillis() + 500 * BlockPosUtils.getDistance(blockPos, blockPos2), playerDim);
+            host.getPanel().mc.player.sendStatusMessage(
+                    PlayerMessages.InterfaceHighlighted.get(blockPos.getX(), blockPos.getY(), blockPos.getZ()),
+                    false);
+        }
+        host.getPanel().mc.player.closeScreen();
+    }
+
+    /**
+     * Handle double-stacks button click (from MUIButtonPool onClick callback).
+     */
+    private void onDoubleStacksClicked(MUIButtonWidget btn) {
+        ClientDCInternalInv inv = doubleButtonMap.get(btn);
+        if (inv == null) {
+            return;
+        }
+        // Delegate to the host panel for the actual double-stacks logic
+        // (The host panel has access to the network handler and inventory actions)
+        if (this.doubleStacksHandler != null) {
+            this.doubleStacksHandler.accept(inv);
+        }
+    }
+
+    /**
+     * Handle terminal style button click — cycle the terminal style setting and reinitialize the GUI.
+     */
+    private void onTerminalStyleClicked() {
+        final Enum<?> cv = this.terminalStyleBox.getCurrentValue();
+        final boolean backwards = Mouse.isButtonDown(1);
+        final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
+                Settings.TERMINAL_STYLE.getPossibleValues());
+        AEConfig.instance().getConfigManager().putSetting(Settings.TERMINAL_STYLE, next);
+        this.terminalStyleBox.set(next);
+        host.requestReinitialize();
+    }
+
+    // ========== Tab key cycling ==========
+
+    /**
+     * Cycle search field focus with Tab key.
      *
      * @return true 如果焦点切换成功
      */
@@ -631,7 +678,7 @@ public class InterfaceListModule {
     }
 
     /**
-     * 检查任一搜索框是否有焦点�?
+     * Check if any search field has focus.
      */
     public boolean isAnySearchFieldFocused() {
         return (searchFieldInputs != null && searchFieldInputs.isFocused())
@@ -640,7 +687,7 @@ public class InterfaceListModule {
     }
 
     /**
-     * 获取当前有焦点的搜索框索引（0=Inputs, 1=Outputs, 2=Names, -1=无）�?
+     * Get the index of the currently focused search field (0=Inputs, 1=Outputs, 2=Names, -1=none).
      */
     public int getFocusedFieldIndex() {
         if (searchFieldInputs != null && searchFieldInputs.isFocused()) return 0;
@@ -650,7 +697,7 @@ public class InterfaceListModule {
     }
 
     /**
-     * 设置搜索框焦点�?
+     * Set search field focus.
      */
     public void setFocusedField(int index) {
         if (searchFieldInputs != null) searchFieldInputs.setFocused(index == 0);
@@ -659,7 +706,7 @@ public class InterfaceListModule {
     }
 
     /**
-     * 取消所有搜索框焦点�?
+     * Clear all search field focus.
      */
     public void clearFocus() {
         if (searchFieldInputs != null) searchFieldInputs.setFocused(false);
@@ -670,8 +717,8 @@ public class InterfaceListModule {
     // ========== 数据更新 ==========
 
     /**
-     * 处理来自服务端的 NBT 增量更新�?
-     * 由宿主的 IInterfaceTerminalGuiCallback.postUpdate 转发调用�?
+     * Handle incremental NBT updates from the server.
+     * Forwarded by the host IInterfaceTerminalGuiCallback.postUpdate.
      */
     public void postUpdate(final NBTTagCompound in) {
         if (in.getBoolean("clear")) {
@@ -730,8 +777,8 @@ public class InterfaceListModule {
     // ========== 列表管理 ==========
 
     /**
-     * 重建接口列表�?
-     * 根据搜索条件过滤，并更新 lines 和滚动条�?
+     * Rebuild the interface list.
+     * Filter by search criteria and update lines and scrollbar.
      */
     public void refreshList() {
         this.byName.clear();
@@ -746,11 +793,11 @@ public class InterfaceListModule {
                         + "NAME:" + searchNames + onlyShowWithSpace + onlyMolecularAssemblers + onlyBrokenRecipes);
         final boolean rebuild = cachedSearch.isEmpty();
 
-        // 搜索旧接�?
+        // Search legacy interfaces
         this.filterEntries(this.byId.values(), cachedSearch, rebuild, searchInputs, searchOutputs,
                 searchNames);
 
-        // 搜索样板供应�?
+        // Search pattern providers
         this.filterEntries(this.providerById.values(), cachedSearch, rebuild, searchInputs, searchOutputs,
                 searchNames);
 

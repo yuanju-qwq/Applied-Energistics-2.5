@@ -64,21 +64,21 @@ import appeng.util.inv.IInventoryDestination;
 import appeng.util.inv.InvOperation;
 
 /**
- * ME 接口方块。
+ * ME interface block.
  *
- * 对应高版本 AE2 的 InterfaceBlock。
- * 使用统一的 Config（IAEStack<?> 泛型标记，支持物品+流体混合），
- * 不含样板功能（样板由 {@link TilePatternProvider} 承担）。
+ * Corresponds to InterfaceBlock in later AE2 versions.
+ * Uses unified Config (IAEStack<?> generic marker, supports mixed items+fluids),
+ * does not include pattern functionality (patterns are handled by {@link TilePatternProvider}).
  */
 public class TileMEInterface extends AENetworkInvTile
         implements IGridTickable, IInventoryDestination, IInterfaceLogicHost, IPriorityHost {
 
     private final InterfaceLogic logic = new InterfaceLogic(this.getProxy(), this);
 
-    // 是否全向
+    // Whether omni-directional
     private boolean omniDirectional = true;
 
-    // ========== 网络事件 ==========
+    // ========== Network events ==========
 
     @MENetworkEventSubscribe
     public void stateChange(final MENetworkChannelsChanged c) {
@@ -90,7 +90,7 @@ public class TileMEInterface extends AENetworkInvTile
         this.logic.notifyNeighbors();
     }
 
-    // ========== 方向控制 ==========
+    // ========== Direction control ==========
 
     public void setSide(final EnumFacing facing) {
         if (Platform.isClient()) {
@@ -138,14 +138,14 @@ public class TileMEInterface extends AENetworkInvTile
         return this.omniDirectional;
     }
 
-    // ========== 掉落物 ==========
+    // ========== Drops ==========
 
     @Override
     public void getDrops(final World w, final BlockPos pos, final List<ItemStack> drops) {
         this.logic.addDrops(drops);
     }
 
-    // ========== 网格 ==========
+    // ========== Grid ==========
 
     @Override
     public void gridChanged() {
@@ -175,7 +175,7 @@ public class TileMEInterface extends AENetworkInvTile
         this.logic.readFromNBT(data);
     }
 
-    // ========== 网络同步 ==========
+    // ========== Network sync ==========
 
     @Override
     protected boolean readFromStream(final ByteBuf data) throws IOException {
@@ -191,7 +191,7 @@ public class TileMEInterface extends AENetworkInvTile
         data.writeBoolean(this.omniDirectional);
     }
 
-    // ========== 电缆连接 ==========
+    // ========== Cable connection ==========
 
     @Override
     public AECableType getCableConnectionType(final AEPartLocation dir) {
@@ -255,7 +255,7 @@ public class TileMEInterface extends AENetworkInvTile
 
     @Override
     public void onStackReturnNetwork(IAEStack<?> stack) {
-        // ME 接口不需要处理样板锁定
+        // ME interface does not need to handle pattern locking
     }
 
     // ========== IGridTickable ==========
@@ -321,7 +321,7 @@ public class TileMEInterface extends AENetworkInvTile
 
     @Override
     public ItemStack getItemStackRepresentation() {
-        // TODO: 等注册完成后替换为正确的方块定义
+        // TODO: Replace with correct block definition after registration is complete
         return AEApi.instance().definitions().blocks().iface().maybeStack(1).orElse(ItemStack.EMPTY);
     }
 
@@ -332,7 +332,7 @@ public class TileMEInterface extends AENetworkInvTile
 
     @Override
     public GuiBridge getGuiBridge() {
-        // TODO: 等 B4（Container/GUI）完成后替换为 GUI_ME_INTERFACE
+        // TODO: Replace with GUI_ME_INTERFACE after B4 (Container/GUI) is complete
         return getGuiKey().getLegacyBridge();
     }
 }

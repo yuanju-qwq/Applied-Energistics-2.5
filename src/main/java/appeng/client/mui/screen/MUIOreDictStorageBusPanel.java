@@ -31,8 +31,8 @@ import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
 import appeng.api.config.StorageFilter;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiImgButton;
-import appeng.client.gui.widgets.GuiTabButton;
+import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUITabContainer;
 import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.implementations.ContainerOreDictStorageBus;
 import appeng.container.interfaces.IOreDictStorageBusGuiCallback;
@@ -46,8 +46,8 @@ import appeng.core.sync.packets.PacketValueConfig;
 import appeng.util.item.OreDictFilterMatcher;
 
 /**
- * MUI 版矿辞存储总线 GUI 面板�? *
- * 继承 {@link MUIUpgradeablePanel}，包含矿辞正则表达式输入框�? * 优先�?分区/读写模式/存储过滤按钮�? */
+ * MUI ore dictionary storage bus GUI panel.
+ * Extends {@link MUIUpgradeablePanel}, includes ore dictionary regex input field, priority/partition/read-write mode/storage filter buttons. */
 public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IOreDictStorageBusGuiCallback {
 
     private static final int SEARCH_FIELD_X = 3;
@@ -58,11 +58,11 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
     private final ContainerOreDictStorageBus container;
     private static final Pattern ORE_DICTIONARY_FILTER = Pattern.compile("[0-9a-zA-Z* &|^!()]*");
 
-    // ========== 控件 ==========
-    private GuiTabButton priority;
-    private GuiImgButton partition;
-    private GuiImgButton storageFilter;
-    private GuiImgButton rwMode;
+    // ========== Controls ==========
+    private MUITabContainer priority;
+    private MUIButtonWidget partition;
+    private MUIButtonWidget storageFilter;
+    private MUIButtonWidget rwMode;
     private MUITextFieldWidget searchFieldInputs;
 
     public MUIOreDictStorageBusPanel(final ContainerOreDictStorageBus container) {
@@ -71,7 +71,7 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
         this.ySize = 170;
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
@@ -82,7 +82,7 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
 
     @Override
     protected void addButtons() {
-        // Search input is wrapped as a MUI widget while the surrounding action buttons stay on legacy controls.
+        // Search input is wrapped as a MUI widget
         this.searchFieldInputs = this.addWidget(new MUITextFieldWidget(
                 SEARCH_FIELD_X,
                 SEARCH_FIELD_Y,
@@ -96,14 +96,35 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
                         .setValidator(str -> ORE_DICTIONARY_FILTER.matcher(str).matches())
                         .setFocusLostListener(this::saveSearchField));
 
-        this.buttonList.add(this.priority = new GuiTabButton(this.guiLeft + 154, this.guiTop, 2 + 4 * 16,
-                GuiText.Priority.getLocal(), this.itemRender));
-        this.buttonList.add(this.partition = new GuiImgButton(this.guiLeft - 18, this.guiTop + 28, Settings.ACTIONS,
-                ActionItems.WRENCH));
-        this.buttonList.add(this.rwMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 48, Settings.ACCESS,
-                AccessRestriction.READ_WRITE));
-        this.buttonList.add(this.storageFilter = new GuiImgButton(this.guiLeft - 18, this.guiTop + 68,
-                Settings.STORAGE_FILTER, StorageFilter.EXTRACTABLE_ONLY));
+        this.priority = new MUITabContainer(154, 0, 2 + 4 * 16, GuiText.Priority.getLocal());
+        this.priority.setOnClick(tab -> {
+            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
+        });
+        this.addWidget(this.priority);
+
+        this.partition = new MUIButtonWidget(-18, 28, Settings.ACTIONS, ActionItems.WRENCH);
+        this.partition.setOnClick(btn -> {
+            try {
+                NetworkHandler.instance().sendToServer(new PacketValueConfig("StorageBus.Action", "Partition"));
+            } catch (IOException e) {
+                AELog.debug(e);
+            }
+        });
+        this.addWidget(this.partition);
+
+        this.rwMode = new MUIButtonWidget(-18, 48, Settings.ACCESS, AccessRestriction.READ_WRITE);
+        this.rwMode.setOnClick(btn -> {
+            final boolean backwards = Mouse.isButtonDown(1);
+            NetworkHandler.instance().sendToServer(new PacketConfigButton(Settings.ACCESS, backwards));
+        });
+        this.addWidget(this.rwMode);
+
+        this.storageFilter = new MUIButtonWidget(-18, 68, Settings.STORAGE_FILTER, StorageFilter.EXTRACTABLE_ONLY);
+        this.storageFilter.setOnClick(btn -> {
+            final boolean backwards = Mouse.isButtonDown(1);
+            NetworkHandler.instance().sendToServer(new PacketConfigButton(Settings.STORAGE_FILTER, backwards));
+        });
+        this.addWidget(this.storageFilter);
 
         try {
             NetworkHandler.instance().sendToServer(new PacketValueConfig("OreDictStorageBus.getRegex", "1"));
@@ -151,31 +172,7 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
         super.drawBG(offsetX, offsetY, mouseX, mouseY);
     }
 
-    // ========== 按钮事件 ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        final boolean backwards = Mouse.isButtonDown(1);
-
-        try {
-            if (btn == this.priority) {
-                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
-            } else if (btn == this.partition) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("StorageBus.Action", "Partition"));
-            } else if (btn == this.rwMode) {
-                NetworkHandler.instance().sendToServer(new PacketConfigButton(this.rwMode.getSetting(), backwards));
-            } else if (btn == this.storageFilter) {
-                NetworkHandler.instance()
-                        .sendToServer(new PacketConfigButton(this.storageFilter.getSetting(), backwards));
-            }
-        } catch (final IOException e) {
-            AELog.debug(e);
-        }
-    }
-
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {

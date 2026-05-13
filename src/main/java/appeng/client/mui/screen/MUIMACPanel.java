@@ -22,9 +22,9 @@ import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.RedstoneMode;
 import appeng.api.config.Settings;
-import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiProgressBar;
 import appeng.client.gui.widgets.GuiProgressBar.Direction;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.container.implementations.ContainerMAC;
 import appeng.core.localization.GuiText;
 import appeng.tile.crafting.TileMolecularAssembler;
@@ -51,7 +51,7 @@ public class MUIMACPanel extends MUIUpgradeablePanel {
         this.ySize = 197;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
@@ -65,9 +65,9 @@ public class MUIMACPanel extends MUIUpgradeablePanel {
 
     @Override
     protected void addButtons() {
-        this.redstoneMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 8, Settings.REDSTONE_CONTROLLED,
-                RedstoneMode.IGNORE);
-        this.buttonList.add(this.redstoneMode);
+        this.redstoneMode = new MUIButtonWidget(-18, 8, Settings.REDSTONE_CONTROLLED, RedstoneMode.IGNORE);
+        this.redstoneMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.redstoneMode);
     }
 
     // ========== 渲染 ==========

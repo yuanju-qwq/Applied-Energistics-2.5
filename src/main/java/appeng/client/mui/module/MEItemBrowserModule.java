@@ -53,7 +53,7 @@ import appeng.util.Platform;
  *   <li>ItemRepo + VirtualMEMonitorableSlot 的 4x4 网格</li>
  *   <li>排序/视图/排序方向/搜索模式按钮</li>
  *   <li>搜索框 + JEI 同步</li>
- *   <li>物品面板滚动条</li>
+ *   <li>物品面板Scrollbar</li>
  *   <li>面板拖拽支持</li>
  *   <li>IMEInventoryUpdateReceiver 数据转发</li>
  * </ul>
@@ -125,7 +125,7 @@ public class MEItemBrowserModule implements ISortSource {
     // 面板拖拽
     private PatternEncodingModule.PanelDragState dragState;
 
-    // ========== 构造 ==========
+    // ========== Construction ==========
 
     public MEItemBrowserModule(Host host) {
         this.host = host;
@@ -181,7 +181,7 @@ public class MEItemBrowserModule implements ISortSource {
         return host.getYSize() - ITEM_PANEL_HEIGHT + (dragState != null ? dragState.getDragOffsetY() : 0);
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     /**
      * 初始化拖拽状态。在 initGui 开始时调用。
@@ -254,10 +254,10 @@ public class MEItemBrowserModule implements ISortSource {
             this.itemRepo.setSearchString(memoryText);
         }
 
-        // 清除旧的 ME 虚拟槽位
+        // 清除旧的 ME Virtual slot
         host.getPanel().getGuiSlots().removeIf(s -> s instanceof VirtualMEMonitorableSlot);
 
-        // 创建 4x4 ME 虚拟槽位
+        // 创建 4x4 ME Virtual slot
         for (int row = 0; row < ITEM_PANEL_ROWS; row++) {
             for (int col = 0; col < ITEM_PANEL_COLS; col++) {
                 final int slotIdx = col + row * ITEM_PANEL_COLS;
@@ -268,7 +268,7 @@ public class MEItemBrowserModule implements ISortSource {
             }
         }
 
-        // 设置滚动条
+        // 设置Scrollbar
         this.itemPanelScrollbar.setLeft(itemRelX + ITEM_PANEL_WIDTH - 14)
                 .setTop(itemRelY + ITEM_GRID_OFFSET_Y)
                 .setHeight(ITEM_PANEL_ROWS * 18 - 2);
@@ -277,7 +277,7 @@ public class MEItemBrowserModule implements ISortSource {
         this.itemRepo.setPower(true);
     }
 
-    // ========== 滚动条 ==========
+    // ========== Scrollbar ==========
 
     public void updateItemPanelScrollbar() {
         this.itemPanelScrollbar.setRange(0,
@@ -325,7 +325,7 @@ public class MEItemBrowserModule implements ISortSource {
         host.getPanel().mc.getTextureManager().bindTexture(ITEMS_TEXTURE);
         host.getPanel().drawTexturedModalRect(panelX, panelY, 0, 0, ITEM_PANEL_WIDTH, ITEM_PANEL_HEIGHT);
 
-        // 绘制滚动条
+        // 绘制Scrollbar
         GlStateManager.pushMatrix();
         GlStateManager.translate(offsetX, offsetY, 0);
         this.itemPanelScrollbar.draw(host.getPanel());
@@ -445,9 +445,9 @@ public class MEItemBrowserModule implements ISortSource {
     }
 
     /**
-     * 尝试处理滚动条的鼠标拖动。
+     * 尝试处理Scrollbar的鼠标拖动。
      *
-     * @return true 如果滚动条滚动位置发生了改变
+     * @return true 如果Scrollbar滚动位置发生了改变
      */
     public boolean handleScrollbarClick(int mouseX, int mouseY) {
         final int oldScroll = this.itemPanelScrollbar.getCurrentScroll();

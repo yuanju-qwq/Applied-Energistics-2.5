@@ -144,7 +144,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
             this.setCopyMode(this.getWorkBenchCopyMode());
             this.setFuzzyMode(this.getWorkBenchFuzzyMode());
 
-            // 使用虚拟槽位同步 config
+            // 使用Virtual slot同步 config
             final IAEStackInventory config = this.workBench.getAEInventoryByName(StorageName.CONFIG);
             this.updateVirtualSlots(StorageName.CONFIG, config, this.configClientSlot);
         }
@@ -230,7 +230,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
         this.copyMode = copyMode;
     }
 
-    // ---- IVirtualSlotHolder 实现（接收服务端推送的虚拟槽位数据，客户端侧）----
+    // ---- IVirtualSlotHolder 实现（接收服务端推送的Virtual slot数据，客户端侧）----
 
     @Override
     public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
@@ -240,7 +240,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
         }
     }
 
-    // ---- IVirtualSlotSource 实现（接收客户端发来的虚拟槽位更新，服务端侧）----
+    // ---- IVirtualSlotSource 实现（接收客户端发来的Virtual slot更新，服务端侧）----
 
     @Override
     public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {

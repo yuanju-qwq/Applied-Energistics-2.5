@@ -22,17 +22,18 @@ import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
 
 /**
- * 由服务端 Container 实现，当客户端通过 {@link appeng.core.sync.packets.PacketVirtualSlot}
- * 发送虚拟槽位更新请求时，调用此接口将变更应用到服务端 IAEStackInventory。
+ * Implemented by server-side Container. When the client sends a virtual slot update request
+ * via {@link appeng.core.sync.packets.PacketVirtualSlot}, this interface is called to apply
+ * the changes to the server-side IAEStackInventory.
  */
 public interface IVirtualSlotSource {
 
     /**
-     * 更新指定库存名称和槽位索引的虚拟栈。
+     * Update the virtual stack at the specified inventory name and slot index.
      *
-     * @param invName 库存名称
-     * @param slotId  槽位索引
-     * @param aes     新的栈内容（null 表示清空）
+     * @param invName inventory name
+     * @param slotId  slot index
+     * @param aes     new stack content (null means clear)
      */
     void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes);
 }

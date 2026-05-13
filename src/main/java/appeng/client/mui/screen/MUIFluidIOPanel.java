@@ -46,7 +46,7 @@ public class MUIFluidIOPanel extends MUIUpgradeablePanel {
         this.initVirtualSlots();
     }
 
-    // ========== 虚拟槽位管理 ==========
+    // ========== Virtual slot管理 ==========
 
     private void initVirtualSlots() {
         this.guiSlots.clear();

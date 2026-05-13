@@ -57,9 +57,9 @@ import appeng.util.item.IMixedStackList;
 import appeng.util.item.IAEStackList;
 
 /**
- * MUI 版合成 CPU 状态面板。
+ * MUI 版Crafting CPU 状态面板。
  * <p>
- * 功能：显示当前合成 CPU 的运行状态（已存储/正在合成/待处理的物品和流体列表）。
+ * 功能：显示当前Crafting CPU 的运行状态（已存储/正在合成/待处理的物品和流体列表）。
  * <p>
  * 特性：
  * <ul>
@@ -67,14 +67,14 @@ import appeng.util.item.IAEStackList;
  *   <li>颜色状态指示（绿色=正在合成，黄色=已排程）</li>
  *   <li>ETA 预计剩余时间显示</li>
  *   <li>追踪/暂停恢复/取消按钮</li>
- *   <li>滚动条翻页</li>
+ *   <li>Scrollbar翻页</li>
  * </ul>
  */
 @SideOnly(Side.CLIENT)
 public class MUICraftingCPUPanel extends AEBasePanel
         implements ISortSource, ICraftingCPUGuiCallback, AEBasePanelGuiHandler.IMUIVisualListPanel {
 
-    // ========== 常量 ==========
+    // ========== Constants ==========
 
     private static final int GUI_HEIGHT = 210;
     private static final int GUI_WIDTH = 238;
@@ -124,7 +124,7 @@ public class MUICraftingCPUPanel extends AEBasePanel
     private GuiButton trackButton;
     private int tooltip = -1;
 
-    // ========== 构造 ==========
+    // ========== Construction ==========
 
     public MUICraftingCPUPanel(final InventoryPlayer inventoryPlayer, final Object te) {
         this(new ContainerCraftingCPU(inventoryPlayer, te));
@@ -187,7 +187,7 @@ public class MUICraftingCPUPanel extends AEBasePanel
         this.updateScrollBar();
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {

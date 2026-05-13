@@ -89,8 +89,8 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
         final List<IAEItemStack> in = new ArrayList<>();
         final List<IAEItemStack> out = new ArrayList<>();
 
-        // ===== 读取输入（加工模式下展开嵌套样板）=====
-        // 仅加工模式支持嵌套
+        // ===== Read inputs (expand nested patterns in processing mode) =====
+        // Only processing mode supports nesting
         if (!this.isCrafting) {
             for (int x = 0; x < inTag.tagCount(); x++) {
                 NBTTagCompound ingredient = inTag.getCompoundTagAt(x);
@@ -103,11 +103,11 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                 this.crafting.setInventorySlotContents(x, gs);
                 this.testFrame.setInventorySlotContents(x, gs);
 
-                // 检测是否为嵌套样板（普通物品样板、特殊物品样板、流体样板）
+                // Detect if this is a nested pattern (normal item pattern, special item pattern, fluid pattern)
                 if (!gs.isEmpty() && (isEncodedPattern(gs) || isSpecialEncodedPattern(gs) || isFluidPattern(gs))) {
                     NBTTagCompound nestedNbt = gs.getTagCompound();
                     if (nestedNbt != null) {
-                        // 展开嵌套样板的输入（移除样板本身，加入其原材料）
+                        // Expand nested pattern inputs (remove the pattern itself, add its raw materials)
                         NBTTagList nestedIn = nestedNbt.getTagList("in", 10);
                         for (int i = 0; i < nestedIn.tagCount(); i++) {
                             NBTTagCompound nestedIngredient = nestedIn.getCompoundTagAt(i);
@@ -118,7 +118,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                             }
                         }
 
-                        // 普通物品样板/流体样板：追加其输出到输出列表（特殊物品样板无输出）
+                        // Normal item pattern/fluid pattern: append its outputs to the output list (special item patterns have no output)
                         if (isEncodedPattern(gs) || isFluidPattern(gs)) {
                             NBTTagList nestedOut = nestedNbt.getTagList("out", 10);
                             for (int i = 0; i < nestedOut.tagCount(); i++) {
@@ -130,17 +130,17 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                                 }
                             }
                         }
-                        continue; // 样板本身不加入输入列表
+                        continue; // Pattern itself is not added to input list
                     }
                 }
 
-                // 普通物品加入输入
+                // Normal items added to inputs
                 if (!gs.isEmpty()) {
                     in.add(AEItemStackType.INSTANCE.createStack(gs));
                 }
             }
         } else {
-            // 合成模式：直接读取输入（不支持嵌套）
+            // Crafting mode: read inputs directly (nesting not supported)
             for (int x = 0; x < inTag.tagCount(); x++) {
                 NBTTagCompound ingredient = inTag.getCompoundTagAt(x);
                 final ItemStack gs = stackFromNBT(ingredient);
@@ -160,9 +160,9 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
             }
         }
 
-        // ===== 读取输出 =====
+        // ===== Read outputs =====
         if (this.isCrafting) {
-            // 合成模式：通过配方获取输出
+            // Crafting mode: get outputs from recipe
             this.standardRecipe = CraftingManager.findMatchingRecipe(this.crafting, w);
             if (this.standardRecipe != null) {
                 this.correctOutput = this.standardRecipe.getCraftingResult(this.crafting);
@@ -172,11 +172,11 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                 throw new IllegalStateException("No pattern here!");
             }
         } else {
-            // 加工模式：初始化字段
+            // Processing mode: initialize fields
             this.standardRecipe = null;
             this.correctOutput = ItemStack.EMPTY;
 
-            // 追加主样板的原始输出（嵌套样板输出已在输入遍历时追加）
+            // Append main pattern's original outputs (nested pattern outputs were already appended during input traversal)
             for (int x = 0; x < outTag.tagCount(); x++) {
                 NBTTagCompound resultItemTag = outTag.getCompoundTagAt(x);
                 final ItemStack gs = stackFromNBT(resultItemTag);
@@ -252,7 +252,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
         }
     }
 
-    // ===== 辅助方法：样板类型检测 =====
+    // ===== Helper methods: pattern type detection =====
     private boolean isEncodedPattern(ItemStack stack) {
         if (stack.isEmpty())
             return false;

@@ -21,34 +21,34 @@ import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
 /**
- * 支持空输出的特殊加工模板解析器。仅适用于加工模式（isCrafting=false），合成模式必须有输出。
+ * Special processing pattern parser that supports empty output. Only applicable to processing mode (isCrafting=false); crafting mode must have output.
  * <p>
- * 支持多类型栈（物品+流体等），通过泛型 {@code aeTypeId} NBT 字段识别栈类型。
- * 旧格式（纯物品 NBT）亦可向后兼容。
+ * Supports multi-type stacks (items + fluids, etc.) via the generic {@code aeTypeId} NBT field for stack type identification.
+ * Old format (plain item NBT) is also backward compatible.
  *
- * @deprecated 已被 {@link UltimatePatternHelper} 替代。此类仅为旧代码兼容保留。
+ * @deprecated Replaced by {@link UltimatePatternHelper}. This class is retained only for legacy code compatibility.
  */
 @Deprecated
 public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable<SpecialPatternHelper> {
 
-    // 常量定义（与原PatternHelper一致）
+    // Constant definitions (consistent with original PatternHelper)
     public static final int PROCESSING_INPUT_HEIGHT = 4;
     public static final int PROCESSING_INPUT_WIDTH = 4;
     public static final int PROCESSING_INPUT_LIMIT = PatternHelper.PROCESSING_INPUT_LIMIT;
     public static final int PROCESSING_OUTPUT_LIMIT = 6;
 
-    // 核心字段
+    // Core fields
     private final ItemStack patternItem;
     private final boolean isCrafting;
     private final boolean canSubstitute;
 
-    // 物品类型的输入/输出（向后兼容旧接口）
+    // Item-type inputs/outputs (backward compatible with legacy interface)
     private final IAEItemStack[] inputs;
     private final IAEItemStack[] outputs;
     private final IAEItemStack[] condensedInputs;
     private final IAEItemStack[] condensedOutputs;
 
-    // 泛型输入/输出（包含物品+流体等所有类型）
+    // Generic inputs/outputs (contains items + fluids and all other types)
     private final IAEStack<?>[] genericInputs;
     private final IAEStack<?>[] genericOutputs;
     private final IAEStack<?>[] genericCondensedInputs;
@@ -59,7 +59,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
     private int priority = 0;
 
     /**
-     * 构造函数：关键修改点 - 允许加工模式输出为空
+     * Constructor: key modification - allows empty output in processing mode
      */
     public SpecialPatternHelper(final ItemStack is, final World w) {
         final NBTTagCompound encodedValue = is.getTagCompound();
@@ -67,13 +67,13 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
             throw new IllegalArgumentException("Invalid special pattern: missing NBT");
         }
 
-        // 仅支持加工模式（合成模式必须有输出）
+        // Only supports processing mode (crafting mode must have output)
         this.isCrafting = encodedValue.getBoolean("crafting");
         if (this.isCrafting) {
             throw new IllegalArgumentException("Special patterns cannot be used for crafting recipes");
         }
 
-        this.canSubstitute = false; // 加工模式不支持替代
+        this.canSubstitute = false; // Processing mode does not support substitution
         this.patternItem = is;
         this.pattern = AEItemStack.fromItemStack(is);
 
@@ -82,7 +82,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         final List<IAEStack<?>> inGeneric = new ArrayList<>();
         final List<IAEStack<?>> outGeneric = new ArrayList<>();
 
-        // ========== 解析输入 ==========
+        // ========== Parse inputs ==========
         final NBTTagList inTag = encodedValue.getTagList("in", 10);
         for (int x = 0; x < inTag.tagCount() && x < PROCESSING_INPUT_LIMIT; x++) {
             final NBTTagCompound ingredient = inTag.getCompoundTagAt(x);
@@ -98,7 +98,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
                 inGeneric.add(generic);
                 inItems.add(Platform.stackConvert(generic));
             } else {
-                // 回退：当作普通物品
+                // Fallback: treat as plain item
                 final ItemStack gs = stackFromNBT(ingredient);
                 if (!ingredient.isEmpty() && gs.isEmpty()) {
                     throw new IllegalArgumentException("Invalid input at slot " + x);
@@ -114,7 +114,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
             }
         }
 
-        // ========== 解析输出 - 关键修改：允许空输出列表 ==========
+        // ========== Parse outputs - key modification: allow empty output list ==========
         final NBTTagList outTag = encodedValue.getTagList("out", 10);
         for (int x = 0; x < outTag.tagCount() && x < PROCESSING_OUTPUT_LIMIT; x++) {
             final NBTTagCompound resultItemTag = outTag.getCompoundTagAt(x);
@@ -133,7 +133,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
                     outItems.add(converted);
                 }
             } else {
-                // 回退：当作普通物品
+                // Fallback: treat as plain item
                 final ItemStack gs = stackFromNBT(resultItemTag);
                 if (!resultItemTag.isEmpty() && gs.isEmpty()) {
                     throw new IllegalArgumentException("Invalid output at slot " + x);
@@ -153,27 +153,27 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
             outGeneric.add(null);
         }
 
-        // 输入不能为空（无输入的模板无意义）
+        // Inputs cannot be empty (a pattern with no inputs is meaningless)
         if (inItems.isEmpty() || inItems.stream().allMatch(Objects::isNull)) {
             throw new IllegalStateException("Special pattern requires at least one input");
         }
 
-        // 输出可为空 - 关键修改点
-        // 原逻辑: if (tmpOutputs.isEmpty() || tmpInputs.isEmpty()) throw ...
-        // 新逻辑: 仅检查输入非空，输出允许为空
+        // Outputs can be empty - key modification
+        // Original logic: if (tmpOutputs.isEmpty() || tmpInputs.isEmpty()) throw ...
+        // New logic: only check inputs are non-empty, outputs are allowed to be empty
 
-        // ========== 物品类型数组初始化 ==========
+        // ========== Item-type array initialization ==========
 
-        // 初始化输入数组（固定大小）
+        // Initialize input array (fixed size)
         this.inputs = new IAEItemStack[Math.max(PROCESSING_INPUT_LIMIT, inItems.size())];
         for (int i = 0; i < Math.min(inItems.size(), this.inputs.length); i++) {
             this.inputs[i] = inItems.get(i);
         }
 
-        // 初始化输出数组（动态大小）
+        // Initialize output array (dynamic size)
         this.outputs = outItems.toArray(new IAEItemStack[PROCESSING_OUTPUT_LIMIT]);
 
-        // 压缩物品输入（合并相同物品）
+        // Condense item inputs (merge same items)
         final Map<IAEItemStack, IAEItemStack> tmpInputs = new Object2ObjectOpenHashMap<>();
         for (final IAEItemStack io : this.inputs) {
             if (io == null) {
@@ -186,7 +186,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         }
         this.condensedInputs = tmpInputs.values().toArray(new IAEItemStack[0]);
 
-        // 压缩物品输出（允许空）
+        // Condense item outputs (allow empty)
         final Map<IAEItemStack, IAEItemStack> tmpOutputs = new Object2ObjectOpenHashMap<>();
         for (final IAEItemStack io : this.outputs) {
             if (io == null) {
@@ -199,32 +199,32 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         }
         this.condensedOutputs = tmpOutputs.values().toArray(new IAEItemStack[0]);
 
-        // ========== 泛型数组初始化 ==========
+        // ========== Generic array initialization ==========
 
-        // 泛型输入数组（固定大小，保持槽位位置）
+        // Generic input array (fixed size, preserving slot positions)
         this.genericInputs = new IAEStack<?>[Math.max(PROCESSING_INPUT_LIMIT, inGeneric.size())];
         for (int i = 0; i < Math.min(inGeneric.size(), this.genericInputs.length); i++) {
             this.genericInputs[i] = inGeneric.get(i);
         }
 
-        // 泛型输出数组
+        // Generic output array
         this.genericOutputs = outGeneric.toArray(new IAEStack<?>[PROCESSING_OUTPUT_LIMIT]);
 
-        // 压缩泛型输入
+        // Condense generic inputs
         this.genericCondensedInputs = condenseGenericList(this.genericInputs);
 
-        // 压缩泛型输出
+        // Condense generic outputs
         this.genericCondensedOutputs = condenseGenericList(this.genericOutputs);
     }
 
-    // ===== 接口实现 =====
+    // ===== Interface implementation =====
 
     @Override
     public boolean isCraftable() {
-        return false; // 特殊模板仅用于加工
+        return false; // Special patterns are for processing only
     }
 
-    // ========== 泛型主入口方法（支持物品+流体等多种类型） ==========
+    // ========== Generic entry point methods (supports items + fluids and other types) ==========
 
     @Override
     public IAEStack<?>[] getAEInputs() {
@@ -248,12 +248,12 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
 
     @Override
     public boolean canSubstitute() {
-        return false; // 加工模式不支持替代
+        return false; // Processing mode does not support substitution
     }
 
     @Override
     public List<IAEItemStack> getSubstituteInputs(int slot) {
-        return Collections.emptyList(); // 无替代物品
+        return Collections.emptyList(); // No substitute items
     }
 
     @Override
@@ -263,13 +263,13 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
 
     @Override
     public boolean isValidItemForSlot(int slotIndex, ItemStack i, World w) {
-        // 加工模式不进行槽位验证（由设备处理）
+        // Processing mode does not validate slots (handled by the machine)
         return slotIndex >= 0 && slotIndex < inputs.length;
     }
 
     @Override
     public ItemStack getOutput(InventoryCrafting craftingInv, World w) {
-        // 空输出语义：返回 EMPTY 表示无物品产出
+        // Empty output semantics: return EMPTY indicating no item output
         return ItemStack.EMPTY;
     }
 
@@ -283,10 +283,10 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         this.priority = priority;
     }
 
-    // ===== 工具方法 =====
+    // ===== Utility methods =====
 
     /**
-     * 检查是否为空输出模板（合法空输出）
+     * Check whether this is an empty-output pattern (legitimate empty output)
      */
     public boolean hasEmptyOutput() {
         return genericOutputs.length == 0 || Arrays.stream(genericOutputs).allMatch(Objects::isNull);
@@ -309,7 +309,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         return tmp.values().toArray(new IAEStack<?>[0]);
     }
 
-    // ===== 比较与哈希 =====
+    // ===== Comparison and hashing =====
 
     @Override
     public int compareTo(SpecialPatternHelper o) {

@@ -35,7 +35,7 @@ import appeng.api.definitions.IParts;
 import appeng.api.storage.ITerminalHost;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.MathExpressionParser;
-import appeng.client.gui.widgets.GuiTabButton;
+import appeng.client.mui.widgets.MUITabContainer;
 import appeng.client.mui.AEBasePanel;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerCraftAmount;
@@ -53,17 +53,17 @@ import appeng.parts.reporting.PartPatternTerminal;
 import appeng.parts.reporting.PartTerminal;
 
 /**
- * MUI 版合成数量输入面板�?
+ * MUI craft amount input panel.
  * <p>
- * 功能：输入合成数�?�?点击 Next/Start 发起合成请求�?
+ * Function: input craft amount, click Next/Start to initiate a craft request.
  * <p>
  * 特性：
  * <ul>
  *   <li>数量输入框支持数学表达式（加减乘除）</li>
  *   <li>4 组增减按钮（可在 AEConfig 中配置增量）</li>
- *   <li>回车键快捷提�?/li>
- *   <li>Shift+Next 直接开始合成（跳过确认�?/li>
- *   <li>左上角返回按钮（返回来源终端�?/li>
+ *   <li>Enter key quick submit</li>
+ *   <li>Shift+Next starts crafting directly (skips confirmation)</li>
+ *   <li>Top-left return button (returns to source terminal)</li>
  * </ul>
  */
 @SideOnly(Side.CLIENT)
@@ -72,7 +72,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
     // ========== UI 控件 ==========
 
     private GuiTextField amountToCraft;
-    private GuiTabButton originalGuiBtn;
+    private MUITabContainer originalGuiBtn;
 
     private GuiButton next;
 
@@ -85,30 +85,30 @@ public class MUICraftAmountPanel extends AEBasePanel {
     private GuiButton minus100;
     private GuiButton minus1000;
 
-    /** 来源终端�?AEGuiKey（用于返回按钮） */
+    /** Source terminal AEGuiKey (used for the return button) */
     private AEGuiKey originalGui;
 
     public MUICraftAmountPanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(new ContainerCraftAmount(inventoryPlayer, te));
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // 从配置读取增量�?
+        // Read increment values from config
         final int a = AEConfig.instance().craftItemsByStackAmounts(0);
         final int b = AEConfig.instance().craftItemsByStackAmounts(1);
         final int c = AEConfig.instance().craftItemsByStackAmounts(2);
         final int d = AEConfig.instance().craftItemsByStackAmounts(3);
 
-        // 增加按钮�?
+        // Increment buttons (+)
         this.buttonList.add(this.plus1 = new GuiButton(0, this.guiLeft + 20, this.guiTop + 26, 22, 20, "+" + a));
         this.buttonList.add(this.plus10 = new GuiButton(0, this.guiLeft + 48, this.guiTop + 26, 28, 20, "+" + b));
         this.buttonList.add(this.plus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 26, 32, 20, "+" + c));
         this.buttonList.add(this.plus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 26, 38, 20, "+" + d));
 
-        // 减少按钮�?
+        // Decrement buttons (-)
         this.buttonList.add(this.minus1 = new GuiButton(0, this.guiLeft + 20, this.guiTop + 75, 22, 20, "-" + a));
         this.buttonList.add(this.minus10 = new GuiButton(0, this.guiLeft + 48, this.guiTop + 75, 28, 20, "-" + b));
         this.buttonList.add(this.minus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 75, 32, 20, "-" + c));
@@ -118,7 +118,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
         this.buttonList.add(
                 this.next = new GuiButton(0, this.guiLeft + 128, this.guiTop + 51, 38, 20, GuiText.Next.getLocal()));
 
-        // 返回按钮（根据来源终端决定图标和目标�?
+        // Return button (determines icon and target based on source terminal)
         ItemStack myIcon = null;
         final Object target = ((AEBaseContainer) this.inventorySlots).getTarget();
         final IDefinitions definitions = AEApi.instance().definitions();
@@ -156,11 +156,17 @@ public class MUICraftAmountPanel extends AEBasePanel {
         }
 
         if (this.originalGui != null && myIcon != null && !myIcon.isEmpty()) {
-            this.buttonList.add(this.originalGuiBtn = new GuiTabButton(this.guiLeft + 154, this.guiTop, myIcon,
-                    myIcon.getDisplayName(), this.itemRender));
+            this.originalGuiBtn = new MUITabContainer(154, 0);
+            this.originalGuiBtn.setIconItem(myIcon);
+            this.originalGuiBtn.setTooltip(myIcon.getDisplayName());
+            final String origGui = this.originalGui;
+            this.originalGuiBtn.setOnClick(tab -> {
+                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(origGui));
+            });
+            this.addWidget(this.originalGuiBtn);
         }
 
-        // 数量输入�?
+        // Amount input field
         this.amountToCraft = new GuiTextField(0, this.fontRenderer, this.guiLeft + 62, this.guiTop + 57, 59,
                 this.fontRenderer.FONT_HEIGHT);
         this.amountToCraft.setEnableBackgroundDrawing(false);
@@ -187,7 +193,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
         this.bindTexture("guis/craft_amt.png");
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
 
-        // 验证输入并启�?禁用 Next 按钮
+        // Validate input and enable/disable Next button
         try {
             String out = this.amountToCraft.getText();
             double resultD = MathExpressionParser.parse(out);
@@ -207,16 +213,16 @@ public class MUICraftAmountPanel extends AEBasePanel {
         this.amountToCraft.drawTextBox();
     }
 
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
         if (!this.checkHotbarKeys(key)) {
-            // 回车键提�?
+            // Enter key submit
             if (key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) {
                 this.actionPerformed(this.next);
             }
-            // 输入框处�?
+            // Input field handling
             if (!this.amountToCraft.textboxKeyTyped(character, key)) {
                 super.keyTyped(character, key);
             }
@@ -228,12 +234,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
         super.actionPerformed(btn);
 
         try {
-            // 返回按钮
-            if (btn == this.originalGuiBtn) {
-                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(this.originalGui));
-            }
-
-            // Next/Start 按钮
+            // Next/Start button
             if (btn == this.next) {
                 double resultD = MathExpressionParser.parse(this.amountToCraft.getText());
                 int result;
@@ -260,10 +261,10 @@ public class MUICraftAmountPanel extends AEBasePanel {
         }
     }
 
-    // ========== 内部方法 ==========
+    // ========== Internal methods ==========
 
     /**
-     * 向当前数量添加增量值�?
+     * Adds an increment value to the current amount.
      */
     private void addQty(final int i) {
         try {
@@ -278,7 +279,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
                 result = (int) MathExpressionParser.round(resultD, 0);
             }
 
-            // 如果当前�?1 且增量大�?1，从 0 开始加
+            // If current is 1 and increment > 1, start adding from 0
             if (result == 1 && i > 1) {
                 result = 0;
             }

@@ -748,7 +748,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                 }
             }
 
-            // 使用虚拟槽位同步 crafting 和 output IAEStackInventory
+            // 使用Virtual slot同步 crafting 和 output IAEStackInventory
             final IAEStackInventory craftInv = this.getCraftingAEInv();
             final IAEStackInventory outInv = this.getOutputAEInv();
             if (craftInv != null) {
@@ -979,7 +979,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         }
     }
 
-    // ---- IVirtualSlotHolder 实现（客户端接收服务端推送的虚拟槽位数据）----
+    // ---- IVirtualSlotHolder 实现（客户端接收服务端推送的Virtual slot数据）----
 
     @Override
     public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
@@ -997,7 +997,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         }
     }
 
-    // ---- IVirtualSlotSource 实现（服务端接收客户端发来的虚拟槽位更新）----
+    // ---- IVirtualSlotSource 实现（服务端接收客户端发来的Virtual slot更新）----
 
     @Override
     public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {

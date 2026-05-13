@@ -27,8 +27,9 @@ import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 
 /**
- * 无线二合一接口终端物品
- * 结合了接口终端（查看/管理接口样板）和样板终端（编写样板+物品查看）的功能
+ * Wireless dual interface terminal item.
+ * Combines the functionality of interface terminal (view/manage interface patterns)
+ * and pattern terminal (encode patterns + item browsing).
  */
 public class ToolWirelessDualInterfaceTerminal extends ToolWirelessTerminal implements IWirelessTermHandler {
 

@@ -21,21 +21,21 @@ package appeng.tile.inventory;
 import appeng.api.storage.StorageName;
 
 /**
- * 实现此接口的对象持有一个或多个 {@link IAEStackInventory}，
- * 并负责在库存变更时保存数据。
+ * Objects implementing this interface hold one or more {@link IAEStackInventory}
+ * and are responsible for saving data when inventory contents change.
  */
 public interface IIAEStackInventory {
 
     /**
-     * 当 IAEStackInventory 内容发生变更时，由库存调用此方法请求保存。
+     * Called by the inventory to request a save when IAEStackInventory contents change.
      */
     void saveAEStackInv();
 
     /**
-     * 根据 {@link StorageName} 获取对应的 {@link IAEStackInventory}。
+     * Get the corresponding {@link IAEStackInventory} by {@link StorageName}.
      *
-     * @param name 库存名称
-     * @return 对应的库存，如果没有匹配的名称则返回 null
+     * @param name the inventory name
+     * @return the corresponding inventory, or null if no matching name is found
      */
     IAEStackInventory getAEInventoryByName(StorageName name);
 }

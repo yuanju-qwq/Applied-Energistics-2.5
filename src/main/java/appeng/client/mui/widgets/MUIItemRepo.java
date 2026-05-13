@@ -55,7 +55,7 @@ public class MUIItemRepo implements IMUIWidget {
     /** 底层数据仓库 */
     private final ItemRepo repo;
 
-    /** 虚拟槽位网格 */
+    /** Virtual slot网格 */
     private final List<MUIVirtualSlot> slots = new ArrayList<>();
 
     /** 网格左上角在面板中的 X */
@@ -199,7 +199,7 @@ public class MUIItemRepo implements IMUIWidget {
     }
 
     /**
-     * @return 虚拟槽位列表
+     * @return Virtual slot列表
      */
     public List<MUIVirtualSlot> getSlots() {
         return this.slots;

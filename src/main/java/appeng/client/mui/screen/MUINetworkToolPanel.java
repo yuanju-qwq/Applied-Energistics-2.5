@@ -18,16 +18,12 @@
 
 package appeng.client.mui.screen;
 
-import java.io.IOException;
-
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.implementations.guiobjects.INetworkTool;
-
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiToggleButton;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIToggleButton;
 import appeng.container.implementations.ContainerNetworkTool;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
@@ -35,14 +31,14 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
 
 /**
- * MUI 版网络工�?GUI 面板�?
+ * MUI network tool GUI panel.
  *
- * 提供 3×3 的工具箱物品栏及透明伪装板切换按钮�?
+ * Provides a 3x3 tool box inventory and a transparent facades toggle button.
  */
 public class MUINetworkToolPanel extends AEBasePanel {
 
-    // ========== 按钮 ==========
-    private GuiToggleButton tFacades;
+    // ========== Buttons ==========
+    private MUIToggleButton tFacades;
 
     public MUINetworkToolPanel(final InventoryPlayer ip, final INetworkTool te) {
         this(new ContainerNetworkTool(ip, te));
@@ -53,24 +49,23 @@ public class MUINetworkToolPanel extends AEBasePanel {
         this.ySize = 166;
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理按钮初始�?
-    }
-
-    @Override
-    public void initGui() {
-        super.initGui();
-
-        this.tFacades = new GuiToggleButton(this.guiLeft - 18, this.guiTop + 8, 23, 22,
+        this.tFacades = new MUIToggleButton(-18, 8, 23, 22,
                 GuiText.TransparentFacades.getLocal(), GuiText.TransparentFacadesHint.getLocal());
-
-        this.buttonList.add(this.tFacades);
+        this.tFacades.setOnToggle(btn -> {
+            try {
+                NetworkHandler.instance().sendToServer(new PacketValueConfig("NetworkTool", "Toggle"));
+            } catch (final java.io.IOException e) {
+                AELog.debug(e);
+            }
+        });
+        this.addWidget(this.tFacades);
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -86,20 +81,5 @@ public class MUINetworkToolPanel extends AEBasePanel {
     protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.bindTexture("guis/toolbox.png");
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
-    }
-
-    // ========== 按钮事件 ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        try {
-            if (btn == this.tFacades) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("NetworkTool", "Toggle"));
-            }
-        } catch (final IOException e) {
-            AELog.debug(e);
-        }
     }
 }

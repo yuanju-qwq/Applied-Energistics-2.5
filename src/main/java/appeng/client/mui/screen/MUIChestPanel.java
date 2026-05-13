@@ -18,14 +18,11 @@
 
 package appeng.client.mui.screen;
 
-import java.io.IOException;
-
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiTabButton;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUITabContainer;
 import appeng.container.implementations.ContainerChest;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;
@@ -34,14 +31,14 @@ import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.tile.storage.TileChest;
 
 /**
- * MUI �?ME 箱子 GUI 面板�?
+ * MUI ME chest GUI panel.
  *
- * 包含 1 个存储单元槽位和一个优先级标签按钮�?
+ * Contains 1 storage cell slot and a priority tab button.
  */
 public class MUIChestPanel extends AEBasePanel {
 
-    // ========== 按钮 ==========
-    private GuiTabButton priority;
+    // ========== Buttons ==========
+    private MUITabContainer priority;
 
     public MUIChestPanel(final InventoryPlayer ip, final TileChest te) {
         this(new ContainerChest(ip, te));
@@ -52,22 +49,18 @@ public class MUIChestPanel extends AEBasePanel {
         this.ySize = 166;
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理按钮初始�?
+        this.priority = new MUITabContainer(154, 0, 2 + 4 * 16, GuiText.Priority.getLocal());
+        this.priority.setOnClick(tab -> {
+            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
+        });
+        this.addWidget(this.priority);
     }
 
-    @Override
-    public void initGui() {
-        super.initGui();
-
-        this.buttonList.add(this.priority = new GuiTabButton(this.guiLeft + 154, this.guiTop, 2 + 4 * 16,
-                GuiText.Priority.getLocal(), this.itemRender));
-    }
-
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -79,16 +72,5 @@ public class MUIChestPanel extends AEBasePanel {
     protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.bindTexture("guis/chest.png");
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
-    }
-
-    // ========== 按钮事件 ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        if (btn == this.priority) {
-            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
-        }
     }
 }

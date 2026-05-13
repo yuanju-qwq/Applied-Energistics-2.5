@@ -60,7 +60,7 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
     private GuiImgButton partition;
     private GuiToggleButton copyMode;
 
-    // ========== 虚拟槽位 ==========
+    // ========== Virtual slot ==========
     private VirtualMEPhantomSlot[] configSlots;
 
     public MUICellWorkbenchPanel(final ContainerCellWorkbench container) {
@@ -69,7 +69,7 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
         this.ySize = 251;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
@@ -202,7 +202,7 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
         }
     }
 
-    // ========== 虚拟槽位管理 ==========
+    // ========== Virtual slot管理 ==========
 
     private void initVirtualSlots() {
         this.guiSlots.clear();

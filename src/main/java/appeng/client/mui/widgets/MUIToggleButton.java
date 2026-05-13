@@ -19,6 +19,7 @@
 package appeng.client.mui.widgets;
 
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -26,17 +27,24 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.translation.I18n;
 
+import appeng.client.gui.widgets.ITooltip;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 
 /**
- * MUI 切换按钮控件。
+ * MUI toggle button widget. Full replacement for legacy {@code GuiToggleButton}.
  * <p>
- * 两态按钮，点击时在 on/off 之间切换。
- * 每个状态使用不同的图标（通过 states.png 的纹理坐标指定）。
+ * Two-state button that toggles between on/off. Each state uses a different icon
+ * from the states.png atlas (specified by icon index).
+ * <p>
+ * Implements {@link ITooltip} so that {@link AEBasePanel} can display tooltip
+ * text automatically using the same mechanism as legacy buttons.
  */
-public class MUIToggleButton implements IMUIWidget {
+public class MUIToggleButton implements IMUIWidget, ITooltip {
+
+    private static final Pattern PATTERN_NEW_LINE = Pattern.compile("\\n", Pattern.LITERAL);
 
     private static final ResourceLocation STATES_TEXTURE = new ResourceLocation("appliedenergistics2",
             "textures/guis/states.png");
@@ -71,7 +79,7 @@ public class MUIToggleButton implements IMUIWidget {
         this.displayHint = displayHint;
     }
 
-    // ========== 绘制 ==========
+    // ========== Drawing ==========
 
     @Override
     public void drawBackground(AEBasePanel panel, int guiLeft, int guiTop,
@@ -90,17 +98,22 @@ public class MUIToggleButton implements IMUIWidget {
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
         mc.getTextureManager().bindTexture(STATES_TEXTURE);
 
-        // 背景
+        // Background
         Gui.drawModalRectWithCustomSizedTexture(screenX, screenY, 240, 240, 16, 16, 256, 256);
 
-        // 图标
+        // Icon
         int iconIdx = this.active ? this.iconIdxOn : this.iconIdxOff;
         int iconU = (iconIdx % 16) * 16;
         int iconV = (iconIdx / 16) * 16;
         Gui.drawModalRectWithCustomSizedTexture(screenX, screenY, iconU, iconV, 16, 16, 256, 256);
     }
 
-    // ========== 输入事件 ==========
+    @Override
+    public void drawForeground(AEBasePanel panel, int localX, int localY) {
+        // Tooltip rendering is handled by AEBasePanel.drawTooltip(ITooltip, ...) via the ITooltip interface.
+    }
+
+    // ========== Input events ==========
 
     @Override
     public boolean mouseClicked(int localX, int localY, int mouseButton) {
@@ -118,15 +131,86 @@ public class MUIToggleButton implements IMUIWidget {
         return false;
     }
 
-    // ========== 属性 ==========
+    // ========== ITooltip implementation ==========
+
+    /**
+     * Generate tooltip text using the same format as legacy {@code GuiToggleButton.getMessage()}.
+     * <p>
+     * Format: {@code "Localized Name\nLocalized Hint"} with word-wrap at 30-char boundaries.
+     */
+    @Override
+    public String getMessage() {
+        if (this.displayName != null) {
+            String name = I18n.translateToLocal(this.displayName);
+            String value = I18n.translateToLocal(this.displayHint);
+
+            if (name == null || name.isEmpty()) {
+                name = this.displayName;
+            }
+            if (value == null || value.isEmpty()) {
+                value = this.displayHint;
+            }
+
+            value = PATTERN_NEW_LINE.matcher(value).replaceAll("\n");
+            final StringBuilder sb = new StringBuilder(value);
+
+            int i = sb.lastIndexOf("\n");
+            if (i <= 0) {
+                i = 0;
+            }
+            while (i + 30 < sb.length() && (i = sb.lastIndexOf(" ", i + 30)) != -1) {
+                sb.replace(i, i + 1, "\n");
+            }
+
+            return name + '\n' + sb;
+        }
+        return null;
+    }
+
+    @Override
+    public int xPos() {
+        return this.x;
+    }
+
+    @Override
+    public int yPos() {
+        return this.y;
+    }
+
+    @Override
+    public int getWidth() {
+        return 16;
+    }
+
+    @Override
+    public int getHeight() {
+        return 16;
+    }
+
+    @Override
+    public boolean isVisible() {
+        return this.visible;
+    }
+
+    // ========== Property accessors ==========
 
     public boolean isActive() {
         return this.active;
     }
 
+    /**
+     * Set the active state. Alias for legacy {@code GuiToggleButton.setState(boolean)}.
+     */
     public MUIToggleButton setActive(boolean active) {
         this.active = active;
         return this;
+    }
+
+    /**
+     * Alias matching legacy {@code GuiToggleButton.setState(boolean)}.
+     */
+    public void setState(boolean isOn) {
+        this.active = isOn;
     }
 
     public MUIToggleButton setVisible(boolean visible) {
@@ -145,6 +229,10 @@ public class MUIToggleButton implements IMUIWidget {
         return this;
     }
 
+    public boolean isHovered() {
+        return this.hovered;
+    }
+
     @Nullable
     public String getDisplayName() {
         return this.displayName;
@@ -153,5 +241,13 @@ public class MUIToggleButton implements IMUIWidget {
     @Nullable
     public String getDisplayHint() {
         return this.displayHint;
+    }
+
+    public int getX() {
+        return this.x;
+    }
+
+    public int getY() {
+        return this.y;
     }
 }

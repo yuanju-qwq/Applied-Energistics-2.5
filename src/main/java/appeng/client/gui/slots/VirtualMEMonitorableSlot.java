@@ -37,7 +37,7 @@ import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.helpers.InventoryAction;
 
 /**
- * 通用终端（ME Monitorable）使用的虚拟槽位。
+ * 通用终端（ME Monitorable）使用的Virtual slot。
  * <p>
  * 从 {@link ItemRepo} 中按索引获取当前应该显示的 AE 栈。
  * 默认配置为显示数量、合成文字和合成图标。

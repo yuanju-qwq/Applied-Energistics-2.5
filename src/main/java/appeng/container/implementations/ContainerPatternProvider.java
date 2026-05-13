@@ -58,7 +58,7 @@ public class ContainerPatternProvider extends ContainerUpgradeable implements IO
 
         this.logic = host.getPatternProviderLogic();
 
-        // 样板槽位：4 行 × 9 列 = 36 槽，前1行始终可见，后3行通过 PATTERN_EXPANSION 升级解锁
+        // Pattern slots位：4 行 × 9 列 = 36 槽，前1行始终可见，后3行通过 PATTERN_EXPANSION 升级解锁
         for (int row = 0; row < 4; ++row) {
             for (int x = 0; x < 9; x++) {
                 this.addSlotToContainer(new OptionalSlotRestrictedInput(

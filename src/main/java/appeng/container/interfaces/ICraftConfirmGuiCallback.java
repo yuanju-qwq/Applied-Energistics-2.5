@@ -23,18 +23,18 @@ import java.util.List;
 import appeng.api.storage.data.IAEStack;
 
 /**
- * 合成确认 GUI 的回调接口。
+ * Callback interface for Crafting confirm GUI.
  * <p>
- * 允许 {@link appeng.container.implementations.ContainerCraftConfirm} 与不同的 GUI 实现通信，
- * 而不必依赖具体的 GUI 类。MUI 面板通过实现此接口接收回调。
+ * Allows {@link appeng.container.implementations.ContainerCraftConfirm} to communicate with different GUI implementations
+ * without depending on a specific GUI class. MUI panels receive callbacks by implementing this interface.
  */
 public interface ICraftConfirmGuiCallback {
 
     /**
-     * 接收合成确认计划的混合物品/流体状态更新。
+     * Receive mixed item/fluid status updates for the crafting confirm plan.
      *
-     * @param list 更新的栈列表
-     * @param ref  更新类型：0=已存储, 1=待合成, 2=缺失
+     * @param list the updated stack list
+     * @param ref  update type: 0=stored, 1=to craft, 2=missing
      */
     void postGenericUpdate(List<IAEStack<?>> list, byte ref);
 }

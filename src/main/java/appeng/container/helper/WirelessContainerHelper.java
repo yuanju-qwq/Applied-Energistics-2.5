@@ -220,7 +220,7 @@ public class WirelessContainerHelper {
         return null;
     }
 
-    // ========== NBT 读写 ==========
+    // ========== NBT read/write ==========
 
     /**
      * 从物品 NBT 中加载升级数据。

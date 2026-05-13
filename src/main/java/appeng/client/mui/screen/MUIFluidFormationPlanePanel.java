@@ -18,14 +18,10 @@
 
 package appeng.client.mui.screen;
 
-import java.io.IOException;
-
-import net.minecraft.client.gui.GuiButton;
-
 import appeng.api.config.Upgrades;
 import appeng.api.storage.data.IAEStackType;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
-import appeng.client.gui.widgets.GuiTabButton;
+import appeng.client.mui.widgets.MUITabContainer;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.network.NetworkHandler;
@@ -44,10 +40,10 @@ public class MUIFluidFormationPlanePanel extends MUIUpgradeablePanel {
 
     private final ContainerFluidFormationPlane container;
 
-    // ========== 按钮 ==========
-    private GuiTabButton priority;
+    // ========== Buttons ==========
+    private MUITabContainer priority;
 
-    // ========== 虚拟槽位 ==========
+    // ========== Virtual slot ==========
     private VirtualMEPhantomSlot[] configSlots;
 
     public MUIFluidFormationPlanePanel(final ContainerFluidFormationPlane container) {
@@ -56,7 +52,7 @@ public class MUIFluidFormationPlanePanel extends MUIUpgradeablePanel {
         this.ySize = 251;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
@@ -64,7 +60,7 @@ public class MUIFluidFormationPlanePanel extends MUIUpgradeablePanel {
         this.initVirtualSlots();
     }
 
-    // ========== 虚拟槽位管理 ==========
+    // ========== Virtual slot管理 ==========
 
     private void initVirtualSlots() {
         this.guiSlots.clear();
@@ -105,11 +101,14 @@ public class MUIFluidFormationPlanePanel extends MUIUpgradeablePanel {
 
     @Override
     protected void addButtons() {
-        this.buttonList.add(this.priority = new GuiTabButton(this.guiLeft + 154, this.guiTop, 2 + 4 * 16,
-                GuiText.Priority.getLocal(), this.itemRender));
+        this.priority = new MUITabContainer(154, 0, 2 + 4 * 16, GuiText.Priority.getLocal());
+        this.priority.setOnClick(tab -> {
+            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
+        });
+        this.addWidget(this.priority);
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
@@ -127,15 +126,5 @@ public class MUIFluidFormationPlanePanel extends MUIUpgradeablePanel {
     @Override
     protected GuiText getName() {
         return GuiText.FluidFormationPlane;
-    }
-
-    // ========== 按钮事件 ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-        if (btn == this.priority) {
-            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
-        }
     }
 }

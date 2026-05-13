@@ -30,11 +30,11 @@ import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStack;
 
 /**
- * 将旧版 {@link IItemHandler} 包装为 {@link IAEStackInventory} 的兼容适配器。
+ * Compatibility adapter that wraps a legacy {@link IItemHandler} as {@link IAEStackInventory}.
  * <p>
- * 当旧代码只提供 getConfigInventory()（IItemHandler）而新代码需要
- * getConfigAEInventory()（IAEStackInventory）时，使用此包装器。
- * 读取时将 ItemStack 转为 AEItemStack，写入时将 IAEItemStack 转回 ItemStack。
+ * Used when legacy code only provides getConfigInventory() (IItemHandler) but new code needs
+ * getConfigAEInventory() (IAEStackInventory).
+ * Converts ItemStack to AEItemStack on read, and IAEItemStack back to ItemStack on write.
  * </p>
  */
 public class CellConfigLegacyWrapper extends IAEStackInventory {
@@ -68,8 +68,8 @@ public class CellConfigLegacyWrapper extends IAEStackInventory {
 
     @Override
     public void putAEStackInSlot(final int slot, @Nullable IAEStack<?> stack) {
-        // IItemHandler 不提供直接 set 的方法，需要先 extract 再 insert
-        // 不过我们假定这是 config 类的 inventory（通常是 phantom slot），直接操作
+        // IItemHandler doesn't provide a direct set method, need to extract then insert
+        // However we assume this is a config-type inventory (usually phantom slot), so we operate directly
         if (this.inventory instanceof net.minecraftforge.items.IItemHandlerModifiable) {
             net.minecraftforge.items.IItemHandlerModifiable modifiable =
                     (net.minecraftforge.items.IItemHandlerModifiable) this.inventory;
@@ -84,12 +84,12 @@ public class CellConfigLegacyWrapper extends IAEStackInventory {
 
     @Override
     public void writeToNBT(final NBTTagCompound data, final String name) {
-        // 委托给原始 inventory 自行处理，不做 NBT 写入
+        // Delegate to the original inventory for its own handling, no NBT write here
     }
 
     @Override
     public void readFromNBT(@Nullable final NBTTagCompound data, final String name) {
-        // 委托给原始 inventory 自行处理，不做 NBT 读取
+        // Delegate to the original inventory for its own handling, no NBT read here
     }
 
     @Override
@@ -99,7 +99,7 @@ public class CellConfigLegacyWrapper extends IAEStackInventory {
 
     @Override
     public void markDirty() {
-        // 无法通知 IItemHandler 保存，依赖外部机制
+        // Cannot notify IItemHandler to save, relies on external mechanism
     }
 
     @Override

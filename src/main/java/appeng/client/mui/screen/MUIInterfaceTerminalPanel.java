@@ -30,7 +30,6 @@ import com.google.common.collect.HashMultimap;
 
 import org.lwjgl.input.Mouse;
 
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -44,11 +43,12 @@ import net.minecraftforge.common.util.Constants;
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIButtonPool;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.implementations.ContainerInterfaceTerminal;
 import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
@@ -64,11 +64,11 @@ import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
 
 /**
- * MUI 版接口终�?GUI 面板�?
+ * MUI interface terminal GUI panel.
  *
- * 显示 ME 网络中所有接口和样板供应器的样板列表�?
- * 支持搜索过滤（输�?输出/名称）、分子装配器过滤、空位过滤、坏配方过滤�?
- * 滚动列表、方块高亮定位、SlotDisconnected 样板操作�?
+ * Displays the pattern list of all interfaces and pattern providers in the ME network.
+ * Supports search filtering (inputs/outputs/names), molecular assembler filtering, empty slot filtering, broken recipe filtering.
+ * Scrollable list, block highlight positioning, SlotDisconnected pattern operations.
  */
 public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterfaceTerminalGuiCallback {
 
@@ -97,7 +97,7 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
 
     private final HashMultimap<String, ClientDCInternalInv> byName = HashMultimap.create();
     private final HashMap<ClientDCInternalInv, BlockPos> blockPosHashMap = new HashMap<>();
-    private final HashMap<GuiButton, ClientDCInternalInv> guiButtonHashMap = new HashMap<>();
+    private final HashMap<MUIButtonWidget, ClientDCInternalInv> highlightButtonMap = new HashMap<>();
     private final Map<ClientDCInternalInv, Integer> numUpgradesMap = new HashMap<>();
     private final ArrayList<String> names = new ArrayList<>();
     private final ArrayList<Object> lines = new ArrayList<>();
@@ -109,10 +109,14 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
     private MUITextFieldWidget searchFieldInputs;
     private MUITextFieldWidget searchFieldNames;
 
-    private GuiImgButton guiButtonHideFull;
-    private GuiImgButton guiButtonAssemblersOnly;
-    private GuiImgButton guiButtonBrokenRecipes;
-    private GuiImgButton terminalStyleBox;
+    // Toolbar buttons (MUI widgets, registered via addWidget)
+    private MUIButtonWidget guiButtonHideFull;
+    private MUIButtonWidget guiButtonAssemblersOnly;
+    private MUIButtonWidget guiButtonBrokenRecipes;
+    private MUIButtonWidget terminalStyleBox;
+
+    /** Dynamic highlight button pool (replaces per-frame GuiImgButton creation) */
+    private MUIButtonPool highlightButtonPool;
 
     private boolean refreshList = false;
 
@@ -166,7 +170,7 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
         this.getScrollBar().setRange(0, this.lines.size() - 1, 1);
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
@@ -178,11 +182,33 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
         this.searchFieldOutputs = searchFields.getOutputs();
         this.searchFieldNames = searchFields.getNames();
 
-        // Toolbar buttons (created here, positioned in initGui after guiTop is finalized)
-        this.guiButtonAssemblersOnly = new GuiImgButton(0, 0, Settings.ACTIONS, null);
-        this.guiButtonHideFull = new GuiImgButton(0, 0, Settings.ACTIONS, null);
-        this.guiButtonBrokenRecipes = new GuiImgButton(0, 0, Settings.ACTIONS, null);
-        this.terminalStyleBox = new GuiImgButton(0, 0, Settings.TERMINAL_STYLE, null);
+        // Toolbar buttons (MUI widgets — positioned in initGui after guiTop is finalized)
+        this.terminalStyleBox = this.addWidget(
+                new MUIButtonWidget(0, 0, Settings.TERMINAL_STYLE, null)
+                        .setOnClick(btn -> this.onTerminalStyleClicked()));
+        this.guiButtonBrokenRecipes = this.addWidget(
+                new MUIButtonWidget(0, 0, Settings.ACTIONS, null)
+                        .setOnClick(btn -> {
+                            this.onlyBrokenRecipes = !this.onlyBrokenRecipes;
+                            this.refreshList();
+                        }));
+        this.guiButtonHideFull = this.addWidget(
+                new MUIButtonWidget(0, 0, Settings.ACTIONS, null)
+                        .setOnClick(btn -> {
+                            this.onlyShowWithSpace = !this.onlyShowWithSpace;
+                            this.refreshList();
+                        }));
+        this.guiButtonAssemblersOnly = this.addWidget(
+                new MUIButtonWidget(0, 0, Settings.ACTIONS, null)
+                        .setOnClick(btn -> {
+                            this.onlyMolecularAssemblers = !this.onlyMolecularAssemblers;
+                            this.refreshList();
+                        }));
+
+        // Dynamic highlight button pool
+        this.highlightButtonPool = new MUIButtonPool()
+                .setDefaultOnClick(btn -> this.onHighlightClicked(btn));
+        this.addWidget(this.highlightButtonPool);
     }
 
     @Override
@@ -200,15 +226,11 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
         this.ySize = MAGIC_HEIGHT_NUMBER + this.rows * 18;
         this.centerVertically();
 
-        // Button positioning (buttons created in setupWidgets, positioned here after guiTop is finalized)
-        this.terminalStyleBox.x = this.guiLeft + BUTTON_COLUMN_X;
-        this.terminalStyleBox.y = this.guiTop + TERMINAL_STYLE_BUTTON_Y + this.jeiOffset;
-        this.guiButtonBrokenRecipes.x = this.guiLeft + BUTTON_COLUMN_X;
-        this.guiButtonBrokenRecipes.y = this.terminalStyleBox.y + BUTTON_VERTICAL_SPACING;
-        this.guiButtonHideFull.x = this.guiLeft + BUTTON_COLUMN_X;
-        this.guiButtonHideFull.y = this.guiButtonBrokenRecipes.y + BUTTON_VERTICAL_SPACING;
-        this.guiButtonAssemblersOnly.x = this.guiLeft + BUTTON_COLUMN_X;
-        this.guiButtonAssemblersOnly.y = this.guiButtonHideFull.y + BUTTON_VERTICAL_SPACING;
+        // Button positioning (MUI buttons use panel-relative coordinates)
+        this.terminalStyleBox.setPosition(BUTTON_COLUMN_X, TERMINAL_STYLE_BUTTON_Y + this.jeiOffset);
+        this.guiButtonBrokenRecipes.setPosition(BUTTON_COLUMN_X, TERMINAL_STYLE_BUTTON_Y + this.jeiOffset + BUTTON_VERTICAL_SPACING);
+        this.guiButtonHideFull.setPosition(BUTTON_COLUMN_X, TERMINAL_STYLE_BUTTON_Y + this.jeiOffset + BUTTON_VERTICAL_SPACING * 2);
+        this.guiButtonAssemblersOnly.setPosition(BUTTON_COLUMN_X, TERMINAL_STYLE_BUTTON_Y + this.jeiOffset + BUTTON_VERTICAL_SPACING * 3);
 
         this.setScrollBar();
         this.repositionAllSlots();
@@ -283,10 +305,12 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        buttonList.clear();
-        guiButtonHashMap.clear();
+        // Reset dynamic buttons and slots
+        highlightButtonPool.reset();
+        highlightButtonMap.clear();
         inventorySlots.inventorySlots.removeIf(slot -> slot instanceof SlotDisconnected);
 
+        // Update toolbar button values
         guiButtonAssemblersOnly.set(
                 onlyMolecularAssemblers ? ActionItems.MOLECULAR_ASSEMBLERS_ON : ActionItems.MOLECULAR_ASSEMBLERS_OFF);
         guiButtonHideFull.set(onlyShowWithSpace ? ActionItems.TOGGLE_SHOW_FULL_INTERFACES_OFF
@@ -295,11 +319,7 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
                 : ActionItems.TOGGLE_SHOW_ONLY_INVALID_PATTERNS_OFF);
         terminalStyleBox.set(AEConfig.instance().getConfigManager().getSetting(Settings.TERMINAL_STYLE));
 
-        buttonList.add(guiButtonAssemblersOnly);
-        buttonList.add(guiButtonHideFull);
-        buttonList.add(guiButtonBrokenRecipes);
-        buttonList.add(terminalStyleBox);
-
+        // Populate dynamic slots and highlight buttons
         int offset = 51;
         final int currentScroll = this.getScrollBar().getCurrentScroll();
         int linesDraw = 0;
@@ -308,10 +328,10 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
             final Object lineObj = this.lines.get(currentScroll + x);
             if (lineObj instanceof ClientDCInternalInv inv) {
 
-                GuiButton guiButton = new GuiImgButton(guiLeft + 4, guiTop + offset + 1, Settings.ACTIONS,
-                        ActionItems.HIGHLIGHT_INTERFACE);
-                guiButtonHashMap.put(guiButton, inv);
-                this.buttonList.add(guiButton);
+                // Acquire highlight button from pool (panel-relative coordinates)
+                MUIButtonWidget hlBtn = this.highlightButtonPool.acquireSettings(
+                        4, offset + 1, Settings.ACTIONS, ActionItems.HIGHLIGHT_INTERFACE);
+                highlightButtonMap.put(hlBtn, inv);
 
                 final int extraLines = numUpgradesMap.get(inv);
                 final int slotLimit = inv.getInventory().getSlots();
@@ -346,7 +366,7 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
         // 顶部背景
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, 53);
 
-        // 行背�?
+        // Row backgrounds
         for (int x = 0; x < this.rows; x++) {
             this.drawTexturedModalRect(offsetX, offsetY + 53 + x * 18, 0, 52, this.xSize, 18);
         }
@@ -381,7 +401,7 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
             }
         }
 
-        // 底部背景（玩家物品栏�?
+        // Bottom background (player inventory area)
         this.drawTexturedModalRect(offsetX, offsetY + 50 + this.rows * 18, 0, 158, this.xSize, 99);
     }
 
@@ -398,53 +418,49 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
         super.mouseClicked(xCoord, yCoord, btn);
     }
 
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        if (guiButtonHashMap.containsKey(btn)) {
-            BlockPos blockPos = blockPosHashMap.get(guiButtonHashMap.get(this.selectedButton));
-            BlockPos blockPos2 = mc.player.getPosition();
-            int playerDim = mc.world.provider.getDimension();
-            int interfaceDim = dimHashMap.get(guiButtonHashMap.get(this.selectedButton));
-            if (playerDim != interfaceDim) {
-                try {
-                    mc.player.sendStatusMessage(
-                            PlayerMessages.InterfaceInOtherDimParam.get(interfaceDim,
-                                    DimensionManager.getWorld(interfaceDim).provider.getDimensionType().getName()),
-                            false);
-                } catch (Exception e) {
-                    mc.player.sendStatusMessage(PlayerMessages.InterfaceInOtherDim.get(), false);
-                }
-            } else {
-                hilightBlock(blockPos,
-                        System.currentTimeMillis() + 500 * BlockPosUtils.getDistance(blockPos, blockPos2), playerDim);
-                mc.player.sendStatusMessage(
-                        PlayerMessages.InterfaceHighlighted.get(blockPos.getX(), blockPos.getY(), blockPos.getZ()),
-                        false);
-            }
-            mc.player.closeScreen();
-        } else if (btn == guiButtonHideFull) {
-            onlyShowWithSpace = !onlyShowWithSpace;
-            this.refreshList();
-        } else if (btn == guiButtonAssemblersOnly) {
-            onlyMolecularAssemblers = !onlyMolecularAssemblers;
-            this.refreshList();
-        } else if (btn == guiButtonBrokenRecipes) {
-            onlyBrokenRecipes = !onlyBrokenRecipes;
-            this.refreshList();
-        } else if (btn instanceof GuiImgButton iBtn) {
-            if (iBtn.getSetting() != Settings.ACTIONS) {
-                final Enum<?> cv = iBtn.getCurrentValue();
-                final boolean backwards = Mouse.isButtonDown(1);
-                final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
-                        iBtn.getSetting().getPossibleValues());
-
-                if (btn == this.terminalStyleBox) {
-                    AEConfig.instance().getConfigManager().putSetting(iBtn.getSetting(), next);
-                    this.reinitalize();
-                }
-                iBtn.set(next);
-            }
+    /**
+     * Handle highlight button click (from MUIButtonPool onClick callback).
+     * Locates the interface in the world and highlights its block position.
+     */
+    private void onHighlightClicked(MUIButtonWidget btn) {
+        ClientDCInternalInv inv = highlightButtonMap.get(btn);
+        if (inv == null) {
+            return;
         }
+        BlockPos blockPos = blockPosHashMap.get(inv);
+        BlockPos blockPos2 = mc.player.getPosition();
+        int playerDim = mc.world.provider.getDimension();
+        int interfaceDim = dimHashMap.get(inv);
+        if (playerDim != interfaceDim) {
+            try {
+                mc.player.sendStatusMessage(
+                        PlayerMessages.InterfaceInOtherDimParam.get(interfaceDim,
+                                DimensionManager.getWorld(interfaceDim).provider.getDimensionType().getName()),
+                        false);
+            } catch (Exception e) {
+                mc.player.sendStatusMessage(PlayerMessages.InterfaceInOtherDim.get(), false);
+            }
+        } else {
+            hilightBlock(blockPos,
+                    System.currentTimeMillis() + 500 * BlockPosUtils.getDistance(blockPos, blockPos2), playerDim);
+            mc.player.sendStatusMessage(
+                    PlayerMessages.InterfaceHighlighted.get(blockPos.getX(), blockPos.getY(), blockPos.getZ()),
+                    false);
+        }
+        mc.player.closeScreen();
+    }
+
+    /**
+     * Handle terminal style button click — cycle the terminal style setting and reinitialize the GUI.
+     */
+    private void onTerminalStyleClicked() {
+        final Enum<?> cv = this.terminalStyleBox.getCurrentValue();
+        final boolean backwards = Mouse.isButtonDown(1);
+        final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
+                Settings.TERMINAL_STYLE.getPossibleValues());
+        AEConfig.instance().getConfigManager().putSetting(Settings.TERMINAL_STYLE, next);
+        this.terminalStyleBox.set(next);
+        this.reinitalize();
     }
 
     private void reinitalize() {
@@ -570,7 +586,6 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
      */
     private void refreshList() {
         this.byName.clear();
-        this.buttonList.clear();
         this.matchedStacks.clear();
 
         final String searchFieldInputs = this.searchFieldInputs.getText().toLowerCase();
@@ -582,11 +597,11 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
                         + "NAME:" + searchFieldNames + onlyShowWithSpace + onlyMolecularAssemblers + onlyBrokenRecipes);
         final boolean rebuild = cachedSearch.isEmpty();
 
-        // 搜索旧接�?
+        // Search legacy interfaces
         this.filterEntries(this.byId.values(), cachedSearch, rebuild, searchFieldInputs, searchFieldOutputs,
                 searchFieldNames);
 
-        // 搜索样板供应�?
+        // Search pattern providers
         this.filterEntries(this.providerById.values(), cachedSearch, rebuild, searchFieldInputs, searchFieldOutputs,
                 searchFieldNames);
 

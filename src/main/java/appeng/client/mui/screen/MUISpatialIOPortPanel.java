@@ -18,17 +18,14 @@
 
 package appeng.client.mui.screen;
 
-import java.io.IOException;
-
 import org.lwjgl.input.Mouse;
 
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.Settings;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.container.implementations.ContainerSpatialIOPort;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
@@ -36,16 +33,16 @@ import appeng.tile.spatial.TileSpatialIOPort;
 import appeng.util.Platform;
 
 /**
- * MUI 版空�?IO 端口 GUI 面板�?
+ * MUI spatial IO port GUI panel.
  *
- * 显示存储/最大功率、所需功率、效率、SCS 尺寸等信息，以及电源单位切换按钮�?
+ * Displays stored/max power, required power, efficiency, SCS size, and a power unit toggle button.
  */
 public class MUISpatialIOPortPanel extends AEBasePanel {
 
     private final ContainerSpatialIOPort container;
 
-    // ========== 按钮 ==========
-    private GuiImgButton units;
+    // ========== Buttons ==========
+    private MUIButtonWidget units;
 
     public MUISpatialIOPortPanel(final InventoryPlayer ip, final TileSpatialIOPort te) {
         this(new ContainerSpatialIOPort(ip, te));
@@ -57,23 +54,21 @@ public class MUISpatialIOPortPanel extends AEBasePanel {
         this.ySize = 199;
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始�?
-    }
-
-    @Override
-    public void initGui() {
-        super.initGui();
-
-        this.units = new GuiImgButton(this.guiLeft - 18, this.guiTop + 8, Settings.POWER_UNITS,
+        this.units = new MUIButtonWidget(-18, 8, Settings.POWER_UNITS,
                 AEConfig.instance().selectedPowerUnit());
-        this.buttonList.add(this.units);
+        this.units.setOnClick(btn -> {
+            final boolean backwards = Mouse.isButtonDown(1);
+            AEConfig.instance().nextPowerUnit(backwards);
+            this.units.set(AEConfig.instance().selectedPowerUnit());
+        });
+        this.addWidget(this.units);
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -109,19 +104,5 @@ public class MUISpatialIOPortPanel extends AEBasePanel {
     protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.bindTexture("guis/spatialio.png");
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
-    }
-
-    // ========== 按钮事件 ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        final boolean backwards = Mouse.isButtonDown(1);
-
-        if (btn == this.units) {
-            AEConfig.instance().nextPowerUnit(backwards);
-            this.units.set(AEConfig.instance().selectedPowerUnit());
-        }
     }
 }

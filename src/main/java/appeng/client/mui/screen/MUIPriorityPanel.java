@@ -26,7 +26,7 @@ import net.minecraft.item.ItemStack;
 
 import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.widgets.GuiNumberBox;
-import appeng.client.gui.widgets.GuiTabButton;
+import appeng.client.mui.widgets.MUITabContainer;
 import appeng.client.mui.AEBasePanel;
 import appeng.container.implementations.ContainerPriority;
 import appeng.core.AEConfig;
@@ -39,15 +39,15 @@ import appeng.core.sync.packets.PacketValueConfig;
 import appeng.helpers.IPriorityHost;
 
 /**
- * MUI 版优先级设置 GUI 面板�?
+ * MUI priority settings GUI panel.
  *
- * 包含数字输入框�? 个加减按钮（±1/±10/±100/±1000）和返回原始 GUI 的标签按钮�?
+ * Contains a number input field, 8 plus/minus buttons (+/-1/+/-10/+/-100/+/-1000), and a tab button to return to the original GUI.
  */
 public class MUIPriorityPanel extends AEBasePanel {
 
     // ========== 控件 ==========
     private GuiNumberBox priority;
-    private GuiTabButton originalGuiBtn;
+    private MUITabContainer originalGuiBtn;
 
     // ========== 加减按钮 ==========
     private GuiButton plus1;
@@ -69,11 +69,11 @@ public class MUIPriorityPanel extends AEBasePanel {
         super(container);
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始�?
+        // initGui handles initialization
     }
 
     @Override
@@ -100,8 +100,14 @@ public class MUIPriorityPanel extends AEBasePanel {
         this.originalGui = con.getPriorityHost().getGuiKey();
 
         if (this.originalGui != null && !myIcon.isEmpty()) {
-            this.buttonList.add(this.originalGuiBtn = new GuiTabButton(this.guiLeft + 154, this.guiTop, myIcon,
-                    myIcon.getDisplayName(), this.itemRender));
+            this.originalGuiBtn = new MUITabContainer(154, 0);
+            this.originalGuiBtn.setIconItem(myIcon);
+            this.originalGuiBtn.setTooltip(myIcon.getDisplayName());
+            final AEGuiKey origGui = this.originalGui;
+            this.originalGuiBtn.setOnClick(tab -> {
+                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(origGui));
+            });
+            this.addWidget(this.originalGuiBtn);
         }
 
         this.priority = new GuiNumberBox(this.fontRenderer, this.guiLeft + 62, this.guiTop + 57, 59,
@@ -134,10 +140,6 @@ public class MUIPriorityPanel extends AEBasePanel {
     protected void actionPerformed(final GuiButton btn) throws IOException {
         super.actionPerformed(btn);
 
-        if (btn == this.originalGuiBtn) {
-            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(this.originalGui));
-        }
-
         final boolean isPlus = btn == this.plus1 || btn == this.plus10 || btn == this.plus100 || btn == this.plus1000;
         final boolean isMinus = btn == this.minus1 || btn == this.minus10 || btn == this.minus100
                 || btn == this.minus1000;
@@ -147,7 +149,7 @@ public class MUIPriorityPanel extends AEBasePanel {
         }
     }
 
-    // ========== 数值增�?==========
+    // ========== Value increment/decrement ==========
 
     private void addQty(final int i) {
         try {

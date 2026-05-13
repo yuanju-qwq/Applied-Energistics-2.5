@@ -77,20 +77,20 @@ import appeng.util.inv.IInventoryDestination;
 import appeng.util.inv.InvOperation;
 
 /**
- * 样板供应器方块。
+ * Pattern provider block.
  *
- * 对应高版本 AE2 的 PatternProviderBlock。
- * 仅负责样板存储和合成推送，不含 Config/Storage 功能。
+ * Corresponds to PatternProviderBlock in later AE2 versions.
+ * Only responsible for pattern storage and crafting push, does not include Config/Storage functionality.
  */
 public class TilePatternProvider extends AENetworkInvTile
         implements IGridTickable, IPatternProviderHost, IPriorityHost {
 
     private final PatternProviderLogic logic = new PatternProviderLogic(this.getProxy(), this);
 
-    // 是否全向
+    // Whether omni-directional
     private boolean omniDirectional = true;
 
-    // ========== 网络事件 ==========
+    // ========== Network events ==========
 
     @MENetworkEventSubscribe
     public void stateChange(final MENetworkChannelsChanged c) {
@@ -102,7 +102,7 @@ public class TilePatternProvider extends AENetworkInvTile
         this.logic.notifyNeighbors();
     }
 
-    // ========== 方向控制 ==========
+    // ========== Direction control ==========
 
     public void setSide(final EnumFacing facing) {
         if (Platform.isClient()) {
@@ -150,14 +150,14 @@ public class TilePatternProvider extends AENetworkInvTile
         return this.omniDirectional;
     }
 
-    // ========== 掉落物 ==========
+    // ========== Drops ==========
 
     @Override
     public void getDrops(final World w, final BlockPos pos, final List<ItemStack> drops) {
         this.logic.addDrops(drops);
     }
 
-    // ========== 网格 ==========
+    // ========== Grid ==========
 
     @Override
     public void gridChanged() {
@@ -189,7 +189,7 @@ public class TilePatternProvider extends AENetworkInvTile
         this.logic.readFromNBT(data);
     }
 
-    // ========== 网络同步 ==========
+    // ========== Network sync ==========
 
     @Override
     protected boolean readFromStream(final ByteBuf data) throws IOException {
@@ -205,7 +205,7 @@ public class TilePatternProvider extends AENetworkInvTile
         data.writeBoolean(this.omniDirectional);
     }
 
-    // ========== 电缆连接 ==========
+    // ========== Cable connection ==========
 
     @Override
     public AECableType getCableConnectionType(final AEPartLocation dir) {
@@ -220,8 +220,8 @@ public class TilePatternProvider extends AENetworkInvTile
     // ========== AENetworkInvTile ==========
 
     /**
-     * 返回 EmptyHandler 避免 AEBaseInvTile 对样板槽进行额外的 NBT 读写和 Capability 暴露。
-     * 样板和 returnBuffer 的 NBT/Capability 由 PatternProviderLogic 自行管理。
+     * Returns EmptyHandler to avoid AEBaseInvTile performing extra NBT read/write and Capability exposure on pattern slots.
+     * Pattern and returnBuffer NBT/Capability are managed by PatternProviderLogic itself.
      */
     @Override
     public IItemHandler getInternalInventory() {
@@ -351,7 +351,7 @@ public class TilePatternProvider extends AENetworkInvTile
 
     @Override
     public ItemStack getItemStackRepresentation() {
-        // TODO: 等 B4（注册）完成后替换为正确的方块定义
+        // TODO: Replace with correct block definition after B4 (registration) is complete
         return AEApi.instance().definitions().blocks().iface().maybeStack(1).orElse(ItemStack.EMPTY);
     }
 
@@ -362,11 +362,11 @@ public class TilePatternProvider extends AENetworkInvTile
 
     @Override
     public GuiBridge getGuiBridge() {
-        // TODO: 等 B4（注册）完成后替换为 GUI_PATTERN_PROVIDER
+        // TODO: Replace with GUI_PATTERN_PROVIDER after B4 (registration) is complete
         return getGuiKey().getLegacyBridge();
     }
 
-    // ========== 红石 ==========
+    // ========== Redstone ==========
 
     public void updateRedstoneState() {
         this.logic.updateRedstoneState();

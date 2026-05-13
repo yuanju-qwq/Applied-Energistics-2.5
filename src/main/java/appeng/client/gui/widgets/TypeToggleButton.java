@@ -63,10 +63,10 @@ public class TypeToggleButton extends GuiButton implements ITooltip {
 
         mc.renderEngine.bindTexture(STATES_TEXTURE);
 
-        // 绘制按钮背景
+        // Draw button background
         this.drawTexturedModalRect(this.x, this.y, 256 - 16, 256 - 16, 16, 16);
 
-        // 绘制类型图标
+        // Draw type icon
         ResourceLocation typeTexture = this.stackType.getButtonTexture();
         if (typeTexture != null) {
             mc.renderEngine.bindTexture(typeTexture);

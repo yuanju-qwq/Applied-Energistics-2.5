@@ -104,63 +104,63 @@ import appeng.fluids.util.AEFluidStackType;
 import appeng.api.storage.IMEMonitor;
 
 /**
- * 样板供应器核心逻辑。
+ * Pattern provider core logic.
  *
- * 从 {@link InterfaceLogic} 中提取的所有样板存储、样板推送、合成锁定、
- * 合成跟踪、优先级和终端名称功能。
+ * All pattern storage, pattern push, crafting lock,
+ * crafting tracking, priority, and terminal name functionality extracted from {@link InterfaceLogic}.
  *
- * 对应高版本 AE2 的 {@code PatternProviderLogic}。
+ * Corresponds to {@code PatternProviderLogic} in later AE2 versions.
  *
- * 宿主方块/部件通过实现 {@link IPatternProviderHost} 并持有此对象来获得样板供应能力。
+ * Host block/part obtains pattern provider capability by implementing {@link IPatternProviderHost} and holding this object.
  */
 public class PatternProviderLogic
         implements IGridTickable, IConfigManagerHost, ICraftingProvider, IUpgradeableHost, IAEAppEngInventory {
 
-    // ========== 常量 ==========
+    // ========== Constants ==========
     public static final int NUMBER_OF_PATTERN_SLOTS = 36;
 
     private static final Collection<Block> BAD_BLOCKS = new HashSet<>(100);
 
-    // ========== 字段 ==========
+    // ========== Fields ==========
 
-    // --- 核心引用 ---
+    // --- Core references ---
     private final AENetworkProxy gridProxy;
     private final IPatternProviderHost iHost;
     private final IActionSource mySource;
 
-    // --- 样板存储 ---
+    // --- Pattern storage ---
     private final AppEngInternalInventory patterns = new AppEngInternalInventory(this, NUMBER_OF_PATTERN_SLOTS, 1);
     private List<ICraftingPatternDetails> craftingList = null;
 
-    // --- 网络直通包装器（外部机器返回的合成产物直接注入 ME 网络） ---
+    // --- Network pass-through wrapper (crafting products returned by external machines are directly injected into the ME network) ---
     private final ReturnItemHandler returnItemHandler = new ReturnItemHandler();
     private final ReturnFluidHandler returnFluidHandler = new ReturnFluidHandler();
 
-    // --- 合成跟踪 ---
+    // --- Crafting tracking ---
     private final MultiCraftingTracker craftingTracker;
 
-    // --- 升级 ---
+    // --- Upgrades ---
     private final UpgradeInventory upgrades;
 
-    // --- 配置管理 ---
+    // --- Configuration management ---
     private final ConfigManager cm = new ConfigManager(this);
 
-    // --- 推送等待队列 ---
+    // --- Push waiting queue ---
     private List<IAEStack<?>> waitingToSend = null;
     private EnumMap<EnumFacing, List<ItemStack>> waitingToSendFacing = null;
     private EnumSet<EnumFacing> visitedFaces = EnumSet.noneOf(EnumFacing.class);
 
-    // --- 优先级 ---
+    // --- Priority ---
     private int priority;
 
-    // --- 合成锁定 ---
+    // --- Crafting lock ---
     private YesNo redstoneState = YesNo.UNDECIDED;
     @Nullable
     private UnlockCraftingEvent unlockEvent;
     @Nullable
     private IAEStack<?> unlockStack;
 
-    // ========== 构造 ==========
+    // ========== Construction ==========
 
     public PatternProviderLogic(final AENetworkProxy networkProxy, final IPatternProviderHost host) {
         this.gridProxy = networkProxy;
@@ -177,7 +177,7 @@ public class PatternProviderLogic
         this.mySource = new MachineSource(this.iHost);
     }
 
-    // ========== NBT 读写 ==========
+    // ========== NBT read/write ==========
 
     public void writeToNBT(final NBTTagCompound data) {
         this.patterns.writeToNBT(data, "patterns");
@@ -186,7 +186,7 @@ public class PatternProviderLogic
         this.craftingTracker.writeToNBT(data);
         data.setInteger("priority", this.priority);
 
-        // 合成锁定状态
+        // Crafting lock state
         if (unlockEvent == UnlockCraftingEvent.PULSE) {
             data.setByte("unlockEvent", (byte) 1);
         } else if (unlockEvent == UnlockCraftingEvent.RESULT) {
@@ -200,7 +200,7 @@ public class PatternProviderLogic
             }
         }
 
-        // 等待推送的物品
+        // Items waiting to be pushed
         final NBTTagList waitingToSendTag = new NBTTagList();
         if (this.waitingToSend != null) {
             for (final IAEStack<?> is : this.waitingToSend) {
@@ -210,7 +210,7 @@ public class PatternProviderLogic
         }
         data.setTag("waitingToSend", waitingToSendTag);
 
-        // 面向推送队列
+        // Directional push queue
         NBTTagCompound sidedWaitList = new NBTTagCompound();
         if (this.waitingToSendFacing != null) {
             for (EnumFacing s : this.iHost.getTargets()) {
@@ -228,7 +228,7 @@ public class PatternProviderLogic
     }
 
     public void readFromNBT(final NBTTagCompound data) {
-        // 等待推送队列
+        // Waiting push queue
         this.waitingToSend = null;
         final NBTTagList waitingList = data.getTagList("waitingToSend", 10);
         if (waitingList != null) {
@@ -246,7 +246,7 @@ public class PatternProviderLogic
             }
         }
 
-        // 面向推送队列
+        // Directional push queue
         this.waitingToSendFacing = null;
         final NBTTagCompound waitingListSided = data.getCompoundTag("sidedWaitList");
         for (EnumFacing s : EnumFacing.values()) {
@@ -264,7 +264,7 @@ public class PatternProviderLogic
 
         this.craftingTracker.readFromNBT(data);
 
-        // 修复升级槽大小不匹配
+        // Fix upgrade slot size mismatch
         NBTTagCompound up = data.getCompoundTag("upgrades");
         if (up.hasKey("Size") && up.getInteger("Size") != this.upgrades.getSlots()) {
             up.setInteger("Size", this.upgrades.getSlots());
@@ -272,7 +272,7 @@ public class PatternProviderLogic
         }
         this.upgrades.readFromNBT(data, "upgrades");
 
-        // 样板槽
+        // Pattern slots
         NBTTagCompound pa = data.getCompoundTag("patterns");
         if (pa.hasKey("Size") && pa.getInteger("Size") != this.patterns.getSlots()) {
             pa.setInteger("Size", this.patterns.getSlots());
@@ -284,7 +284,7 @@ public class PatternProviderLogic
         this.cm.readFromNBT(data);
         this.updateCraftingList();
 
-        // 合成锁定状态
+        // Crafting lock state
         var unlockEventType = data.getByte("unlockEvent");
         this.unlockEvent = switch (unlockEventType) {
             case 0 -> null;
@@ -321,10 +321,10 @@ public class PatternProviderLogic
         }
     }
 
-    // ========== 样板管理 ==========
+    // ========== Pattern management ==========
 
     /**
-     * 更新合成样板列表。扫描样板槽，与现有列表做增量比较。
+     * Update crafting pattern list. Scan pattern slots and do incremental comparison with existing list.
      */
     private void updateCraftingList() {
         final Boolean[] accountedFor = new Boolean[this.patterns.getSlots()];
@@ -382,7 +382,7 @@ public class PatternProviderLogic
     }
 
     /**
-     * 掉落超出容量的样板（升级卡减少后）。
+     * Drop patterns exceeding capacity (after upgrade card reduction).
      */
     public void dropExcessPatterns() {
         IItemHandler patternsInv = getPatterns();
@@ -410,7 +410,7 @@ public class PatternProviderLogic
         return this.patterns;
     }
 
-    // ========== 推送队列管理 ==========
+    // ========== Push queue management ==========
 
     private void addToSendList(final IAEStack<?> is) {
         if (is == null || is.getStackSize() <= 0) {
@@ -440,7 +440,7 @@ public class PatternProviderLogic
             return;
         }
 
-        // 尝试将含流体的 ItemStack 转换为 IAEFluidStack
+        // Try to convert fluid-containing ItemStack to IAEFluidStack
         final IAEStack<?> converted = tryConvertToFluidStack(is);
 
         if (this.waitingToSendFacing == null) {
@@ -502,10 +502,10 @@ public class PatternProviderLogic
         return false;
     }
 
-    // ========== 推送物品到邻居 ==========
+    // ========== Push items to neighbors ==========
 
     /**
-     * 推送 waitingToSend 队列中的物品到多个方向。
+     * Push items in the waitingToSend queue to multiple directions.
      */
     private void pushItemsOut(final EnumSet<EnumFacing> possibleDirections) {
         if (!this.hasItemsToSend()) {
@@ -550,7 +550,7 @@ public class PatternProviderLogic
     }
 
     /**
-     * 推送 waitingToSendFacing 队列中特定方向的物品。
+     * Push items in the waitingToSendFacing queue for a specific direction.
      */
     private void pushItemsOut(final EnumFacing s) {
         if (this.waitingToSendFacing == null) {
@@ -570,7 +570,7 @@ public class PatternProviderLogic
             return;
         }
 
-        // 如果目标是接口，尝试通过网络注入
+        // If target is an interface, try injecting through the network
         if (te instanceof IInterfaceLogicHost || (te instanceof TileCableBus
                 && ((TileCableBus) te).getPart(s.getOpposite()) instanceof PartMEInterface)) {
             try {
@@ -616,7 +616,7 @@ public class PatternProviderLogic
             return;
         }
 
-        // 否则通过 InventoryAdaptor 直接推送
+        // Otherwise push directly via InventoryAdaptor
         final InventoryAdaptor ad = InventoryAdaptor.getAdaptor(te, s.getOpposite());
 
         final Iterator<ItemStack> iter = facingQueue.iterator();
@@ -638,7 +638,7 @@ public class PatternProviderLogic
         }
     }
 
-    // ========== ICraftingProvider — 样板推送 ==========
+    // ========== ICraftingProvider - pattern push ==========
 
     @Override
     public boolean pushPattern(final ICraftingPatternDetails patternDetails, final InventoryCrafting table) {
@@ -665,7 +665,7 @@ public class PatternProviderLogic
                 continue;
             }
 
-            // --- 尝试通过 IStorageMonitorableAccessor 推送 ---
+            // --- Try pushing via IStorageMonitorableAccessor ---
             var mon = te.getCapability(Capabilities.STORAGE_MONITORABLE_ACCESSOR, s.getOpposite());
             if (mon != null) {
                 visitedFaces.remove(s);
@@ -713,7 +713,7 @@ public class PatternProviderLogic
 
                             this.visitedFaces.clear();
 
-                            // 检查 Pattern 是否含流体输入
+                            // Check if Pattern contains fluid inputs
                             if (pushPatternContents(patternDetails, table, s)) {
                                 return true;
                             }
@@ -725,7 +725,7 @@ public class PatternProviderLogic
                 continue;
             }
 
-            // --- 尝试通过 ICraftingMachine 推送 ---
+            // --- Try pushing via ICraftingMachine ---
             if (te instanceof ICraftingMachine craftMachine) {
                 if (craftMachine.acceptsPlans()) {
                     visitedFaces.remove(s);
@@ -737,7 +737,7 @@ public class PatternProviderLogic
                 }
             }
 
-            // --- 尝试通过 InventoryAdaptor 推送 ---
+            // --- Try pushing via InventoryAdaptor ---
             InventoryAdaptor ad = InventoryAdaptor.getAdaptor(te, s.getOpposite());
             if (ad != null) {
                 if (this.isBlocking()) {
@@ -770,7 +770,7 @@ public class PatternProviderLogic
                 if (this.acceptsItems(ad, table)) {
                     this.visitedFaces.clear();
 
-                    // 检查 Pattern 是否含流体输入并推送
+                    // Check if Pattern contains fluid inputs并推送
                     if (pushPatternContents(patternDetails, table, s)) {
                         return true;
                     }
@@ -782,12 +782,12 @@ public class PatternProviderLogic
     }
 
     /**
-     * 推送样板内容（物品/流体）并处理锁定。
-     * 从 {@link MEInventoryCrafting} 获取泛型栈信息，根据类型分流推送。
+     * Push pattern contents (items/fluids) and handle locking.
+     * Get generic stack info from {@link MEInventoryCrafting}, push by type.
      */
     private boolean pushPatternContents(final ICraftingPatternDetails patternDetails,
             final InventoryCrafting table, final EnumFacing s) {
-        // 从 MEInventoryCrafting 直接获取泛型栈，根据类型分流推送
+        // Get generic stacks directly from MEInventoryCrafting, push by type
         boolean hasNonItemInputs = false;
         if (table instanceof MEInventoryCrafting meTable) {
             for (int x = 0; x < meTable.getSizeInventory(); x++) {
@@ -800,7 +800,7 @@ public class PatternProviderLogic
         }
 
         if (hasNonItemInputs && table instanceof MEInventoryCrafting meTable) {
-            // 含流体/非物品输入：使用泛型栈直接发送
+            // Contains fluid/non-item inputs: send directly using generic stacks
             for (int x = 0; x < meTable.getSizeInventory(); x++) {
                 final IAEStack<?> aeStack = meTable.getAEStackInSlot(x);
                 if (aeStack != null) {
@@ -808,7 +808,7 @@ public class PatternProviderLogic
                 }
             }
         } else {
-            // 纯物品输入：使用 ItemStack 按面发送
+            // Pure item inputs: send ItemStack per face
             for (int x = 0; x < table.getSizeInventory(); x++) {
                 final ItemStack is = table.getStackInSlot(x);
                 if (!is.isEmpty()) {
@@ -845,7 +845,7 @@ public class PatternProviderLogic
             for (final EnumFacing s : possibleDirections) {
                 final TileEntity te = w.getTileEntity(tile.getPos().offset(s));
 
-                // 检查接口类邻居
+                // Check interface-type neighbors
                 if (te instanceof IInterfaceLogicHost || (te instanceof TileCableBus
                         && ((TileCableBus) te).getPart(s.getOpposite()) instanceof PartMEInterface)) {
                     try {
@@ -879,7 +879,7 @@ public class PatternProviderLogic
                     continue;
                 }
 
-                // 检查普通 InventoryAdaptor 邻居
+                // Check normal InventoryAdaptor neighbors
                 final InventoryAdaptor ad = InventoryAdaptor.getAdaptor(te, s.getOpposite());
                 if (ad != null) {
                     if (Platform.isModLoaded("actuallyadditions") && Platform.GTLoaded
@@ -924,7 +924,7 @@ public class PatternProviderLogic
         }
     }
 
-    // ========== 合成锁定 ==========
+    // ========== Crafting lock ==========
 
     public void resetCraftingLock() {
         if (unlockEvent != null) {
@@ -952,7 +952,7 @@ public class PatternProviderLogic
     }
 
     /**
-     * 获取合成锁定原因。
+     * Get the crafting lock reason.
      *
      * @return {@link LockCraftingMode#NONE} 表示没有锁定
      */
@@ -1252,7 +1252,7 @@ public class PatternProviderLogic
         return null;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     public void initialize() {
         this.updateCraftingList();
@@ -1278,7 +1278,7 @@ public class PatternProviderLogic
         }
     }
 
-    // ========== 掉落物 ==========
+    // ========== Drops ==========
 
     public void addDrops(final List<ItemStack> drops) {
         if (this.waitingToSend != null) {

@@ -531,7 +531,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     }
 
     /**
-     * 将泛型栈数组中的相同项合并（压缩）。
+     * 将generic stack array中的相同项合并（压缩）。
      */
     @SuppressWarnings("unchecked")
     public static IAEStack<?>[] convertToCondensedAEList(final IAEStack<?>[] items) {

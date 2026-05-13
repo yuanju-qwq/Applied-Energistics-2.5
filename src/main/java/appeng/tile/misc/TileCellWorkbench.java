@@ -47,7 +47,7 @@ public class TileCellWorkbench extends AEBaseTile
         implements IUpgradeableHost, IAEAppEngInventory, IConfigManagerHost, IIAEStackInventory {
 
     private final AppEngInternalInventory cell = new AppEngInternalInventory(this, 1);
-    // 泛型 AE 栈库存，支持物品、流体等任意类型的过滤配置
+    // Generic AE stack inventory, supports items, fluids, and any other type as filter configuration
     private final IAEStackInventory config = new IAEStackInventory(this, 63, StorageName.CONFIG);
     private final ConfigManager manager = new ConfigManager(this);
 
@@ -120,7 +120,7 @@ public class TileCellWorkbench extends AEBaseTile
         return null;
     }
 
-    // ---- IIAEStackInventory 实现 ----
+    // ---- IIAEStackInventory implementation ----
 
     @Override
     public void saveAEStackInv() {
@@ -160,7 +160,7 @@ public class TileCellWorkbench extends AEBaseTile
                 }
 
                 if (cellHasConfig) {
-                    // 单元自带配置 → 复制到工作台
+                    // Cell has config → copy to workbench
                     for (int x = 0; x < this.config.getSizeInventory(); x++) {
                         if (x < configInventory.getSizeInventory()) {
                             this.config.putAEStackInSlot(x, configInventory.getAEStackInSlot(x));
@@ -169,7 +169,7 @@ public class TileCellWorkbench extends AEBaseTile
                         }
                     }
                 } else {
-                    // 单元无配置 → 复制工作台到单元
+                    // Cell has no config → copy workbench to cell
                     copyAEInv(this.config, configInventory);
                 }
             } else if (this.manager.getSetting(Settings.COPY_MODE) == CopyMode.CLEAR_ON_REMOVE) {
@@ -185,8 +185,8 @@ public class TileCellWorkbench extends AEBaseTile
     }
 
     /**
-     * 当 config IAEStackInventory 内容被外部修改（如虚拟槽位交互）时，
-     * 将变更同步回单元物品的 config。
+     * When config IAEStackInventory content is externally modified (e.g. phantom slot interaction),
+     * sync the changes back to the cell item's config.
      */
     public void syncConfigToCell() {
         if (!this.locked) {
@@ -194,7 +194,7 @@ public class TileCellWorkbench extends AEBaseTile
             final IAEStackInventory c = this.getCellConfigAEInventory();
             if (c != null) {
                 copyAEInv(this.config, c);
-                // 回读：单元可能修改了某些槽位（如不接受的类型）
+                // Read back: cell may have modified some slots (e.g. unsupported types)
                 copyAEInv(c, this.config);
             }
             this.locked = false;
@@ -224,7 +224,7 @@ public class TileCellWorkbench extends AEBaseTile
     }
 
     /**
-     * 将源 IAEStackInventory 的内容复制到目标 IAEStackInventory。
+     * Copy contents from source IAEStackInventory to target IAEStackInventory.
      */
     private static void copyAEInv(IAEStackInventory src, IAEStackInventory dst) {
         final int size = Math.min(src.getSizeInventory(), dst.getSizeInventory());

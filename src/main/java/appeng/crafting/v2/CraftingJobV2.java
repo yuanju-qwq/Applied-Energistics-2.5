@@ -25,7 +25,7 @@ import appeng.me.cluster.implementations.CraftingCPUCluster;
 import io.netty.buffer.ByteBuf;
 
 /**
- * v2 合成任务——使用基于请求和解析器（resolver）的架构，原生支持 IAEStack<?> 泛型。
+ * v2 Crafting task——使用基于请求和解析器（resolver）的架构，原生支持 IAEStack<?> 泛型。
  *
  * @param <StackType> 顶层请求的栈类型
  */
@@ -42,7 +42,7 @@ public class CraftingJobV2<StackType extends IAEStack> implements ICraftingJob<S
     private CraftingStepLimitExceeded limitExceeded = null;
 
     /**
-     * 从 GUI 创建新的合成任务
+     * 从 GUI 创建新的Crafting task
      *
      * @param output    要合成的目标物品/流体
      * @param grid      ME 网格

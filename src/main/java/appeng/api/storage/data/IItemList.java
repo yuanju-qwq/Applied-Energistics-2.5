@@ -90,12 +90,12 @@ public interface IItemList<T extends IAEStackBase> extends IItemContainer<T>, It
     void resetStatus();
 
     /**
-     * 返回此列表中存储的栈类型。
+     * Returns the stack type stored in this list.
      * <p>
-     * 当列表只存储单一类型时返回对应的 {@link IAEStackType}，
-     * 当列表是多类型联合列表时返回 null。
+     * Returns the corresponding {@link IAEStackType} when the list stores a single type,
+     * or null when the list is a multi-type union list.
      *
-     * @return 栈类型，可能为 null
+     * @return the stack type, possibly null
      */
     @Nullable
     default IAEStackType<?> getStackType() {
@@ -103,19 +103,20 @@ public interface IItemList<T extends IAEStackBase> extends IItemContainer<T>, It
     }
 
     /**
-     * @return 列表是否为空（无任何栈）
+     * @return whether the list is empty (contains no stacks)
      */
     default boolean isEmpty() {
         return size() == 0;
     }
 
-    // ===================== 通配符安全桥接方法 =====================
+    // ===================== Wildcard-safe bridge methods =====================
 
     /**
-     * 类型安全地向此列表添加一个通配符类型的栈。
+     * Type-safely add a wildcard-typed stack to this list.
      * <p>
-     * 当调用方持有 {@code IAEStack<?>} 而列表的具体类型 {@code T} 在编译时未知时使用此方法，
-     * 以避免 raw type cast。调用方负责确保栈的类型与列表匹配。
+     * Use this method when the caller holds an {@code IAEStack<?>} and the concrete type {@code T}
+     * of the list is unknown at compile time, to avoid raw type cast.
+     * The caller is responsible for ensuring that the stack type matches the list.
      */
     @SuppressWarnings("unchecked")
     default void addGeneric(final IAEStack<?> option) {
@@ -123,7 +124,7 @@ public interface IItemList<T extends IAEStackBase> extends IItemContainer<T>, It
     }
 
     /**
-     * 类型安全地向此列表添加存储栈。
+     * Type-safely add a storage stack to this list.
      * @see #addGeneric(IAEStack)
      */
     @SuppressWarnings("unchecked")
@@ -132,7 +133,7 @@ public interface IItemList<T extends IAEStackBase> extends IItemContainer<T>, It
     }
 
     /**
-     * 类型安全地向此列表添加可合成栈。
+     * Type-safely add a craftable stack to this list.
      * @see #addGeneric(IAEStack)
      */
     @SuppressWarnings("unchecked")
@@ -141,7 +142,7 @@ public interface IItemList<T extends IAEStackBase> extends IItemContainer<T>, It
     }
 
     /**
-     * 类型安全地向此列表添加可请求栈。
+     * Type-safely add a requestable stack to this list.
      * @see #addGeneric(IAEStack)
      */
     @SuppressWarnings("unchecked")
@@ -150,11 +151,12 @@ public interface IItemList<T extends IAEStackBase> extends IItemContainer<T>, It
     }
 
     /**
-     * 通配符安全的精确查找。
+     * Wildcard-safe exact lookup.
      * <p>
-     * 当调用方持有 {@code IAEStack<?>} 而列表的具体类型 {@code T} 在编译时未知时使用此方法。
+     * Use this method when the caller holds an {@code IAEStack<?>} and the concrete type {@code T}
+     * of the list is unknown at compile time.
      *
-     * @return 匹配的栈，或 null
+     * @return the matching stack, or null
      */
     @SuppressWarnings("unchecked")
     @Nullable
@@ -163,9 +165,9 @@ public interface IItemList<T extends IAEStackBase> extends IItemContainer<T>, It
     }
 
     /**
-     * 通配符安全的模糊查找。
+     * Wildcard-safe fuzzy lookup.
      *
-     * @return 匹配的栈集合
+     * @return the collection of matching stacks
      */
     @SuppressWarnings("unchecked")
     default Collection<? extends IAEStackBase> findFuzzyGeneric(final IAEStack<?> input, final FuzzyMode fuzzy) {

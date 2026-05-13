@@ -56,7 +56,7 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
             if ((currentViewCell.getItem() instanceof ItemViewCell)) {
                 final ItemViewCell viewCellItem = (ItemViewCell) currentViewCell.getItem();
 
-                // 璺宠繃宸茬鐢ㄧ殑 ViewCell
+                // Skip disabled ViewCell
                 if (!viewCellItem.getViewMode(currentViewCell)) {
                     continue;
                 }

@@ -67,7 +67,7 @@ import appeng.util.inv.IInventoryDestination;
 import appeng.util.inv.InvOperation;
 
 /**
- * ME 接口部件。
+ * ME interface part。
  *
  * 对应高版本 AE2 的 InterfacePart。
  * 使用统一的 Config（IAEStack<?> 泛型标记，支持物品+流体混合），
@@ -99,7 +99,7 @@ public class PartMEInterface extends PartBasicState implements IGridTickable, IS
         super(is);
     }
 
-    // ========== 网络事件 ==========
+    // ========== Network events ==========
 
     @Override
     @MENetworkEventSubscribe
@@ -128,7 +128,7 @@ public class PartMEInterface extends PartBasicState implements IGridTickable, IS
         return this.logic.getInstalledUpgrades(u);
     }
 
-    // ========== 网格 ==========
+    // ========== Grid ==========
 
     @Override
     public void gridChanged() {
@@ -253,7 +253,7 @@ public class PartMEInterface extends PartBasicState implements IGridTickable, IS
 
     @Override
     public void onStackReturnNetwork(IAEStack<?> stack) {
-        // ME 接口不需要处理样板锁定
+        // ME interface does not need to handle pattern locking
     }
 
     // ========== IPriorityHost ==========

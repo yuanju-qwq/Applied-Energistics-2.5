@@ -18,7 +18,6 @@
 
 package appeng.client.mui.screen;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,10 +27,7 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.lwjgl.input.Mouse;
-
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
@@ -48,7 +44,7 @@ import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.slots.VirtualMESlot;
 import appeng.client.gui.widgets.GuiCustomSlot;
-import appeng.client.gui.widgets.GuiToggleButton;
+import appeng.client.mui.widgets.MUIToggleButton;
 import appeng.container.implementations.ContainerMEInterface;
 import appeng.container.interfaces.IJEIGhostIngredients;
 import appeng.container.slot.AppEngSlot;
@@ -60,18 +56,18 @@ import appeng.helpers.InterfaceLogic;
 import appeng.tile.inventory.IAEStackInventory;
 
 /**
- * MUI �?ME 接口 GUI 面板�?
+ * Displays 18 Config slots (VirtualMEPhantomSlot, can mark items or fluids) and 18 Storage slots
  *
- * 显示 18 �?Config 槽（VirtualMEPhantomSlot，可标记物品或流体）�?18 �?Storage �?
- * （物品使�?Container 层的 SlotOversized，流体使�?VirtualSlot 从服务端同步显示�?
- * 根据 Config 类型动态切换显示）�?
+ * Dynamically switches display based on Config type.
+ * (items use Container-layer SlotOversized, fluids use VirtualSlot synced from server for display).
+ * <h3>Layout</h3>
  *
  * <h3>布局</h3>
  * <pre>
- * Config �? (y=30):  [VirtualMEPhantomSlot × 9]
- * Storage �? (y=48): [SlotOversized / FluidStorageVirtualSlot × 9]
- * Config �? (y=70):  [VirtualMEPhantomSlot × 9]
- * Storage �? (y=88): [SlotOversized / FluidStorageVirtualSlot × 9]
+ * Config row 1 (y=70):  [VirtualMEPhantomSlot x 9]
+ * Storage row 1 (y=88): [SlotOversized / FluidStorageVirtualSlot x 9]
+ * </pre>
+ * Storage row 1 (y=88): [SlotOversized / FluidStorageVirtualSlot x 9]
  * </pre>
  */
 public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhostIngredients {
@@ -81,18 +77,18 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
 
     private final ContainerMEInterface container;
 
-    // ========== Config 虚拟槽位 ==========
+    // ========== Config Virtual slot ==========
     private VirtualMEPhantomSlot[] configSlots;
 
-    // ========== 流体 Storage 虚拟槽位（只读，可控可见性）==========
+    // ========== 流体 Storage Virtual slot（只读，可控可见性）==========
     private FluidStorageVirtualSlot[] fluidStorageSlots;
 
-    // ========== 物品 Storage slot 引用及原�?xPos（用于隐�?恢复�?=========
+    // ========== Item Storage slot references and original xPos (for hide/restore) ==========
     private AppEngSlot[] itemStorageSlots;
     private int[] itemStorageOrigX;
 
-    // ========== 按钮 ==========
-    private GuiToggleButton interfaceMode;
+    // ========== Buttons ==========
+    private MUIToggleButton interfaceMode;
 
     public MUIMEInterfacePanel(final ContainerMEInterface container) {
         super(container);
@@ -100,7 +96,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         this.ySize = 222;
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
@@ -115,12 +111,16 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
 
     @Override
     protected void addButtons() {
-        this.interfaceMode = new GuiToggleButton(this.guiLeft - 18, this.guiTop + 8, 84, 85,
+        this.interfaceMode = new MUIToggleButton(-18, 8, 84, 85,
                 GuiText.InterfaceTerminal.getLocal(), GuiText.InterfaceTerminalHint.getLocal());
-        this.buttonList.add(this.interfaceMode);
+        this.interfaceMode.setOnToggle(btn -> {
+            final boolean backwards = org.lwjgl.input.Mouse.isButtonDown(1);
+            NetworkHandler.instance().sendToServer(new PacketConfigButton(Settings.INTERFACE_TERMINAL, backwards));
+        });
+        this.addWidget(this.interfaceMode);
     }
 
-    // ========== Config 虚拟槽位初始�?==========
+    // ========== Config Virtual slot initialization ==========
 
     private void initConfigSlots() {
         this.guiSlots.removeIf(slot -> slot instanceof VirtualMEPhantomSlot);
@@ -140,7 +140,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         }
     }
 
-    // ========== 流体 Storage 槽位初始�?==========
+    // ========== Fluid Storage slot initialization ==========
 
     private void initFluidStorageSlots() {
         this.guiSlots.removeIf(slot -> slot instanceof FluidStorageVirtualSlot);
@@ -180,8 +180,8 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
      * Dynamically toggle each storage slot between item slot and fluid virtual slot
      * based on the Config stack type.
      * <ul>
-     *   <li>Config = non-item type (fluid, etc.) �?hide item slot, show FluidStorageVirtualSlot</li>
-     *   <li>Config = item type or null �?show item slot, hide FluidStorageVirtualSlot</li>
+     *   <li>Config = non-item type (fluid, etc.) : hide item slot, show FluidStorageVirtualSlot</li>
+     *   <li>Config = item type or null : show item slot, hide FluidStorageVirtualSlot</li>
      * </ul>
      */
     private void updateStorageSlotVisibility() {
@@ -231,20 +231,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         return "guis/meinterface.png";
     }
 
-    // ========== 按钮事件 ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        final boolean backwards = Mouse.isButtonDown(1);
-
-        if (btn == this.interfaceMode) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(Settings.INTERFACE_TERMINAL, backwards));
-        }
-    }
-
-    // ========== JEI Ghost 拖放 ==========
+    // ========== JEI Ghost drop ==========
 
     @Override
     public List<Target<?>> getPhantomTargets(Object ingredient) {
@@ -266,7 +253,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
 
         List<Target<?>> targets = new ArrayList<>();
 
-        // Config VirtualMEPhantomSlot �?接受物品和流�?
+        // Config VirtualMEPhantomSlot accepts both items and fluids
         for (GuiCustomSlot slot : this.getGuiSlots()) {
             if (slot instanceof VirtualMEPhantomSlot phantomSlot && phantomSlot.isSlotEnabled()) {
                 addConfigTarget(targets, phantomSlot, itemStack, fluidStack);
@@ -307,7 +294,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         return mapTargetSlot;
     }
 
-    // ========== 只读流体 Storage 虚拟槽位 ==========
+    // ========== 只读流体 Storage Virtual slot ==========
 
     /**
      * Read-only VirtualMESlot that displays fluid storage data synced from server

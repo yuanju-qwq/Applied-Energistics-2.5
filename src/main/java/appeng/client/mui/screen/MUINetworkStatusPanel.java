@@ -18,12 +18,10 @@
 
 package appeng.client.mui.screen;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.lwjgl.input.Mouse;
 
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.inventory.Slot;
@@ -36,25 +34,25 @@ import appeng.api.config.ViewItems;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.gui.widgets.ISortSource;
 import appeng.client.me.ItemRepo;
 import appeng.client.me.SlotME;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.container.implementations.ContainerNetworkStatus;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
 import appeng.util.Platform;
 
 /**
- * MUI 版网络状�?GUI 面板�?
+ * MUI network status GUI panel.
  *
- * 显示 ME 网络中所有设备的概览�?列�?行网格），包括：
+ * Displays an overview of all devices in the ME network (5 columns x 4 rows grid), including:
  * <ul>
- *   <li>存储功率 / 最大功�?/li>
+ *   <li>Storage power / max power</li>
  *   <li>功率输入速率 / 功率消耗速率</li>
- *   <li>各设备的安装数量和能�?/li>
+ *   <li>Installed count and energy of each device</li>
  *   <li>电源单位切换按钮</li>
  * </ul>
  */
@@ -65,8 +63,8 @@ public class MUINetworkStatusPanel extends AEBasePanel
     private final int rows = 4;
     private final ContainerNetworkStatus cns;
 
-    // ========== 按钮 ==========
-    private GuiImgButton units;
+    // ========== Buttons ==========
+    private MUIButtonWidget units;
 
     // ========== Tooltip 跟踪 ==========
     private int tooltip = -1;
@@ -85,20 +83,23 @@ public class MUINetworkStatusPanel extends AEBasePanel
         this.cns.setGui(this);
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始�?
+        this.units = new MUIButtonWidget(-18, 8, Settings.POWER_UNITS,
+                AEConfig.instance().selectedPowerUnit());
+        this.units.setOnClick(btn -> {
+            final boolean backwards = Mouse.isButtonDown(1);
+            AEConfig.instance().nextPowerUnit(backwards);
+            this.units.set(AEConfig.instance().selectedPowerUnit());
+        });
+        this.addWidget(this.units);
     }
 
     @Override
     public void initGui() {
         super.initGui();
-
-        this.units = new GuiImgButton(this.guiLeft - 18, this.guiTop + 8, Settings.POWER_UNITS,
-                AEConfig.instance().selectedPowerUnit());
-        this.buttonList.add(this.units);
     }
 
     // ========== 渲染 ==========
@@ -287,21 +288,7 @@ public class MUINetworkStatusPanel extends AEBasePanel
         super.renderToolTip(stack, x, y);
     }
 
-    // ========== 按钮事件 ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        final boolean backwards = Mouse.isButtonDown(1);
-
-        if (btn == this.units) {
-            AEConfig.instance().nextPowerUnit(backwards);
-            this.units.set(AEConfig.instance().selectedPowerUnit());
-        }
-    }
-
-    // ========== ISortSource 实现 ==========
+    // ========== ISortSource implementation ==========
 
     @Override
     public Enum getSortBy() {

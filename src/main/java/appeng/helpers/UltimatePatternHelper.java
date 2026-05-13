@@ -41,13 +41,13 @@ import appeng.api.storage.data.IAEStack;
 import appeng.util.item.AEItemStack;
 
 /**
- * 统一的加工配方（非合成台配方）解析器，原生支持泛型栈（物品 + 流体等）。
+ * Unified processing recipe (non-crafting-table recipe) parser with native support for generic stacks (items + fluids, etc.).
  * <p>
- * 取代 {@link FluidPatternHelper} 和 {@link SpecialPatternHelper}，
- * 通过 {@link appeng.util.Platform#readStackNBT} 读取 NBT 中的栈数据，
+ * Replaces {@link FluidPatternHelper} and {@link SpecialPatternHelper},
+ * reads stack data from NBT via {@link appeng.util.Platform#readStackNBT},
  * Automatically handles both new format (with "StackType" key) and legacy format (plain ItemStack / FluidDummyItem) migration.
  * <p>
- * 设计参考自 Applied-Energistics-2-Unofficial 的同名类。
+ * Design reference from the class of the same name in Applied-Energistics-2-Unofficial.
  */
 public class UltimatePatternHelper implements ICraftingPatternDetails, Comparable<UltimatePatternHelper> {
 
@@ -57,28 +57,28 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
     private final boolean canBeSubstitute;
     private int priority = 0;
 
-    // 旧版物品类型数组（向后兼容旧接口）
+    // Legacy item-type arrays (backward compatible with old interface)
     private final IAEItemStack[] inputs;
     private final IAEItemStack[] outputs;
     private final IAEItemStack[] condensedInputs;
     private final IAEItemStack[] condensedOutputs;
 
-    // 泛型栈数组（主入口，支持物品 + 流体等所有类型）
+    // Generic stack arrays (main entry, supports items + fluids and all types)
     private final IAEStack<?>[] aeInputs;
     private final IAEStack<?>[] aeOutputs;
     private final IAEStack<?>[] condensedAEInputs;
     private final IAEStack<?>[] condensedAEOutputs;
 
-    // 仅输入型配方支持（inputOnly / tunnel pattern）
+    // Input-only recipe support (inputOnly / tunnel pattern)
     private final boolean inputOnly;
     private final UUID inputOnlyUuid;
 
     /**
-     * 从编码了加工配方的 {@link ItemStack} 构造。
+     * Construct from an {@link ItemStack} that encodes a processing recipe.
      *
-     * @param is 编码了加工配方的模式物品（含 NBT）
-     * @throws IllegalArgumentException 如果 NBT 缺失或已标记为无效
-     * @throws IllegalStateException    如果无有效输入或无有效输出（非 inputOnly）
+     * @param is pattern item encoded with a processing recipe (with NBT)
+     * @throws IllegalArgumentException if NBT is missing or marked invalid
+     * @throws IllegalStateException    if there are no valid inputs or no valid outputs (non-inputOnly)
      */
     public UltimatePatternHelper(final ItemStack is) {
         final NBTTagCompound encodedValue = is.getTagCompound();
@@ -93,7 +93,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         this.inputOnly = encodedValue.getBoolean("tunnel");
         this.inputOnlyUuid = readInputOnlyUuid(encodedValue, this.inputOnly);
 
-        // 模式物品用于 equals/hashCode 比较时排除 "author" 标签
+        // Pattern item excludes "author" tag for equals/hashCode comparison
         if (encodedValue.hasKey("author")) {
             final ItemStack forComparison = this.patternItem.copy();
             forComparison.getTagCompound().removeTag("author");
@@ -105,15 +105,15 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         final NBTTagList inTag = encodedValue.getTagList("in", NBT.TAG_COMPOUND);
         final NBTTagList outTag = encodedValue.getTagList("out", NBT.TAG_COMPOUND);
 
-        // 旧版物品列表（兼容旧 API 的 getInputs/getOutputs）
+        // Legacy item list (compatible with old API getInputs/getOutputs)
         final List<IAEItemStack> inLegacy = new ArrayList<>();
         final List<IAEItemStack> outLegacy = new ArrayList<>();
 
-        // 泛型列表（主入口）
+        // Generic list (main entry)
         final List<IAEStack<?>> in = new ArrayList<>();
         final List<IAEStack<?>> out = new ArrayList<>();
 
-        // ========== 解析输入 ==========
+        // ========== Parse inputs ==========
         for (int x = 0; x < inTag.tagCount(); x++) {
             final NBTTagCompound tag = inTag.getCompoundTagAt(x);
             // readStackNBT(tag, true): enable legacy FluidDummyItem auto-conversion
@@ -129,7 +129,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
             in.add(aeStack);
         }
 
-        // ========== 解析输出 ==========
+        // ========== Parse outputs ==========
         for (int x = 0; x < outTag.tagCount(); x++) {
             final NBTTagCompound tag = outTag.getCompoundTagAt(x);
             final IAEStack<?> aeStack = readStackNBT(tag, true);
@@ -143,7 +143,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
             out.add(aeStack);
         }
 
-        // ========== 构建数组 ==========
+        // ========== Build arrays ==========
         this.inputs = inLegacy.toArray(new IAEItemStack[0]);
         this.outputs = outLegacy.toArray(new IAEItemStack[0]);
         this.condensedInputs = convertToCondensedList(this.inputs);
@@ -154,7 +154,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         this.condensedAEInputs = convertToCondensedAEList(this.aeInputs);
         this.condensedAEOutputs = convertToCondensedAEList(this.aeOutputs);
 
-        // ========== 有效性验证 ==========
+        // ========== Validity check ==========
         if (this.condensedAEInputs.length == 0) {
             encodedValue.setBoolean("InvalidPattern", true);
             throw new IllegalStateException("No pattern here!");
@@ -171,7 +171,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         }
     }
 
-    // ========== ICraftingPatternDetails 实现 ==========
+    // ========== ICraftingPatternDetails implementation ==========
 
     @Override
     public ItemStack getPattern() {
@@ -183,7 +183,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         return false;
     }
 
-    // --- 泛型主入口方法 ---
+    // --- Generic main entry methods ---
 
     @Override
     public IAEStack<?>[] getAEInputs() {
@@ -205,7 +205,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         return this.condensedAEOutputs;
     }
 
-    // --- 旧版物品类型方法（覆写 default 实现以避免重复过滤） ---
+    // --- Legacy item-type methods (override default implementations to avoid redundant filtering) ---
 
     @Override
     public IAEItemStack[] getInputs() {
@@ -227,7 +227,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         return this.condensedOutputs;
     }
 
-    // --- 其他接口方法 ---
+    // --- Other interface methods ---
 
     @Override
     public boolean canSubstitute() {
@@ -303,15 +303,15 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         return false;
     }
 
-    // ========== 静态工具方法 ==========
+    // ========== Static utility methods ==========
 
     /**
-     * 从 NBT 标签列表中加载泛型栈数组。
+     * Load generic stack array from NBT tag list.
      *
-     * @param tags        NBTTagList（每个条目为 NBTTagCompound）
-     * @param saveOrder   是否保留 null 条目以维持槽位顺序
-     * @param unknownItem 当条目无法解析时使用的回退物品（可为 null）
-     * @return 泛型栈数组
+     * @param tags        NBTTagList (each entry is an NBTTagCompound)
+     * @param saveOrder   whether to keep null entries to maintain slot order
+     * @param unknownItem fallback item to use when an entry cannot be parsed (may be null)
+     * @return generic stack array
      */
     public static IAEStack<?>[] loadIAEStackFromNBT(final NBTTagList tags, boolean saveOrder,
             final ItemStack unknownItem) {
@@ -337,7 +337,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
     }
 
     /**
-     * 解析 inputOnly 类型配方的 UUID。
+     * Parse the UUID of an inputOnly-type recipe.
      */
     private static UUID readInputOnlyUuid(final NBTTagCompound encodedValue, boolean inputOnly) {
         if (!inputOnly) {

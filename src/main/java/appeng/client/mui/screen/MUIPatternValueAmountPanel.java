@@ -37,6 +37,7 @@ import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.MathExpressionParser;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUITabContainer;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerPatternValueAmount;
 import appeng.core.AEConfig;
@@ -51,16 +52,16 @@ import appeng.parts.reporting.PartExpandedProcessingPatternTerminal;
 import appeng.parts.reporting.PartPatternTerminal;
 
 /**
- * MUI 版样板数值设置面板�?
+ * MUI pattern value amount panel.
  * <p>
- * 中键点击样板虚拟槽位后打开，允许用户通过 +/- 按钮或直接输入精确设置物品数量�?
- * 支持数学表达式（�?"64*9"）�?
+ * Supports math expressions (e.g. "64*9").
+ * Supports math expressions (e.g. "64*9").
  */
 @SideOnly(Side.CLIENT)
 public class MUIPatternValueAmountPanel extends AEBasePanel {
 
     private GuiTextField amountBox;
-    private GuiTabButton originalGuiBtn;
+    private MUITabContainer originalGuiBtn;
     private GuiButton submit;
     private GuiButton plus1;
     private GuiButton plus10;
@@ -104,7 +105,7 @@ public class MUIPatternValueAmountPanel extends AEBasePanel {
                 this.submit = new GuiButton(0, this.guiLeft + 128, this.guiTop + 51, 38, 20,
                         GuiText.SetAmount.getLocal()));
 
-        // 检测原�?GUI 类型，以便返回时正确切换
+        // Detect the original GUI type for correct return navigation
         ItemStack myIcon = ItemStack.EMPTY;
         final Object target = ((AEBaseContainer) this.inventorySlots).getTarget();
         final IDefinitions definitions = AEApi.instance().definitions();
@@ -132,8 +133,14 @@ public class MUIPatternValueAmountPanel extends AEBasePanel {
         }
 
         if (this.originalGui != null && !myIcon.isEmpty()) {
-            this.buttonList.add(this.originalGuiBtn = new GuiTabButton(this.guiLeft + 154, this.guiTop, myIcon,
-                    myIcon.getDisplayName(), this.itemRender));
+            this.originalGuiBtn = new MUITabContainer(154, 0);
+            this.originalGuiBtn.setIconItem(myIcon);
+            this.originalGuiBtn.setTooltip(myIcon.getDisplayName());
+            final AEGuiKey origGui = this.originalGui;
+            this.originalGuiBtn.setOnClick(tab -> {
+                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(origGui));
+            });
+            this.addWidget(this.originalGuiBtn);
         }
 
         this.amountBox = new GuiTextField(0, this.fontRenderer, this.guiLeft + 62, this.guiTop + 57, 59,
@@ -144,7 +151,7 @@ public class MUIPatternValueAmountPanel extends AEBasePanel {
         this.amountBox.setVisible(true);
         this.amountBox.setFocused(true);
 
-        // �?Container 的展示槽获取当前数量作为默认�?
+        // Get the current amount from the Container display slot as default value
         final ContainerPatternValueAmount cpv = (ContainerPatternValueAmount) this.inventorySlots;
         if (cpv.getPatternValue().getHasStack()) {
             this.amountBox.setText(String.valueOf(cpv.getPatternValue().getStack().getCount()));
@@ -199,10 +206,6 @@ public class MUIPatternValueAmountPanel extends AEBasePanel {
         super.actionPerformed(btn);
 
         try {
-            if (btn == this.originalGuiBtn) {
-                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(this.originalGui));
-            }
-
             if (btn == this.submit && btn.enabled) {
                 double resultD = MathExpressionParser.parse(this.amountBox.getText());
                 int result;

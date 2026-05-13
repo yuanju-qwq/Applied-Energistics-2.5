@@ -8,7 +8,7 @@ import appeng.crafting.v2.CraftingContext;
 import appeng.crafting.v2.CraftingRequest;
 
 /**
- * 合成请求解析器接口。实现类负责提供解决合成请求的可能方案。
+ * Crafting request resolver接口。实现类负责提供解决合成请求的可能方案。
  *
  * @see CraftingRequestResolver#provideCraftingRequestResolvers(CraftingRequest, CraftingContext)
  */

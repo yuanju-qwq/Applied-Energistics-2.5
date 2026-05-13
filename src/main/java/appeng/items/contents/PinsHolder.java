@@ -36,9 +36,9 @@ import appeng.core.AELog;
 import appeng.core.AppEng;
 
 /**
- * 持久化存储某个玩家的 Pins 数据（WorldSavedData）。
+ * Persists a player's Pins data (WorldSavedData).
  * <p>
- * 每个玩家一个实例，通过 {@link #getForPlayer(MapStorage, UUID)} 获取。
+ * One instance per player, obtained via {@link #getForPlayer(MapStorage, UUID)}.
  */
 public class PinsHolder extends WorldSavedData {
 
@@ -60,7 +60,7 @@ public class PinsHolder extends WorldSavedData {
     }
 
     /**
-     * 为指定玩家获取或创建 PinsHolder。
+     * Get or create a PinsHolder for the specified player.
      */
     @Nonnull
     public static PinsHolder getForPlayer(MapStorage storage, UUID playerUUID) {
@@ -108,12 +108,12 @@ public class PinsHolder extends WorldSavedData {
     public void readFromNBT(NBTTagCompound nbt) {
         this.pinList = new PinList();
 
-        // 读取玩家 Pins
+        // Read player Pins
         readPinsFromNBT(nbt, TAG_PLAYER_PINS, PinList.PLAYER_OFFSET, PinList.PLAYER_SLOTS);
-        // 读取合成 Pins
+        // Read crafting Pins
         readPinsFromNBT(nbt, TAG_CRAFTING_PINS, 0, PinList.CRAFTING_SLOTS);
 
-        // 读取配置
+        // Read configuration
         if (nbt.hasKey(TAG_MAX_PLAYER_ROWS)) {
             try {
                 this.maxPlayerPinRows = PinsRows.fromOrdinal(nbt.getInteger(TAG_MAX_PLAYER_ROWS));
@@ -145,12 +145,12 @@ public class PinsHolder extends WorldSavedData {
     @Override
     @Nonnull
     public NBTTagCompound writeToNBT(@Nonnull NBTTagCompound nbt) {
-        // 写入玩家 Pins
+        // Write player Pins
         writePinsToNBT(nbt, TAG_PLAYER_PINS, PinList.PLAYER_OFFSET, PinList.PLAYER_SLOTS);
-        // 写入合成 Pins
+        // Write crafting Pins
         writePinsToNBT(nbt, TAG_CRAFTING_PINS, 0, PinList.CRAFTING_SLOTS);
 
-        // 写入配置
+        // Write configuration
         nbt.setInteger(TAG_MAX_PLAYER_ROWS, this.maxPlayerPinRows.ordinal());
         nbt.setInteger(TAG_MAX_CRAFTING_ROWS, this.maxCraftingPinRows.ordinal());
         nbt.setInteger(TAG_SECTION_ORDER, this.sectionOrder.ordinal());
@@ -176,14 +176,14 @@ public class PinsHolder extends WorldSavedData {
         NBTTagList list = new NBTTagList();
         int lastNonNull = -1;
 
-        // 找到最后一个非 null 的索引
+        // Find the last non-null index
         for (int i = 0; i < maxSlots; i++) {
             if (this.pinList.getPin(offset + i) != null) {
                 lastNonNull = i;
             }
         }
 
-        // 写入到最后一个非 null 为止
+        // Write up to the last non-null entry
         for (int i = 0; i <= lastNonNull; i++) {
             IAEStack<?> stack = this.pinList.getPin(offset + i);
             if (stack != null) {

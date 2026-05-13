@@ -26,23 +26,24 @@ package appeng.api.networking.crafting;
 import net.minecraft.inventory.InventoryCrafting;
 
 /**
- * 扩展 {@link ICraftingMedium}，支持一次推送多份相同样板的材料。
- * 移植自 Programmable-Hatches-Mod 的 IMultiplePatternPushable 接口。
+ * Extends {@link ICraftingMedium} to support pushing materials for multiple copies of the same pattern at once.
+ * Ported from the IMultiplePatternPushable interface in Programmable-Hatches-Mod.
  *
- * <p>当合成 CPU 检测到 medium 实现了此接口时，会一次性从 AE 仓库中
- * 提取多份材料并调用 {@link #pushPatternMulti}，大幅减少交互次数。</p>
+ * <p>When the Crafting CPU detects that a medium implements this interface, it will extract
+ * multiple copies of materials from the AE storage at once and call {@link #pushPatternMulti},
+ * greatly reducing the number of interactions.</p>
  */
 public interface IMultiplePatternPushable extends ICraftingMedium {
 
     /**
-     * 一次性推送多份相同样板的材料到 medium 中。
+     * Push materials for multiple copies of the same pattern into the medium at once.
      *
-     * @param patternDetails 合成样板详情
-     * @param table          单份材料的 InventoryCrafting（与 pushPattern 相同）
-     * @param maxTodo        最大允许推送的份数（由 AE 仓库库存和任务剩余数共同决定）
-     * @return 实际推送的份数数组：
-     *         length==1 时 [0] 为实际推送并消耗的份数；
-     *         length==2 时 [0] 为推送份数，[1] 为消耗份数
+     * @param patternDetails crafting pattern details
+     * @param table          InventoryCrafting for a single copy of materials (same as pushPattern)
+     * @param maxTodo        maximum number of copies allowed to push (determined by AE storage inventory and remaining task count)
+     * @return array of actual pushed counts:
+     *         if length==1, [0] is the number of copies actually pushed and consumed;
+     *         if length==2, [0] is the number pushed, [1] is the number consumed
      */
     int[] pushPatternMulti(ICraftingPatternDetails patternDetails, InventoryCrafting table, int maxTodo);
 }

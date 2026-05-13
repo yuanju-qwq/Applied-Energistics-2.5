@@ -35,7 +35,7 @@ public class GuiScrollbar implements IScrollSource {
     private int currentScroll = 0;
 
     /**
-     * 绘制滚动条。
+     * 绘制Scrollbar。
      */
     public void draw(final AEBasePanel g) {
         g.bindTexture("minecraft", "gui/container/creative_inventory/tabs.png");
@@ -117,7 +117,7 @@ public class GuiScrollbar implements IScrollSource {
     }
 
     /**
-     * 处理滚动条点击。
+     * 处理Scrollbar点击。
      */
     public void click(final AEBasePanel panel, final int x, final int y) {
         if (this.getRange() == 0) {

@@ -86,7 +86,7 @@ public interface IMEInventory<T extends IAEStackBase> {
     }
 
     /**
-     * @deprecated 请使用 {@link #getStackType()} 代替。
+     * @deprecated Use {@link #getStackType()} instead.
      * @return the type of channel your handler should be part of
      */
     @Deprecated
@@ -96,19 +96,19 @@ public interface IMEInventory<T extends IAEStackBase> {
     }
 
     /**
-     * @return 此 inventory 对应的 {@link IAEStackType}
+     * @return the {@link IAEStackType} corresponding to this inventory
      */
     IAEStackType<?> getStackType();
 
-    // ===================== 通配符安全桥接方法 =====================
+    // ===================== Wildcard-safe bridge methods =====================
 
     /**
-     * 通配符安全的注入操作。
+     * Wildcard-safe inject operation.
      * <p>
-     * 当调用方持有 {@code IMEInventory<?>} 和 {@code IAEStack<?>} 时使用此方法，
-     * 以避免 raw type cast。调用方负责确保栈的类型与 inventory 匹配。
+     * Use this method when the caller holds an {@code IMEInventory<?>} and an {@code IAEStack<?>},
+     * to avoid raw type cast. The caller is responsible for ensuring that the stack type matches the inventory.
      *
-     * @return 未注入的部分，或 null 表示全部注入成功
+     * @return the remaining portion that was not injected, or null if fully injected
      */
     @SuppressWarnings("unchecked")
     default IAEStack<?> injectItemsGeneric(final IAEStack<?> input, final Actionable type, final IActionSource src) {
@@ -116,9 +116,9 @@ public interface IMEInventory<T extends IAEStackBase> {
     }
 
     /**
-     * 通配符安全的提取操作。
+     * Wildcard-safe extract operation.
      *
-     * @return 提取出的栈，或 null
+     * @return the extracted stack, or null
      */
     @SuppressWarnings("unchecked")
     default IAEStack<?> extractItemsGeneric(final IAEStack<?> request, final Actionable mode, final IActionSource src) {
@@ -126,10 +126,10 @@ public interface IMEInventory<T extends IAEStackBase> {
     }
 
     /**
-     * 通配符安全地获取可用物品列表。
+     * Wildcard-safe retrieval of the available items list.
      *
-     * @param out 接收结果的列表（类型必须与此 inventory 匹配）
-     * @return 传入的列表
+     * @param out the list to receive results (type must match this inventory)
+     * @return the passed-in list
      */
     @SuppressWarnings("unchecked")
     default IItemList<?> getAvailableItemsGeneric(final IItemList<?> out) {

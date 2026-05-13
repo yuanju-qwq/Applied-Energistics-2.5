@@ -34,7 +34,7 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
     private static final Map<ItemStack, ItemStack> OUTPUT_CACHE = new Object2ObjectOpenCustomHashMap<>(HASH_STRATEGY);
 
     public ItemSpecialEncodedPattern() {
-        this.setMaxStackSize(16); // 降低堆叠限制以区分普通模板
+        this.setMaxStackSize(16); // Lower stack limit to distinguish from normal patterns
     }
 
     @Override
@@ -49,7 +49,7 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
             if (Platform.isClient())
                 return false;
 
-            // 替换为空白模板（数量保持不变）
+            // Replace with blank pattern (keeping the same count)
             ItemStack blank = AEApi.instance().definitions()
                     .materials().blankPattern().maybeStack(stack.getCount()).orElse(ItemStack.EMPTY);
 
@@ -78,12 +78,12 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
             return;
         }
 
-        // 移除自定义名称以显示系统名称
+        // Remove custom name to display system name
         if (stack.hasDisplayName()) {
             stack.clearCustomName();
         }
 
-        // 显示输入
+        // Display inputs
         lines.add(GuiText.With.getLocal() + ":");
         boolean first = true;
         for (IAEItemStack in : details.getCondensedInputs()) {
@@ -93,10 +93,10 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
                 first = false;
             }
         }
-        // 显示用途说明
+        // Display purpose description
         lines.add(TextFormatting.DARK_GRAY + "Purpose: " + getPatternPurpose());
 
-        // 显示编码器信息
+        // Display encoder information
         final NBTTagCompound tag = stack.getTagCompound();
         if (tag != null && tag.hasKey("encoderName")) {
             lines.add("Encoder Name: " + tag.getString("encoderName"));
@@ -104,7 +104,7 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
     }
 
     /**
-     * 获取模板用途描述（用于UI显示）
+     * Get the pattern purpose description (for UI display).
      */
     public String getPatternPurpose() {
         return "允许空输出的样板，用于产线下单时的封装（用法：使用本样板编写一套多方块，将本样板作为输入编写到其他样板中，即可一键下单多套多方块，且多方块相互封装便于替换）";
@@ -125,7 +125,7 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
     }
 
     /**
-     * 获取输出物品（空输出返回 EMPTY）
+     * Get the output item (returns EMPTY for empty output).
      */
     public ItemStack getOutput(ItemStack item) {
         ItemStack cached = OUTPUT_CACHE.get(item);

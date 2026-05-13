@@ -43,8 +43,8 @@ import appeng.api.storage.data.IAEStackType;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.slots.VirtualMEPatternSlot;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
-import appeng.client.gui.widgets.GuiImgButton;
-import appeng.client.gui.widgets.GuiTabButton;
+import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUITabContainer;
 import appeng.container.implementations.ContainerPatternEncoder;
 import appeng.container.implementations.ContainerPatternTerm;
 import appeng.container.implementations.ContainerWirelessPatternTerminal;
@@ -61,14 +61,14 @@ import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStackType;
 
 /**
- * MUI 版样板终端面板�?
+ *   <li>Crafting/Processing dual mode toggle</li>
  * <p>
  * 继承 {@link MUIMEMonitorablePanel}，增加样板编码功能：
  * <ul>
- *   <li>合成/处理双模式切�?/li>
- *   <li>3×3 虚拟合成网格（VirtualMEPatternSlot�?/li>
- *   <li>输出槽虚拟显�?/li>
- *   <li>材料替代开�?/li>
+ *   <li>Quantity multiply/divide buttons</li>
+ *   <li>Encode/Clear buttons</li>
+ *   <li>JEI ghost drag support</li>
+ *   <li>Material substitution toggle</li>
  *   <li>数量乘除按钮</li>
  *   <li>编码/清除按钮</li>
  *   <li>JEI 幽灵拖拽支持</li>
@@ -77,7 +77,7 @@ import appeng.util.item.AEItemStackType;
 @SideOnly(Side.CLIENT)
 public class MUIPatternTermPanel extends MUIMEMonitorablePanel implements IJEIGhostIngredients {
 
-    // ========== 常量 ==========
+    // ========== Constants ==========
 
     private static final String BACKGROUND_CRAFTING_MODE = "guis/pattern.png";
     private static final String BACKGROUND_PROCESSING_MODE = "guis/pattern2.png";
@@ -92,28 +92,28 @@ public class MUIPatternTermPanel extends MUIMEMonitorablePanel implements IJEIGh
 
     protected final ContainerPatternEncoder container;
 
-    // ========== UI 控件 ==========
+    // ========== UI controls ==========
 
-    private GuiTabButton tabCraftButton;
-    private GuiTabButton tabProcessButton;
-    private GuiImgButton substitutionsEnabledBtn;
-    private GuiImgButton substitutionsDisabledBtn;
-    private GuiImgButton encodeBtn;
-    private GuiImgButton clearBtn;
-    private GuiImgButton x2Btn;
-    private GuiImgButton x3Btn;
-    private GuiImgButton plusOneBtn;
-    private GuiImgButton divTwoBtn;
-    private GuiImgButton divThreeBtn;
-    private GuiImgButton minusOneBtn;
-    private GuiImgButton maxCountBtn;
+    private MUITabContainer tabCraftButton;
+    private MUITabContainer tabProcessButton;
+    private MUIButtonWidget substitutionsEnabledBtn;
+    private MUIButtonWidget substitutionsDisabledBtn;
+    private MUIButtonWidget encodeBtn;
+    private MUIButtonWidget clearBtn;
+    private MUIButtonWidget x2Btn;
+    private MUIButtonWidget x3Btn;
+    private MUIButtonWidget plusOneBtn;
+    private MUIButtonWidget divTwoBtn;
+    private MUIButtonWidget divThreeBtn;
+    private MUIButtonWidget minusOneBtn;
+    private MUIButtonWidget maxCountBtn;
     public Map<Target<?>, Object> mapTargetSlot = new HashMap<>();
 
     protected VirtualMEPatternSlot[] craftingVSlots;
     protected VirtualMEPatternSlot[] outputVSlots;
     protected Boolean lastCraftingMode;
 
-    // ========== 构�?==========
+    // ========== Constructor ==========
 
     public MUIPatternTermPanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(inventoryPlayer, te, new ContainerPatternTerm(inventoryPlayer, te));
@@ -186,7 +186,7 @@ public class MUIPatternTermPanel extends MUIMEMonitorablePanel implements IJEIGh
         }
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
@@ -401,7 +401,7 @@ public class MUIPatternTermPanel extends MUIMEMonitorablePanel implements IJEIGh
         return mapTargetSlot;
     }
 
-    // ========== 虚拟槽位管理 ==========
+    // ========== Virtual slot管理 ==========
 
     protected void initVirtualSlots() {
         this.guiSlots.removeIf(slot -> slot instanceof VirtualMEPatternSlot);

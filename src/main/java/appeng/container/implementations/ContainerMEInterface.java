@@ -39,7 +39,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 /**
  * ME 接口 Container。
  *
- * Config 槽位使用 {@link IAEStackInventory}（泛型虚拟槽位，每槽可标记物品或流体），
+ * Config 槽位使用 {@link IAEStackInventory}（泛型Virtual slot，每槽可标记物品或流体），
  * 通过 {@link appeng.core.sync.packets.PacketVirtualSlot} 同步。
  *
  * <h3>槽位布局（Config 和 Storage 上下排列）</h3>

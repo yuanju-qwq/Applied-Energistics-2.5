@@ -47,7 +47,7 @@ import appeng.core.localization.ButtonToolTips;
  * <p>
  * 在 {@link AEBasePanel} 基础上，增加了 ME 终端特有的功能：
  * <ul>
- *   <li>SlotME 的精确数量 tooltip（包括库存数量、可请求数量、可合成标记）</li>
+ *   <li>SlotME 的精确数量 tooltip（包括Inventory quantity、Requestable quantity、Craftable marker）</li>
  *   <li>VirtualMESlot 的富 tooltip（AE 栈的完整信息）</li>
  *   <li>AppEngSlot 的数量显示 tooltip</li>
  * </ul>
@@ -65,7 +65,7 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
         super(container, xSize, ySize);
     }
 
-    // ========== ME 终端增强 Tooltip ==========
+    // ========== ME terminal enhanced tooltip ==========
 
     /**
      * 覆写 MC 的物品悬停 tooltip，为 SlotME 和 AppEngSlot 追加精确数量信息。
@@ -88,7 +88,7 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
             }
 
             if (myStack != null) {
-                // 库存数量
+                // Inventory quantity
                 if (myStack.getStackSize() > 1) {
                     final String local = ButtonToolTips.ItemsStored.getLocal();
                     final String formattedAmount = NumberFormat.getNumberInstance(Locale.US)
@@ -98,7 +98,7 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
                     currentToolTip.add(TextFormatting.GRAY + format);
                 }
 
-                // 可请求数量
+                // Requestable quantity
                 if (myStack.getCountRequestable() > 0) {
                     final String local = ButtonToolTips.ItemsRequestable.getLocal();
                     final String formattedAmount = NumberFormat.getNumberInstance(Locale.US)
@@ -108,7 +108,7 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
                     currentToolTip.add(format);
                 }
 
-                // 可合成标记
+                // Craftable marker
                 if (myStack.isCraftable() && AEConfig.instance().isShowCraftableTooltip()) {
                     final String local = ButtonToolTips.ItemsCraftable.getLocal();
                     currentToolTip.add(TextFormatting.GRAY + local);
@@ -129,7 +129,7 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
                 return;
             }
         } else if (s instanceof AppEngSlot) {
-            // 非玩家背包的 AppEngSlot：显示精确数量
+            // Non-player-inventory AppEngSlot: show exact quantity
             if (!(s instanceof SlotPlayerInv) && !(s instanceof SlotPlayerHotBar)) {
                 if (!s.getStack().isEmpty()) {
                     final String formattedAmount = NumberFormat.getNumberInstance(Locale.US)

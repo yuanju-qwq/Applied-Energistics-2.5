@@ -25,10 +25,10 @@ import appeng.client.me.ItemRepo;
 import appeng.util.IConfigManagerHost;
 
 /**
- * ME 终端 GUI 的回调接口。
+ * Callback interface for ME terminal GUI.
  * <p>
- * 允许 {@link appeng.container.implementations.ContainerMEMonitorable} 与不同的 GUI 实现通信。
- * MUI 面板通过实现此接口接收回调。
+ * Allows {@link appeng.container.implementations.ContainerMEMonitorable} to communicate with different GUI implementations.
+ * MUI panels receive callbacks by implementing this interface.
  */
 public interface IMEMonitorableGuiCallback extends IConfigManagerHost {
 
@@ -54,9 +54,9 @@ public interface IMEMonitorableGuiCallback extends IConfigManagerHost {
 
     /**
      * @deprecated Use {@link #postRepoEntryUpdate(List)} instead.
-     * 接收 ME 网络的物品/流体列表更新。
+     * Receive item/fluid list updates from the ME network.
      *
-     * @param list 更新的栈列表
+     * @param list the updated stack list
      */
     @Deprecated
     void postUpdate(List<IAEStack<?>> list);

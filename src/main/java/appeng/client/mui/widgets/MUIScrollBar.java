@@ -27,7 +27,7 @@ import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 
 /**
- * MUI 滚动条控件。
+ * MUI Scrollbar控件。
  * <p>
  * 支持鼠标拖拽和滚轮滚动，可设置最小/最大滚动范围和每页大小。
  */
@@ -74,7 +74,7 @@ public class MUIScrollBar implements IMUIWidget, IScrollSource {
         }
     }
 
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     public boolean mouseClicked(int localX, int localY, int mouseButton) {

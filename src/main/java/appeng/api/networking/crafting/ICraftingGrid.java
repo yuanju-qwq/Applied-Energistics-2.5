@@ -41,19 +41,19 @@ import appeng.api.storage.data.IAEStack;
 public interface ICraftingGrid extends IGridCache {
 
     /**
-     * 获取指定栈（物品/流体等）对应的合成配方集合。
+     * Get the set of crafting patterns for the specified stack (item/fluid etc.).
      *
-     * @param whatToCraft 请求的合成目标
+     * @param whatToCraft the requested crafting target
      * @param details     pattern details
      * @param slot        slot index
      * @param world       crafting world
-     * @return 对应的合成配方集合
+     * @return the corresponding set of crafting patterns
      */
     ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEStack<?> whatToCraft,
             ICraftingPatternDetails details, int slot, World world);
 
     /**
-     * @deprecated 使用 {@link #getCraftingFor(IAEStack, ICraftingPatternDetails, int, World)} 替代
+     * @deprecated Use {@link #getCraftingFor(IAEStack, ICraftingPatternDetails, int, World)} instead
      */
     @Deprecated
     default ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEItemStack whatToCraft,
@@ -62,7 +62,7 @@ public interface ICraftingGrid extends IGridCache {
     }
 
     /**
-     * 获取所有可合成物品/流体的多类型 pattern 映射。
+     * Get the multi-type pattern mapping of all craftable items/fluids.
      */
     ImmutableMap<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> getCraftingMultiPatterns();
 
@@ -82,7 +82,7 @@ public interface ICraftingGrid extends IGridCache {
             ICraftingCallback callback);
 
     /**
-     * @deprecated 使用 {@link #beginCraftingJob(World, IGrid, IActionSource, IAEStack, ICraftingCallback)} 替代
+     * @deprecated Use {@link #beginCraftingJob(World, IGrid, IActionSource, IAEStack, ICraftingCallback)} instead
      */
     @Deprecated
     default Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc, IAEItemStack craftWhat,
@@ -116,15 +116,15 @@ public interface ICraftingGrid extends IGridCache {
     ImmutableSet<ICraftingCPU> getCpus();
 
     /**
-     * 检查指定栈（物品/流体等）是否可以通过合成发射器请求。
+     * Check whether the specified stack (item/fluid etc.) can be requested via crafting emitter.
      *
-     * @param what 要检查的栈
-     * @return true 如果可以发射
+     * @param what the stack to check
+     * @return true if it can be emitted
      */
     boolean canEmitFor(IAEStack<?> what);
 
     /**
-     * @deprecated 使用 {@link #canEmitFor(IAEStack)} 替代
+     * @deprecated Use {@link #canEmitFor(IAEStack)} instead
      */
     @Deprecated
     default boolean canEmitFor(IAEItemStack what) {
@@ -132,15 +132,15 @@ public interface ICraftingGrid extends IGridCache {
     }
 
     /**
-     * 检查指定栈（物品/流体等）是否正在被合成。
+     * Check whether the specified stack (item/fluid etc.) is currently being crafted.
      *
-     * @param what 要检查的栈
-     * @return true 如果正在合成
+     * @param what the stack to check
+     * @return true if it is being crafted
      */
     boolean isRequesting(IAEStack<?> what);
 
     /**
-     * @deprecated 使用 {@link #isRequesting(IAEStack)} 替代
+     * @deprecated Use {@link #isRequesting(IAEStack)} instead
      */
     @Deprecated
     default boolean isRequesting(IAEItemStack what) {
@@ -148,15 +148,15 @@ public interface ICraftingGrid extends IGridCache {
     }
 
     /**
-     * 获取网格中所有合成 CPU 正在请求的指定栈的总量。
+     * Get the total amount of the specified stack being requested by all Crafting CPUs on the grid.
      *
-     * @param what 要查询的栈，忽略 stackSize
-     * @return 正在请求的总量
+     * @param what the stack to query, stackSize is ignored
+     * @return total amount being requested
      */
     long requesting(IAEStack<?> what);
 
     /**
-     * @deprecated 使用 {@link #requesting(IAEStack)} 替代
+     * @deprecated Use {@link #requesting(IAEStack)} instead
      */
     @Deprecated
     default long requesting(IAEItemStack what) {

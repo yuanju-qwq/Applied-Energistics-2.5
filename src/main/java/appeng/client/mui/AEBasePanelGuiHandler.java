@@ -75,8 +75,8 @@ public class AEBasePanelGuiHandler
     @Nullable
     @Override
     public Object getIngredientUnderMouse(@Nonnull AEBasePanel panel, int mouseX, int mouseY) {
-        // 特殊面板：合成确认（CraftConfirm）和合成 CPU（CraftingCPU）
-        // 它们有 getVisual() + getDisplayedRows() 的虚拟物品列表
+        // 特殊面板：Crafting confirm（CraftConfirm）和Crafting CPU（CraftingCPU）
+        // They have virtual item lists from getVisual() + getDisplayedRows()
         if (panel instanceof IMUIVisualListPanel) {
             IMUIVisualListPanel visualPanel = (IMUIVisualListPanel) panel;
             int guiSlotIdx = getSlotIdx(panel, mouseX, mouseY, visualPanel.getDisplayedRows());
@@ -87,13 +87,13 @@ public class AEBasePanelGuiHandler
             return null;
         }
 
-        // 标准槽位：检查 Forge Slot
+        // Standard slot: check Forge Slot
         Slot slot = panel.getSlotUnderMouse();
         if (slot instanceof ISpecialSlotIngredient) {
             return ((ISpecialSlotIngredient) slot).getIngredient();
         }
 
-        // 自定义槽位：检查 GuiCustomSlot
+        // Custom slot: check GuiCustomSlot
         for (GuiCustomSlot customSlot : panel.getGuiSlots()) {
             if (checkSlotArea(panel, customSlot, mouseX, mouseY)) {
                 return customSlot.getIngredient();
@@ -110,7 +110,7 @@ public class AEBasePanelGuiHandler
     @Nonnull
     public <I> List<Target<I>> getTargets(@Nonnull AEBasePanel panel, @Nonnull I ingredient,
             boolean doStart) {
-        // HEI 书签物品兼容
+        // HEI bookmark item compatibility
         if (ClientHelper.isHei) {
             Object ingToUse = getIngFromBookmarkItem(ingredient);
             if (ingToUse != null) {
@@ -118,13 +118,13 @@ public class AEBasePanelGuiHandler
             }
         }
 
-        // VirtualMEPhantomSlot 虚拟幽灵槽位
+        // VirtualMEPhantomSlot virtual phantom slot
         final List<Target<I>> virtualTargets = this.getVirtualTargets(panel, ingredient);
         if (!virtualTargets.isEmpty()) {
             return virtualTargets;
         }
 
-        // IJEIGhostIngredients 接口（面板自定义实现）
+        // IJEIGhostIngredients interface (panel custom implementation)
         if (panel instanceof IJEIGhostIngredients) {
             IJEIGhostIngredients g = (IJEIGhostIngredients) panel;
             return (List<Target<I>>) (Object) g.getPhantomTargets(ingredient);
@@ -142,7 +142,7 @@ public class AEBasePanelGuiHandler
         return true;
     }
 
-    // ========== 内部辅助方法 ==========
+    // ========== Internal helper methods ==========
 
     /**
      * 检查鼠标是否在自定义槽位区域内。
@@ -235,7 +235,7 @@ public class AEBasePanelGuiHandler
     }
 
     /**
-     * MUI 面板中有虚拟物品列表（如合成确认/合成 CPU）的通用接口。
+     * MUI 面板中有虚拟物品列表（如Crafting confirm/Crafting CPU）的通用接口。
      * <p>
      * 实现此接口的面板可以让 JEI 识别虚拟列表中鼠标下的物品。
      */

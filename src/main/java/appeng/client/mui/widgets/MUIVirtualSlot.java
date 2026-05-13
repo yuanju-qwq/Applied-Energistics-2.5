@@ -36,7 +36,7 @@ import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 
 /**
- * MUI 版 ME 终端虚拟槽位。
+ * MUI 版 ME 终端Virtual slot。
  * <p>
  * 独立于旧 {@link appeng.client.gui.widgets.GuiCustomSlot} 体系，
  * 直接 implements {@link IMUIWidget}，从 {@link ItemRepo} 读取显示数据。
@@ -155,7 +155,7 @@ public class MUIVirtualSlot implements IMUIWidget {
         }
     }
 
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     public boolean mouseClicked(int localX, int localY, int mouseButton) {

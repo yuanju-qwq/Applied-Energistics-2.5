@@ -27,9 +27,9 @@ import net.minecraft.client.gui.GuiButton;
 import appeng.api.config.*;
 import appeng.api.storage.data.IAEStackType;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
-import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiNumberBox;
 import appeng.client.mui.AEMUITheme;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.container.implementations.ContainerLevelEmitter;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
@@ -41,17 +41,17 @@ import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStackType;
 
 /**
- * MUI 版物品级别发射器 GUI 面板�?
+ * Contains a number input field (threshold setting), +/- increment buttons, level mode,
  *
- * 包含数字输入框（阈值设置）、±增减按钮、级别模式、红石发射模式�?
- * 模糊模式、合成模式按钮，以及 1 �?VirtualMEPhantomSlot 配置槽�?
- * 当安装合成升级时，数字相关控件和级别模式按钮被禁用�?
+ * When a crafting upgrade is installed, number-related controls and level mode button are disabled.
+ * fuzzy mode, crafting mode buttons, and 1 VirtualMEPhantomSlot config slot.
+ * When a crafting upgrade is installed, number-related controls and level mode button are disabled.
  */
 public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
 
     private final ContainerLevelEmitter container;
 
-    // ========== 数字输入�?==========
+    // ========== Number input field ==========
     private GuiNumberBox level;
 
     // ========== ±增减按钮 ==========
@@ -64,9 +64,9 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
     private GuiButton minus100;
     private GuiButton minus1000;
 
-    // ========== 配置按钮 ==========
-    private GuiImgButton levelMode;
-    private GuiImgButton craftingMode;
+    // ========== Config buttons ==========
+    private MUIButtonWidget levelMode;
+    private MUIButtonWidget craftingMode;
 
     // ========== 虚拟配置槽位 ==========
     private VirtualMEPhantomSlot configSlot;
@@ -76,7 +76,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
         this.container = container;
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
@@ -98,14 +98,21 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
 
     @Override
     protected void addButtons() {
-        this.levelMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 8, Settings.LEVEL_TYPE,
-                LevelType.ITEM_LEVEL);
-        this.redstoneMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 28, Settings.REDSTONE_EMITTER,
-                RedstoneMode.LOW_SIGNAL);
-        this.fuzzyMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 48, Settings.FUZZY_MODE,
-                FuzzyMode.IGNORE_ALL);
-        this.craftingMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 48, Settings.CRAFT_VIA_REDSTONE,
-                YesNo.NO);
+        this.levelMode = new MUIButtonWidget(-18, 8, Settings.LEVEL_TYPE, LevelType.ITEM_LEVEL);
+        this.levelMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.levelMode);
+
+        this.redstoneMode = new MUIButtonWidget(-18, 28, Settings.REDSTONE_EMITTER, RedstoneMode.LOW_SIGNAL);
+        this.redstoneMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.redstoneMode);
+
+        this.fuzzyMode = new MUIButtonWidget(-18, 48, Settings.FUZZY_MODE, FuzzyMode.IGNORE_ALL);
+        this.fuzzyMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.fuzzyMode);
+
+        this.craftingMode = new MUIButtonWidget(-18, 48, Settings.CRAFT_VIA_REDSTONE, YesNo.NO);
+        this.craftingMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.craftingMode);
 
         final int a = AEConfig.instance().levelByStackAmounts(0);
         final int b = AEConfig.instance().levelByStackAmounts(1);
@@ -121,11 +128,6 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
         this.buttonList.add(this.minus10 = new GuiButton(0, this.guiLeft + 48, this.guiTop + 59, 28, 20, "-" + b));
         this.buttonList.add(this.minus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 59, 32, 20, "-" + c));
         this.buttonList.add(this.minus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 59, 38, 20, "-" + d));
-
-        this.buttonList.add(this.levelMode);
-        this.buttonList.add(this.redstoneMode);
-        this.buttonList.add(this.fuzzyMode);
-        this.buttonList.add(this.craftingMode);
     }
 
     // ========== 渲染 ==========
@@ -134,7 +136,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
         final boolean notCraftingMode = this.bc.getInstalledUpgrades(Upgrades.CRAFTING) == 0;
 
-        // 根据合成升级安装状态禁�?启用数字相关控件
+        // Disable/enable number-related controls based on crafting upgrade installation status
         this.level.setEnabled(notCraftingMode);
         this.plus1.enabled = notCraftingMode;
         this.plus10.enabled = notCraftingMode;
@@ -144,8 +146,8 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
         this.minus10.enabled = notCraftingMode;
         this.minus100.enabled = notCraftingMode;
         this.minus1000.enabled = notCraftingMode;
-        this.levelMode.enabled = notCraftingMode;
-        this.redstoneMode.enabled = notCraftingMode;
+        this.levelMode.setEnabled(notCraftingMode);
+        this.redstoneMode.setEnabled(notCraftingMode);
 
         super.drawFG(offsetX, offsetY, mouseX, mouseY);
 
@@ -180,21 +182,11 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
         return GuiText.LevelEmitter;
     }
 
-    // ========== 按钮事件 ==========
+    // ========== Button events ==========
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
         super.actionPerformed(btn);
-
-        final boolean backwards = Mouse.isButtonDown(1);
-
-        if (btn == this.craftingMode) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(this.craftingMode.getSetting(), backwards));
-        }
-
-        if (btn == this.levelMode) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(this.levelMode.getSetting(), backwards));
-        }
 
         final boolean isPlus = btn == this.plus1 || btn == this.plus10 || btn == this.plus100 || btn == this.plus1000;
         final boolean isMinus = btn == this.minus1 || btn == this.minus10 || btn == this.minus100
@@ -273,7 +265,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
         }
     }
 
-    // ========== 虚拟槽位管理 ==========
+    // ========== Virtual slot管理 ==========
 
     private void initVirtualSlots() {
         this.guiSlots.clear();

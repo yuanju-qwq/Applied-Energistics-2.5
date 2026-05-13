@@ -262,7 +262,7 @@ public class CraftingRequest implements ITreeSerializable {
     }
 
     /**
-     * 通过 resolver 合成任务传播所需的退还。
+     * 通过 resolver Crafting task传播所需的退还。
      */
     public void partialRefund(CraftingContext context, final long refundedAmount) {
         long remainingTaskAmount = refundedAmount;

@@ -76,7 +76,7 @@ import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.InvOperation;
 
 /**
- * 样板供应器部件。
+ * Pattern provider part。
  *
  * 对应高版本 AE2 的 PatternProviderPart。
  * 仅负责样板存储和合成推送，不含 Config/Storage 功能。
@@ -107,7 +107,7 @@ public class PartPatternProvider extends PartBasicState implements IGridTickable
         super(is);
     }
 
-    // ========== 网络事件 ==========
+    // ========== Network events ==========
 
     @Override
     @MENetworkEventSubscribe
@@ -136,7 +136,7 @@ public class PartPatternProvider extends PartBasicState implements IGridTickable
         return this.logic.getInstalledUpgrades(u);
     }
 
-    // ========== 网格 ==========
+    // ========== Grid ==========
 
     @Override
     public void gridChanged() {

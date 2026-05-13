@@ -52,7 +52,7 @@ public class MUIConfigGui extends GuiConfig {
         final List<IConfigElement> list = new ArrayList<>();
 
         for (final String cat : AEConfig.instance().getCategoryNames()) {
-            // 跳过内部类别
+            // Skip internal categories
             if (cat.equals("versionchecker")) {
                 continue;
             }
@@ -63,7 +63,7 @@ public class MUIConfigGui extends GuiConfig {
 
             final ConfigCategory cc = AEConfig.instance().getCategory(cat);
 
-            // 子类别由父类别递归处理，不单独添加
+            // Sub-categories are recursively handled by parent category, not added separately
             if (cc.isChild()) {
                 continue;
             }

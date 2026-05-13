@@ -525,7 +525,7 @@ public class CraftingGridCache
      * 泛型合成库存处理器。
      * <p>
      * 每个 {@link IAEStackType} 对应一个实例，向网络暴露该类型的可合成物品列表，
-     * 并将注入操作转发给合成 CPU。
+     * 并将注入操作转发给Crafting CPU。
      */
     private static class CraftingInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHandler<T> {
 

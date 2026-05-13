@@ -252,7 +252,7 @@ public class ContainerCraftingCPU extends AEBaseContainer
     }
 
     /**
-     * 泛型版本：接收包含物品和流体的合成状态更新。
+     * 泛型版本：接收包含物品和流体的Crafting status更新。
      */
     public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
         if (this.guiCallback != null) {

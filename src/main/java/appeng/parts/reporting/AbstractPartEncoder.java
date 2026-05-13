@@ -139,7 +139,7 @@ public abstract class AbstractPartEncoder extends AbstractPartTerminal implement
         return super.getInventoryByName(name);
     }
 
-    // ---- IIAEStackInventory 实现 ----
+    // ---- IIAEStackInventory implementation ----
 
     @Override
     public void saveAEStackInv() {

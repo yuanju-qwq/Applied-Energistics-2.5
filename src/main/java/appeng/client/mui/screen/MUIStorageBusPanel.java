@@ -28,8 +28,8 @@ import appeng.api.config.*;
 import appeng.api.storage.data.IAEStackType;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
-import appeng.client.gui.widgets.GuiImgButton;
-import appeng.client.gui.widgets.GuiTabButton;
+import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUITabContainer;
 import appeng.container.implementations.ContainerStorageBus;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
@@ -57,11 +57,11 @@ public class MUIStorageBusPanel extends MUIUpgradeablePanel {
     private final GuiText title;
 
     // ========== Buttons ==========
-    private GuiImgButton rwMode;
-    private GuiImgButton storageFilter;
-    private GuiTabButton priority;
-    private GuiImgButton partition;
-    private GuiImgButton clear;
+    private MUIButtonWidget rwMode;
+    private MUIButtonWidget storageFilter;
+    private MUITabContainer priority;
+    private MUIButtonWidget partition;
+    private MUIButtonWidget clear;
 
     // ========== Virtual Slots ==========
     private VirtualMEPhantomSlot[] configSlots;
@@ -87,23 +87,49 @@ public class MUIStorageBusPanel extends MUIUpgradeablePanel {
 
     @Override
     protected void addButtons() {
-        this.clear = new GuiImgButton(this.guiLeft - 18, this.guiTop + 8, Settings.ACTIONS, ActionItems.CLOSE);
-        this.partition = new GuiImgButton(this.guiLeft - 18, this.guiTop + 28, Settings.ACTIONS, ActionItems.WRENCH);
-        this.rwMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 48, Settings.ACCESS,
-                AccessRestriction.READ_WRITE);
-        this.storageFilter = new GuiImgButton(this.guiLeft - 18, this.guiTop + 68, Settings.STORAGE_FILTER,
-                StorageFilter.EXTRACTABLE_ONLY);
-        this.fuzzyMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 88, Settings.FUZZY_MODE,
-                FuzzyMode.IGNORE_ALL);
+        this.clear = new MUIButtonWidget(-18, 8, Settings.ACTIONS, ActionItems.CLOSE);
+        this.clear.setOnClick(btn -> {
+            try {
+                NetworkHandler.instance().sendToServer(new PacketValueConfig("StorageBus.Action", "Clear"));
+            } catch (IOException e) {
+                AELog.debug(e);
+            }
+        });
+        this.addWidget(this.clear);
 
-        this.buttonList.add(this.priority = new GuiTabButton(this.guiLeft + 154, this.guiTop, 2 + 4 * 16,
-                GuiText.Priority.getLocal(), this.itemRender));
+        this.partition = new MUIButtonWidget(-18, 28, Settings.ACTIONS, ActionItems.WRENCH);
+        this.partition.setOnClick(btn -> {
+            try {
+                NetworkHandler.instance().sendToServer(new PacketValueConfig("StorageBus.Action", "Partition"));
+            } catch (IOException e) {
+                AELog.debug(e);
+            }
+        });
+        this.addWidget(this.partition);
 
-        this.buttonList.add(this.storageFilter);
-        this.buttonList.add(this.fuzzyMode);
-        this.buttonList.add(this.rwMode);
-        this.buttonList.add(this.partition);
-        this.buttonList.add(this.clear);
+        this.rwMode = new MUIButtonWidget(-18, 48, Settings.ACCESS, AccessRestriction.READ_WRITE);
+        this.rwMode.setOnClick(btn -> {
+            final boolean backwards = Mouse.isButtonDown(1);
+            NetworkHandler.instance().sendToServer(new PacketConfigButton(Settings.ACCESS, backwards));
+        });
+        this.addWidget(this.rwMode);
+
+        this.storageFilter = new MUIButtonWidget(-18, 68, Settings.STORAGE_FILTER, StorageFilter.EXTRACTABLE_ONLY);
+        this.storageFilter.setOnClick(btn -> {
+            final boolean backwards = Mouse.isButtonDown(1);
+            NetworkHandler.instance().sendToServer(new PacketConfigButton(Settings.STORAGE_FILTER, backwards));
+        });
+        this.addWidget(this.storageFilter);
+
+        this.fuzzyMode = new MUIButtonWidget(-18, 88, Settings.FUZZY_MODE, FuzzyMode.IGNORE_ALL);
+        this.fuzzyMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.fuzzyMode);
+
+        this.priority = new MUITabContainer(154, 0, 2 + 4 * 16, GuiText.Priority.getLocal());
+        this.priority.setOnClick(tab -> {
+            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
+        });
+        this.addWidget(this.priority);
     }
 
     // ========== Rendering ==========
@@ -133,32 +159,6 @@ public class MUIStorageBusPanel extends MUIUpgradeablePanel {
     @Override
     protected String getBackground() {
         return "guis/storagebus.png";
-    }
-
-    // ========== Button Events ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        final boolean backwards = Mouse.isButtonDown(1);
-
-        try {
-            if (btn == this.partition) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("StorageBus.Action", "Partition"));
-            } else if (btn == this.clear) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("StorageBus.Action", "Clear"));
-            } else if (btn == this.priority) {
-                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.PRIORITY));
-            } else if (btn == this.rwMode) {
-                NetworkHandler.instance().sendToServer(new PacketConfigButton(this.rwMode.getSetting(), backwards));
-            } else if (btn == this.storageFilter) {
-                NetworkHandler.instance()
-                        .sendToServer(new PacketConfigButton(this.storageFilter.getSetting(), backwards));
-            }
-        } catch (final IOException e) {
-            AELog.debug(e);
-        }
     }
 
     // ========== Virtual Slot Management ==========

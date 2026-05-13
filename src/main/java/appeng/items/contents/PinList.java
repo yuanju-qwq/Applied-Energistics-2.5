@@ -23,26 +23,26 @@ import javax.annotation.Nullable;
 import appeng.api.storage.data.IAEStack;
 
 /**
- * 存储终端 Pins 数据的数组容器。
+ * Array container for storing terminal Pins data.
  * <p>
- * 分为两段：
+ * Divided into two segments:
  * <ul>
- * <li>合成 Pins：索引 0 ~ {@link #CRAFTING_SLOTS}-1</li>
- * <li>玩家 Pins：索引 {@link #PLAYER_OFFSET} ~ {@link #PLAYER_OFFSET}+{@link #PLAYER_SLOTS}-1</li>
+ * <li>Crafting Pins: index 0 ~ {@link #CRAFTING_SLOTS}-1</li>
+ * <li>Player Pins: index {@link #PLAYER_OFFSET} ~ {@link #PLAYER_OFFSET}+{@link #PLAYER_SLOTS}-1</li>
  * </ul>
  */
 public class PinList {
 
-    /** 合成 Pin 槽位数（最多 16 行 × 9 列） */
+    /** Number of crafting pin slots (up to 16 rows x 9 columns) */
     public static final int CRAFTING_SLOTS = 16 * 9;
 
-    /** 玩家 Pin 区段在数组中的起始偏移 */
+    /** Start offset of the player pin segment in the array */
     public static final int PLAYER_OFFSET = CRAFTING_SLOTS;
 
-    /** 玩家 Pin 槽位数（最多 16 行 × 9 列） */
+    /** Number of player pin slots (up to 16 rows x 9 columns) */
     public static final int PLAYER_SLOTS = 16 * 9;
 
-    /** 总槽位数 */
+    /** Total number of slots */
     public static final int TOTAL_SLOTS = CRAFTING_SLOTS + PLAYER_SLOTS;
 
     private final IAEStack<?>[] pins;

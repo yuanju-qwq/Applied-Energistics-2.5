@@ -35,12 +35,17 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 
+import appeng.api.config.SearchBoxFocusPriority;
+import appeng.api.config.SearchBoxMode;
+import appeng.api.config.Settings;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.IMUIWidget;
+import appeng.core.AEConfig;
+import appeng.integration.Integrations;
 
 /**
- * MUI 文本输入框控件。
+ * MUI Text input field控件。
  * <p>
  * 功能：
  * <ul>
@@ -319,6 +324,145 @@ public class MUITextFieldWidget implements IMUIWidget {
         }
     }
 
+    // ========== Terminal search mode support ==========
+
+    /**
+     * Terminal search mode configuration, derived from {@link SearchBoxMode} settings.
+     * <p>
+     * Encapsulates the three boolean flags that control terminal search behavior:
+     * auto-focus, keep-filter (memory text), and JEI synchronization.
+     * All terminal subclasses can share a single derivation path.
+     */
+    public static final class TerminalSearchConfig {
+        private final boolean autoFocus;
+        private final boolean keepFilter;
+        private final boolean jeiEnabled;
+
+        private TerminalSearchConfig(boolean autoFocus, boolean keepFilter, boolean jeiEnabled) {
+            this.autoFocus = autoFocus;
+            this.keepFilter = keepFilter;
+            this.jeiEnabled = jeiEnabled;
+        }
+
+        /**
+         * Derive the configuration from the current {@link SearchBoxMode} setting.
+         */
+        public static TerminalSearchConfig fromCurrentSetting() {
+            final Enum<?> mode = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
+
+            boolean autoFocus = mode == SearchBoxMode.AUTOSEARCH
+                    || mode == SearchBoxMode.JEI_AUTOSEARCH
+                    || mode == SearchBoxMode.AUTOSEARCH_KEEP
+                    || mode == SearchBoxMode.JEI_AUTOSEARCH_KEEP;
+
+            boolean keepFilter = mode == SearchBoxMode.AUTOSEARCH_KEEP
+                    || mode == SearchBoxMode.JEI_AUTOSEARCH_KEEP
+                    || mode == SearchBoxMode.MANUAL_SEARCH_KEEP
+                    || mode == SearchBoxMode.JEI_MANUAL_SEARCH_KEEP;
+
+            boolean jeiEnabled = mode == SearchBoxMode.JEI_AUTOSEARCH
+                    || mode == SearchBoxMode.JEI_MANUAL_SEARCH;
+
+            return new TerminalSearchConfig(autoFocus, keepFilter, jeiEnabled);
+        }
+
+        public boolean isAutoFocus() {
+            return this.autoFocus;
+        }
+
+        public boolean isKeepFilter() {
+            return this.keepFilter;
+        }
+
+        public boolean isJEIEnabled() {
+            return this.jeiEnabled;
+        }
+    }
+
+    /**
+     * Apply terminal search mode configuration to this search field.
+     * <p>
+     * Handles auto-focus, JEI text sync, and memory text restoration.
+     * Typically called from {@code initGui()} after {@code super.initGui()}.
+     *
+     * @param config         the terminal search config derived from the current setting
+     * @param memoryText     the static memory text (kept across GUI reopen)
+     * @param searchCallback callback to apply the restored search text to the repo
+     */
+    public void applyTerminalSearchConfig(TerminalSearchConfig config,
+            String memoryText, @Nullable Consumer<String> searchCallback) {
+        this.setFocused(config.isAutoFocus());
+
+        String effectiveText = memoryText;
+        if (config.isJEIEnabled()) {
+            effectiveText = Integrations.jei().getSearchText();
+        }
+
+        if (config.isKeepFilter() && effectiveText != null && !effectiveText.isEmpty()) {
+            this.setText(effectiveText);
+            this.selectAll();
+            if (searchCallback != null) {
+                searchCallback.accept(effectiveText);
+            }
+        }
+    }
+
+    /**
+     * Handle a key event with terminal-specific behavior:
+     * empty-space suppression, auto-focus-on-type, and focus priority logic.
+     * <p>
+     * This method should be called from the panel's {@code keyTyped()} after
+     * hotbar key check and toggle-focus handling, but before {@code super.keyTyped()}.
+     *
+     * @param character  the typed character
+     * @param key        the key code
+     * @param autoFocus  whether auto-focus mode is enabled
+     * @param mouseInGui whether the mouse cursor is inside the GUI area
+     * @return {@link TerminalKeyResult} indicating how the key was handled
+     */
+    public TerminalKeyResult handleTerminalKeyTyped(char character, int key,
+            boolean autoFocus, boolean mouseInGui) {
+        // Suppress leading space in empty search field
+        if (character == ' ' && this.getText().isEmpty()) {
+            return TerminalKeyResult.SUPPRESSED;
+        }
+
+        boolean wasFocused = this.isFocused();
+
+        // Auto-focus: when autoFocus is enabled and mouse is in GUI, focus on key press
+        if (autoFocus && !this.isFocused() && mouseInGui) {
+            final SearchBoxFocusPriority focusPriority = (SearchBoxFocusPriority) AEConfig.instance()
+                    .getConfigManager().getSetting(Settings.SEARCH_BOX_FOCUS_PRIORITY);
+            if (focusPriority != SearchBoxFocusPriority.NEVER) {
+                this.setFocused(true);
+            }
+        }
+
+        if (this.textboxKeyTyped(character, key)) {
+            return TerminalKeyResult.HANDLED;
+        }
+
+        // If focus was acquired only for this key attempt but the key was not consumed,
+        // revert focus so that unrelated keys (e.g. shift) do not stick the cursor in.
+        if (!wasFocused) {
+            this.setFocused(false);
+        }
+
+        return TerminalKeyResult.NOT_HANDLED;
+    }
+
+    /**
+     * Result of {@link #handleTerminalKeyTyped}.
+     */
+    public enum TerminalKeyResult {
+        /** The key event was consumed by the search field. */
+        HANDLED,
+        /** The key event was not consumed; caller should fall through to super. */
+        NOT_HANDLED,
+        /** The key event was suppressed (e.g. leading space in empty field). */
+        SUPPRESSED
+    }
+
     // ========== 绘制 ==========
 
     @Override
@@ -351,7 +495,7 @@ public class MUITextFieldWidget implements IMUIWidget {
         }
     }
 
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     public boolean mouseClicked(int localX, int localY, int mouseButton) {

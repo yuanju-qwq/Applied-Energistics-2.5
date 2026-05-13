@@ -149,7 +149,7 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
         final boolean isCrafting = details.isCraftable();
         final boolean substitute = details.canSubstitute();
 
-        // 使用泛型方法获取输入/输出，以支持流体显示
+        // Use generic methods to get inputs/outputs, to support fluid display
         final IAEStack<?>[] in = details.getCondensedAEInputs();
         final IAEStack<?>[] out = details.getCondensedAEOutputs();
 
@@ -197,10 +197,10 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
         try {
             final NBTTagCompound tag = is.getTagCompound();
             if (tag != null && !tag.getBoolean("crafting")) {
-                // 非合成台配方（加工配方）：使用 UltimatePatternHelper 统一处理
+                // Non-crafting-table recipe (processing recipe): use UltimatePatternHelper for unified handling
                 return new UltimatePatternHelper(is);
             }
-            // 合成台配方
+            // Crafting-table recipe
             return new PatternHelper(is, w);
         } catch (final Throwable t) {
             return null;
@@ -212,7 +212,7 @@ public class ItemEncodedPattern extends AEBaseItem implements ICraftingPatternIt
         try {
             final NBTTagCompound tag = is.getTagCompound();
             if (tag != null && !tag.getBoolean("crafting")) {
-                // 非合成台配方（加工配方）：使用 UltimatePatternHelper 统一处理
+                // Non-crafting-table recipe (processing recipe): use UltimatePatternHelper for unified handling
                 return new UltimatePatternHelper(is);
             }
             return new PatternNestHelper(is, w);

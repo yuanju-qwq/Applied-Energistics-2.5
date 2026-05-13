@@ -85,7 +85,7 @@ public final class AEGuiKeys {
     private AEGuiKeys() {
     }
 
-    // ========== 存储设备 ==========
+    // ========== Storage devices ==========
 
     public static final AEGuiKey CHEST = key("chest")
             .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
@@ -103,7 +103,7 @@ public final class AEGuiKeys {
             .hostType(GuiHostType.ITEM).permission(null)
             .hostClass(IPortableCell.class).legacyBridge(GuiBridge.GUI_PORTABLE_CELL).build();
 
-    // ========== 合成设备 ==========
+    // ========== Crafting devices ==========
 
     public static final AEGuiKey MAC = key("mac")
             .hostType(GuiHostType.WORLD).permission(null)
@@ -113,7 +113,7 @@ public final class AEGuiKeys {
             .hostType(GuiHostType.WORLD).permission(null)
             .hostClass(TileInscriber.class).legacyBridge(GuiBridge.GUI_INSCRIBER).build();
 
-    // ========== 工具/杂项 ==========
+    // ========== Tools/Misc ==========
 
     public static final AEGuiKey GRINDER = key("grinder")
             .hostType(GuiHostType.WORLD).permission(null)
@@ -171,7 +171,7 @@ public final class AEGuiKeys {
             .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
             .hostClass(PartOreDicStorageBus.class).legacyBridge(GuiBridge.GUI_OREDICTSTORAGEBUS).build();
 
-    // ========== 通用/合成/样板终端 ==========
+    // ========== General/Crafting/Pattern terminals ==========
 
     public static final AEGuiKey ME_TERMINAL = key("me_terminal")
             .hostType(GuiHostType.WORLD).permission(null)
@@ -195,7 +195,7 @@ public final class AEGuiKeys {
             .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
             .hostClass(ITerminalHost.class).legacyBridge(GuiBridge.GUI_FLUID_TERMINAL).build();
 
-    // ========== 无线终端 ==========
+    // ========== Wireless terminals ==========
 
     public static final AEGuiKey WIRELESS_TERM = key("wireless_term")
             .hostType(GuiHostType.ITEM).permission(null)
@@ -223,7 +223,7 @@ public final class AEGuiKeys {
             .hostClass(WirelessTerminalGuiObject.class)
             .legacyBridge(GuiBridge.GUI_WIRELESS_DUAL_INTERFACE_TERMINAL).build();
 
-    // ========== 接口设置 ==========
+    // ========== Interface settings ==========
 
     public static final AEGuiKey ME_INTERFACE = key("me_interface")
             .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
@@ -233,7 +233,7 @@ public final class AEGuiKeys {
             .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
             .hostClass(IPatternProviderHost.class).legacyBridge(GuiBridge.GUI_PATTERN_PROVIDER).build();
 
-    // ========== 总线/面板 ==========
+    // ========== Bus/Panel ==========
 
     public static final AEGuiKey BUS = key("bus")
             .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
@@ -267,7 +267,7 @@ public final class AEGuiKeys {
             .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
             .hostClass(PartFluidLevelEmitter.class).legacyBridge(GuiBridge.GUI_FLUID_LEVEL_EMITTER).build();
 
-    // ========== IO/合成子系统 ==========
+    // ========== IO/Crafting subsystem ==========
 
     public static final AEGuiKey IO_PORT = key("io_port")
             .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
@@ -289,7 +289,7 @@ public final class AEGuiKeys {
             .hostType(GuiHostType.ITEM_OR_WORLD).permission(SecurityPermissions.CRAFT)
             .hostClass(ITerminalHost.class).legacyBridge(GuiBridge.GUI_CRAFTING_STATUS).build();
 
-    // ========== 接口终端 ==========
+    // ========== Interface terminals ==========
 
     public static final AEGuiKey INTERFACE_TERMINAL = key("interface_terminal")
             .hostType(GuiHostType.WORLD).permission(SecurityPermissions.BUILD)
@@ -300,7 +300,7 @@ public final class AEGuiKeys {
             .hostClass(PartInterfaceConfigurationTerminal.class)
             .legacyBridge(GuiBridge.GUI_INTERFACE_CONFIGURATION_TERMINAL).build();
 
-    // ========== 样板值设置 ==========
+    // ========== Pattern value settings ==========
 
     public static final AEGuiKey PATTERN_VALUE_AMOUNT = key("pattern_value_amount")
             .hostType(GuiHostType.ITEM_OR_WORLD).permission(SecurityPermissions.CRAFT)

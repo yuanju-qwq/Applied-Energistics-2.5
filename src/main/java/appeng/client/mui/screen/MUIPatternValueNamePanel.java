@@ -34,7 +34,7 @@ import appeng.api.definitions.IDefinitions;
 import appeng.api.definitions.IParts;
 import appeng.api.storage.ITerminalHost;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiTabButton;
+import appeng.client.mui.widgets.MUITabContainer;
 import appeng.client.mui.AEBasePanel;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerPatternValueName;
@@ -49,15 +49,15 @@ import appeng.parts.reporting.PartExpandedProcessingPatternTerminal;
 import appeng.parts.reporting.PartPatternTerminal;
 
 /**
- * MUI 版样板名称设置面板�?
+ * MUI pattern value name panel.
  * <p>
- * Ctrl+中键点击样板虚拟槽位后打开，允许用户自定义物品名称�?
+ * Opened via Ctrl+middle-click on a pattern Virtual slot, allows customizing the item name.
  */
 @SideOnly(Side.CLIENT)
 public class MUIPatternValueNamePanel extends AEBasePanel {
 
     private GuiTextField nameBox;
-    private GuiTabButton originalGuiBtn;
+    private MUITabContainer originalGuiBtn;
     private GuiButton submit;
     private GuiButton clearName;
     private AEGuiKey originalGui;
@@ -82,7 +82,7 @@ public class MUIPatternValueNamePanel extends AEBasePanel {
                 this.clearName = new GuiButton(1, this.guiLeft + 20, this.guiTop + 26, 100, 20,
                         GuiText.Cancel.getLocal()));
 
-        // 检测原�?GUI 类型
+        // Detect the original GUI type
         ItemStack myIcon = ItemStack.EMPTY;
         final Object target = ((AEBaseContainer) this.inventorySlots).getTarget();
         final IDefinitions definitions = AEApi.instance().definitions();
@@ -110,8 +110,14 @@ public class MUIPatternValueNamePanel extends AEBasePanel {
         }
 
         if (this.originalGui != null && !myIcon.isEmpty()) {
-            this.buttonList.add(this.originalGuiBtn = new GuiTabButton(this.guiLeft + 154, this.guiTop, myIcon,
-                    myIcon.getDisplayName(), this.itemRender));
+            this.originalGuiBtn = new MUITabContainer(154, 0);
+            this.originalGuiBtn.setIconItem(myIcon);
+            this.originalGuiBtn.setTooltip(myIcon.getDisplayName());
+            final AEGuiKey origGui = this.originalGui;
+            this.originalGuiBtn.setOnClick(tab -> {
+                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(origGui));
+            });
+            this.addWidget(this.originalGuiBtn);
         }
 
         this.nameBox = new GuiTextField(0, this.fontRenderer, this.guiLeft + 62, this.guiTop + 57, 59,
@@ -122,7 +128,7 @@ public class MUIPatternValueNamePanel extends AEBasePanel {
         this.nameBox.setVisible(true);
         this.nameBox.setFocused(true);
 
-        // �?Container 的展示槽获取当前名称作为默认�?
+        // Get the current name from the Container display slot as default value
         final ContainerPatternValueName cpn = (ContainerPatternValueName) this.inventorySlots;
         if (cpn.getPatternValue().getHasStack()) {
             final ItemStack stack = cpn.getPatternValue().getStack();
@@ -160,10 +166,6 @@ public class MUIPatternValueNamePanel extends AEBasePanel {
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
         super.actionPerformed(btn);
-
-        if (btn == this.originalGuiBtn) {
-            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(this.originalGui));
-        }
 
         if (btn == this.clearName) {
             this.nameBox.setText("");

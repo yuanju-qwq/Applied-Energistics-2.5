@@ -18,19 +18,16 @@
 
 package appeng.client.mui.screen;
 
-import java.io.IOException;
-
 import org.lwjgl.input.Mouse;
 
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.Settings;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiProgressBar;
 import appeng.client.gui.widgets.GuiProgressBar.Direction;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.container.implementations.ContainerCondenser;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
@@ -38,17 +35,17 @@ import appeng.core.sync.packets.PacketConfigButton;
 import appeng.tile.misc.TileCondenser;
 
 /**
- * MUI 版物质聚合器 GUI 面板�?
+ * MUI condenser GUI panel.
  *
- * 包含存储能量进度条和输出模式按钮�?
+ * Contains a stored-energy progress bar and an output mode button.
  */
 public class MUICondenserPanel extends AEBasePanel {
 
     private final ContainerCondenser cvc;
 
-    // ========== 按钮/进度�?==========
+    // ========== Buttons / Progress bar ==========
     private GuiProgressBar pb;
-    private GuiImgButton mode;
+    private MUIButtonWidget mode;
 
     public MUICondenserPanel(final InventoryPlayer ip, final TileCondenser te) {
         this(new ContainerCondenser(ip, te));
@@ -60,11 +57,16 @@ public class MUICondenserPanel extends AEBasePanel {
         this.ySize = 197;
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始�?
+        this.mode = new MUIButtonWidget(128, 52, Settings.CONDENSER_OUTPUT, this.cvc.getOutput());
+        this.mode.setOnClick(btn -> {
+            final boolean backwards = Mouse.isButtonDown(1);
+            NetworkHandler.instance().sendToServer(new PacketConfigButton(Settings.CONDENSER_OUTPUT, backwards));
+        });
+        this.addWidget(this.mode);
     }
 
     @Override
@@ -73,15 +75,10 @@ public class MUICondenserPanel extends AEBasePanel {
 
         this.pb = new GuiProgressBar(this.cvc, "guis/condenser.png", 120 + this.guiLeft, 25 + this.guiTop, 178, 25, 6,
                 18, Direction.VERTICAL, GuiText.StoredEnergy.getLocal());
-
-        this.mode = new GuiImgButton(128 + this.guiLeft, 52 + this.guiTop, Settings.CONDENSER_OUTPUT,
-                this.cvc.getOutput());
-
         this.buttonList.add(this.pb);
-        this.buttonList.add(this.mode);
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -96,18 +93,5 @@ public class MUICondenserPanel extends AEBasePanel {
     protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.bindTexture("guis/condenser.png");
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
-    }
-
-    // ========== 按钮事件 ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        final boolean backwards = Mouse.isButtonDown(1);
-
-        if (this.mode == btn) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(Settings.CONDENSER_OUTPUT, backwards));
-        }
     }
 }

@@ -33,10 +33,10 @@ import appeng.core.AELog;
 import appeng.util.Platform;
 
 /**
- * 泛型 AE 栈库存，可以存储任意类型的 {@link IAEStack}（物品、流体等）。
+ * Generic AE stack inventory that can store any type of {@link IAEStack} (items, fluids, etc.).
  * <p>
- * 与 {@link AppEngInternalAEInventory} 不同，此类不限制为 {@link appeng.api.storage.data.IAEItemStack}，
- * 而是可以在同一库存中混合存储不同类型的 {@link IAEStack}。
+ * Unlike {@link AppEngInternalAEInventory}, this class is not limited to {@link appeng.api.storage.data.IAEItemStack},
+ * and can mix-store different types of {@link IAEStack} in the same inventory.
  * </p>
  */
 public class IAEStackInventory {
@@ -47,9 +47,9 @@ public class IAEStackInventory {
     private final StorageName storageName;
 
     /**
-     * @param owner       持有此库存的对象，变更时会回调 {@link IIAEStackInventory#saveAEStackInv()}
-     * @param size        槽位数量
-     * @param storageName 库存名称标识
+     * @param owner       the object holding this inventory, called back via {@link IIAEStackInventory#saveAEStackInv()} on changes
+     * @param size        the number of slots
+     * @param storageName the storage name identifier
      */
     public IAEStackInventory(final IIAEStackInventory owner, final int size, StorageName storageName) {
         this.owner = owner;
@@ -59,15 +59,15 @@ public class IAEStackInventory {
     }
 
     /**
-     * @param owner 持有此库存的对象
-     * @param size  槽位数量
+     * @param owner the object holding this inventory
+     * @param size  the number of slots
      */
     public IAEStackInventory(final IIAEStackInventory owner, final int size) {
         this(owner, size, StorageName.NONE);
     }
 
     /**
-     * @return 库存是否为空（所有槽位均为 null）
+     * @return whether the inventory is empty (all slots are null)
      */
     public boolean isEmpty() {
         for (int x = 0; x < this.size; x++) {
@@ -79,10 +79,10 @@ public class IAEStackInventory {
     }
 
     /**
-     * 获取指定槽位的泛型 AE 栈。
+     * Get the generic AE stack at the specified slot.
      *
-     * @param slot 槽位索引
-     * @return 该槽位的 IAEStack，可能为 null
+     * @param slot the slot index
+     * @return the IAEStack at that slot, possibly null
      */
     @Nullable
     public IAEStack<?> getAEStackInSlot(final int slot) {
@@ -90,23 +90,23 @@ public class IAEStackInventory {
     }
 
     /**
-     * 设置指定槽位的泛型 AE 栈，并触发 {@link #markDirty()}。
+     * Set the generic AE stack at the specified slot, and trigger {@link #markDirty()}.
      *
-     * @param slot  槽位索引
-     * @param stack 要放入的栈，可以为 null 表示清空
+     * @param slot  the slot index
+     * @param stack the stack to place, or null to clear
      */
     public void putAEStackInSlot(final int slot, @Nullable IAEStack<?> stack) {
         this.inv[slot] = stack;
         this.markDirty();
     }
 
-    // ---- NBT 序列化/反序列化 ----
+    // ---- NBT serialization/deserialization ----
 
     /**
-     * 将库存数据写入 ItemStack 的 NBT 中。
+     * Write inventory data to an ItemStack's NBT.
      *
-     * @param stack ItemStack 目标
-     * @param name  NBT 键名
+     * @param stack the target ItemStack
+     * @param name  the NBT key name
      */
     public void writeToNBT(@Nonnull ItemStack stack, String name) {
         if (!stack.hasTagCompound()) {
@@ -119,10 +119,10 @@ public class IAEStackInventory {
     }
 
     /**
-     * 将库存数据写入指定 NBT 复合标签中。
+     * Write inventory data to the specified NBT compound tag.
      *
-     * @param data 写入目标
-     * @param name NBT 键名
+     * @param data the write target
+     * @param name the NBT key name
      */
     public void writeToNBT(final NBTTagCompound data, final String name) {
         final NBTTagCompound c = new NBTTagCompound();
@@ -148,10 +148,10 @@ public class IAEStackInventory {
     }
 
     /**
-     * 从 NBT 复合标签中读取库存数据。
+     * Read inventory data from an NBT compound tag.
      *
-     * @param data 包含库存数据的外层 NBT（可以为 null）
-     * @param name NBT 键名
+     * @param data the outer NBT containing inventory data (may be null)
+     * @param name the NBT key name
      */
     public void readFromNBT(@Nullable final NBTTagCompound data, final String name) {
         if (data != null && data.hasKey(name, NBT.TAG_COMPOUND)) {
@@ -174,7 +174,7 @@ public class IAEStackInventory {
     }
 
     /**
-     * @return 库存槽位总数
+     * @return the total number of inventory slots
      */
     public int getSizeInventory() {
         return this.size;
@@ -190,7 +190,7 @@ public class IAEStackInventory {
     }
 
     /**
-     * 标记库存已修改，通知持有者保存。
+     * Mark the inventory as modified, notifying the owner to save.
      */
     public void markDirty() {
         if (this.owner != null && Platform.isServer()) {
@@ -199,7 +199,7 @@ public class IAEStackInventory {
     }
 
     /**
-     * @return 此库存的名称标识
+     * @return the name identifier of this inventory
      */
     public StorageName getStorageName() {
         return this.storageName;

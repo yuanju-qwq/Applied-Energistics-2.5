@@ -282,7 +282,7 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
         return false;
     }
 
-    // ---- IIAEStackInventory 实现 ----
+    // ---- IIAEStackInventory implementation ----
 
     @Override
     public void saveAEStackInv() {

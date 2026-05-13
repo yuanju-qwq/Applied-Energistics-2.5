@@ -40,7 +40,7 @@ import appeng.api.definitions.IParts;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.client.gui.widgets.GuiScrollbar;
-import appeng.client.gui.widgets.GuiTabButton;
+import appeng.client.mui.widgets.MUITabContainer;
 import appeng.container.implementations.ContainerCraftingStatus;
 import appeng.container.implementations.CraftingCPUStatus;
 import appeng.container.interfaces.ICraftingStatusGuiCallback;
@@ -58,7 +58,7 @@ import appeng.parts.reporting.PartPatternTerminal;
 import appeng.parts.reporting.PartTerminal;
 
 /**
- * MUI 版合成状态面板。
+ * MUI 版Crafting status面板。
  * <p>
  * 继承 {@link MUICraftingCPUPanel}，在左侧增加 CPU 选择器列表，
  * 右上角增加返回原始终端的 Tab 按钮。
@@ -81,12 +81,12 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
     private GuiButton selectCPU;
     private GuiScrollbar cpuScrollbar;
 
-    private GuiTabButton originalGuiBtn;
+    private MUITabContainer originalGuiBtn;
     private AEGuiKey originalGui;
     private ItemStack myIcon = ItemStack.EMPTY;
     private String selectedCPUName = "";
 
-    // ========== 构造 ==========
+    // ========== Construction ==========
 
     public MUICraftingStatusPanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(new ContainerCraftingStatus(inventoryPlayer, te));
@@ -128,7 +128,7 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
         }
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
@@ -146,25 +146,19 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
         this.cpuScrollbar.setHeight(137);
 
         if (!this.myIcon.isEmpty()) {
-            this.buttonList.add(
-                    this.originalGuiBtn = new GuiTabButton(this.guiLeft + 213, this.guiTop - 4,
-                            this.myIcon, this.myIcon.getDisplayName(), this.itemRender));
+            this.originalGuiBtn = new MUITabContainer(213, -4);
+            this.originalGuiBtn.setIconItem(this.myIcon);
+            this.originalGuiBtn.setTooltip(this.myIcon.getDisplayName());
             this.originalGuiBtn.setHideEdge(13);
+            final AEGuiKey origGui = this.originalGui;
+            this.originalGuiBtn.setOnClick(tab -> {
+                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(origGui));
+            });
+            this.addWidget(this.originalGuiBtn);
         }
     }
 
-    // ========== 按钮事件 ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        if (btn == this.originalGuiBtn) {
-            NetworkHandler.instance().sendToServer(new PacketSwitchGuis(this.originalGui));
-        }
-    }
-
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     public void drawScreen(final int mouseX, final int mouseY, final float btn) {
@@ -338,7 +332,7 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
         super.handleMouseInput();
     }
 
-    // ========== 内部方法 ==========
+    // ========== Internal methods ==========
 
     private void drawStatusIcon(FontRenderer font, int iconIndex, String text, int color) {
         this.bindTexture("guis/states.png");

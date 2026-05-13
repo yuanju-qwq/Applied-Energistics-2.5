@@ -37,24 +37,24 @@ import appeng.api.storage.data.IAEStack;
 public interface ICraftingPatternDetails {
 
     /**
-     * @return 编码了此配方的模式物品
+     * @return the pattern item that encodes this recipe
      */
     ItemStack getPattern();
 
     /**
-     * 检查指定槽位的物品是否可以作为该配方的有效输入。
-     * 只适用于合成台配方（isCraftable() == true）。
+     * Check whether the item in the specified slot can be used as a valid input for this pattern.
+     * Only applicable to crafting table recipes (isCraftable() == true).
      *
-     * @param slotIndex 槽位索引
-     * @param itemStack 物品栈
-     * @param world     合成世界
-     * @return 是否可用
+     * @param slotIndex slot index
+     * @param itemStack item stack
+     * @param world     crafting world
+     * @return whether it is valid
      */
     boolean isValidItemForSlot(int slotIndex, ItemStack itemStack, World world);
 
     /**
-     * 泛型版本：检查指定槽位的栈（物品/流体等）是否可以作为该配方的有效输入。
-     * 默认委托到 ItemStack 版本。
+     * Generic version: check whether the stack (item/fluid etc.) in the specified slot can be used as a valid input.
+     * Defaults to delegating to the ItemStack version.
      */
     default boolean isValidItemForSlot(int slotIndex, IAEStack<?> aes, World world) {
         if (aes instanceof IAEItemStack) {
@@ -64,38 +64,38 @@ public interface ICraftingPatternDetails {
     }
 
     /**
-     * @return 是否为合成台配方（true）还是处理配方（false）
+     * @return whether this is a crafting table recipe (true) or a processing recipe (false)
      */
     boolean isCraftable();
 
-    // ========== 泛型主入口方法（支持物品+流体等多种类型） ==========
+    // ========== Generic main entry methods (supporting item + fluid and other types) ==========
 
     /**
-     * 获取原始输入（支持物品+流体等多种类型），包含 null 占位以保持槽位位置一致。
+     * Get raw inputs (supporting item + fluid and other types), includes null placeholders to preserve slot positions.
      */
     IAEStack<?>[] getAEInputs();
 
     /**
-     * 获取精简后的输入（支持物品+流体等多种类型），合并相同栈，不含 null。
+     * Get condensed inputs (supporting item + fluid and other types), merges identical stacks, no nulls.
      */
     IAEStack<?>[] getCondensedAEInputs();
 
     /**
-     * 获取精简后的输出（支持物品+流体等多种类型），合并相同栈，不含 null。
+     * Get condensed outputs (supporting item + fluid and other types), merges identical stacks, no nulls.
      */
     IAEStack<?>[] getCondensedAEOutputs();
 
     /**
-     * 获取原始输出（支持物品+流体等多种类型）。
+     * Get raw outputs (supporting item + fluid and other types).
      */
     IAEStack<?>[] getAEOutputs();
 
-    // ========== 旧版物品类型方法（已弃用，默认从泛型方法转换） ==========
+    // ========== Legacy item-type methods (deprecated, default to converting from generic methods) ==========
 
     /**
-     * 获取原始输入（物品类型），包含 null 占位以保持槽位位置一致。
+     * Get raw inputs (item type), includes null placeholders to preserve slot positions.
      *
-     * @deprecated 使用 {@link #getAEInputs()} 替代
+     * @deprecated Use {@link #getAEInputs()} instead
      */
     @Deprecated
     default IAEItemStack[] getInputs() {
@@ -103,9 +103,9 @@ public interface ICraftingPatternDetails {
     }
 
     /**
-     * 获取精简后的输入（物品类型），合并相同物品，不含 null。
+     * Get condensed inputs (item type), merges identical items, no nulls.
      *
-     * @deprecated 使用 {@link #getCondensedAEInputs()} 替代
+     * @deprecated Use {@link #getCondensedAEInputs()} instead
      */
     @Deprecated
     default IAEItemStack[] getCondensedInputs() {
@@ -113,9 +113,9 @@ public interface ICraftingPatternDetails {
     }
 
     /**
-     * 获取精简后的输出（物品类型），合并相同物品，不含 null。
+     * Get condensed outputs (item type), merges identical items, no nulls.
      *
-     * @deprecated 使用 {@link #getCondensedAEOutputs()} 替代
+     * @deprecated Use {@link #getCondensedAEOutputs()} instead
      */
     @Deprecated
     default IAEItemStack[] getCondensedOutputs() {
@@ -123,9 +123,9 @@ public interface ICraftingPatternDetails {
     }
 
     /**
-     * 获取原始输出（物品类型）。
+     * Get raw outputs (item type).
      *
-     * @deprecated 使用 {@link #getAEOutputs()} 替代
+     * @deprecated Use {@link #getAEOutputs()} instead
      */
     @Deprecated
     default IAEItemStack[] getOutputs() {
@@ -133,7 +133,7 @@ public interface ICraftingPatternDetails {
     }
 
     /**
-     * 从泛型栈数组中过滤出物品类型的栈，保持数组大小和 null 位置。
+     * Filter out item-type stacks from a generic stack array, preserving array size and null positions.
      */
     static IAEItemStack[] filterItemStacks(IAEStack<?>[] stacks) {
         IAEItemStack[] result = new IAEItemStack[stacks.length];
@@ -146,53 +146,53 @@ public interface ICraftingPatternDetails {
     }
 
     /**
-     * 是否允许使用替代材料。
+     * Whether substitution materials are allowed.
      */
     boolean canSubstitute();
 
     /**
-     * @return 此配方的输出是否可以作为其他配方的替代输入
+     * @return whether the output of this pattern can be used as a substitute input for other patterns
      */
     default boolean canBeSubstitute() {
         return true;
     }
 
     /**
-     * 获取指定槽位允许的替代输入列表。
+     * Get the list of allowed substitute inputs for the specified slot.
      */
     List<IAEItemStack> getSubstituteInputs(int slot);
 
     /**
-     * 获取合成台配方的输出结果。
-     * 只适用于合成台配方（isCraftable() == true）。
+     * Get the output result of a crafting table recipe.
+     * Only applicable to crafting table recipes (isCraftable() == true).
      *
-     * @param craftingInv 合成台物品栏
-     * @param world       合成世界
-     * @return 合成输出物品
+     * @param craftingInv crafting table inventory
+     * @param world       crafting world
+     * @return crafting output item
      */
     ItemStack getOutput(InventoryCrafting craftingInv, World world);
 
     /**
-     * @return 配方优先级
+     * @return pattern priority
      */
     int getPriority();
 
     /**
-     * 设置配方优先级。
+     * Set pattern priority.
      *
-     * @param priority 优先级值
+     * @param priority priority value
      */
     void setPriority(int priority);
 
     /**
-     * @return true 如果此 pattern 是仅输入型的，应在解析期间内联。
+     * @return true if this pattern is input-only and should be inlined during resolution.
      */
     default boolean isInputOnly() {
         return false;
     }
 
     /**
-     * @return 仅输入型 pattern 的唯一标识符，如果不适用则返回 null。
+     * @return the unique identifier for an input-only pattern, or null if not applicable.
      */
     default java.util.UUID getInputOnlyUuid() {
         return null;

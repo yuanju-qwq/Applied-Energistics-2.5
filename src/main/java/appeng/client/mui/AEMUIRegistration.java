@@ -111,7 +111,7 @@ public final class AEMUIRegistration {
     public static void registerAll() {
         AELog.info("MUI: Registering device/tool GUI panels...");
 
-        // ========== 存储设备 ==========
+        // ========== Storage devices ==========
 
         AEMUIGuiFactory.register(AEGuiKeys.CHEST,
                 (ip, host) -> new ContainerChest(ip, (TileChest) host),
@@ -131,7 +131,7 @@ public final class AEMUIRegistration {
                 (ip, host) -> new MUIMEPortableCellPanelImpl(
                         new ContainerMEPortableCell(ip, (IPortableCell) host)));
 
-        // ========== 合成设备 ==========
+        // ========== Crafting devices ==========
 
         AEMUIGuiFactory.register(AEGuiKeys.MAC,
                 (ip, host) -> new ContainerMAC(ip, (TileMolecularAssembler) host),
@@ -141,7 +141,7 @@ public final class AEMUIRegistration {
                 (ip, host) -> new ContainerInscriber(ip, (TileInscriber) host),
                 (ip, host) -> new MUIInscriberPanel(ip, (TileInscriber) host));
 
-        // ========== 工具/杂项 ==========
+        // ========== Tools/Misc ==========
 
         AEMUIGuiFactory.register(AEGuiKeys.PRIORITY,
                 (ip, host) -> new ContainerPriority(ip, (IPriorityHost) host),
@@ -202,7 +202,7 @@ public final class AEMUIRegistration {
                 (ip, host) -> new MUIOreDictStorageBusPanel(
                         new ContainerOreDictStorageBus(ip, (PartOreDicStorageBus) host)));
 
-        // ========== 无线终端 ==========
+        // ========== Wireless terminals ==========
 
         AEMUIGuiFactory.register(AEGuiKeys.WIRELESS_TERM,
                 (ip, host) -> new ContainerWirelessTerm(ip, (WirelessTerminalGuiObject) host),
@@ -231,7 +231,7 @@ public final class AEMUIRegistration {
                 (ip, host) -> new ContainerWirelessTerm(ip, (WirelessTerminalGuiObject) host),
                 (ip, host) -> new MUIWirelessTermPanelImpl(ip, (WirelessTerminalGuiObject) host));
 
-        // ========== 通用/合成/样板终端 ==========
+        // ========== General/Crafting/Pattern terminals ==========
 
         AEMUIGuiFactory.register(AEGuiKeys.ME_TERMINAL,
                 (ip, host) -> new ContainerMEMonitorable(ip, (ITerminalHost) host),
@@ -255,7 +255,7 @@ public final class AEMUIRegistration {
                 (ip, host) -> new ContainerMEMonitorable(ip, (ITerminalHost) host),
                 (ip, host) -> new MUIMEMonitorablePanel(ip, (ITerminalHost) host));
 
-        // ========== 接口设置 ==========
+        // ========== Interface settings ==========
 
         AEMUIGuiFactory.register(AEGuiKeys.ME_INTERFACE,
                 (ip, host) -> new ContainerMEInterface(ip, (IInterfaceLogicHost) host),
@@ -267,7 +267,7 @@ public final class AEMUIRegistration {
                 (ip, host) -> new MUIPatternProviderPanel(
                         new ContainerPatternProvider(ip, (IPatternProviderHost) host)));
 
-        // ========== 总线/面板 ==========
+        // ========== Bus/Panel ==========
 
         AEMUIGuiFactory.register(AEGuiKeys.BUS,
                 (ip, host) -> new ContainerUpgradeable(ip, (IUpgradeableHost) host),
@@ -311,7 +311,7 @@ public final class AEMUIRegistration {
                 (ip, host) -> new MUIFluidLevelEmitterPanel(
                         new ContainerFluidLevelEmitter(ip, (PartFluidLevelEmitter) host)));
 
-        // ========== IO/合成子系统 ==========
+        // ========== IO/Crafting subsystem ==========
 
         AEMUIGuiFactory.register(AEGuiKeys.IO_PORT,
                 (ip, host) -> new ContainerIOPort(ip, (TileIOPort) host),
@@ -334,7 +334,7 @@ public final class AEMUIRegistration {
                 (ip, host) -> new ContainerCraftingStatus(ip, (ITerminalHost) host),
                 (ip, host) -> new MUICraftingStatusPanel(ip, (ITerminalHost) host));
 
-        // ========== 接口终端 ==========
+        // ========== Interface terminals ==========
 
         AEMUIGuiFactory.register(AEGuiKeys.INTERFACE_TERMINAL,
                 (ip, host) -> new ContainerInterfaceTerminal(ip, (PartInterfaceTerminal) host),
@@ -348,7 +348,7 @@ public final class AEMUIRegistration {
                         new ContainerInterfaceConfigurationTerminal(ip,
                                 (PartInterfaceConfigurationTerminal) host)));
 
-        // ========== 样板值设置 ==========
+        // ========== Pattern value settings ==========
 
         AEMUIGuiFactory.register(AEGuiKeys.PATTERN_VALUE_AMOUNT,
                 (ip, host) -> new ContainerPatternValueAmount(ip, (ITerminalHost) host),

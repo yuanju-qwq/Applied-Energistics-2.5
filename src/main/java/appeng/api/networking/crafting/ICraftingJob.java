@@ -33,9 +33,9 @@ import appeng.api.storage.data.IItemList;
 import appeng.crafting.MECraftingInventory;
 
 /**
- * 合成任务接口。v2 版本支持泛型栈类型（物品/流体等）。
+ * Crafting job interface. v2 version supports generic stack types (item/fluid etc.).
  *
- * @param <StackType> 该合成任务的输出栈类型
+ * @param <StackType> the output stack type of this crafting job
  */
 public interface ICraftingJob<StackType extends IAEStack> {
 
@@ -72,7 +72,7 @@ public interface ICraftingJob<StackType extends IAEStack> {
     boolean simulateFor(final int milli);
 
     /**
-     * 将此任务提交到 TickHandler 进行异步计算。
+     * Submit this job to the TickHandler for asynchronous computation.
      */
     Future<ICraftingJob<StackType>> schedule();
 
@@ -84,14 +84,14 @@ public interface ICraftingJob<StackType extends IAEStack> {
     }
 
     /**
-     * @return 此任务使用的合成模式
+     * @return the crafting mode used by this job
      */
     default CraftingMode getCraftingMode() {
         return CraftingMode.STANDARD;
     }
 
     /**
-     * 在 CPU 集群上开始执行合成。
+     * Begin executing crafting on the CPU cluster.
      */
     default void startCrafting(final MECraftingInventory storage, final ICraftingCPU craftingCPUCluster,
             final IActionSource src) {}
@@ -104,11 +104,11 @@ public interface ICraftingJob<StackType extends IAEStack> {
     }
 
     /**
-     * 获取指定产出物料的总合成次数（用于合成确认 GUI 显示）。
-     * 默认实现返回 0；由具体合成任务实现（如 CraftingJob）覆盖。
+     * Get the total number of crafts for the specified output material (used for Crafting confirm GUI display).
+     * Default implementation returns 0; overridden by concrete crafting job implementations (e.g. CraftingJob).
      *
-     * @param material 产出物料
-     * @return 合成次数
+     * @param material output material
+     * @return number of crafts
      */
     default long getTotalCraftsForPrimaryOutput(IAEStack<?> material) {
         return 0;

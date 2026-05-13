@@ -30,7 +30,6 @@ import javax.annotation.Nonnull;
 
 import org.lwjgl.input.Mouse;
 
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
@@ -41,8 +40,8 @@ import mezz.jei.api.gui.IGhostIngredientHandler.Target;
 import appeng.api.config.*;
 import appeng.api.implementations.IUpgradeableHost;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.container.implementations.ContainerUpgradeable;
 import appeng.container.interfaces.IJEIGhostIngredients;
 import appeng.container.slot.IJEITargetSlot;
@@ -57,13 +56,13 @@ import appeng.parts.automation.PartImportBus;
 import appeng.util.item.AEItemStack;
 
 /**
- * MUI �?GuiUpgradeable 基类�?
+ * MUI base class for GuiUpgradeable.
  *
- * 作为所有可升级配置 GUI �?MUI 移植基础�?
+ * Serves as the MUI port foundation for all upgradeable config GUIs.
  *
  * 子类通过覆写 {@link #getBackground()}, {@link #getName()},
  * {@link #addButtons()}, {@link #handleButtonVisibility()}, {@link #drawUpgrades()}
- * 来定制具�?GUI 的行为�?
+ * to customize specific GUI behavior.
  */
 public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredients {
 
@@ -74,11 +73,11 @@ public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredi
     protected final ContainerUpgradeable cvb;
     protected final IUpgradeableHost bc;
 
-    // ========== 通用按钮 ==========
-    protected GuiImgButton redstoneMode;
-    protected GuiImgButton fuzzyMode;
-    protected GuiImgButton craftMode;
-    protected GuiImgButton schedulingMode;
+    // ========== Common buttons ==========
+    protected MUIButtonWidget redstoneMode;
+    protected MUIButtonWidget fuzzyMode;
+    protected MUIButtonWidget craftMode;
+    protected MUIButtonWidget schedulingMode;
 
     public MUIUpgradeablePanel(final ContainerUpgradeable te) {
         super(te);
@@ -92,11 +91,11 @@ public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredi
         return ((ContainerUpgradeable) this.inventorySlots).hasToolbox();
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // 子类在覆�?setupWidgets() 时应先调�?super.setupWidgets()
+        // Subclasses should call super.setupWidgets() first when overriding setupWidgets()
     }
 
     @Override
@@ -108,27 +107,43 @@ public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredi
     // ========== 按钮管理 ==========
 
     /**
-     * 添加通用按钮（redstone, fuzzy, craft, scheduling）�?
-     * 子类覆写此方法来替换或增加按钮�?
+     * Add common buttons (redstone, fuzzy, craft, scheduling).
+     * Subclasses override to replace or add buttons.
+     * <p>
+     * Buttons use panel-relative coordinates and are registered as MUI widgets.
      */
     protected void addButtons() {
-        this.redstoneMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 8, Settings.REDSTONE_CONTROLLED,
-                RedstoneMode.IGNORE);
-        this.fuzzyMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 28, Settings.FUZZY_MODE,
-                FuzzyMode.IGNORE_ALL);
-        this.craftMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 48, Settings.CRAFT_ONLY, YesNo.NO);
-        this.schedulingMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 68, Settings.SCHEDULING_MODE,
-                SchedulingMode.DEFAULT);
+        this.redstoneMode = new MUIButtonWidget(-18, 8, Settings.REDSTONE_CONTROLLED, RedstoneMode.IGNORE);
+        this.redstoneMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.redstoneMode);
 
-        this.buttonList.add(this.craftMode);
-        this.buttonList.add(this.redstoneMode);
-        this.buttonList.add(this.fuzzyMode);
-        this.buttonList.add(this.schedulingMode);
+        this.fuzzyMode = new MUIButtonWidget(-18, 28, Settings.FUZZY_MODE, FuzzyMode.IGNORE_ALL);
+        this.fuzzyMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.fuzzyMode);
+
+        this.craftMode = new MUIButtonWidget(-18, 48, Settings.CRAFT_ONLY, YesNo.NO);
+        this.craftMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.craftMode);
+
+        this.schedulingMode = new MUIButtonWidget(-18, 68, Settings.SCHEDULING_MODE, SchedulingMode.DEFAULT);
+        this.schedulingMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.schedulingMode);
     }
 
     /**
-     * 根据已安装的升级卡来控制按钮的可见性�?
-     * 子类可覆写以定制可见性逻辑�?
+     * Send a config button packet for the given MUI settings button.
+     */
+    protected void sendConfigButton(MUIButtonWidget btn) {
+        final boolean backwards = Mouse.isButtonDown(1);
+        final Settings setting = btn.getSetting();
+        if (setting != null) {
+            NetworkHandler.instance().sendToServer(new PacketConfigButton(setting, backwards));
+        }
+    }
+
+    /**
+    // ========== Rendering ==========
+     * Subclasses may override to customize visibility logic.
      */
     protected void handleButtonVisibility() {
         if (this.redstoneMode != null) {
@@ -184,56 +199,55 @@ public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredi
     // ========== 子类可覆写的模板方法 ==========
 
     /**
-     * 返回背景贴图路径。子类覆写以使用不同的贴图�?
+     * Returns the background texture path. Subclasses override to use a different texture.
      */
     protected String getBackground() {
         return "guis/bus.png";
     }
 
     /**
-     * 是否绘制右侧的升级槽区域。子类覆写以隐藏�?
+     * Whether to draw the upgrade slot area on the right. Subclasses override to hide it.
      */
     protected boolean drawUpgrades() {
         return true;
     }
 
     /**
-     * 返回 GUI 标题文本。子类覆写以显示不同标题�?
+     * Returns the GUI title text. Subclasses override to display a different title.
      */
     protected GuiText getName() {
         return this.bc instanceof PartImportBus ? GuiText.ImportBus : GuiText.ExportBus;
     }
 
-    // ========== 按钮事件 ==========
+    // ========== Button events ==========
 
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
+    // Button click handling is now done via onClick callbacks set in addButtons().
+    // Subclasses that still use legacy buttonList can override actionPerformed().
 
-        final boolean backwards = Mouse.isButtonDown(1);
-
-        if (btn == this.redstoneMode) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(this.redstoneMode.getSetting(), backwards));
-        }
-        if (btn == this.craftMode) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(this.craftMode.getSetting(), backwards));
-        }
-        if (btn == this.fuzzyMode) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(this.fuzzyMode.getSetting(), backwards));
-        }
-        if (btn == this.schedulingMode) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(this.schedulingMode.getSetting(), backwards));
-        }
-    }
-
-    // ========== JEI 排除区域 ==========
+    // ========== JEI exclusion area ==========
 
     @Override
     public List<Rectangle> getJEIExclusionArea() {
         List<Rectangle> exclusionArea = new ArrayList<>();
 
         int yOffset = guiTop + 8;
-        int visibleButtons = (int) this.buttonList.stream().filter(v -> v.enabled && v.x < guiLeft).count();
+        // Count visible MUI buttons on the left side (x < 0 in panel-relative)
+        int visibleButtons = 0;
+        if (this.redstoneMode != null && this.redstoneMode.isVisible()) {
+            visibleButtons++;
+        }
+        if (this.fuzzyMode != null && this.fuzzyMode.isVisible()) {
+            visibleButtons++;
+        }
+        if (this.craftMode != null && this.craftMode.isVisible()) {
+            visibleButtons++;
+        }
+        if (this.schedulingMode != null && this.schedulingMode.isVisible()) {
+            visibleButtons++;
+        }
+        // Also count legacy buttons still in buttonList
+        visibleButtons += (int) this.buttonList.stream()
+                .filter(v -> v.enabled && v.x < guiLeft).count();
         Rectangle sortDir = new Rectangle(guiLeft - 18, yOffset, 18, visibleButtons * 18 + visibleButtons - 2);
         exclusionArea.add(sortDir);
 

@@ -23,8 +23,8 @@ import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 
 /**
- * 通用无线终端的模式枚举。
- * 每个模式对应一种无线终端类型，关联其 {@link AEGuiKey}。
+ * Mode enumeration for the universal wireless terminal.
+ * Each mode corresponds to a wireless terminal type, associated with its {@link AEGuiKey}.
  */
 public enum WirelessTerminalMode {
 
@@ -54,24 +54,24 @@ public enum WirelessTerminalMode {
     }
 
     /**
-     * 获取此模式关联的 {@link AEGuiKey}。
+     * Get the {@link AEGuiKey} associated with this mode.
      */
     public AEGuiKey getGuiKey() {
         return guiKey;
     }
 
     /**
-     * 获取此模式关联的旧 {@link GuiBridge}（兼容用）。
+     * Get the legacy {@link GuiBridge} associated with this mode (for compatibility).
      */
     public GuiBridge getGuiBridge() {
         return guiKey.getLegacyBridge();
     }
 
     /**
-     * 根据 mode id 查找对应的枚举值。
+     * Find the corresponding enum value by mode id.
      *
      * @param id mode id
-     * @return 对应的 WirelessTerminalMode，找不到时返回 TERMINAL
+     * @return the corresponding WirelessTerminalMode, or TERMINAL if not found
      */
     public static WirelessTerminalMode fromId(byte id) {
         for (WirelessTerminalMode mode : values()) {

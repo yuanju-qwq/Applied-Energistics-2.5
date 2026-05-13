@@ -26,9 +26,9 @@ import appeng.api.storage.data.IAEStack;
 import appeng.helpers.IPinsHandler;
 
 /**
- * {@link IPinsHandler} 的服务端实现。
+ * Server-side implementation of {@link IPinsHandler}.
  * <p>
- * 操作 {@link PinsHolder} 中的数据并标记脏位以触发持久化和网络同步。
+ * Operates on data in {@link PinsHolder} and marks dirty flag to trigger persistence and network sync.
  */
 public class PinsHandler implements IPinsHandler {
 
@@ -85,7 +85,7 @@ public class PinsHandler implements IPinsHandler {
 
         PinList pins = this.holder.getPinList();
 
-        // 检查是否已存在
+        // Check if already exists
         for (int i = PinList.PLAYER_OFFSET; i < PinList.PLAYER_OFFSET + PinList.PLAYER_SLOTS; i++) {
             IAEStack<?> existing = pins.getPin(i);
             if (existing != null && existing.isSameType(stack)) {
@@ -93,7 +93,7 @@ public class PinsHandler implements IPinsHandler {
             }
         }
 
-        // 找到第一个空位
+        // Find the first empty slot
         for (int i = PinList.PLAYER_OFFSET; i < PinList.PLAYER_OFFSET + PinList.PLAYER_SLOTS; i++) {
             if (pins.getPin(i) == null) {
                 IAEStack<?> pinStack = stack.copy();
@@ -155,14 +155,14 @@ public class PinsHandler implements IPinsHandler {
     }
 
     /**
-     * @return 是否有未同步的变更
+     * @return whether there are unsynchronized changes
      */
     public boolean isDirty() {
         return this.dirty;
     }
 
     /**
-     * 清除脏标志（同步完成后调用）。
+     * Clear the dirty flag (called after sync is complete).
      */
     public void clearDirty() {
         this.dirty = false;

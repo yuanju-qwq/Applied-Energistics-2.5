@@ -24,8 +24,8 @@
 package appeng.api.config;
 
 /**
- * 合并模式：控制样板编码时是否将同类物品合并为一个条目。
- * 仅在处理模式下生效。
+ * Combine mode: controls whether to merge same items into one entry during pattern encoding.
+ * Only effective in processing mode.
  */
 public enum CombineMode {
     ENABLED, DISABLED;

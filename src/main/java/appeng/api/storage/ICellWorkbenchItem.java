@@ -58,29 +58,29 @@ public interface ICellWorkbenchItem {
      *
      * onInventoryChange will be called when saving is needed.
      *
-     * @deprecated 请使用 {@link #getConfigAEInventory(ItemStack)} 代替。
+     * @deprecated Please use {@link #getConfigAEInventory(ItemStack)} instead.
      */
     @Deprecated
     IItemHandler getConfigInventory(ItemStack is);
 
     /**
-     * 获取泛型版本的配置库存，可以存储物品、流体等任意 AE 栈类型。
+     * Get the generic version of the config inventory, which can store any AE stack type such as items, fluids, etc.
      * <p>
-     * 默认实现通过 {@link CellConfigLegacyWrapper} 包装旧版 {@link #getConfigInventory(ItemStack)}。
-     * 推荐子类直接覆盖此方法以原生支持多类型栈。
+     * Default implementation wraps the legacy {@link #getConfigInventory(ItemStack)} via {@link CellConfigLegacyWrapper}.
+     * Subclasses are recommended to override this method directly for native multi-type stack support.
      *
-     * @param is 单元物品
-     * @return 泛型配置库存
+     * @param is cell item
+     * @return generic config inventory
      */
     default IAEStackInventory getConfigAEInventory(ItemStack is) {
         return new CellConfigLegacyWrapper(this.getConfigInventory(is));
     }
 
     /**
-     * 获取此单元支持的栈类型。
-     * 默认返回物品栈类型。
+     * Get the stack type supported by this cell.
+     * Default returns item stack type.
      *
-     * @return 栈类型
+     * @return stack type
      */
     default appeng.api.storage.data.IAEStackType<?> getStackType() {
         return AEItemStackType.INSTANCE;

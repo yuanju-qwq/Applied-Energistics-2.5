@@ -1409,7 +1409,7 @@ public abstract class AEBaseContainer extends Container {
         return hand.copy();
     }
 
-    // ---- 虚拟槽位同步机制（服务端 → 客户端）----
+    // ---- Virtual slot同步机制（服务端 → 客户端）----
 
     private final java.util.EnumSet<StorageName> fullSyncPending =
             java.util.EnumSet.allOf(StorageName.class);

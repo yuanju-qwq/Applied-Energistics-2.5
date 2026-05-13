@@ -18,7 +18,7 @@ import appeng.fluids.util.AEFluidStack;
 import appeng.util.InventoryAdaptor;
 
 /**
- * 纯流体适配器：将 Forge IFluidHandler 暴露为 InventoryAdaptor。
+ * 纯Fluid adaptor：将 Forge IFluidHandler 暴露为 InventoryAdaptor。
  * <p>
  * 只有流体操作能力，物品操作全部返回空/失败。
  * 用于只有 IFluidHandler 能力但没有 IItemHandler 能力的 TileEntity。

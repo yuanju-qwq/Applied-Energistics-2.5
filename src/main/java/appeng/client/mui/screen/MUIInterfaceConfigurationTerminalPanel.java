@@ -28,7 +28,6 @@ import java.util.List;
 
 import com.google.common.collect.HashMultimap;
 
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
@@ -42,11 +41,12 @@ import mezz.jei.api.gui.IGhostIngredientHandler;
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIButtonPool;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.implementations.ContainerInterfaceConfigurationTerminal;
 import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
@@ -63,8 +63,8 @@ import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
 /**
- * MUI 版接�?Config 配置终端面板�? *
- * 显示 ME 网络中所有旧物品接口�?Config 配置列表�? * 支持搜索过滤（物品名/接口名）、滚动列表、方块高亮定位�? * SlotDisconnected Config 操作、JEI ghost 拖放�? */
+ * MUI interface Config configuration terminal panel.
+ * Displays the Config list of all legacy item interfaces in the ME network. Supports search filtering (item name/interface name), scrollable list, block highlight positioning. SlotDisconnected Config operations, JEI ghost drag-and-drop. */
 public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         implements IInterfaceTerminalGuiCallback, IJEIGhostIngredients {
 
@@ -81,7 +81,7 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
     private final HashMap<Long, ClientDCInternalInv> byId = new HashMap<>();
     private final HashMultimap<String, ClientDCInternalInv> byName = HashMultimap.create();
     private final HashMap<ClientDCInternalInv, BlockPos> blockPosHashMap = new HashMap<>();
-    private final HashMap<GuiButton, ClientDCInternalInv> guiButtonHashMap = new HashMap<>();
+    private final HashMap<MUIButtonWidget, ClientDCInternalInv> highlightButtonMap = new HashMap<>();
     private final Map<ClientDCInternalInv, Integer> numUpgradesMap = new HashMap<>();
     private final ArrayList<String> names = new ArrayList<>();
     private final ArrayList<Object> lines = new ArrayList<>();
@@ -94,6 +94,9 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
     private boolean refreshList = false;
     private MUITextFieldWidget searchFieldInputs;
 
+    /** Dynamic highlight button pool (replaces per-frame GuiImgButton creation) */
+    private MUIButtonPool highlightButtonPool;
+
     public MUIInterfaceConfigurationTerminalPanel(final ContainerInterfaceConfigurationTerminal container) {
         super(container);
 
@@ -103,7 +106,7 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         this.ySize = 235;
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
@@ -117,6 +120,11 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
                         .tooltip("Inputs OR names")
                         .onTextChange(text -> this.refreshList())
                         .build());
+
+        // Dynamic highlight button pool
+        this.highlightButtonPool = new MUIButtonPool()
+                .setDefaultOnClick(btn -> this.onHighlightClicked(btn));
+        this.addWidget(this.highlightButtonPool);
     }
 
     @Override
@@ -140,8 +148,8 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        this.buttonList.clear();
-        this.guiButtonHashMap.clear();
+        this.highlightButtonPool.reset();
+        this.highlightButtonMap.clear();
 
         this.fontRenderer.drawString(
                 this.getGuiDisplayName(GuiText.InterfaceConfigurationTerminal.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
@@ -156,10 +164,10 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
             final Object lineObj = this.lines.get(currentScroll + x);
             if (lineObj instanceof ClientDCInternalInv inv) {
 
-                GuiButton guiButton = new GuiImgButton(guiLeft + 4, guiTop + offset, Settings.ACTIONS,
-                        ActionItems.HIGHLIGHT_INTERFACE);
-                guiButtonHashMap.put(guiButton, inv);
-                this.buttonList.add(guiButton);
+                // Acquire highlight button from pool (panel-relative coordinates)
+                MUIButtonWidget hlBtn = this.highlightButtonPool.acquireSettings(
+                        4, offset, Settings.ACTIONS, ActionItems.HIGHLIGHT_INTERFACE);
+                highlightButtonMap.put(hlBtn, inv);
 
                 int extraLines = numUpgradesMap.get(inv);
 
@@ -228,31 +236,36 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         super.mouseClicked(xCoord, yCoord, btn);
     }
 
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        if (guiButtonHashMap.containsKey(btn)) {
-            BlockPos blockPos = blockPosHashMap.get(guiButtonHashMap.get(this.selectedButton));
-            BlockPos blockPos2 = mc.player.getPosition();
-            int playerDim = mc.world.provider.getDimension();
-            int interfaceDim = dimHashMap.get(guiButtonHashMap.get(this.selectedButton));
-            if (playerDim != interfaceDim) {
-                try {
-                    mc.player.sendStatusMessage(
-                            PlayerMessages.InterfaceInOtherDimParam.get(interfaceDim,
-                                    DimensionManager.getWorld(interfaceDim).provider.getDimensionType().getName()),
-                            false);
-                } catch (Exception e) {
-                    mc.player.sendStatusMessage(PlayerMessages.InterfaceInOtherDim.get(), false);
-                }
-            } else {
-                hilightBlock(blockPos,
-                        System.currentTimeMillis() + 500 * BlockPosUtils.getDistance(blockPos, blockPos2), playerDim);
-                mc.player.sendStatusMessage(
-                        PlayerMessages.InterfaceHighlighted.get(blockPos.getX(), blockPos.getY(), blockPos.getZ()),
-                        false);
-            }
-            mc.player.closeScreen();
+    /**
+     * Handle highlight button click (from MUIButtonPool onClick callback).
+     * Locates the interface in the world and highlights its block position.
+     */
+    private void onHighlightClicked(MUIButtonWidget btn) {
+        ClientDCInternalInv inv = highlightButtonMap.get(btn);
+        if (inv == null) {
+            return;
         }
+        BlockPos blockPos = blockPosHashMap.get(inv);
+        BlockPos blockPos2 = mc.player.getPosition();
+        int playerDim = mc.world.provider.getDimension();
+        int interfaceDim = dimHashMap.get(inv);
+        if (playerDim != interfaceDim) {
+            try {
+                mc.player.sendStatusMessage(
+                        PlayerMessages.InterfaceInOtherDimParam.get(interfaceDim,
+                                DimensionManager.getWorld(interfaceDim).provider.getDimensionType().getName()),
+                        false);
+            } catch (Exception e) {
+                mc.player.sendStatusMessage(PlayerMessages.InterfaceInOtherDim.get(), false);
+            }
+        } else {
+            hilightBlock(blockPos,
+                    System.currentTimeMillis() + 500 * BlockPosUtils.getDistance(blockPos, blockPos2), playerDim);
+            mc.player.sendStatusMessage(
+                    PlayerMessages.InterfaceHighlighted.get(blockPos.getX(), blockPos.getY(), blockPos.getZ()),
+                    false);
+        }
+        mc.player.closeScreen();
     }
 
     @Override
@@ -311,7 +324,6 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
 
     private void refreshList() {
         this.byName.clear();
-        this.buttonList.clear();
         this.matchedStacks.clear();
         this.matchedInterfaces.clear();
 

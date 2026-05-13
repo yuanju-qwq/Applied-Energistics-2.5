@@ -18,11 +18,7 @@
 
 package appeng.client.mui.screen;
 
-import java.io.IOException;
-
 import org.lwjgl.input.Mouse;
-
-import net.minecraft.client.gui.GuiButton;
 
 import appeng.api.AEApi;
 import appeng.api.config.FullnessMode;
@@ -31,44 +27,51 @@ import appeng.api.config.RedstoneMode;
 import appeng.api.config.Settings;
 import appeng.api.definitions.IDefinitions;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiImgButton;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.container.implementations.ContainerIOPort;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketConfigButton;
 
 /**
- * MUI �?GuiIOPort�?
+ * MUI port of GuiIOPort.
  *
- * IO 端口配置面板：红石模式、满度模式、操作模式�?
+ * IO Port configuration panel: redstone mode, fullness mode, operation mode.
  */
 public class MUIIOPortPanel extends MUIUpgradeablePanel {
 
-    private GuiImgButton fullMode;
-    private GuiImgButton operationMode;
+    private MUIButtonWidget fullMode;
+    private MUIButtonWidget operationMode;
 
     public MUIIOPortPanel(final ContainerIOPort container) {
         super(container);
         this.ySize = 166;
     }
 
-    // ========== 按钮 ==========
+    // ========== Buttons ==========
 
     @Override
     protected void addButtons() {
-        this.redstoneMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 28, Settings.REDSTONE_CONTROLLED,
-                RedstoneMode.IGNORE);
-        this.fullMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 8, Settings.FULLNESS_MODE,
-                FullnessMode.EMPTY);
-        this.operationMode = new GuiImgButton(this.guiLeft + 80, this.guiTop + 17, Settings.OPERATION_MODE,
-                OperationMode.EMPTY);
+        this.redstoneMode = new MUIButtonWidget(-18, 28, Settings.REDSTONE_CONTROLLED, RedstoneMode.IGNORE);
+        this.redstoneMode.setOnClick(btn -> sendConfigButton(btn));
+        this.addWidget(this.redstoneMode);
 
-        this.buttonList.add(this.operationMode);
-        this.buttonList.add(this.redstoneMode);
-        this.buttonList.add(this.fullMode);
+        this.fullMode = new MUIButtonWidget(-18, 8, Settings.FULLNESS_MODE, FullnessMode.EMPTY);
+        this.fullMode.setOnClick(btn -> {
+            final boolean backwards = Mouse.isButtonDown(1);
+            NetworkHandler.instance().sendToServer(new PacketConfigButton(Settings.FULLNESS_MODE, backwards));
+        });
+        this.addWidget(this.fullMode);
+
+        this.operationMode = new MUIButtonWidget(80, 17, Settings.OPERATION_MODE, OperationMode.EMPTY);
+        this.operationMode.setOnClick(btn -> {
+            final boolean backwards = Mouse.isButtonDown(1);
+            NetworkHandler.instance().sendToServer(new PacketConfigButton(Settings.OPERATION_MODE, backwards));
+        });
+        this.addWidget(this.operationMode);
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
@@ -100,21 +103,5 @@ public class MUIIOPortPanel extends MUIUpgradeablePanel {
     @Override
     protected String getBackground() {
         return "guis/io_port.png";
-    }
-
-    // ========== 按钮事件 ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        final boolean backwards = Mouse.isButtonDown(1);
-
-        if (btn == this.fullMode) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(this.fullMode.getSetting(), backwards));
-        }
-        if (btn == this.operationMode) {
-            NetworkHandler.instance().sendToServer(new PacketConfigButton(this.operationMode.getSetting(), backwards));
-        }
     }
 }

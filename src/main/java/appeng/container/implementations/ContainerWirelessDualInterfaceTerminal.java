@@ -110,7 +110,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  * 布局说明：
  * - 接口终端数据同步：由父类 ContainerInterfaceTerminal 的 detectAndSendChanges 处理
  * - 无线终端管理：由父类 ContainerWirelessInterfaceTerminal 的 detectAndSendChanges 处理
- * - 样板编写：本类内嵌的 crafting/output/pattern 槽位（crafting/output 使用虚拟槽位同步）
+ * - 样板编写：本类内嵌的 crafting/output/pattern 槽位（crafting/output 使用Virtual slot同步）
  * - ME物品浏览：通过 IMEMonitorHandlerReceiver 监控 AE 网络库存变化
  */
 @SuppressWarnings("unchecked")
@@ -210,7 +210,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         this.clientCM.registerSetting(Settings.VIEW_MODE, ViewItems.ALL);
         this.clientCM.registerSetting(Settings.SORT_DIRECTION, SortDir.ASCENDING);
 
-        // 初始化样板编写的物品栈（泛型 AE 栈库存，支持虚拟槽位同步）
+        // 初始化样板编写的物品栈（泛型 AE 栈库存，支持Virtual slot同步）
         this.crafting = new IAEStackInventory(this, PROCESSING_INPUT_SLOTS, StorageName.CRAFTING_INPUT);
         this.patternOutput = new IAEStackInventory(this, TOTAL_OUTPUT_SLOTS, StorageName.CRAFTING_OUTPUT);
         this.patternSlots = new AppEngInternalInventory(this, 2);
@@ -428,7 +428,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         return null;
     }
 
-    // ========== IVirtualSlotHolder 接口实现（客户端接收虚拟槽位数据） ==========
+    // ========== IVirtualSlotHolder 接口实现（客户端接收Virtual slot数据） ==========
 
     @Override
     public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
@@ -445,7 +445,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         }
     }
 
-    // ========== IVirtualSlotSource 接口实现（服务端接收客户端虚拟槽位更新） ==========
+    // ========== IVirtualSlotSource 接口实现（服务端接收客户端Virtual slot更新） ==========
 
     @Override
     public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
@@ -922,7 +922,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
      * 位掩码参数：
      *   bit 0 = shift（快速模式：×8/÷8，否则 ×2/÷2）
      *   bit 1 = 右键（反向/除法）
-     * 仅在处理模式下生效。
+     * Only effective in processing mode.
      *
      * @param val 位掩码参数
      */
@@ -1519,9 +1519,9 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         super.detectAndSendChanges();
 
         if (Platform.isServer()) {
-            // 虚拟槽位同步：crafting 输入
+            // Virtual slot同步：crafting 输入
             this.updateVirtualSlots(StorageName.CRAFTING_INPUT, this.crafting, this.craftingClientSlots);
-            // 虚拟槽位同步：pattern 输出
+            // Virtual slot同步：pattern 输出
             this.updateVirtualSlots(StorageName.CRAFTING_OUTPUT, this.patternOutput, this.outputClientSlots);
 
             // ME 网络库存同步

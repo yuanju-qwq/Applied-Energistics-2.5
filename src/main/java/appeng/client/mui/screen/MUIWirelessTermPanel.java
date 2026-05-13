@@ -22,7 +22,7 @@ package appeng.client.mui.screen;
  * MUI 无线终端面板的标记接口。
  * <p>
  * 用于 {@link MUIMEMonitorablePanel} 中的 {@code instanceof} 检查，
- * 以决定是否显示合成状态按钮、视图模式按钮和终端样式按钮。
+ * 以决定是否显示Crafting status按钮、视图模式按钮和终端样式按钮。
  * <p>
  * 将在后续无线终端移植任务中由具体实现类使用。
  */

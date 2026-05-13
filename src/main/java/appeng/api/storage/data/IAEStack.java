@@ -49,10 +49,10 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
     void add(T is);
 
     /**
-     * 通配符安全的 add 操作。
+     * Wildcard-safe add operation.
      * <p>
-     * 当调用方持有 {@code IAEStack<?>} 时使用此方法以避免 raw type cast。
-     * 调用方负责确保传入的栈类型匹配。
+     * Use this method when the caller holds an {@code IAEStack<?>} to avoid raw type cast.
+     * The caller is responsible for ensuring that the stack type matches.
      */
     @SuppressWarnings("unchecked")
     default void addGeneric(final IAEStack<?> is) {
@@ -84,10 +84,10 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
     boolean isMeaningful();
 
     /**
-     * 判断两个同类型的栈是否代表同种物品/流体（忽略数量）。
+     * Determine whether two stacks of the same type represent the same item/fluid (ignoring quantity).
      *
-     * @param other 另一个栈
-     * @return 如果两个栈类型和标识相同则为 true
+     * @param other the other stack
+     * @return true if both stacks have the same type and identity
      */
     boolean isSameType(T other);
 
@@ -164,7 +164,7 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
     ItemStack asItemStackRepresentation();
 
     /**
-     * @return 此栈对应的 {@link IAEStackType} 实例
+     * @return the {@link IAEStackType} instance corresponding to this stack
      */
     IAEStackType<T> getStackType();
 
@@ -174,9 +174,9 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
     }
 
     /**
-     * 将栈（含类型标识）写入 NBT。
+     * Write the stack (including type identifier) to NBT.
      *
-     * @param tag 写入目标
+     * @param tag the target to write to
      */
     default void writeToNBTGeneric(@Nonnull NBTTagCompound tag) {
         tag.setString("StackType", this.getStackType().getId());
@@ -184,7 +184,7 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
     }
 
     /**
-     * @return 一个包含类型标识的 NBT
+     * @return an NBT compound containing the type identifier
      */
     @Nonnull
     default NBTTagCompound toNBTGeneric() {
@@ -195,10 +195,10 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
     }
 
     /**
-     * 从包含 StackType 键的 NBT 中反序列化栈。
+     * Deserialize a stack from an NBT compound containing the StackType key.
      *
-     * @param tag 包含 "StackType" 键的 NBT
-     * @return 反序列化的栈，如果 tag 为空或类型未注册则返回 null
+     * @param tag NBT compound containing the "StackType" key
+     * @return the deserialized stack, or null if the tag is empty or the type is not registered
      */
     @Nullable
     static IAEStack<?> fromNBTGeneric(@Nonnull NBTTagCompound tag) {
@@ -221,10 +221,10 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
     }
 
     /**
-     * 将栈（含类型网络 ID）写入网络包。
+     * Write the stack (including type network ID) to a network packet.
      *
-     * @param buffer 写入目标
-     * @param stack  要写入的栈，可以为 null
+     * @param buffer the target to write to
+     * @param stack  the stack to write, may be null
      */
     static void writeToPacketGeneric(@Nonnull ByteBuf buffer, @Nullable IAEStack<?> stack) throws IOException {
         if (stack == null) {
@@ -236,10 +236,10 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
     }
 
     /**
-     * 从网络包中读取一个带类型标识的栈。
+     * Read a typed stack from a network packet.
      *
-     * @param buffer 读取源
-     * @return 反序列化的栈，或 null
+     * @param buffer the source to read from
+     * @return the deserialized stack, or null
      */
     @Nullable
     static IAEStack<?> fromPacketGeneric(@Nonnull ByteBuf buffer) throws IOException {

@@ -110,14 +110,14 @@ public class InterfaceLogic
         IConfigManagerHost, IUpgradeableHost, IAEFluidInventory,
         IIAEStackInventory, InterfaceSlotContext {
 
-    // ========== 常量 ==========
+    // ========== Constants ==========
     public static final int NUMBER_OF_CONFIG_SLOTS = 18;
     public static final int SLOTS_PER_ROW = 9;
     public static final int TANK_CAPACITY = Fluid.BUCKET_VOLUME * 4;
 
-    // ========== 字段 ==========
+    // ========== Fields ==========
 
-    // --- 核心引用 ---
+    // --- Core references ---
     private final AENetworkProxy gridProxy;
     private final IInterfaceLogicHost iHost;
     private final IActionSource mySource;
@@ -145,7 +145,7 @@ public class InterfaceLogic
     // --- Capability ---
     private final IStorageMonitorableAccessor accessor = this::getMonitorable;
 
-    // --- 升级 ---
+    // --- Upgrades ---
     private final UpgradeInventory upgrades;
 
     // --- 合成跟踪（用于 Config 中带 Crafting 升级的自动合成请求，仅物品） ---
@@ -165,7 +165,7 @@ public class InterfaceLogic
     private boolean resetFluidConfigCache = true;
     private IMEMonitor<IAEFluidStack> fluidConfigCachedHandler;
 
-    // ========== 构造 ==========
+    // ========== Construction ==========
 
     public InterfaceLogic(final AENetworkProxy networkProxy, final IInterfaceLogicHost host) {
         this.gridProxy = networkProxy;
@@ -229,7 +229,7 @@ public class InterfaceLogic
         return null;
     }
 
-    // ========== NBT 读写 ==========
+    // ========== NBT read/write ==========
 
     public void writeToNBT(final NBTTagCompound data) {
         this.config.writeToNBT(data, "config");
@@ -752,7 +752,7 @@ public class InterfaceLogic
         }
     }
 
-    // ========== 掉落物 ==========
+    // ========== Drops ==========
 
     public void addDrops(final List<ItemStack> drops) {
         for (final ItemStack is : this.upgrades) {
