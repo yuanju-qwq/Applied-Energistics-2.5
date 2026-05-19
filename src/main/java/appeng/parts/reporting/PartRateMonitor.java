@@ -186,7 +186,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
             return false;
         }
 
-        // 鏇存柊蹇収锛堝叧閿細鍒╃敤鐜╁浜や簰瑙﹀彂鏃堕棿妫€鏌ワ級
+        // Update snapshots (key: use player interaction to trigger time check)
         this.updateSnapshots();
 
         final ItemStack held = player.getHeldItem(hand);
@@ -225,10 +225,10 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
             return false;
         }
 
-        // 鏇存柊蹇収锛堢‘淇濆垏鎹㈡椂鏁版嵁鏈€鏂帮級
+        // Update snapshots (ensure data is up-to-date when switching)
         this.updateSnapshots();
 
-        // 鍒囨崲鏃堕棿鍗曚綅锛堢Щ闄ら攣瀹氶€昏緫锛?
+        // Switch time unit
         this.timeUnit = this.timeUnit.next();
 
         this.getHost().markForUpdate();
@@ -236,7 +236,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     }
 
     /**
-     * 娓呯┖閰嶇疆骞堕噸缃揩鐓?
+     * Clear configuration and reset snapshots.
      */
     private void clearConfiguration() {
         this.configured = null;
@@ -245,7 +245,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     }
 
     /**
-     * 閲嶇疆鎵€鏈夊揩鐓т负褰撳墠鏁伴噺鍜屾椂闂?
+     * Reset all snapshots to current amount and time.
      */
     private void resetSnapshots() {
         final long now = this.getWorldTime();
@@ -258,7 +258,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     }
 
     /**
-     * 鏍规嵁涓栫晫鏃堕棿鏇存柊蹇収锛堟牳蹇冮€昏緫锛氭棤 tick 渚濊禆锛?
+     * Update snapshots based on world time (core logic: no tick dependency).
      */
     private void updateSnapshots() {
         final long now = this.getWorldTime();
@@ -266,7 +266,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
         final boolean minuteElapsed = now - this.lastMinuteTime >= TICKS_PER_MINUTE;
         final boolean hourElapsed = now - this.lastHourTime >= TICKS_PER_HOUR;
 
-        // 浠呭綋鏃堕棿闃堝€艰揪鍒版椂鏇存柊瀵瑰簲蹇収
+        // Only update corresponding snapshot when time threshold is reached
         if (secondElapsed) {
             this.lastSecondAmount = this.currentAmount;
             this.lastSecondTime = now;
@@ -298,7 +298,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     }
 
     /**
-     * 鏇存柊褰撳墠搴撳瓨鏁伴噺
+     * Update current inventory amount.
      */
     @SuppressWarnings("unchecked")
     private <T extends IAEStack<T>> void updateCurrentAmount() {
@@ -409,7 +409,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
 
     @Override
     public IPartModel getStaticModels() {
-        // 缁熶竴妯″瀷锛屼笉鍖哄垎鏃堕棿鍗曚綅
+        // Unified model, no distinction by time unit
         if (!this.isActive()) {
             return MODELS_OFF;
         } else if (!this.isPowered()) {

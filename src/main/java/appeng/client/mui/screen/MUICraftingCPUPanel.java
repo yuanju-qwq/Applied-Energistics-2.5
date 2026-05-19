@@ -40,7 +40,7 @@ import appeng.api.config.SortOrder;
 import appeng.api.config.ViewItems;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AEColor;
-import appeng.client.gui.widgets.GuiScrollbar;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.gui.widgets.ISortSource;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEBasePanelGuiHandler;
@@ -137,7 +137,7 @@ public class MUICraftingCPUPanel extends AEBasePanel
         this.ySize = GUI_HEIGHT;
         this.xSize = GUI_WIDTH;
 
-        final GuiScrollbar scrollbar = new GuiScrollbar();
+        final MUIScrollBar scrollbar = new MUIScrollBar();
         this.setScrollBar(scrollbar);
     }
 

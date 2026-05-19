@@ -37,7 +37,7 @@ import appeng.api.config.Settings;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
-import appeng.client.gui.widgets.GuiScrollbar;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.mui.AEBaseMEPanel;
 import appeng.client.mui.module.InterfaceListModule;
 import appeng.client.mui.module.MEItemBrowserModule;
@@ -97,7 +97,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         this.configSrc = ((IConfigurableObject) this.inventorySlots).getConfigManager();
         container.setMeGui(this);
 
-        final GuiScrollbar scrollbar = new GuiScrollbar();
+        final MUIScrollBar scrollbar = new MUIScrollBar();
         this.setScrollBar(scrollbar);
 
         this.xSize = MAIN_GUI_WIDTH;
@@ -187,6 +187,14 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     // --- IMEInventoryUpdateReceiver ---
 
     @Override
+    public void postRepoEntryUpdate(final List<ItemRepo.RepoEntry> entries) {
+        if (this.meItemBrowserModule != null) {
+            this.meItemBrowserModule.postRepoEntryUpdate(entries);
+        }
+    }
+
+    @Override
+    @Deprecated
     public void postUpdate(final List<IAEStack<?>> list) {
         if (this.meItemBrowserModule != null) {
             this.meItemBrowserModule.postUpdate(list);
@@ -434,7 +442,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     }
 
     @Override
-    public GuiScrollbar getInterfaceScrollBar() {
+    public MUIScrollBar getInterfaceScrollBar() {
         return this.getScrollBar();
     }
 

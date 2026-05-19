@@ -39,7 +39,7 @@ import appeng.api.definitions.IDefinitions;
 import appeng.api.definitions.IParts;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.client.gui.widgets.GuiScrollbar;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.mui.widgets.MUITabContainer;
 import appeng.container.implementations.ContainerCraftingStatus;
 import appeng.container.implementations.CraftingCPUStatus;
@@ -79,7 +79,7 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
 
     private final ContainerCraftingStatus status;
     private GuiButton selectCPU;
-    private GuiScrollbar cpuScrollbar;
+    private MUIScrollBar cpuScrollbar;
 
     private MUITabContainer originalGuiBtn;
     private AEGuiKey originalGui;
@@ -139,7 +139,7 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
         this.selectCPU.enabled = false;
         this.buttonList.add(this.selectCPU);
 
-        this.cpuScrollbar = new GuiScrollbar();
+        this.cpuScrollbar = new MUIScrollBar();
         this.cpuScrollbar.setLeft(-16);
         this.cpuScrollbar.setTop(19);
         this.cpuScrollbar.setWidth(12);

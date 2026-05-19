@@ -516,7 +516,8 @@ public class ContainerFluidTerminal extends AEBaseContainer
     }
 
     /**
-     * Client-side handler for {@link appeng.core.sync.packets.PacketMEGenericStackUpdate}.
+     * Client-side handler for GenericStack format inventory updates.
+     * TODO: Migrate GUI to accept RepoEntry directly, then eliminate this IAEStack bridge.
      * Converts GenericStack list to IAEStack and delegates to the legacy method.
      */
     public void postGenericStackUpdate(final List<GenericStack> list) {

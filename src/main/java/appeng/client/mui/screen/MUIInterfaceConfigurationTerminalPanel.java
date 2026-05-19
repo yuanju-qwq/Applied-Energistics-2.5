@@ -41,7 +41,7 @@ import mezz.jei.api.gui.IGhostIngredientHandler;
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiScrollbar;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
@@ -100,7 +100,7 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
     public MUIInterfaceConfigurationTerminalPanel(final ContainerInterfaceConfigurationTerminal container) {
         super(container);
 
-        final GuiScrollbar scrollbar = new GuiScrollbar();
+        final MUIScrollBar scrollbar = new MUIScrollBar();
         this.setScrollBar(scrollbar);
         this.xSize = 208;
         this.ySize = 235;

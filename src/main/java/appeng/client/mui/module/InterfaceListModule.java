@@ -43,7 +43,7 @@ import net.minecraftforge.common.util.Constants;
 
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
-import appeng.client.gui.widgets.GuiScrollbar;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
@@ -108,7 +108,7 @@ public class InterfaceListModule {
 
         FontRenderer getFontRenderer();
 
-        GuiScrollbar getInterfaceScrollBar();
+        MUIScrollBar getInterfaceScrollBar();
 
         /**
          * Register an MUI widget on the host panel.
@@ -339,7 +339,7 @@ public class InterfaceListModule {
     // ========== Scrolling ==========
 
     public void updateScrollBar() {
-        GuiScrollbar sb = host.getInterfaceScrollBar();
+        MUIScrollBar sb = host.getInterfaceScrollBar();
         sb.setTop(52).setLeft(189).setHeight(this.rows * 18 - 2);
         sb.setRange(0, this.lines.size() - 1, 1);
     }

@@ -42,7 +42,7 @@ import appeng.api.config.ItemSubstitution;
 import appeng.api.config.Settings;
 import appeng.client.gui.slots.VirtualMEPatternSlot;
 import appeng.client.gui.widgets.GuiImgButton;
-import appeng.client.gui.widgets.GuiScrollbar;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.gui.widgets.GuiTabButton;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.mui.AEMUITheme;
@@ -172,9 +172,9 @@ public class PatternEncodingModule {
     private GuiImgButton doubleBtn;
 
     // Scrollbars
-    private final GuiScrollbar processingInputScrollbar;
+    private final MUIScrollBar processingInputScrollbar;
     private int processingInputPage = 0;
-    private final GuiScrollbar processingScrollBar;
+    private final MUIScrollBar processingScrollBar;
 
     // Virtual slots: crafting input and pattern output
     private VirtualMEPatternSlot[] craftingVirtualSlots;
@@ -190,8 +190,8 @@ public class PatternEncodingModule {
 
     public PatternEncodingModule(Host host) {
         this.host = host;
-        this.processingInputScrollbar = new GuiScrollbar();
-        this.processingScrollBar = new GuiScrollbar();
+        this.processingInputScrollbar = new MUIScrollBar();
+        this.processingScrollBar = new MUIScrollBar();
     }
 
     // ========== Accessors ==========
@@ -212,11 +212,11 @@ public class PatternEncodingModule {
         return PATTERN_PANEL_TOTAL_HEIGHT;
     }
 
-    public GuiScrollbar getProcessingInputScrollbar() {
+    public MUIScrollBar getProcessingInputScrollbar() {
         return processingInputScrollbar;
     }
 
-    public GuiScrollbar getProcessingScrollBar() {
+    public MUIScrollBar getProcessingScrollBar() {
         return processingScrollBar;
     }
 

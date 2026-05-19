@@ -141,15 +141,15 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
     }
 
     /**
-     * 鍒囨崲 ViewCell 鐨勫惎鐢?绂佺敤鐘舵€併€?
-     * 绂佺敤鏃讹紝姝?ViewCell 鐨勮繃婊よ鍒欎笉鐢熸晥銆?
+     * Toggle the ViewCell enabled/disabled state.
+     * When disabled, this ViewCell's filter rules do not take effect.
      */
     public void toggleViewMode(final ItemStack is) {
         appeng.util.ItemStackNbtHelper.openNbtData(is).setBoolean("ViewMode", !getViewMode(is));
     }
 
     /**
-     * @return ViewCell 鏄惁澶勪簬鍚敤鐘舵€侊紙榛樿 true锛?
+     * @return whether the ViewCell is in enabled state (default true)
      */
     public boolean getViewMode(final ItemStack is) {
         if (appeng.util.ItemStackNbtHelper.openNbtData(is).hasKey("ViewMode")) {

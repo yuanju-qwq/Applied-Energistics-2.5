@@ -21,9 +21,7 @@ package appeng.client.mui.screen;
 import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -35,34 +33,32 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import appeng.api.config.ActionItems;
-import appeng.api.config.PinSectionOrder;
 import appeng.api.config.PinsRows;
-import appeng.api.config.SearchBoxMode;
 import appeng.api.config.Settings;
-import appeng.api.config.TerminalStyle;
 import appeng.api.config.YesNo;
 import appeng.api.implementations.guiobjects.IPortableCell;
-import appeng.api.storage.data.AEStackTypeRegistry;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.implementations.tiles.IMEChest;
 import appeng.api.implementations.tiles.IViewCellStorage;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
-import appeng.client.mui.AEMUITheme;
 import appeng.client.ActionKey;
 import appeng.client.gui.slots.VirtualMEMonitorableSlot;
 import appeng.client.gui.slots.VirtualMEPinSlot;
-import appeng.client.gui.widgets.*;
+import appeng.client.gui.widgets.GuiCustomSlot;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.me.InternalSlotME;
 import appeng.client.me.ItemRepo;
 import appeng.client.me.SlotME;
 import appeng.client.mui.AEBaseMEPanel;
-import appeng.client.mui.widgets.MUIButtonWidget;
-import appeng.client.mui.widgets.MUITabContainer;
+import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.AEMUITheme;
+import appeng.client.mui.module.TerminalPinSystem;
+import appeng.client.mui.module.TerminalToolbar;
 import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerMEMonitorable;
@@ -74,12 +70,8 @@ import appeng.core.AEConfig;
 import appeng.core.AELog;
 import appeng.core.AppEng;
 import appeng.core.localization.GuiText;
-import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
-import appeng.core.sync.packets.PacketPinsUpdate;
-import appeng.core.sync.packets.PacketSwitchGuis;
-import appeng.core.sync.packets.PacketValueConfig;
 import appeng.helpers.InventoryAction;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.parts.reporting.AbstractPartTerminal;
@@ -88,22 +80,18 @@ import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 
 /**
- * MUI ME terminal panel.
+ * MUI ME terminal panel — base class for all terminals.
  * <p>
- * This is the base class for all terminals (crafting terminal, pattern terminal, etc.).
- * <p>
- *   <li>Search field (supports auto-focus, JEI sync, regex search, remembered search)</li>
+ * Delegates complex subsystems to:
  * <ul>
- *   <li>Type filter toggle buttons (items, fluids, etc.)</li>
- *   <li>搜索框（支持自动聚焦、JEI同步、正则搜索、记忆搜索）</li>
- *   <li>排序/视图/搜索模式/终端样式按钮</li>
- *   <li>Dynamic slot repositioning</li>
- *   <li>ViewCell 支持</li>
- *   <li>Shift+hover pause updates</li>
- *   <li>Dynamic slot repositioning</li>
- *   <li>VirtualMEMonitorableSlot scroll wheel interaction</li>
- *   <li>Shift+悬停暂停更新</li>
+ *   <li>{@link TerminalToolbar} — settings buttons, type filter toggles (AEKeyType-based),
+ *       pins button, crafting status tab</li>
+ *   <li>{@link TerminalPinSystem} — pin row calculation, VirtualMEPinSlot creation,
+ *       pin interactions</li>
  * </ul>
+ * <p>
+ * Subclasses: crafting terminal, pattern terminal, wireless terminals,
+ * portable cell, security station, expanded processing pattern terminal.
  */
 @SideOnly(Side.CLIENT)
 public class MUIMEMonitorablePanel extends AEBaseMEPanel
@@ -115,12 +103,9 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     private static int craftingGridOffsetY;
     private static String memoryText = "";
 
-    // ========== Constants ==========
+    // ========== Layout constants ==========
 
-    // So mysterious, so magic.
     private static final int MAGIC_HEIGHT_NUMBER = 114 + 1;
-
-    // ========== Terminal search field constants ==========
 
     private static final int SEARCH_FIELD_X_MIN = 80;
     private static final int SEARCH_FIELD_Y = 4;
@@ -129,49 +114,32 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     private static final int SEARCH_FIELD_MAX_LENGTH = 50;
     private static final int SEARCH_FIELD_SELECTION_COLOR = 0xFF008000;
 
-    // ========== 数据字段 ==========
+    // ========== Core data ==========
 
     protected final ItemRepo repo;
-    private final int offsetX = 9;
-    private final int lowerTextureOffset = 0;
     private final IConfigManager configSrc;
     private final boolean viewCell;
     private final ItemStack[] myCurrentViewCells = new ItemStack[5];
     private final ContainerMEMonitorable monitorableContainer;
 
-    // ========== UI controls ==========
+    // ========== Extracted modules ==========
 
-    private MUITabContainer craftingStatusBtn;
-    private MUITextFieldWidget searchField;
+    private final TerminalToolbar toolbar;
+    private final TerminalPinSystem pinSystem;
+
+    // ========== Terminal state ==========
+
     private GuiText myName;
-    private int perRow = 9;
-    private int reservedSpace = 0;
-    private boolean customSortOrder = true;
-    private int rows = 0;
-    private MUIButtonWidget viewBox;
-    private MUIButtonWidget sortByBox;
-    private MUIButtonWidget sortDirBox;
-    private MUIButtonWidget searchBoxSettings;
-    private MUIButtonWidget terminalStyleBox;
-    private MUIButtonWidget pinsStateButton;
+    private MUITextFieldWidget searchField;
+    protected int perRow = 9;
+    protected int reservedSpace = 0;
+    protected boolean customSortOrder = true;
+    protected int rows = 0;
     private boolean isAutoFocus = false;
     private int currentMouseX = 0;
     private int currentMouseY = 0;
     private boolean delayedUpdate;
 
-    // ========== Pin system ==========
-
-    private PinsRows craftingPinsRows = PinsRows.DISABLED;
-    private PinsRows playerPinsRows = PinsRows.DISABLED;
-    private VirtualMEPinSlot[] pinSlots = null;
-    private int totalPinRows = 0;
-
-    // Type filter toggle buttons (one per IAEStackType)
-    private final List<TypeToggleButton> typeToggleButtons = new ArrayList<>();
-    // Per-type enabled state cache
-    private final Map<IAEStackType<?>, Boolean> enabledTypes = new HashMap<>();
-
-    // To make JEI look nicer. Otherwise, the buttons will make JEI in a strange place.
     protected final int jeiOffset = Platform.isJEIEnabled() ? 24 : 0;
 
     // ========== Constructor ==========
@@ -180,21 +148,15 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         this(inventoryPlayer, te, new ContainerMEMonitorable(inventoryPlayer, te));
     }
 
-    /**
-     * Constructs via Container instance only; host is obtained from the container.
-     * Used by subclasses (e.g. MUISecurityStationPanelImpl, MUIMEPortableCellPanelImpl)
-     * that need to create a Container first before passing it to the panel.
-     */
     protected MUIMEMonitorablePanel(final ContainerMEMonitorable c) {
         this(c.getPlayerInv(), c.getHost(), c);
     }
 
     public MUIMEMonitorablePanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te,
             final ContainerMEMonitorable c) {
-
         super(c);
 
-        final GuiScrollbar scrollbar = new GuiScrollbar();
+        final MUIScrollBar scrollbar = new MUIScrollBar();
         this.setScrollBar(scrollbar);
         this.repo = new ItemRepo(scrollbar, this);
 
@@ -206,7 +168,8 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         }
 
         this.configSrc = ((IConfigurableObject) this.inventorySlots).getConfigManager();
-        (this.monitorableContainer = (ContainerMEMonitorable) this.inventorySlots).setGui(this);
+        this.monitorableContainer = (ContainerMEMonitorable) this.inventorySlots;
+        this.monitorableContainer.setGui(this);
         this.monitorableContainer.setPinsUpdateCallback(this::onPinsUpdated);
 
         this.viewCell = te instanceof IViewCellStorage;
@@ -222,6 +185,135 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         } else if (te instanceof AbstractPartTerminal) {
             this.myName = GuiText.Terminal;
         }
+
+        this.pinSystem = new TerminalPinSystem(new PinSystemHost());
+        this.toolbar = new TerminalToolbar(new ToolbarHost());
+    }
+
+    // ========== Host implementations ==========
+
+    private final class PinSystemHost implements TerminalPinSystem.Host {
+        @Override
+        public ContainerMEMonitorable getMonitorableContainer() {
+            return monitorableContainer;
+        }
+
+        @Override
+        public ItemRepo getRepo() {
+            return repo;
+        }
+
+        @Override
+        public int getRows() {
+            return rows;
+        }
+
+        @Override
+        public int getPerRow() {
+            return perRow;
+        }
+
+        @Override
+        public int getOffsetX() {
+            return offsetX;
+        }
+
+        @Override
+        public List<GuiCustomSlot> getGuiSlots() {
+            return guiSlots;
+        }
+
+        @Override
+        public net.minecraft.client.gui.FontRenderer getFontRenderer() {
+            return fontRenderer;
+        }
+
+        @Override
+        public boolean isPointInRegion(int x, int y, int w, int h, int mx, int my) {
+            return MUIMEMonitorablePanel.this.isPointInRegion(x, y, w, h, mx, my);
+        }
+
+        @Override
+        public void sendPinRowsUpdatePacket(PinsRows crafting, PinsRows player) {
+            MUIMEMonitorablePanel.this.sendPinRowsUpdate(crafting, player);
+        }
+
+        @Override
+        public void reinitializeGui() {
+            MUIMEMonitorablePanel.this.reinitalize();
+        }
+    }
+
+    private final class ToolbarHost implements TerminalToolbar.Host {
+        @Override
+        public IConfigManager getConfigManager() {
+            return configSrc;
+        }
+
+        @Override
+        public ItemRepo getRepo() {
+            return repo;
+        }
+
+        @Override
+        public AEBasePanel getPanel() {
+            return MUIMEMonitorablePanel.this;
+        }
+
+        @Override
+        public boolean hasViewCell() {
+            return viewCell;
+        }
+
+        @Override
+        public boolean isWirelessTerm() {
+            return MUIMEMonitorablePanel.this instanceof MUIWirelessTermPanel;
+        }
+
+        @Override
+        public boolean isPortableCell() {
+            return MUIMEMonitorablePanel.this instanceof MUIPortableCellPanel;
+        }
+
+        @Override
+        public boolean isSecurityStation() {
+            return MUIMEMonitorablePanel.this instanceof MUISecurityStationPanel;
+        }
+
+        @Override
+        public int getJeiOffset() {
+            return jeiOffset;
+        }
+
+        @Override
+        public int getGuiLeft() {
+            return guiLeft;
+        }
+
+        @Override
+        public int getGuiTop() {
+            return guiTop;
+        }
+
+        @Override
+        public int getRows() {
+            return rows;
+        }
+
+        @Override
+        public void reinitializeGui() {
+            MUIMEMonitorablePanel.this.reinitalize();
+        }
+
+        @Override
+        public void updateScrollBar() {
+            MUIMEMonitorablePanel.this.updateScrollBar();
+        }
+
+        @Override
+        public TerminalPinSystem getPinSystem() {
+            return pinSystem;
+        }
     }
 
     // ========== IMEMonitorableGuiCallback ==========
@@ -231,7 +323,6 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         for (final ItemRepo.RepoEntry entry : entries) {
             this.repo.postUpdate(entry);
         }
-
         handlePostUpdatePauseAndRefresh();
     }
 
@@ -240,13 +331,9 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         for (final IAEStack<?> is : list) {
             this.repo.postUpdate(is);
         }
-
         handlePostUpdatePauseAndRefresh();
     }
 
-    /**
-     * Common logic for pause-when-shift and view refresh after postUpdate/postRepoEntryUpdate.
-     */
     private void handlePostUpdatePauseAndRefresh() {
         final boolean pauseEnabled = AEConfig.instance().getConfigManager()
                 .getSetting(Settings.PAUSE_WHEN_HOLDING_SHIFT) == YesNo.YES;
@@ -278,62 +365,27 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     public void initGui() {
-
         final int jeiSearchOffset = Platform.isJEICenterSearchBarEnabled() ? 40 : 0;
         final int maxScreenRows = (int) Math
                 .floor((double) (this.height - MAGIC_HEIGHT_NUMBER - this.reservedSpace - jeiSearchOffset) / 18);
 
         this.rows = computeTerminalRows(maxScreenRows);
-
         this.rows = Math.min(this.rows, this.getMaxRows());
         this.rows = Math.max(this.rows, this.getMinRows());
 
-        // ========== Pin rows calculation ==========
-        this.syncPinRowsFromContainer();
-        int craftingRows = Math.min(this.craftingPinsRows.ordinal(), 16);
-        int playerRows = Math.min(this.playerPinsRows.ordinal(), 16);
-        int pinMaxSize = Math.max(0, this.rows - 1);
-        int totalRequested = craftingRows + playerRows;
-        if (totalRequested > pinMaxSize) {
-            if (playerRows > pinMaxSize) {
-                playerRows = pinMaxSize;
-                craftingRows = 0;
-            } else {
-                craftingRows = Math.min(craftingRows, pinMaxSize - playerRows);
-            }
-        }
-        this.totalPinRows = craftingRows + playerRows;
-        int normalSlotRows = Math.max(0, this.rows - this.totalPinRows);
+        // --- Pin system: sync & calculate ---
+        this.pinSystem.syncFromContainer();
+        int normalSlotOffsetY = this.pinSystem.calculateAndCreateSlots();
+        int normalSlotRows = Math.max(0, this.rows - this.pinSystem.getTotalPinRows());
 
-        // ========== Pin slots creation ==========
-        this.pinSlots = new VirtualMEPinSlot[this.totalPinRows * this.perRow];
-        final boolean playerFirst = this.monitorableContainer.getClientPinSectionOrder()
-                == PinSectionOrder.PLAYER_FIRST;
-        int slotIdx = 0;
-        int firstRows = playerFirst ? playerRows : craftingRows;
-        int secondRows = playerFirst ? craftingRows : playerRows;
-        boolean firstIsCrafting = !playerFirst;
-        slotIdx = createPinSection(slotIdx, firstRows, this.perRow, 0, firstIsCrafting);
-        slotIdx = createPinSection(slotIdx, secondRows, this.perRow, firstRows, !firstIsCrafting);
-
-        // ========== Normal ME slots ==========
-        int normalSlotOffsetY = 18 + this.totalPinRows * 18;
-        this.getMeSlots().clear();
-        for (int y = 0; y < normalSlotRows; y++) {
-            for (int x = 0; x < this.perRow; x++) {
-                this.getMeSlots()
-                        .add(new InternalSlotME(this.repo, x + y * this.perRow,
-                                this.offsetX + x * 18, normalSlotOffsetY + y * 18));
-            }
-        }
+        // --- Normal ME slots ---
+        clearAndBuildInternalSlots(normalSlotRows, normalSlotOffsetY);
 
         super.initGui();
 
-        // Rebuild virtual GUI slots (pin slots + normal slots)
+        // --- Register pin + normal virtual slots ---
         this.guiSlots.removeIf(s -> s instanceof VirtualMEMonitorableSlot || s instanceof VirtualMEPinSlot);
-        for (VirtualMEPinSlot pinSlot : this.pinSlots) {
-            this.guiSlots.add(pinSlot);
-        }
+        this.pinSystem.registerToGuiSlots();
         for (int y = 0; y < normalSlotRows; y++) {
             for (int x = 0; x < this.perRow; x++) {
                 final int idx = x + y * this.perRow;
@@ -345,33 +397,10 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         this.ySize = MAGIC_HEIGHT_NUMBER + this.rows * 18 + this.reservedSpace;
         this.centerVertically();
 
-        // Type filter toggle buttons (still using legacy buttonList — not yet migrated to MUI)
-        this.typeToggleButtons.clear();
-        if (AEStackTypeRegistry.getAllTypes().size() > 1) {
-            int typeButtonX = this.guiLeft - 18;
-            // Calculate the Y offset: after all settings buttons
-            int settingsButtonCount = 0;
-            if (this.customSortOrder) {
-                settingsButtonCount++;
-            }
-            if (this.viewCell || this instanceof MUIWirelessTermPanel) {
-                settingsButtonCount++;
-            }
-            settingsButtonCount += 2; // sort direction + search mode (always present)
-            if (!(this instanceof MUIPortableCellPanel) || this instanceof MUIWirelessTermPanel) {
-                settingsButtonCount++;
-            }
-            int typeOffset = this.guiTop + 8 + jeiOffset + settingsButtonCount * 20;
-            for (IAEStackType<?> type : AEStackTypeRegistry.getSortedTypes()) {
-                TypeToggleButton btn = new TypeToggleButton(typeButtonX, typeOffset, type);
-                btn.setTypeEnabled(this.enabledTypes.getOrDefault(type, true));
-                this.typeToggleButtons.add(btn);
-                this.buttonList.add(btn);
-                typeOffset += 18;
-            }
-        }
+        // --- Position type filter buttons (after guiTop is finalized) ---
+        this.toolbar.positionTypeFilterButtons();
 
-        // Search mode configuration (applied via unified TerminalSearchConfig)
+        // --- Search mode configuration ---
         final MUITextFieldWidget.TerminalSearchConfig searchConfig =
                 MUITextFieldWidget.TerminalSearchConfig.fromCurrentSetting();
         this.isAutoFocus = searchConfig.isAutoFocus();
@@ -381,15 +410,13 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             this.updateScrollBar();
         });
 
-        // 合成网格偏移计算
+        // --- Crafting grid offset ---
         craftingGridOffsetX = Integer.MAX_VALUE;
         craftingGridOffsetY = Integer.MAX_VALUE;
 
         for (final Object s : this.inventorySlots.inventorySlots) {
-            if (s instanceof AppEngSlot) {
-                if (((Slot) s).xPos < 197) {
-                    this.repositionSlot((AppEngSlot) s);
-                }
+            if (s instanceof AppEngSlot && ((Slot) s).xPos < 197) {
+                this.repositionSlot((AppEngSlot) s);
             }
 
             if (s instanceof SlotCraftingMatrix || s instanceof SlotFakeCraftingMatrix) {
@@ -405,9 +432,20 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         craftingGridOffsetY -= 6;
     }
 
+    private void clearAndBuildInternalSlots(int normalSlotRows, int normalSlotOffsetY) {
+        this.getMeSlots().clear();
+        for (int y = 0; y < normalSlotRows; y++) {
+            for (int x = 0; x < this.perRow; x++) {
+                this.getMeSlots()
+                        .add(new InternalSlotME(this.repo, x + y * this.perRow,
+                                this.offsetX + x * 18, normalSlotOffsetY + y * 18));
+            }
+        }
+    }
+
     @Override
     protected void setupWidgets() {
-        // Terminal search field registration
+        // Terminal search field
         this.searchField = MUITextFieldWidget.addSearchField(this,
                 MUITextFieldWidget.SearchFieldSpec.builder(
                         Math.max(SEARCH_FIELD_X_MIN, this.offsetX),
@@ -422,79 +460,18 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         this.searchField.setMaxStringLength(SEARCH_FIELD_MAX_LENGTH);
         this.searchField.setSelectionColor(SEARCH_FIELD_SELECTION_COLOR);
 
-        // ========== Left-side settings buttons (panel-relative coordinates) ==========
-        int offset = 8 + this.jeiOffset;
-
-        // Sort by button
-        if (this.customSortOrder) {
-            this.sortByBox = new MUIButtonWidget(-18, offset, Settings.SORT_BY,
-                    this.configSrc.getSetting(Settings.SORT_BY));
-            this.sortByBox.setOnClick(btn -> this.handleSettingsButtonClick(btn));
-            this.addWidget(this.sortByBox);
-            offset += 20;
-        }
-
-        // View mode button
-        if (this.viewCell || this instanceof MUIWirelessTermPanel) {
-            this.viewBox = new MUIButtonWidget(-18, offset, Settings.VIEW_MODE,
-                    this.configSrc.getSetting(Settings.VIEW_MODE));
-            this.viewBox.setOnClick(btn -> this.handleSettingsButtonClick(btn));
-            this.addWidget(this.viewBox);
-            offset += 20;
-        }
-
-        // Sort direction button
-        this.sortDirBox = new MUIButtonWidget(-18, offset, Settings.SORT_DIRECTION,
-                this.configSrc.getSetting(Settings.SORT_DIRECTION));
-        this.sortDirBox.setOnClick(btn -> this.handleSettingsButtonClick(btn));
-        this.addWidget(this.sortDirBox);
-        offset += 20;
-
-        // Search mode button
-        this.searchBoxSettings = new MUIButtonWidget(-18, offset, Settings.SEARCH_MODE,
-                AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE));
-        this.searchBoxSettings.setOnClick(btn -> this.handleSettingsButtonClick(btn));
-        this.addWidget(this.searchBoxSettings);
-        offset += 20;
-
-        // Terminal style button
-        if (!(this instanceof MUIPortableCellPanel) || this instanceof MUIWirelessTermPanel) {
-            this.terminalStyleBox = new MUIButtonWidget(-18, offset, Settings.TERMINAL_STYLE,
-                    AEConfig.instance().getConfigManager().getSetting(Settings.TERMINAL_STYLE));
-            this.terminalStyleBox.setOnClick(btn -> this.handleSettingsButtonClick(btn));
-            this.addWidget(this.terminalStyleBox);
-            offset += 20;
-        }
-
-        // Pins button (placed at bottom-right of the ME grid area)
-        this.pinsStateButton = new MUIButtonWidget(178, 18 + (this.rows * 18) + 25,
-                Settings.ACTIONS, ActionItems.PINS);
-        this.pinsStateButton.setOnClick(btn -> this.handlePinsButtonClick());
-        this.addWidget(this.pinsStateButton);
-
-        // Crafting status tab button
-        if (this.viewCell || this instanceof MUIWirelessTermPanel) {
-            this.craftingStatusBtn = new MUITabContainer(170, -4, 2 + 11 * 16,
-                    GuiText.CraftingStatus.getLocal());
-            this.craftingStatusBtn.setHideEdge(13);
-            this.craftingStatusBtn.setOnClick(tab -> {
-                NetworkHandler.instance().sendToServer(new PacketSwitchGuis(AEGuiKeys.CRAFTING_STATUS));
-            });
-            this.addWidget(this.craftingStatusBtn);
-        }
+        // Toolbar: settings buttons + type filter buttons (AEKeyType-based) + pins + crafting status
+        this.toolbar.buildAndRegister();
     }
 
-    // ========== 绘制 ==========
+    // ========== Drawing ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.fontRenderer.drawString(this.getGuiDisplayName(this.myName.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
         this.fontRenderer.drawString(GuiText.inventory.getLocal(), 8, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
 
-        // Draw pin slot backgrounds and icons
-        if (this.pinSlots != null && this.pinSlots.length > 0) {
-            VirtualMEPinSlot.drawSlotsBackground(this.pinSlots, this.mc, this.zLevel);
-        }
+        this.pinSystem.drawPinBackgrounds(this.mc, this.zLevel);
 
         this.currentMouseX = mouseX;
         this.currentMouseY = mouseY;
@@ -514,26 +491,21 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             this.drawTexturedModalRect(offsetX, offsetY + 18 + x * 18, 0, 18, x_width, 18);
         }
 
-        this.drawTexturedModalRect(offsetX, offsetY + 16 + this.rows * 18 + this.lowerTextureOffset, 0, 106 - 18 - 18,
-                x_width,
-                99 + this.reservedSpace - this.lowerTextureOffset);
+        this.drawTexturedModalRect(offsetX, offsetY + 16 + this.rows * 18 + this.lowerTextureOffset, 0,
+                106 - 18 - 18, x_width, 99 + this.reservedSpace - this.lowerTextureOffset);
 
         if (this.viewCell) {
             boolean update = false;
-
             for (int i = 0; i < 5; i++) {
                 if (this.myCurrentViewCells[i] != this.monitorableContainer.getCellViewSlot(i).getStack()) {
                     update = true;
                     this.myCurrentViewCells[i] = this.monitorableContainer.getCellViewSlot(i).getStack();
                 }
             }
-
             if (update) {
                 this.repo.setViewCell(this.myCurrentViewCells);
             }
         }
-
-        // Search field drawing is handled automatically by the MUI widget system
     }
 
     protected String getBackground() {
@@ -549,109 +521,16 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
-        // Type filter toggle buttons (still in legacy buttonList)
-        if (btn instanceof TypeToggleButton typeBtn) {
-            typeBtn.setTypeEnabled(!typeBtn.isTypeEnabled());
-            this.enabledTypes.put(typeBtn.getStackType(), typeBtn.isTypeEnabled());
-            this.repo.setTypeFilter(typeBtn.getStackType(), typeBtn.isTypeEnabled());
-            this.repo.updateView();
-            this.updateScrollBar();
-        }
-    }
-
-    /**
-     * Common click handler for all settings-mode MUI buttons (sort, view, search mode, terminal style).
-     * <p>
-     * Cycles the setting value forward (or backward if right mouse button is held),
-     * sends the appropriate config update, and reinitializes the GUI if needed.
-     */
-    private void handleSettingsButtonClick(MUIButtonWidget btn) {
-        final Settings setting = btn.getSetting();
-        if (setting == null || setting == Settings.ACTIONS) {
-            return;
-        }
-
-        final boolean backwards = Mouse.isButtonDown(1);
-        final Enum<?> cv = btn.getCurrentValue();
-        final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
-                setting.getPossibleValues());
-
-        if (btn == this.terminalStyleBox || btn == this.searchBoxSettings) {
-            AEConfig.instance().getConfigManager().putSetting(setting, next);
-        } else {
-            try {
-                NetworkHandler.instance()
-                        .sendToServer(new PacketValueConfig(setting.name(), next.name()));
-            } catch (final IOException e) {
-                AELog.debug(e);
-            }
-        }
-
-        btn.set(next);
-
-        if (next.getClass() == SearchBoxMode.class || next.getClass() == TerminalStyle.class) {
-            this.reinitalize();
-        }
-    }
-
-    /**
-     * Click handler for the pins button.
-     * Left-click cycles player pin rows; right-click cycles crafting pin rows.
-     */
-    private void handlePinsButtonClick() {
-        final boolean rmb = Mouse.isButtonDown(1);
-        if (rmb) {
-            int c = Math.min(this.craftingPinsRows.ordinal() + 1, 16);
-            if (c + this.playerPinsRows.ordinal() >= this.rows) {
-                c = 0;
-            }
-            this.sendPinRowsUpdate(PinsRows.fromOrdinal(c), this.playerPinsRows);
-        } else {
-            int p = Math.min(this.playerPinsRows.ordinal() + 1, 16);
-            if (p + this.craftingPinsRows.ordinal() >= this.rows) {
-                p = 0;
-            }
-            this.sendPinRowsUpdate(this.craftingPinsRows, PinsRows.fromOrdinal(p));
-        }
-    }
-
-    private void reinitalize() {
-        this.buttonList.clear();
-        this.initGui();
+        // Legacy TypeToggleButton handling removed — type filter is now handled by TerminalToolbar
+        // Subclasses may add their own buttons here via super.actionPerformed()
     }
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
-        // Search field click and right-click clearing are handled automatically
-        // by the MUI widget system in AEBasePanel.mouseClicked() via MUITextFieldWidget.
-
-        // Pin interaction: Ctrl+left-click on ME slot to pin; Shift+right-click on pin slot to unpin
-        for (final GuiCustomSlot slot : this.guiSlots) {
-            if (this.isPointInRegion(slot.xPos(), slot.yPos(), slot.getWidth(), slot.getHeight(), xCoord, yCoord)) {
-                if (slot instanceof VirtualMEPinSlot pinSlot && btn == 1 && isShiftKeyDown()) {
-                    // Shift+right-click on pin slot: unpin
-                    final IAEStack<?> stack = pinSlot.getAEStack();
-                    if (stack != null) {
-                        ((AEBaseContainer) this.inventorySlots).setTargetStack(stack);
-                        final PacketInventoryAction p = new PacketInventoryAction(
-                                InventoryAction.UNSET_PIN,
-                                this.inventorySlots.inventorySlots.size(), -1);
-                        NetworkHandler.instance().sendToServer(p);
-                        return;
-                    }
-                } else if (slot instanceof VirtualMEMonitorableSlot meSlot && btn == 0 && isCtrlKeyDown()) {
-                    // Ctrl+left-click on normal ME slot: pin
-                    final IAEStack<?> stack = meSlot.getAEStack();
-                    if (stack != null) {
-                        ((AEBaseContainer) this.inventorySlots).setTargetStack(stack);
-                        final PacketInventoryAction p = new PacketInventoryAction(
-                                InventoryAction.SET_ITEM_PIN,
-                                this.inventorySlots.inventorySlots.size(), -1);
-                        NetworkHandler.instance().sendToServer(p);
-                        return;
-                    }
-                }
-            }
+        // Pin interaction delegation
+        if (pinSystem.handleMouseClicked(
+                xCoord - this.guiLeft, yCoord - this.guiTop, btn, isShiftKeyDown(), isCtrlKeyDown())) {
+            return;
         }
 
         super.mouseClicked(xCoord, yCoord, btn);
@@ -684,7 +563,6 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
             switch (result) {
                 case HANDLED:
-                    // tell forge the key event is handled and should not be sent out
                     this.keyHandled = mouseInGui;
                     break;
                 case SUPPRESSED:
@@ -726,32 +604,14 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     protected void mouseWheelEvent(final int x, final int y, final int wheel) {
-        // Ctrl+scroll over the ME grid area adjusts pin rows
-        if (isCtrlKeyDown() && this.isPointInRegion(this.offsetX, 18, this.perRow * 18, this.rows * 18, x, y)) {
-            final boolean rmb = Mouse.isButtonDown(1);
-            final boolean ctrl = isCtrlKeyDown();
-            int c = Math.min(this.craftingPinsRows.ordinal(), 16);
-            int p = Math.min(this.playerPinsRows.ordinal(), 16);
-            if (ctrl) {
-                if (wheel < 0) {
-                    c = Math.max(0, c - 1);
-                } else {
-                    c = Math.min(16, c + 1);
-                }
-            } else {
-                if (wheel < 0) {
-                    p = Math.max(0, p - 1);
-                } else {
-                    p = Math.min(16, p + 1);
-                }
+        // Pin row adjustment via Ctrl+scroll
+        if (isCtrlKeyDown()) {
+            if (pinSystem.handleMouseWheel(x - this.guiLeft, y - this.guiTop, wheel)) {
+                return;
             }
-            if (c + p < this.rows) {
-                this.sendPinRowsUpdate(PinsRows.fromOrdinal(c), PinsRows.fromOrdinal(p));
-            }
-            return;
         }
 
-        // Check VirtualMEMonitorableSlot scroll interaction
+        // VirtualMEMonitorableSlot scroll interaction
         for (final GuiCustomSlot slot : this.guiSlots) {
             if (slot instanceof VirtualMEMonitorableSlot virtualSlot) {
                 if (this.isPointInRegion(slot.xPos(), slot.yPos(),
@@ -778,6 +638,26 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         super.mouseWheelEvent(x, y, wheel);
     }
 
+    // ========== Private helpers ==========
+
+    private void reinitalize() {
+        this.buttonList.clear();
+        this.initGui();
+    }
+
+    private void sendPinRowsUpdate(PinsRows craftingRows, PinsRows playerRows) {
+        try {
+            NetworkHandler.instance().sendToServer(new appeng.core.sync.packets.PacketPinsUpdate(craftingRows,
+                    playerRows));
+        } catch (final Exception e) {
+            AELog.debug(e);
+        }
+    }
+
+    private void onPinsUpdated() {
+        this.pinSystem.onPinsUpdated();
+    }
+
     // ========== ISortSource ==========
 
     @Override
@@ -799,48 +679,20 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
-        if (this.sortByBox != null) {
-            this.sortByBox.set(this.configSrc.getSetting(Settings.SORT_BY));
-        }
-
-        if (this.sortDirBox != null) {
-            this.sortDirBox.set(this.configSrc.getSetting(Settings.SORT_DIRECTION));
-        }
-
-        if (this.viewBox != null) {
-            this.viewBox.set(this.configSrc.getSetting(Settings.VIEW_MODE));
-        }
-
+        this.toolbar.updateSetting(manager, settingName, newValue);
         this.repo.updateView();
     }
 
-    // ========== JEI 集成 ==========
+    // ========== JEI integration ==========
 
     public List<Rectangle> getJEIExclusionArea() {
         List<Rectangle> exclusionArea = new ArrayList<>();
 
         int yOffset = guiTop + 8 + this.jeiOffset;
 
-        // Count left-side buttons: MUI settings buttons + legacy type toggle buttons
-        int visibleMuiButtons = 0;
-        if (this.sortByBox != null && this.sortByBox.isVisible()) {
-            visibleMuiButtons++;
-        }
-        if (this.viewBox != null && this.viewBox.isVisible()) {
-            visibleMuiButtons++;
-        }
-        if (this.sortDirBox != null && this.sortDirBox.isVisible()) {
-            visibleMuiButtons++;
-        }
-        if (this.searchBoxSettings != null && this.searchBoxSettings.isVisible()) {
-            visibleMuiButtons++;
-        }
-        if (this.terminalStyleBox != null && this.terminalStyleBox.isVisible()) {
-            visibleMuiButtons++;
-        }
-        int visibleLegacyButtons = (int) this.buttonList.stream()
-                .filter(v -> v.enabled && v.x < guiLeft).count();
-        int totalVisibleButtons = visibleMuiButtons + visibleLegacyButtons;
+        int totalVisibleButtons = toolbar.getVisibleSettingsButtonCount()
+                + toolbar.getVisibleTypeFilterButtonCount();
+
         Rectangle sortDir = new Rectangle(guiLeft - 18, yOffset, 20,
                 totalVisibleButtons * 20 + totalVisibleButtons - 2);
         exclusionArea.add(sortDir);
@@ -856,7 +708,6 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     // ========== Subclass extension methods ==========
 
-    // For some special cases, like the Portable Cell, which only has 63 slots.
     protected int getMaxRows() {
         return Integer.MAX_VALUE;
     }
@@ -872,11 +723,11 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     // ========== Accessors ==========
 
-    int getReservedSpace() {
+    public int getReservedSpace() {
         return this.reservedSpace;
     }
 
-    void setReservedSpace(final int reservedSpace) {
+    public void setReservedSpace(final int reservedSpace) {
         this.reservedSpace = reservedSpace;
     }
 
@@ -884,22 +735,24 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         return this.customSortOrder;
     }
 
-    void setCustomSortOrder(final boolean customSortOrder) {
+    public void setCustomSortOrder(final boolean customSortOrder) {
         this.customSortOrder = customSortOrder;
     }
 
-    /**
-     * @return 指定类型是否在终端中启用显示
-     */
     public boolean isTypeEnabled(IAEStackType<?> type) {
-        return this.enabledTypes.getOrDefault(type, true);
+        AEKeyType keyType = AEKeyType.fromLegacyType(type);
+        return keyType != null && this.repo.isTypeEnabled(keyType);
     }
 
-    protected ContainerMEMonitorable getMonitorableContainer() {
+    public boolean isTypeEnabled(AEKeyType type) {
+        return this.repo.isTypeEnabled(type);
+    }
+
+    public ContainerMEMonitorable getMonitorableContainer() {
         return this.monitorableContainer;
     }
 
-    protected int getRows() {
+    public int getRows() {
         return this.rows;
     }
 
@@ -909,61 +762,5 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     public static int getCraftingGridOffsetY() {
         return craftingGridOffsetY;
-    }
-
-    // ========== Pin system helpers ==========
-
-    /**
-     * Sync pin row configuration from the container's client-side data.
-     */
-    private void syncPinRowsFromContainer() {
-        this.craftingPinsRows = this.monitorableContainer.getClientMaxCraftingPinRows();
-        this.playerPinsRows = this.monitorableContainer.getClientMaxPlayerPinRows();
-    }
-
-    /**
-     * Create pin slots for one section (crafting or player).
-     *
-     * @return the next available slot index
-     */
-    private int createPinSection(int slotIdx, int sectionRows, int pinsPerRow, int rowOffset, boolean isCrafting) {
-        int baseIndex = isCrafting ? 0 : appeng.items.contents.PinList.PLAYER_OFFSET;
-        for (int y = 0; y < sectionRows; y++) {
-            for (int x = 0; x < pinsPerRow; x++) {
-                VirtualMEPinSlot slot = new VirtualMEPinSlot(
-                        this.offsetX + x * 18,
-                        18 + (rowOffset + y) * 18,
-                        this.monitorableContainer.getClientPinList(),
-                        baseIndex + y * pinsPerRow + x,
-                        isCrafting);
-                this.pinSlots[slotIdx++] = slot;
-            }
-        }
-        return slotIdx;
-    }
-
-    /**
-     * Send a pin rows update packet to the server and reinitialize the GUI.
-     */
-    private void sendPinRowsUpdate(PinsRows craftingRows, PinsRows playerRows) {
-        try {
-            NetworkHandler.instance().sendToServer(new PacketPinsUpdate(craftingRows, playerRows));
-        } catch (final Exception e) {
-            AELog.debug(e);
-        }
-    }
-
-    /**
-     * Called by the container when pin data is updated from the server.
-     * Triggers a GUI reinitialize to reflect the new pin layout.
-     */
-    public void onPinsUpdated() {
-        PinsRows newCrafting = this.monitorableContainer.getClientMaxCraftingPinRows();
-        PinsRows newPlayer = this.monitorableContainer.getClientMaxPlayerPinRows();
-        if (newCrafting != this.craftingPinsRows || newPlayer != this.playerPinsRows) {
-            this.craftingPinsRows = newCrafting;
-            this.playerPinsRows = newPlayer;
-            this.reinitalize();
-        }
     }
 }

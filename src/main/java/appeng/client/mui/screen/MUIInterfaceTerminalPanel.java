@@ -43,7 +43,7 @@ import net.minecraftforge.common.util.Constants;
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiScrollbar;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
@@ -129,7 +129,7 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
     public MUIInterfaceTerminalPanel(final ContainerInterfaceTerminal container) {
         super(container);
 
-        final GuiScrollbar scrollbar = new GuiScrollbar();
+        final MUIScrollBar scrollbar = new MUIScrollBar();
         this.setScrollBar(scrollbar);
         this.xSize = 208;
         this.ySize = 255;

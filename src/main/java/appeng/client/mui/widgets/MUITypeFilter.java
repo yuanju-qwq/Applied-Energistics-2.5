@@ -31,7 +31,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.stacks.AEKeyType;
-import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStackType;
 import appeng.client.me.ItemRepo;
 import appeng.client.mui.AEBasePanel;
@@ -50,18 +49,16 @@ public class MUITypeFilter implements IMUIWidget {
             "textures/guis/states.png");
 
     /**
-     * Type button data, now uses AEKeyType.
+     * Type button data, driven by AEKeyType.
      */
     private static final class TypeButton {
         final AEKeyType keyType;
-        final IAEStackType<?> legacyType;
         boolean enabled;
         int x;
         int y;
 
-        TypeButton(AEKeyType keyType, IAEStackType<?> legacyType, boolean enabled, int x, int y) {
+        TypeButton(AEKeyType keyType, boolean enabled, int x, int y) {
             this.keyType = keyType;
-            this.legacyType = legacyType;
             this.enabled = enabled;
             this.x = x;
             this.y = y;
@@ -88,19 +85,16 @@ public class MUITypeFilter implements IMUIWidget {
     }
 
     /**
-     * Build buttons from all registered IAEStackTypes, using AEKeyType as identity.
+     * Build buttons from all registered AEKeyTypes.
      * All types default to enabled.
      */
     public MUITypeFilter buildFromRegistry() {
         this.buttons.clear();
         int idx = 0;
-        for (IAEStackType<?> legacyType : AEStackTypeRegistry.getAllTypes()) {
-            AEKeyType keyType = AEKeyType.fromLegacyType(legacyType);
-            if (keyType != null) {
-                int x = this.baseX + idx * this.spacing;
-                this.buttons.add(new TypeButton(keyType, legacyType, true, x, this.baseY));
-                idx++;
-            }
+        for (AEKeyType keyType : AEKeyType.getAllTypes()) {
+            int x = this.baseX + idx * this.spacing;
+            this.buttons.add(new TypeButton(keyType, true, x, this.baseY));
+            idx++;
         }
         syncToRepo();
         return this;
@@ -113,7 +107,7 @@ public class MUITypeFilter implements IMUIWidget {
         this.buttons.clear();
         for (int i = 0; i < types.length; i++) {
             int x = this.baseX + i * this.spacing;
-            this.buttons.add(new TypeButton(types[i], types[i].getLegacyType(), true, x, this.baseY));
+            this.buttons.add(new TypeButton(types[i], true, x, this.baseY));
         }
         syncToRepo();
         return this;
@@ -121,7 +115,6 @@ public class MUITypeFilter implements IMUIWidget {
 
     /**
      * @deprecated Use {@link #buildFromKeyTypes(AEKeyType...)} instead.
-     * 从指定类型列表构建按钮。
      */
     @Deprecated
     public MUITypeFilter buildFromTypes(IAEStackType<?>... types) {
@@ -130,7 +123,7 @@ public class MUITypeFilter implements IMUIWidget {
             AEKeyType keyType = AEKeyType.fromLegacyType(types[i]);
             if (keyType != null) {
                 int x = this.baseX + i * this.spacing;
-                this.buttons.add(new TypeButton(keyType, types[i], true, x, this.baseY));
+                this.buttons.add(new TypeButton(keyType, true, x, this.baseY));
             }
         }
         syncToRepo();
@@ -153,13 +146,13 @@ public class MUITypeFilter implements IMUIWidget {
             mc.getTextureManager().bindTexture(STATES_TEXTURE);
             Gui.drawModalRectWithCustomSizedTexture(screenX, screenY, 240, 240, 16, 16, 256, 256);
 
-            // 类型图标 (use legacyType for texture references)
-            ResourceLocation tex = btn.legacyType.getButtonTexture();
+            // 类型图标
+            ResourceLocation tex = btn.keyType.getButtonTexture();
             if (tex != null) {
                 mc.getTextureManager().bindTexture(tex);
             }
-            int iconU = btn.legacyType.getButtonIconU();
-            int iconV = btn.legacyType.getButtonIconV();
+            int iconU = btn.keyType.getButtonIconU();
+            int iconV = btn.keyType.getButtonIconV();
 
             if (btn.enabled) {
                 GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);

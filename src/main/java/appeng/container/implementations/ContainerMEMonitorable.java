@@ -61,7 +61,9 @@ import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
@@ -104,9 +106,10 @@ public class ContainerMEMonitorable extends AEBaseContainer
     private final Map<IAEStackType<?>, IMEMonitor<?>> monitors = new IdentityHashMap<>();
 
     /**
-     * 多类型更新队列：服务端收到变更通知后，按类型暂存待发送的变更。
+     * KeyCounter-based update buffer: AEKey change notifications are accumulated here,
+     * then sent directly as GenericStack in detectAndSendChanges() without IAEStack conversion.
      */
-    private final Map<IAEStackType<?>, Set<IAEStack<?>>> updateQueue = new IdentityHashMap<>();
+    private final KeyCounter updateKeyCounter = new KeyCounter();
 
     private final IConfigManager clientCM;
     private final ITerminalHost host;
@@ -161,20 +164,19 @@ public class ContainerMEMonitorable extends AEBaseContainer
         if (Platform.isServer()) {
             this.serverCM = monitorable.getConfigManager();
 
-            // 閬嶅巻鎵€鏈夊凡娉ㄥ唽鐨?IAEStackType锛岃幏鍙栧搴旂殑 IMEMonitor 骞舵敞鍐岀洃鍚?
+            // Iterate all registered IAEStackTypes and register as listeners on their IMEMonitors
             boolean hasAnyMonitor = false;
             for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
                 IMEMonitor<?> mon = monitorable.getInventory(type);
                 if (mon != null) {
                     mon.addListener(this, null);
                     this.monitors.put(type, mon);
-                    this.updateQueue.put(type, new HashSet<>());
                     hasAnyMonitor = true;
                 }
             }
 
             if (hasAnyMonitor) {
-                // 浣跨敤鐗╁搧 monitor 浣滀负 cell inventory锛堝悜鍚庡吋瀹癸級
+                // Use item monitor as cell inventory (backward compatibility)
                 IMEMonitor<?> itemMon = this.monitors.get(
                         AEStackTypeRegistry.getType("item"));
                 if (itemMon != null) {
@@ -216,7 +218,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
             }
         }
 
-        // 鍒濆鍖栨湇鍔＄ Pins 澶勭悊鍣?
+        // Initialize server-side Pins handler
         if (Platform.isServer() && ip.player != null) {
             final net.minecraft.world.storage.MapStorage storage = ip.player.getEntityWorld()
                     .getMapStorage();
@@ -329,7 +331,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     @SuppressWarnings("unchecked")
     public void detectAndSendChanges() {
         if (Platform.isServer()) {
-            // 楠岃瘉鎵€鏈?monitor 浠嶇劧鏈夋晥
+            // Verify all monitors are still valid
             for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
                 IMEMonitor<?> current = this.host.getInventory(type);
                 IMEMonitor<?> stored = this.monitors.get(type);
@@ -359,42 +361,39 @@ public class ContainerMEMonitorable extends AEBaseContainer
             }
 
             if (this.needListUpdate) {
-                // 鍏ㄩ噺閲嶅彂鎵€鏈夌被鍨嬬殑搴撳瓨
+                // Full resync of all type inventories
                 this.needListUpdate = false;
+                this.updateKeyCounter.reset();
                 for (final Object c : this.listeners) {
                     if (c instanceof EntityPlayerMP player) {
                         this.queueInventory(player);
                     }
                 }
             } else {
-                // 澧為噺鍙戦€佸彉鏇?
+                // Incremental: send changed entries directly from KeyCounter
                 try {
-                    final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
+                    PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
-                    for (var entry : this.updateQueue.entrySet()) {
-                        IAEStackType type = entry.getKey();
-                        IMEMonitor<?> mon = this.monitors.get(type);
-                        if (mon == null) {
-                            continue;
-                        }
-                        IItemList<?> storageList = mon.getStorageList();
-                        for (IAEStack<?> aes : entry.getValue()) {
-                            final IAEStack<?> send = storageList.findPreciseGeneric(aes);
-                            if (send == null) {
-                                aes.setStackSize(0);
-                                piu.appendStack(aes);
-                            } else {
-                                piu.appendStack(send);
+                    for (var entry : this.updateKeyCounter) {
+                        AEKey key = entry.getKey();
+                        long amount = entry.getLongValue();
+                        try {
+                            piu.appendStack(new GenericStack(key, amount));
+                        } catch (final BufferOverflowException boe) {
+                            for (final Object c : this.listeners) {
+                                if (c instanceof EntityPlayerMP) {
+                                    NetworkHandler.instance().sendTo(piu, (EntityPlayerMP) c);
+                                }
                             }
+                            piu = new PacketMEInventoryUpdate();
+                            piu.appendStack(new GenericStack(key, amount));
                         }
                     }
 
                     if (!piu.isEmpty()) {
-                        for (var queue : this.updateQueue.values()) {
-                            queue.clear();
-                        }
+                        this.updateKeyCounter.reset();
                         for (final Object c : this.listeners) {
-                            if (c instanceof EntityPlayer) {
+                            if (c instanceof EntityPlayerMP) {
                                 NetworkHandler.instance().sendTo(piu, (EntityPlayerMP) c);
                             }
                         }
@@ -406,7 +405,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
 
             this.updatePowerStatus();
 
-            // 鍚屾 Pins 鏁版嵁鍒板鎴风
+            // Sync Pins data to client
             if (this.serverPinsHandler != null
                     && (this.needsInitialPinsSync || this.serverPinsHandler.isDirty())) {
                 this.needsInitialPinsSync = false;
@@ -483,12 +482,16 @@ public class ContainerMEMonitorable extends AEBaseContainer
             for (var monitor : this.monitors.values()) {
                 for (final IAEStackBase stackBase : (Iterable<IAEStackBase>) monitor.getStorageList()) {
                     final IAEStack<?> send = (IAEStack<?>) stackBase;
+                    AEKey key = send.toAEKey();
+                    if (key == null) {
+                        continue;
+                    }
                     try {
-                        piu.appendStack(send);
+                        piu.appendStack(new GenericStack(key, send.getStackSize()));
                     } catch (final BufferOverflowException boe) {
                         NetworkHandler.instance().sendTo(piu, player);
                         piu = new PacketMEInventoryUpdate();
-                        piu.appendStack(send);
+                        piu.appendStack(new GenericStack(key, send.getStackSize()));
                     }
                 }
             }
@@ -528,10 +531,9 @@ public class ContainerMEMonitorable extends AEBaseContainer
             final IActionSource source) {
         for (final IAEStackBase obj : change) {
             IAEStack<?> aes = (IAEStack<?>) obj;
-            IAEStackType<?> type = aes.getStackType();
-            Set<IAEStack<?>> queue = this.updateQueue.get(type);
-            if (queue != null) {
-                queue.add(aes);
+            AEKey key = aes.toAEKey();
+            if (key != null) {
+                this.updateKeyCounter.set(key, aes.getStackSize());
             }
         }
     }
@@ -591,9 +593,10 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * 瀹㈡埛绔帴鏀跺埌澶氱被鍨?PacketMEInventoryUpdate 鏃惰皟鐢ㄣ€?
-     * 灏嗘洿鏂板垎鍙戝埌 GUI 鐨?ItemRepo銆?
+     * @deprecated Use {@link #postGenericStackUpdate(List)} instead.
+     * Called when the client receives a PacketMEInventoryUpdate in legacy IAEStack format.
      */
+    @Deprecated
     @SuppressWarnings("unchecked")
     public void postUpdate(final List<IAEStack<?>> list) {
         for (IAEStack<?> stack : list) {
@@ -614,27 +617,33 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * Client-side handler for {@link appeng.core.sync.packets.PacketMEGenericStackUpdate}.
-     * <p>
-     * Converts GenericStack list directly to RepoEntry and dispatches via
-     * {@link IMEMonitorableGuiCallback#postRepoEntryUpdate(List)}.
-     * Falls back to the legacy IAEStack path for non-MUI GUIs.
+     * Client-side handler for GenericStack format inventory updates.
+     * For MUI GUIs: converts GenericStack → RepoEntry → gui.postRepoEntryUpdate (no IAEStack).
+     * For legacy GUIs: falls back to GenericStack → IAEStack → postUpdate (bridge).
      */
     public void postGenericStackUpdate(final List<GenericStack> list) {
         if (this.gui instanceof IMEMonitorableGuiCallback guiMonitorable) {
-            // Convert GenericStack -> RepoEntry directly (no IAEStack intermediate)
             final List<appeng.client.me.ItemRepo.RepoEntry> entries = new java.util.ArrayList<>(list.size());
             for (GenericStack gs : list) {
-                // GenericStack does not carry craftable info; default to false.
-                // The server sends craftable stacks with amount=0 as a separate entry.
                 entries.add(new appeng.client.me.ItemRepo.RepoEntry(gs.what(), gs.amount(), false));
             }
             guiMonitorable.postRepoEntryUpdate(entries);
+            return;
         }
+
+        // Fallback for legacy non-MUI GUIs
+        final List<IAEStack<?>> legacyList = new ArrayList<>(list.size());
+        for (GenericStack gs : list) {
+            IAEStack<?> aeStack = gs.toIAEStack();
+            if (aeStack != null) {
+                legacyList.add(aeStack);
+            }
+        }
+        postUpdate(legacyList);
     }
 
     /**
-     * @return 鐗╁搧绫诲瀷鐨?Monitor锛堝悜鍚庡吋瀹癸級
+     * @return item type Monitor (backward compatibility)
      */
     @SuppressWarnings("unchecked")
     public IMEMonitor<IAEItemStack> getItemMonitor() {
@@ -646,7 +655,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * @return 澶氱被鍨?Monitor 鏄犲皠
+     * @return multi-type Monitor mapping
      */
     public Map<IAEStackType<?>, IMEMonitor<?>> getMonitors() {
         return this.monitors;
@@ -660,7 +669,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     private PinSectionOrder clientPinSectionOrder = PinSectionOrder.PLAYER_FIRST;
 
     /**
-     * 瀹㈡埛绔帴鏀跺埌 Pins 鏇存柊鍖呮椂璋冪敤銆?
+     * Called when the client receives a Pins update packet.
      */
     public void postPinsUpdate(PinList pinList, PinsRows maxPlayerPinRows,
             PinsRows maxCraftingPinRows, PinSectionOrder sectionOrder) {
@@ -699,7 +708,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * @return 鏈嶅姟绔?Pins 澶勭悊鍣紙浠呮湇鍔＄鏈夊€硷級
+     * @return server-side Pins handler (server-side only)
      */
     public IPinsHandler getServerPinsHandler() {
         return this.serverPinsHandler;
@@ -723,10 +732,10 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * 澶勭悊鏉ヨ嚜瀹㈡埛绔殑 Pin 鎿嶄綔璇锋眰銆?
+     * Process Pin action request from the client.
      *
-     * @param action Pin 鎿嶄綔绫诲瀷
-     * @param stack  鐩稿叧鐨勬爤锛堝彲涓?null锛?
+     * @param action Pin action type
+     * @param stack  related stack (may be null)
      */
     public void handlePinAction(appeng.helpers.InventoryAction action, IAEStack<?> stack) {
         if (this.serverPinsHandler == null || stack == null) {

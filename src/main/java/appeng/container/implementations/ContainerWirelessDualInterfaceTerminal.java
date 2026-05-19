@@ -326,9 +326,25 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 客户端接收到 PacketMEInventoryUpdate 时调用。
-     * 将更新转发到 GUI 的 postUpdate 方法。
+     * Client-side handler for GenericStack format inventory updates.
+     * Creates RepoEntry list and dispatches via postRepoEntryUpdate (preferred path),
+     * with IAEStack fallback for legacy GUIs.
      */
+    public void postGenericStackUpdate(final List<GenericStack> list) {
+        if (this.meGui instanceof IMEInventoryUpdateReceiver receiver) {
+            final List<appeng.client.me.ItemRepo.RepoEntry> entries = new java.util.ArrayList<>(list.size());
+            for (GenericStack gs : list) {
+                entries.add(new appeng.client.me.ItemRepo.RepoEntry(gs.what(), gs.amount(), false));
+            }
+            receiver.postRepoEntryUpdate(entries);
+        }
+    }
+
+    /**
+     * @deprecated Use {@link #postGenericStackUpdate(List)} instead.
+     * Client-side handler for legacy IAEStack format inventory updates.
+     */
+    @Deprecated
     @SuppressWarnings("unchecked")
     public void postUpdate(final List<IAEStack<?>> list) {
         if (this.meGui instanceof IMEInventoryUpdateReceiver receiver) {
@@ -337,24 +353,29 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * Client-side handler for {@link appeng.core.sync.packets.PacketMEGenericStackUpdate}.
-     * Converts GenericStack list to IAEStack and delegates to the legacy method.
-     */
-    public void postGenericStackUpdate(final List<GenericStack> list) {
-        final List<IAEStack<?>> converted = new java.util.ArrayList<>(list.size());
-        for (GenericStack gs : list) {
-            IAEStack<?> aeStack = gs.toIAEStack();
-            if (aeStack != null) {
-                converted.add(aeStack);
-            }
-        }
-        this.postUpdate(converted);
-    }
-
-    /**
-     * GUI 实现此接口以接收 ME 库存更新
+     * GUI callback interface for receiving ME inventory updates.
      */
     public interface IMEInventoryUpdateReceiver {
+        /**
+         * Receive ME network inventory updates using RepoEntry (preferred path).
+         * Default implementation falls back to the legacy IAEStack path.
+         */
+        default void postRepoEntryUpdate(List<appeng.client.me.ItemRepo.RepoEntry> entries) {
+            List<IAEStack<?>> legacyList = new java.util.ArrayList<>(entries.size());
+            for (appeng.client.me.ItemRepo.RepoEntry entry : entries) {
+                IAEStack<?> stack = entry.toIAEStack();
+                if (stack != null) {
+                    legacyList.add(stack);
+                }
+            }
+            postUpdate(legacyList);
+        }
+
+        /**
+         * @deprecated Use {@link #postRepoEntryUpdate(List)} instead.
+         * Receive item/fluid list updates from the ME network.
+         */
+        @Deprecated
         void postUpdate(List<IAEStack<?>> list);
     }
 

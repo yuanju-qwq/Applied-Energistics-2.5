@@ -30,7 +30,6 @@ import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.client.gui.widgets.IScrollSource;
 import appeng.client.gui.widgets.ISortSource;
 import appeng.core.AEConfig;
@@ -39,9 +38,8 @@ import appeng.integration.modules.bogosorter.InventoryBogoSortModule;
 import appeng.items.storage.ItemViewCell;
 import appeng.util.ItemSorters;
 import appeng.util.Platform;
-import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
 import appeng.util.prioritylist.IPartitionList;
+import appeng.util.item.AEItemStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.Loader;
@@ -51,6 +49,7 @@ import net.minecraftforge.oredict.OreDictionary;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * Client-side item repository for ME terminal display.
@@ -149,7 +148,8 @@ public class ItemRepo {
     private int rowSize = 9;
 
     private String searchString = "";
-    private IPartitionList<IAEItemStack> myPartitionList;
+    @Nullable
+    private Predicate<AEItemKey> myItemFilter;
     private boolean hasPower;
 
     private Enum<?> lastView;
@@ -274,7 +274,15 @@ public class ItemRepo {
     }
 
     public void setViewCell(final ItemStack[] list) {
-        this.myPartitionList = ItemViewCell.createFilter(list);
+        IPartitionList<IAEItemStack> partitionList = ItemViewCell.createFilter(list);
+        if (partitionList != null && !partitionList.isEmpty()) {
+            this.myItemFilter = itemKey -> {
+                IAEStack<?> stack = itemKey.toIAEStack(1);
+                return stack instanceof IAEItemStack && partitionList.isListed((IAEItemStack) stack);
+            };
+        } else {
+            this.myItemFilter = null;
+        }
         this.changed = true;
     }
 
@@ -393,20 +401,13 @@ public class ItemRepo {
         } else if (sortBy == SortOrder.INVTWEAKS) {
             if (InventoryBogoSortModule.isLoaded()) {
                 return (a, b) -> {
-                    // Delegate to bogosorter via ItemStack comparison
-                    ItemStack stackA = a.what().asItemStackRepresentation();
-                    ItemStack stackB = b.what().asItemStackRepresentation();
                     return InventoryBogoSortModule.COMPARATOR.compare(
-                            AEItemStack.fromItemStack(stackA),
-                            AEItemStack.fromItemStack(stackB));
+                            toAEItemStack(a), toAEItemStack(b));
                 };
             } else {
                 return (a, b) -> {
-                    ItemStack stackA = a.what().asItemStackRepresentation();
-                    ItemStack stackB = b.what().asItemStackRepresentation();
                     return ItemSorters.CONFIG_BASED_SORT_BY_INV_TWEAKS.compare(
-                            AEItemStack.fromItemStack(stackA),
-                            AEItemStack.fromItemStack(stackB));
+                            toAEItemStack(a), toAEItemStack(b));
                 };
             }
         } else {
@@ -418,6 +419,12 @@ public class ItemRepo {
         }
     }
 
+    @Nullable
+    private static AEItemStack toAEItemStack(RepoEntry entry) {
+        IAEStack<?> stack = ((AEItemKey) entry.what()).toIAEStack(1);
+        return stack instanceof AEItemStack ? (AEItemStack) stack : null;
+    }
+
     // ==================== Filter & search ====================
 
     private void addEntry(AEKey key, long amount, boolean craftable, final Enum<?> viewMode) {
@@ -426,12 +433,8 @@ public class ItemRepo {
 
         // ViewCell filter: only applies to item keys
         if (key instanceof AEItemKey itemKey) {
-            if (this.myPartitionList != null) {
-                // Bridge: create a temporary IAEItemStack to check against the legacy partition list
-                IAEItemStack tempStack = AEItemStack.fromItemStack(itemKey.toStack());
-                if (tempStack != null && !this.myPartitionList.isListed(tempStack)) {
-                    return;
-                }
+            if (this.myItemFilter != null && !this.myItemFilter.test(itemKey)) {
+                return;
             }
         }
 
@@ -709,27 +712,6 @@ public class ItemRepo {
      */
     public KeyCounter getKeyCounter() {
         return this.counter;
-    }
-
-    /**
-     * @deprecated Use {@link #getKeyCounter()} instead.
-     *             Legacy bridge: returns an IItemList view of item-type entries only.
-     */
-    @Deprecated
-    @SuppressWarnings("unchecked")
-    public IItemList<IAEItemStack> getList() {
-        IItemList<IAEItemStack> list = AEItemStackType.INSTANCE.createList();
-        for (var entry : this.counter) {
-            if (entry.getKey() instanceof AEItemKey itemKey) {
-                IAEItemStack aeStack = AEItemStack.fromItemStack(itemKey.toStack());
-                if (aeStack != null) {
-                    aeStack.setStackSize(entry.getLongValue());
-                    aeStack.setCraftable(this.craftableKeys.contains(itemKey));
-                    list.add(aeStack);
-                }
-            }
-        }
-        return list;
     }
 
     // ==================== Type filter (AEKeyType-based) ====================

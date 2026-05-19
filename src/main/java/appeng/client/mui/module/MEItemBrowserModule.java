@@ -33,7 +33,7 @@ import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.client.gui.slots.VirtualMEMonitorableSlot;
 import appeng.client.gui.widgets.GuiImgButton;
-import appeng.client.gui.widgets.GuiScrollbar;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.gui.widgets.ISortSource;
 import appeng.client.me.ItemRepo;
 import appeng.client.mui.AEBasePanel;
@@ -111,7 +111,7 @@ public class MEItemBrowserModule implements ISortSource {
 
     private final Host host;
     private final ItemRepo itemRepo;
-    private final GuiScrollbar itemPanelScrollbar;
+    private final MUIScrollBar itemPanelScrollbar;
 
     private MUITextFieldWidget itemSearchField;
     private static String memoryText = "";
@@ -129,7 +129,7 @@ public class MEItemBrowserModule implements ISortSource {
 
     public MEItemBrowserModule(Host host) {
         this.host = host;
-        this.itemPanelScrollbar = new GuiScrollbar();
+        this.itemPanelScrollbar = new MUIScrollBar();
         this.itemRepo = new ItemRepo(this.itemPanelScrollbar, this);
         this.itemRepo.setRowSize(ITEM_PANEL_COLS);
     }
@@ -140,7 +140,7 @@ public class MEItemBrowserModule implements ISortSource {
         return itemRepo;
     }
 
-    public GuiScrollbar getItemPanelScrollbar() {
+    public MUIScrollBar getItemPanelScrollbar() {
         return itemPanelScrollbar;
     }
 

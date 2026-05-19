@@ -49,7 +49,7 @@ import appeng.util.item.AEItemStack;
 import appeng.util.item.OreListMultiMap;
 
 /**
- * 鍚堟垚鎿嶄綔鐨勪笂涓嬫枃鐘舵€佸寘锛歁E 缃戞牸銆佽姹傝€呫€佸簱瀛樻ā鍨嬬瓑銆?
+ * Context bag for crafting operations: ME grid, action source, inventory models, etc.
  */
 public final class CraftingContext {
 
@@ -59,8 +59,8 @@ public final class CraftingContext {
     public IActionSource actionSource;
 
     /**
-     * AE 绯荤粺鐗╁搧鍒楄〃鐨勫伐浣滃壇鏈紝鐢ㄤ簬妯℃嫙鍚堟垚璇锋眰瑙ｆ瀽鏃剁殑鍙樺寲銆?
-     * 鍙兘鎻愬彇锛屾敞鍏ヨ浣跨敤 {@link CraftingContext#byproductsInventory}銆?
+     * Working copy of the AE system item list for simulating changes during crafting request resolution.
+     * This is extraction-only; for injection use {@link CraftingContext#byproductsInventory}.
      */
     public final MECraftingInventory itemModel;
     /**
@@ -79,7 +79,7 @@ public final class CraftingContext {
 
         public final CraftingRequest request;
         /**
-         * 鎸変紭鍏堢骇鎺掑簭
+         * Sorted by priority.
          */
         public final ArrayList<CraftingTask> resolvers = new ArrayList<>(4);
         private boolean isRemainingResolversAllSimulated = true;
@@ -127,7 +127,7 @@ public final class CraftingContext {
         this.craftingGrid = meGrid.getCache(ICraftingGrid.class);
         this.actionSource = actionSource;
         final IStorageGrid sg = meGrid.getCache(IStorageGrid.class);
-        // 浣跨敤 IStorageMonitorable 鏋勯€犲嚱鏁帮紝璇诲彇鎵€鏈夌被鍨嬶紙鐗╁搧+娴佷綋锛夌殑搴撳瓨
+        // Use IStorageMonitorable to read inventories of all types (items + fluids)
         this.itemModel = new MECraftingInventory(sg, true, false, true);
         this.byproductsInventory = new MECraftingInventory();
         this.availableCache = new MECraftingInventory(sg, false, false, false);
@@ -135,7 +135,7 @@ public final class CraftingContext {
     }
 
     /**
-     * 鍙敤浜庢彃浠剁殑鑷畾涔夌紦瀛?
+     * Custom cache available for plugins.
      */
     public <T> T getUserCache(Class<T> cacheType, Supplier<T> constructor) {
         T instance = userCaches.getInstance(cacheType);
@@ -308,9 +308,9 @@ public final class CraftingContext {
     }
 
     /**
-     * 鎵ц涓€涓伐浣滃崟鍏冦€?
+     * Execute one work unit.
      *
-     * @return 鏄惁闇€瑕佹洿澶氬伐浣?
+     * @return whether more work is needed
      */
     public CraftingTask.State doWork() {
         if (tasksToProcess.isEmpty()) {
@@ -380,7 +380,7 @@ public final class CraftingContext {
     }
 
     /**
-     * @return 鏄惁鏈変换鍔¤娣诲姞
+     * @return whether a task was added
      */
     private boolean queueNextTaskOf(RequestInProcessing request, boolean addResolverTask) {
         if (request.request.remainingToProcess <= 0 || request.resolvers.isEmpty()) {
@@ -399,7 +399,8 @@ public final class CraftingContext {
     }
 
     /**
-     * 鍦ㄦ煇涓?resolver 璁＄畻瀹屾垚鍚庢鏌ユ槸鍚﹂渶瑕佷负鍚屼竴涓姹傜户缁В鏋愮殑鍐呴儴浠诲姟銆?
+     * After a resolver completes, checks whether internal tasks need to be added
+     * for continued resolution of the same request.
      */
     private final class CheckOtherResolversTask extends CraftingTask {
 

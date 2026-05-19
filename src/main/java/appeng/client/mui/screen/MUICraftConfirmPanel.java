@@ -40,7 +40,7 @@ import appeng.api.AEApi;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiScrollbar;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEBasePanelGuiHandler;
 import appeng.container.implementations.ContainerCraftConfirm;
@@ -62,16 +62,16 @@ import appeng.util.item.IMixedStackList;
 import appeng.util.item.IAEStackList;
 
 /**
- * MUI 版合成确认面板�?
+ * MUI 版合成确认面板�?
  * <p>
- * 功能：显示合成计划（从仓�?待合�?缺失的物品列表），选择 CPU，确认开始合成�?
+ * 功能：显示合成计划（从仓�?待合�?缺失的物品列表），选择 CPU，确认开始合成�?
  * <p>
  * 特性：
  * <ul>
- *   <li>3 �?× 5 行网格显示物�?/li>
- *   <li>从仓�?/ 待合�?/ 缺失 三种状态指�?/li>
+ *   <li>3 �?× 5 行网格显示物�?/li>
+ *   <li>从仓�?/ 待合�?/ 缺失 三种状态指�?/li>
  *   <li>缺失物品红色高亮</li>
- *   <li>CPU 选择按钮（左右键切换�?/li>
+ *   <li>CPU 选择按钮（左右键切换�?/li>
  *   <li>字节使用量和协处理器信息</li>
  *   <li>模拟模式标识</li>
  *   <li>合成执行次数（样板）显示</li>
@@ -103,14 +103,14 @@ public class MUICraftConfirmPanel extends AEBasePanel
     private GuiButton selectCPU;
     private int tooltip = -1;
 
-    // ========== 构�?==========
+    // ========== 构�?==========
 
     public MUICraftConfirmPanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(new ContainerCraftConfirm(inventoryPlayer, te));
         this.xSize = 238;
         this.ySize = 206;
 
-        final GuiScrollbar scrollbar = new GuiScrollbar();
+        final MUIScrollBar scrollbar = new MUIScrollBar();
         this.setScrollBar(scrollbar);
 
         this.ccc = (ContainerCraftConfirm) this.inventorySlots;
@@ -187,7 +187,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
         this.updateScrollBar();
     }
 
-    // ========== 初始�?==========
+    // ========== 初始�?==========
 
     @Override
     protected void setupWidgets() {
@@ -233,7 +233,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
 
         this.tooltip = -1;
 
-        // 计算鼠标悬停的物品索�?
+        // 计算鼠标悬停的物品索�?
         final int offY = 23;
         int y = 0;
         int x = 0;
@@ -283,14 +283,14 @@ public class MUICraftConfirmPanel extends AEBasePanel
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        // 标题�?
+        // 标题�?
         final long BytesUsed = this.ccc.getUsedBytes();
         final String byteUsed = NumberFormat.getInstance().format(BytesUsed);
         final String Add = BytesUsed > 0 ? (byteUsed + ' ' + GuiText.BytesUsed.getLocal())
                 : GuiText.CalculatingWait.getLocal();
         this.fontRenderer.drawString(GuiText.CraftingPlan.getLocal() + " - " + Add, 8, 7, AEMUITheme.COLOR_TITLE);
 
-        // CPU 信息�?
+        // CPU 信息�?
         String dsp = null;
 
         if (this.isSimulation()) {
@@ -350,7 +350,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
                 final int negY = ((lines - 1) * 5) / 2;
                 int downY = 0;
 
-                // 从仓�?
+                // 从仓�?
                 if (stored != null && stored.getStackSize() > 0) {
                     String str = Long.toString(stored.getStackSize());
                     if (stored.getStackSize() >= 10000) {
@@ -398,7 +398,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
                     downY += 5;
                 }
 
-                // 待合�?
+                // 待合�?
                 if (pendingStack != null && pendingStack.getStackSize() > 0) {
                     String str = Long.toString(pendingStack.getStackSize());
                     if (pendingStack.getStackSize() >= 10000) {
@@ -596,7 +596,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
         return stack;
     }
 
-    // ========== 公共访问�?==========
+    // ========== 公共访问�?==========
 
     public List<IAEStack<?>> getVisual() {
         return visual;

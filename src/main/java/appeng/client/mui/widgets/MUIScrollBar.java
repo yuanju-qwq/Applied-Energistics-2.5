@@ -27,11 +27,14 @@ import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 
 /**
- * MUI Scrollbar控件。
+ * MUI scrollbar widget aligned with upstream {@code appeng.client.gui.widgets.Scrollbar}.
  * <p>
- * 支持鼠标拖拽和滚轮滚动，可设置最小/最大滚动范围和每页大小。
+ * Supports mouse-wheel scrolling, drag with relative-offset, region-based track clicks
+ * (page up / handle drag / page down) and repeated paging via {@link EventRepeater}.
  */
 public class MUIScrollBar implements IMUIWidget, IScrollSource {
+
+    private static final int HANDLE_HEIGHT = 15;
 
     private int x;
     private int y;
@@ -44,6 +47,14 @@ public class MUIScrollBar implements IMUIWidget, IScrollSource {
     private int currentScroll = 0;
 
     private boolean dragging = false;
+    private int dragYOffset = 0;
+
+    private boolean visible = true;
+
+    private final EventRepeater eventRepeater = new EventRepeater(250, 150);
+
+    public MUIScrollBar() {
+    }
 
     public MUIScrollBar(int x, int y, int height) {
         this.x = x;
@@ -51,7 +62,7 @@ public class MUIScrollBar implements IMUIWidget, IScrollSource {
         this.height = height;
     }
 
-    // ========== 绘制 ==========
+    // ========== Drawing ==========
 
     @Override
     public void drawBackground(AEBasePanel panel, int guiLeft, int guiTop,
@@ -64,61 +75,90 @@ public class MUIScrollBar implements IMUIWidget, IScrollSource {
         int screenX = guiLeft + this.x;
         int screenY = guiTop + this.y;
 
-        if (this.getRange() == 0) {
-            Gui.drawModalRectWithCustomSizedTexture(
-                    screenX, screenY, 232 + this.width, 0, this.width, 15, 256, 256);
-        } else {
-            int offset = (this.currentScroll - this.minScroll) * (this.height - 15) / this.getRange();
-            Gui.drawModalRectWithCustomSizedTexture(
-                    screenX, offset + screenY, 232, 0, this.width, 15, 256, 256);
-        }
+        int handleYOffset = getHandleYOffset();
+        int texU = getRange() == 0 ? 232 + this.width : 232;
+        Gui.drawModalRectWithCustomSizedTexture(
+                screenX, screenY + handleYOffset, texU, 0, this.width, HANDLE_HEIGHT, 256, 256);
     }
 
     // ========== Input events ==========
 
     @Override
     public boolean mouseClicked(int localX, int localY, int mouseButton) {
-        if (mouseButton == 0 && isMouseOver(localX, localY)) {
-            this.dragging = true;
-            applyDragPosition(localY);
+        if (mouseButton != 0 || !isMouseOver(localX, localY)) {
+            return false;
+        }
+
+        if (getRange() == 0) {
             return true;
         }
-        return false;
+
+        int relY = localY - this.y;
+        int handleYOffset = getHandleYOffset();
+
+        if (relY < handleYOffset) {
+            pageUp();
+            eventRepeater.repeat(this::pageUp);
+        } else if (relY < handleYOffset + HANDLE_HEIGHT) {
+            this.dragging = true;
+            this.dragYOffset = relY - handleYOffset;
+        } else {
+            pageDown();
+            eventRepeater.repeat(this::pageDown);
+        }
+        return true;
     }
 
     /**
-     * 鼠标拖拽时调用（由面板转发）。
+     * Called by the panel when the mouse is dragged.
      */
     public void mouseDragged(int localY) {
-        if (this.dragging) {
-            applyDragPosition(localY);
+        if (getRange() == 0 || !this.dragging || this.eventRepeater.isRepeating()) {
+            return;
         }
-    }
-
-    /**
-     * 鼠标释放时调用。
-     */
-    public void mouseReleased() {
-        this.dragging = false;
-    }
-
-    /**
-     * 鼠标滚轮滚动。
-     *
-     * @param delta 滚轮方向（正=向上, 负=向下）
-     */
-    public void wheel(int delta) {
-        this.currentScroll -= delta;
+        double handleUpperEdgeY = localY - this.y - this.dragYOffset;
+        double availableHeight = this.height - HANDLE_HEIGHT;
+        double position = Math.max(0.0, Math.min(1.0, handleUpperEdgeY / availableHeight));
+        this.currentScroll = this.minScroll + (int) Math.round(position * getRange());
         this.clamp();
     }
 
-    private void applyDragPosition(int localY) {
-        if (this.getRange() == 0) {
+    /**
+     * Called by the panel when the mouse is released.
+     */
+    public void mouseReleased() {
+        this.dragging = false;
+        this.eventRepeater.stop();
+    }
+
+    /**
+     * Called every tick to drive the {@link EventRepeater}.
+     */
+    public void tick() {
+        this.eventRepeater.tick();
+    }
+
+    /**
+     * Mouse wheel scroll.
+     *
+     * @param delta scroll direction (positive = up, negative = down)
+     */
+    public void wheel(int delta) {
+        if (getRange() == 0) {
             return;
         }
-        int relativeY = localY - this.y;
-        float ratio = (float) relativeY / (float) (this.height - 15);
-        this.currentScroll = this.minScroll + Math.round(ratio * this.getRange());
+        delta = Math.max(Math.min(-delta, 1), -1);
+        this.currentScroll += delta * this.pageSize;
+        this.clamp();
+    }
+
+    private void pageUp() {
+        this.currentScroll -= this.pageSize;
+        this.clamp();
+    }
+
+    private void pageDown() {
+        this.currentScroll += this.pageSize;
         this.clamp();
     }
 
@@ -136,11 +176,19 @@ public class MUIScrollBar implements IMUIWidget, IScrollSource {
         }
     }
 
-    private int getRange() {
+    int getRange() {
         return this.maxScroll - this.minScroll;
     }
 
-    // ========== 属性 ==========
+    int getHandleYOffset() {
+        if (getRange() == 0) {
+            return 0;
+        }
+        int availableHeight = this.height - HANDLE_HEIGHT;
+        return (this.currentScroll - this.minScroll) * availableHeight / getRange();
+    }
+
+    // ========== Properties ==========
 
     @Override
     public int getCurrentScroll() {
@@ -157,6 +205,9 @@ public class MUIScrollBar implements IMUIWidget, IScrollSource {
         this.minScroll = min;
         this.maxScroll = max;
         this.pageSize = pageSize;
+        if (this.minScroll > this.maxScroll) {
+            this.maxScroll = this.minScroll;
+        }
         this.clamp();
         return this;
     }
@@ -176,6 +227,50 @@ public class MUIScrollBar implements IMUIWidget, IScrollSource {
         return this;
     }
 
+    // ========== GuiScrollbar API compatibility ==========
+
+    public int getLeft() {
+        return this.x;
+    }
+
+    public MUIScrollBar setLeft(int v) {
+        this.x = v;
+        return this;
+    }
+
+    public int getTop() {
+        return this.y;
+    }
+
+    public MUIScrollBar setTop(int v) {
+        this.y = v;
+        return this;
+    }
+
+    public int getWidth() {
+        return this.width;
+    }
+
+    public MUIScrollBar setWidth(int v) {
+        this.width = v;
+        return this;
+    }
+
+    public int getHeight() {
+        return this.height;
+    }
+
+    // ========== Visibility ==========
+
+    @Override
+    public boolean isVisible() {
+        return this.visible;
+    }
+
+    public void setVisible(boolean visible) {
+        this.visible = visible;
+    }
+
     public int getX() {
         return this.x;
     }
@@ -184,11 +279,34 @@ public class MUIScrollBar implements IMUIWidget, IScrollSource {
         return this.y;
     }
 
-    public int getWidth() {
-        return this.width;
+    // ========== Legacy GuiScrollbar bridge ==========
+
+    /**
+     * Legacy draw entry point — called from panel drawBG hooks.
+     * Renders the scrollbar handle at its current panel-local (x, y) position
+     * using the vanilla creative-inventory scrollbar texture.
+     *
+     * @deprecated Prefer registering as an IMUIWidget via addWidget().
+     */
+    @Deprecated
+    public void draw(AEBasePanel panel) {
+        panel.bindTexture("minecraft", "gui/container/creative_inventory/tabs.png");
+        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
+
+        int handleYOffset = getHandleYOffset();
+        int texU = getRange() == 0 ? 232 + this.width : 232;
+        Gui.drawModalRectWithCustomSizedTexture(
+                this.x, this.y + handleYOffset, texU, 0, this.width, HANDLE_HEIGHT, 256, 256);
     }
 
-    public int getHeight() {
-        return this.height;
+    /**
+     * Legacy click entry point — converts absolute screen coordinates to
+     * panel-local and delegates to {@link #mouseClicked(int, int, int)}.
+     *
+     * @deprecated Prefer using mouseClicked via the IMUIWidget system.
+     */
+    @Deprecated
+    public void click(AEBasePanel panel, int x, int y) {
+        this.mouseClicked(x, y, 0);
     }
 }

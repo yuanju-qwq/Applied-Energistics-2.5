@@ -27,20 +27,43 @@ import javax.annotation.Nullable;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextFormatting;
 
+import appeng.core.AppEng;
+import appeng.core.localization.GuiText;
 import appeng.util.ReadableNumberConverter;
-import appeng.util.item.AEItemStackType;
 
 /**
  * {@link AEKeyType} implementation for items.
- * Delegates metadata to {@link AEItemStackType#INSTANCE}.
  */
 final class AEItemKeyType extends AEKeyType {
 
     static final AEItemKeyType INSTANCE = new AEItemKeyType();
 
     private AEItemKeyType() {
-        super(AEItemStackType.INSTANCE, AEItemKey.class);
+        super("item", AEItemKey.class, GuiText.Items.getLocal());
+    }
+
+    @Override
+    public TextFormatting getColorDefinition() {
+        return TextFormatting.GREEN;
+    }
+
+    @Nullable
+    @Override
+    public ResourceLocation getButtonTexture() {
+        return new ResourceLocation(AppEng.MOD_ID, "textures/guis/states.png");
+    }
+
+    @Override
+    public int getButtonIconU() {
+        return 112;
+    }
+
+    @Override
+    public int getButtonIconV() {
+        return 48;
     }
 
     @Override

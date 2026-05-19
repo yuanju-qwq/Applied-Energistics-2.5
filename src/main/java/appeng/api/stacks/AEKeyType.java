@@ -25,7 +25,13 @@ package appeng.api.stacks;
 
 import java.io.IOException;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -46,22 +52,52 @@ import appeng.util.ReadableNumberConverter;
 /**
  * Defines the properties of a specific subclass of {@link AEKey}.
  * <p/>
- * Each AEKeyType wraps an existing {@link IAEStackType} to reuse its metadata
- * (display name, unit info, button textures, container interactions, etc.)
- * while providing a non-generic API for the AEKey system.
+ * Each registered {@link AEKeyType} is self-registered via its constructor
+ * and provides type-specific identity, metadata, GUI resources, and
+ * formatting for the AEKey system.
  * <p/>
  * For items there is {@link AEItemKeyType}, for fluids there is {@link AEFluidKeyType}.
  */
 public abstract class AEKeyType {
 
-    private final IAEStackType<?> legacyType;
-    private final Class<? extends AEKey> keyClass;
-    private final AEKeyFilter filter;
+    // ==================== Static registry ====================
 
-    protected AEKeyType(@Nonnull IAEStackType<?> legacyType, @Nonnull Class<? extends AEKey> keyClass) {
-        this.legacyType = legacyType;
-        this.keyClass = keyClass;
-        this.filter = what -> what.getType() == this;
+    private static final Map<String, AEKeyType> REGISTRY = new LinkedHashMap<>();
+
+    /**
+     * @return all registered AEKeyTypes in insertion order
+     */
+    @Nonnull
+    public static Collection<AEKeyType> getAllTypes() {
+        return REGISTRY.values();
+    }
+
+    /**
+     * @return sorted list of registered AEKeyTypes: ITEM and FLUID first, then by id alphabetically
+     */
+    @Nonnull
+    public static List<AEKeyType> getSortedTypes() {
+        List<AEKeyType> result = new ArrayList<>();
+        AEKeyType itemType = REGISTRY.get("item");
+        AEKeyType fluidType = REGISTRY.get("fluid");
+        List<AEKeyType> others = new ArrayList<>();
+
+        for (AEKeyType type : REGISTRY.values()) {
+            if (type == itemType || type == fluidType) {
+                continue;
+            }
+            others.add(type);
+        }
+        others.sort(Comparator.comparing(AEKeyType::getId));
+
+        if (itemType != null) {
+            result.add(itemType);
+        }
+        if (fluidType != null) {
+            result.add(fluidType);
+        }
+        result.addAll(others);
+        return result;
     }
 
     // ==================== Static accessor shortcuts ====================
@@ -85,11 +121,7 @@ public abstract class AEKeyType {
      */
     @Nullable
     public static AEKeyType fromId(@Nonnull String id) {
-        var legacy = AEStackTypeRegistry.getType(id);
-        if (legacy == null) {
-            return null;
-        }
-        return fromLegacyType(legacy);
+        return REGISTRY.get(id);
     }
 
     /**
@@ -115,37 +147,59 @@ public abstract class AEKeyType {
      */
     @Nullable
     public static AEKeyType fromLegacyType(@Nonnull IAEStackType<?> legacyType) {
-        if (legacyType == AEItemKeyType.INSTANCE.getLegacyType()) {
-            return AEItemKeyType.INSTANCE;
-        }
-        if (legacyType == AEFluidKeyType.INSTANCE.getLegacyType()) {
-            return AEFluidKeyType.INSTANCE;
-        }
-        return null;
+        return fromId(legacyType.getId());
     }
 
-    // ==================== Identity & metadata (delegated to IAEStackType) ====================
+    // ==================== Instance fields ====================
+
+    private final String id;
+    private final Class<? extends AEKey> keyClass;
+    private final String description;
+    private final AEKeyFilter filter;
+
+    // ==================== Constructor ====================
+
+    /**
+     * Creates and registers a new AEKeyType.
+     *
+     * @param id          unique string id (e.g. "item", "fluid")
+     * @param keyClass    the concrete AEKey subclass for this type
+     * @param description localized display name
+     */
+    protected AEKeyType(@Nonnull String id, @Nonnull Class<? extends AEKey> keyClass, @Nonnull String description) {
+        this.id = id;
+        this.keyClass = keyClass;
+        this.description = description;
+        this.filter = what -> what.getType() == this;
+        REGISTRY.put(id, this);
+    }
+
+    // ==================== Identity & metadata ====================
 
     /** @return the unique string id for this type (e.g. "item", "fluid") */
     public final String getId() {
-        return legacyType.getId();
+        return id;
     }
 
     /** @return the localized display name for this type */
-    public final String getDisplayName() {
-        return legacyType.getDisplayName();
+    public String getDescription() {
+        return description;
     }
 
-    /** @return the unit display string (e.g. "" for items, "mB" for fluids) */
+    /** @return the localized display name for this type */
+    public String getDisplayName() {
+        return getDescription();
+    }
+
+    /** @return the unit display string (e.g. null for items, "mB" for fluids) */
     @Nullable
     public String getUnitSymbol() {
-        var unit = legacyType.getDisplayUnit();
-        return unit.isEmpty() ? null : unit;
+        return null;
     }
 
     /** @return the amount per unit (e.g. 1 for items, 1000 for fluids) */
     public int getAmountPerUnit() {
-        return legacyType.getAmountPerUnit();
+        return 1;
     }
 
     /**
@@ -155,7 +209,7 @@ public abstract class AEKeyType {
      * E.g. IO Ports transfer 1000 mB to match items transferring one bucket per operation.
      */
     public int getAmountPerOperation() {
-        return legacyType.transferFactor();
+        return 1;
     }
 
     /**
@@ -163,62 +217,51 @@ public abstract class AEKeyType {
      * Standard value: 8 for items, 8000 for fluids.
      */
     public int getAmountPerByte() {
-        return legacyType.getUnitsPerByte();
+        return 8;
     }
 
     /** @return the color used in chat/tooltip for this type */
-    public final TextFormatting getColorDefinition() {
-        return legacyType.getColorDefinition();
-    }
+    public abstract TextFormatting getColorDefinition();
 
-    // ==================== GUI button resources (delegated) ====================
+    // ==================== GUI button resources ====================
 
     /** @return the texture resource location for the GUI button, or null */
     @Nullable
-    public final ResourceLocation getButtonTexture() {
-        return legacyType.getButtonTexture();
-    }
+    public abstract ResourceLocation getButtonTexture();
 
     /** @return button icon U coordinate in texture (0~256) */
-    public final int getButtonIconU() {
-        return legacyType.getButtonIconU();
-    }
+    public abstract int getButtonIconU();
 
     /** @return button icon V coordinate in texture (0~256) */
-    public final int getButtonIconV() {
-        return legacyType.getButtonIconV();
-    }
+    public abstract int getButtonIconV();
 
-    // ==================== Container interaction (delegated) ====================
+    // ==================== Container interaction ====================
 
     /**
      * Check if the given ItemStack is a container for this type (e.g. a bucket for fluids).
      */
-    public final boolean isContainerItemForType(@Nullable ItemStack container) {
-        return legacyType.isContainerItemForType(container);
+    public boolean isContainerItemForType(@Nullable ItemStack container) {
+        return false;
     }
 
     /**
      * Drain a resource from a container item.
-     *
-     * @see IAEStackType#drainFromContainer(ItemStack, long, boolean)
      */
     @Nonnull
-    public final ContainerInteractionResult<? extends IAEStack<?>> drainFromContainer(
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public ContainerInteractionResult<? extends IAEStack<?>> drainFromContainer(
             @Nonnull ItemStack container, long maxAmount, boolean simulate) {
-        return legacyType.drainFromContainer(container, maxAmount, simulate);
+        return ContainerInteractionResult.empty();
     }
 
     /**
      * Fill a resource into a container item.
-     *
-     * @see IAEStackType#fillToContainer(ItemStack, IAEStack, boolean)
      */
     @Nonnull
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public final ContainerInteractionResult<? extends IAEStack<?>> fillToContainer(
+    public ContainerInteractionResult<? extends IAEStack<?>> fillToContainer(
             @Nonnull ItemStack container, @Nonnull IAEStack<?> stack, boolean simulate) {
-        return ((IAEStackType) legacyType).fillToContainer(container, stack, simulate);
+        return ContainerInteractionResult.empty();
     }
 
     // ==================== Network id ====================
@@ -227,8 +270,12 @@ public abstract class AEKeyType {
      * @return the raw network id assigned to this type via {@link AEStackTypeRegistry}.
      * @throws IllegalStateException if network ids have not been initialized
      */
-    public final byte getRawId() {
-        return AEStackTypeRegistry.getNetworkId(legacyType);
+    public byte getRawId() {
+        var legacy = AEStackTypeRegistry.getType(id);
+        if (legacy == null) {
+            throw new IllegalStateException("No legacy type registered for id: " + id);
+        }
+        return AEStackTypeRegistry.getNetworkId(legacy);
     }
 
     // ==================== Key class & filtering ====================
@@ -313,18 +360,10 @@ public abstract class AEKeyType {
     @Nullable
     public abstract AEKey readFromPacket(@Nonnull PacketBuffer input) throws IOException;
 
-    // ==================== Legacy bridge ====================
-
-    /**
-     * @return the underlying {@link IAEStackType} instance this AEKeyType delegates to
-     */
-    @Nonnull
-    public final IAEStackType<?> getLegacyType() {
-        return legacyType;
-    }
+    // ==================== Object overrides ====================
 
     @Override
     public String toString() {
-        return getId();
+        return id;
     }
 }

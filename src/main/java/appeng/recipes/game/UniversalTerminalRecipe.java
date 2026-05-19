@@ -38,20 +38,22 @@ import appeng.items.tools.powered.WirelessTerminalMode;
 import appeng.util.Platform;
 
 /**
- * 閫氱敤鏃犵嚎缁堢鍚堟垚閰嶆柟銆?
+ * Universal wireless terminal crafting recipe.
  * <p>
- * 鏀寔涓ょ鍚堟垚妯″紡锛?
+ * Supports two crafting modes:
  * <ul>
- *   <li>鏂板缓鍚堟垚锛氬皢澶氱鏃犵嚎缁堢鏀惧湪宸ヤ綔鍙颁腑锛屽悎鎴愬嚭涓€涓瑁呭搴旀ā寮忕殑閫氱敤缁堢</li>
- *   <li>杩藉姞鍚堟垚锛氬皢涓€涓€氱敤缁堢 + 鍏朵粬鏃犵嚎缁堢鏀惧湪涓€璧凤紝杩藉姞妯″紡鍒板凡鏈夐€氱敤缁堢</li>
+ *   <li>New creation: combine multiple wireless terminals in the crafting table
+ *       to produce a universal terminal preloaded with the corresponding modes</li>
+ *   <li>Append: combine one universal terminal + other wireless terminals
+ *       to append modes to the existing universal terminal</li>
  * </ul>
- * 鑷冲皯闇€瑕佹彁渚?2 绉嶄笉鍚岀殑缁堢锛堟垨 1 涓€氱敤缁堢 + 1 绉嶆柊缁堢锛夈€?
- * 杈撳嚭鐨勯€氱敤缁堢灏嗕繚鐣欒緭鍏ラ€氱敤缁堢鎴栨棤绾跨粓绔腑鏈€楂樼殑鐢甸噺銆?
+ * At least 2 different terminals are required (or 1 universal terminal + 1 new terminal).
+ * The output universal terminal retains the highest power level among input terminals.
  */
 public final class UniversalTerminalRecipe extends net.minecraftforge.registries.IForgeRegistryEntry.Impl<IRecipe>
         implements IRecipe {
 
-    /** 鏃犵嚎缁堢 IItemDefinition 鈫?WirelessTerminalMode 鐨勬槧灏?*/
+    /** Wireless terminal IItemDefinition to WirelessTerminalMode mapping */
     private final Map<IItemDefinition, WirelessTerminalMode> terminalModeMap = new HashMap<>();
 
     public UniversalTerminalRecipe() {
@@ -89,14 +91,14 @@ public final class UniversalTerminalRecipe extends net.minecraftforge.registries
             }
             itemCount++;
 
-            // 妫€鏌ユ槸鍚︽槸閫氱敤缁堢
+            // Check if it is a universal terminal
             if (AEApi.instance().definitions().items().wirelessUniversalTerminal().isSameAs(stack)) {
                 if (!existingUniversal.isEmpty()) {
-                    // 涓嶅厑璁镐袱涓€氱敤缁堢
+                    // Two universal terminals are not allowed
                     return ItemStack.EMPTY;
                 }
                 existingUniversal = stack;
-                // 缁ф壙宸叉湁妯″紡
+                // Inherit existing modes
                 int[] existingModes = ToolWirelessUniversalTerminal.getInstalledModes(stack);
                 for (int m : existingModes) {
                     WirelessTerminalMode mode = WirelessTerminalMode.fromId((byte) m);
@@ -104,7 +106,7 @@ public final class UniversalTerminalRecipe extends net.minecraftforge.registries
                         modes.add(mode);
                     }
                 }
-                // 璁板綍鐢甸噺
+                // Track power level
                 NBTTagCompound tag = stack.getTagCompound();
                 if (tag != null && tag.hasKey("internalCurrentPower")) {
                     maxPower = Math.max(maxPower, tag.getDouble("internalCurrentPower"));
@@ -112,7 +114,7 @@ public final class UniversalTerminalRecipe extends net.minecraftforge.registries
                 continue;
             }
 
-            // 妫€鏌ユ槸鍚︽槸宸茬煡鐨勬棤绾跨粓绔?
+            // Check if it is a known wireless terminal
             boolean matched = false;
             for (Map.Entry<IItemDefinition, WirelessTerminalMode> entry : terminalModeMap.entrySet()) {
                 if (entry.getKey().isSameAs(stack)) {
@@ -120,7 +122,7 @@ public final class UniversalTerminalRecipe extends net.minecraftforge.registries
                     if (!modes.contains(mode)) {
                         modes.add(mode);
                     }
-                    // 璁板綍鐢甸噺
+                    // Track power level
                     NBTTagCompound tag = stack.getTagCompound();
                     if (tag != null && tag.hasKey("internalCurrentPower")) {
                         maxPower = Math.max(maxPower, tag.getDouble("internalCurrentPower"));
@@ -131,17 +133,17 @@ public final class UniversalTerminalRecipe extends net.minecraftforge.registries
             }
 
             if (!matched) {
-                // 鏈煡鐗╁搧锛岄厤鏂逛笉鍖归厤
+                // Unknown item, recipe does not match
                 return ItemStack.EMPTY;
             }
         }
 
-        // 鑷冲皯闇€瑕?涓墿鍝佷笖鑷冲皯2绉嶆ā寮忥紙鏂板缓鏃讹級锛屾垨1涓€氱敤缁堢+鑷冲皯1涓柊缁堢锛堣拷鍔犳椂锛?
+        // At least 2 items with at least 2 modes (new), or 1 universal + 1 new terminal (append)
         if (itemCount < 2 || modes.size() < 2) {
             return ItemStack.EMPTY;
         }
 
-        // 鏋勫缓杈撳嚭
+        // Build output
         ItemStack result = AEApi.instance().definitions().items().wirelessUniversalTerminal()
                 .maybeStack(1).orElse(ItemStack.EMPTY);
         if (result.isEmpty()) {
@@ -150,17 +152,17 @@ public final class UniversalTerminalRecipe extends net.minecraftforge.registries
 
         NBTTagCompound tag = appeng.util.ItemStackNbtHelper.openNbtData(result);
 
-        // 鍐欏叆妯″紡鍒楄〃
+        // Write mode list
         int[] modeIds = new int[modes.size()];
         for (int i = 0; i < modes.size(); i++) {
             modeIds[i] = modes.get(i).getId();
         }
         tag.setIntArray("modes", modeIds);
 
-        // 榛樿妯″紡涓虹涓€涓?
+        // Default mode is the first one
         tag.setByte("mode", modes.get(0).getId());
 
-        // 淇濈暀鏈€楂樼數閲?
+        // Preserve highest power level
         if (maxPower > 0) {
             tag.setDouble("internalCurrentPower", maxPower);
         }

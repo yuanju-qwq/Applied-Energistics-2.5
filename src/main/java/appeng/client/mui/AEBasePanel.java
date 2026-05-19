@@ -60,12 +60,12 @@ import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.gui.widgets.GuiCustomSlot;
-import appeng.client.gui.widgets.GuiScrollbar;
 import appeng.client.gui.widgets.ITooltip;
 import appeng.client.me.InternalSlotME;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.me.SlotME;
 import appeng.client.mui.widgets.MUIButtonPool;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.render.StackSizeRenderer;
 import appeng.client.render.stack.AEStackTypeRendererRegistry;
 import appeng.client.render.stack.IAEStackTypeRenderer;
@@ -104,7 +104,7 @@ import appeng.util.item.AEItemStack;
  *   <li>可组合的子面板系统（{@link IMUIWidget}）</li>
  *   <li>统一的绘制管线（背景 → 控件 → 前景）</li>
  *   <li>旧式 drawBG/drawFG 钩子（兼容旧 GUI 移植）</li>
- *   <li>Scrollbar集成（{@link GuiScrollbar}）</li>
+ *   <li>Scrollbar集成（{@link MUIScrollBar}）</li>
  *   <li>GuiCustomSlot 绘制和交互</li>
  *   <li>特殊槽位渲染（SlotME、流体槽、SlotFake 等）</li>
  *   <li>滚轮事件分发</li>
@@ -134,7 +134,7 @@ public abstract class AEBasePanel extends GuiContainer {
     private final List<InternalSlotME> meSlots = new ArrayList<>();
 
     /** Scrollbar */
-    private GuiScrollbar myScrollBar = null;
+    private MUIScrollBar myScrollBar = null;
 
     /** Item quantity renderer */
     private final StackSizeRenderer stackSizeRenderer = new StackSizeRenderer();
@@ -1307,14 +1307,14 @@ public abstract class AEBasePanel extends GuiContainer {
     /**
      * @return 当前Scrollbar实例，可能为 null
      */
-    protected GuiScrollbar getScrollBar() {
+    protected MUIScrollBar getScrollBar() {
         return this.myScrollBar;
     }
 
     /**
      * 设置Scrollbar实例。
      */
-    protected void setScrollBar(final GuiScrollbar scrollBar) {
+    protected void setScrollBar(final MUIScrollBar scrollBar) {
         this.myScrollBar = scrollBar;
     }
 

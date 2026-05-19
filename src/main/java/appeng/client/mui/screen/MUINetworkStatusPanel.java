@@ -34,7 +34,7 @@ import appeng.api.config.ViewItems;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiScrollbar;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.gui.widgets.ISortSource;
 import appeng.client.me.ItemRepo;
 import appeng.client.me.SlotME;
@@ -71,7 +71,7 @@ public class MUINetworkStatusPanel extends AEBasePanel
 
     public MUINetworkStatusPanel(final ContainerNetworkStatus container) {
         super(container);
-        final GuiScrollbar scrollbar = new GuiScrollbar();
+        final MUIScrollBar scrollbar = new MUIScrollBar();
 
         this.setScrollBar(scrollbar);
         this.repo = new ItemRepo(scrollbar, this);
