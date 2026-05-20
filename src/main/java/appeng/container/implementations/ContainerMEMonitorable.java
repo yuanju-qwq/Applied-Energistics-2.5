@@ -593,10 +593,9 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * @deprecated Use {@link #postGenericStackUpdate(List)} instead.
-     * Called when the client receives a PacketMEInventoryUpdate in legacy IAEStack format.
+     * Called when the client receives a multi-type PacketMEInventoryUpdate.
+     * Dispatches the updates to the GUI's ItemRepo.
      */
-    @Deprecated
     @SuppressWarnings("unchecked")
     public void postUpdate(final List<IAEStack<?>> list) {
         for (IAEStack<?> stack : list) {
@@ -617,29 +616,23 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * Client-side handler for GenericStack format inventory updates.
-     * For MUI GUIs: converts GenericStack → RepoEntry → gui.postRepoEntryUpdate (no IAEStack).
-     * For legacy GUIs: falls back to GenericStack → IAEStack → postUpdate (bridge).
+     * Client-side handler for {@link appeng.core.sync.packets.PacketMEGenericStackUpdate}.
+     * <p>
+     * Converts GenericStack list directly to RepoEntry and dispatches via
+     * {@link IMEMonitorableGuiCallback#postRepoEntryUpdate(List)}.
+     * Falls back to the legacy IAEStack path for non-MUI GUIs.
      */
     public void postGenericStackUpdate(final List<GenericStack> list) {
         if (this.gui instanceof IMEMonitorableGuiCallback guiMonitorable) {
+            // Convert GenericStack -> RepoEntry directly (no IAEStack intermediate)
             final List<appeng.client.me.ItemRepo.RepoEntry> entries = new java.util.ArrayList<>(list.size());
             for (GenericStack gs : list) {
+                // GenericStack does not carry craftable info; default to false.
+                // The server sends craftable stacks with amount=0 as a separate entry.
                 entries.add(new appeng.client.me.ItemRepo.RepoEntry(gs.what(), gs.amount(), false));
             }
             guiMonitorable.postRepoEntryUpdate(entries);
-            return;
         }
-
-        // Fallback for legacy non-MUI GUIs
-        final List<IAEStack<?>> legacyList = new ArrayList<>(list.size());
-        for (GenericStack gs : list) {
-            IAEStack<?> aeStack = gs.toIAEStack();
-            if (aeStack != null) {
-                legacyList.add(aeStack);
-            }
-        }
-        postUpdate(legacyList);
     }
 
     /**

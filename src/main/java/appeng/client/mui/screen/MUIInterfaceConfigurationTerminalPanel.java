@@ -144,19 +144,15 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         s.xPos = s.getX() + 14;
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
-    protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
+    public void drawScreen(final int mouseX, final int mouseY, final float partialTicks) {
         this.highlightButtonPool.reset();
         this.highlightButtonMap.clear();
-
-        this.fontRenderer.drawString(
-                this.getGuiDisplayName(GuiText.InterfaceConfigurationTerminal.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
-        this.fontRenderer.drawString(GuiText.inventory.getLocal(), OFFSET_X + 2, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
+        this.inventorySlots.inventorySlots.removeIf(slot -> slot instanceof SlotDisconnected);
 
         final int currentScroll = this.getScrollBar().getCurrentScroll();
-        this.inventorySlots.inventorySlots.removeIf(slot -> slot instanceof SlotDisconnected);
 
         int offset = 30;
         int linesDraw = 0;
@@ -164,7 +160,6 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
             final Object lineObj = this.lines.get(currentScroll + x);
             if (lineObj instanceof ClientDCInternalInv inv) {
 
-                // Acquire highlight button from pool (panel-relative coordinates)
                 MUIButtonWidget hlBtn = this.highlightButtonPool.acquireSettings(
                         4, offset, Settings.ACTIONS, ActionItems.HIGHLIGHT_INTERFACE);
                 highlightButtonMap.put(hlBtn, inv);
@@ -175,6 +170,36 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
                     for (int z = 0; z < 9; z++) {
                         this.inventorySlots.inventorySlots
                                 .add(new SlotDisconnected(inv, z + (row * 9), (z * 18 + 22), offset));
+                    }
+                    linesDraw++;
+                    offset += 18;
+                }
+            } else if (lineObj instanceof String) {
+                linesDraw++;
+                offset += 18;
+            }
+        }
+
+        super.drawScreen(mouseX, mouseY, partialTicks);
+    }
+
+    @Override
+    protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
+        this.fontRenderer.drawString(
+                this.getGuiDisplayName(GuiText.InterfaceConfigurationTerminal.getLocal()), 8, 6, AEMUITheme.COLOR_TITLE);
+        this.fontRenderer.drawString(GuiText.inventory.getLocal(), OFFSET_X + 2, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
+
+        final int currentScroll = this.getScrollBar().getCurrentScroll();
+
+        int offset = 30;
+        int linesDraw = 0;
+        for (int x = 0; x < LINES_ON_PAGE && linesDraw < LINES_ON_PAGE && currentScroll + x < this.lines.size(); x++) {
+            final Object lineObj = this.lines.get(currentScroll + x);
+            if (lineObj instanceof ClientDCInternalInv inv) {
+                int extraLines = numUpgradesMap.get(inv);
+
+                for (int row = 0; row < 1 + extraLines && linesDraw < LINES_ON_PAGE; ++row) {
+                    for (int z = 0; z < 9; z++) {
                         if (this.matchedStacks.contains(inv.getInventory().getStackInSlot(z + (row * 9)))) {
                             drawRect(z * 18 + 22, offset, z * 18 + 22 + 16, offset + 16, 0x8A00FF00);
                         } else if (!matchedInterfaces.contains(inv)) {
