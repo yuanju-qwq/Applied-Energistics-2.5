@@ -40,9 +40,9 @@ import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.helpers.InventoryAction;
 
 /**
- * MUI 版合成终端面板�?
+ * MUI 版合成终端面板
  * <p>
- * 继承 {@link MUIMEMonitorablePanel}，增�?3×3 合成网格 + 清除按钮�?
+ * 继承 {@link MUIMEMonitorablePanel}，3×3 合成网格 + 清除按钮
  */
 @SideOnly(Side.CLIENT)
 public class MUICraftingTermPanel extends MUIMEMonitorablePanel {

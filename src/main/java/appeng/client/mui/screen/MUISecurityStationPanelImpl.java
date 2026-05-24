@@ -33,10 +33,10 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
 
 /**
- * MUI 版安全终�?GUI 面板�?
+ * MUI 版安全终端 GUI 面板。
  *
- * 继承 {@link MUIMEMonitorablePanel} 并实�?{@link MUISecurityStationPanel} 标记接口�?
- * 增加�?5 个安全权限切换按钮（注入/提取/合成/建�?安全）�?
+ * 继承 {@link MUIMEMonitorablePanel} 并实现 {@link MUISecurityStationPanel} 标记接口。
+ * 增加了 5 个安全权限切换按钮（注入/提取/合成/建造/安全）。
  */
 public class MUISecurityStationPanelImpl extends MUIMEMonitorablePanel implements MUISecurityStationPanel {
 
@@ -52,11 +52,11 @@ public class MUISecurityStationPanelImpl extends MUIMEMonitorablePanel implement
         this.setCustomSortOrder(false);
         this.setReservedSpace(33);
 
-        // 增加宽度以容纳安全卡槽位
+        // 增加宽度以容纳权限按钮
         this.xSize += 56;
     }
 
-    // ========== 初始�?==========
+    // ========== 初始化 ==========
 
     @Override
     public void initGui() {

@@ -172,7 +172,7 @@ public abstract class AbstractPartIOBus extends PartUpgradeable
         this.getHost().markForSave();
     }
 
-    IAEStackInventory getConfig() {
+    protected IAEStackInventory getConfig() {
         return this.config;
     }
 

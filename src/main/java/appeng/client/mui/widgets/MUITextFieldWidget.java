@@ -563,6 +563,14 @@ public class MUITextFieldWidget implements IMUIWidget {
         return this;
     }
 
+    /**
+     * Set a suggestion text to the search field.
+     * This is used by JEI integration to pre-fill a search term.
+     */
+    public void setSuggestion(String suggestion) {
+        this.setText(suggestion);
+    }
+
     public boolean isFocused() {
         return this.delegate.isFocused();
     }

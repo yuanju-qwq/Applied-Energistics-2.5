@@ -262,7 +262,6 @@ public class MUIScrollBar implements IMUIWidget, IScrollSource {
 
     // ========== Visibility ==========
 
-    @Override
     public boolean isVisible() {
         return this.visible;
     }

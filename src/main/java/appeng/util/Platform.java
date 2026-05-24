@@ -102,6 +102,7 @@ import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
+import appeng.util.item.IAEStackList;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEColor;
 import appeng.api.util.AEPartLocation;
@@ -993,8 +994,7 @@ public class Platform {
      */
     public static IItemList<IAEStack<?>> readAEStackListNBT(@Nullable final NBTTagList tags, boolean convert) {
         @SuppressWarnings("unchecked")
-        final IItemList<IAEStack<?>> out = (IItemList<IAEStack<?>>) (IItemList<?>)
-                AEApi.instance().storage().createAEStackList();
+        final IItemList<IAEStack<?>> out = (IItemList<IAEStack<?>>) (Object) new IAEStackList();
 
         if (tags != null) {
             for (int x = 0; x < tags.tagCount(); x++) {
@@ -1031,8 +1031,9 @@ public class Platform {
      * @param out    已有的 NBTTagList
      * @return 写入后的 NBTTagList
      */
+    @SuppressWarnings("unchecked")
     public static NBTTagList writeAEStackListNBT(final IItemList<?> myList, NBTTagList out) {
-        for (final IAEStack<?> ais : myList) {
+        for (final IAEStack<?> ais : (Iterable<IAEStack<?>>) (Object) myList) {
             NBTTagCompound tag = new NBTTagCompound();
             writeStackNBT(ais, tag, true);
             out.appendTag(tag);

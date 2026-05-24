@@ -213,11 +213,13 @@ public class TileChest extends AENetworkPowerTile
             return null;
         }
 
-        final MEInventoryHandler<T> ih = new MEInventoryHandler<T>(h, h.getStackType());
+        @SuppressWarnings("unchecked")
+        final IAEStackType<T> stackType = (IAEStackType<T>) h.getStackType();
+        final MEInventoryHandler<T> ih = new MEInventoryHandler<T>(h, stackType);
         ih.setPriority(this.priority);
 
         final ChestMonitorHandler<T> g = new ChestMonitorHandler<T>(ih);
-        g.addListener(new ChestNetNotifier<T>(h.getStackType()), g);
+        g.addListener(new ChestNetNotifier<T>(stackType), g);
 
         return g;
     }

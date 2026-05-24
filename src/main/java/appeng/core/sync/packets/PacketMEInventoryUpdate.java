@@ -68,7 +68,7 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
     private final List<IAEStack<?>> list;
     // Read side — new GenericStack format (mutually exclusive with list).
     @Nullable
-    private final List<GenericStack> genericList;
+    private List<GenericStack> genericList;
 
     private final byte ref;
 

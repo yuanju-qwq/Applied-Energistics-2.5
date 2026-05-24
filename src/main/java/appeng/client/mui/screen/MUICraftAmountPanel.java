@@ -159,7 +159,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
             this.originalGuiBtn = new MUITabContainer(154, 0);
             this.originalGuiBtn.setIconItem(myIcon);
             this.originalGuiBtn.setTooltip(myIcon.getDisplayName());
-            final String origGui = this.originalGui;
+            final AEGuiKey origGui = this.originalGui;
             this.originalGuiBtn.setOnClick(tab -> {
                 NetworkHandler.instance().sendToServer(new PacketSwitchGuis(origGui));
             });

@@ -112,6 +112,23 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         return (IItemList<T>) list;
     }
 
+    /**
+     * Add a stack to a typed list with raw casting to handle wildcard types.
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static void addToTypedList(final IItemList<?> list, final IAEStack<?> stack) {
+        ((IItemList) list).add(stack);
+    }
+
+    /**
+     * Find fuzzy matches in a typed list with raw casting to handle wildcard types.
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static Collection<? extends IAEStackBase> findFuzzyInTypedList(final IItemList<?> list,
+            final IAEStack<?> filter, final FuzzyMode fuzzy) {
+        return (Collection<? extends IAEStackBase>) (Collection<?>) ((IItemList) list).findFuzzy(filter, fuzzy);
+    }
+
     private IItemList<?> getList(final IAEStackType<?> type) {
         return this.inventoryMap.get(type);
     }

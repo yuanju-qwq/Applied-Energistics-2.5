@@ -57,6 +57,7 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.*;
 import appeng.helpers.PlayerSecurityWrapper;
 import appeng.me.GridAccessException;

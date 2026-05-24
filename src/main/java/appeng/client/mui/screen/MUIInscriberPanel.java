@@ -30,15 +30,15 @@ import appeng.core.localization.GuiText;
 import appeng.tile.misc.TileInscriber;
 
 /**
- * MUI 版压印器 GUI 面板�?
+ * MUI 版压印器 GUI 面板。
  *
- * 显示压印进度条、升级区域和工具箱区域�?
+ * 显示压印进度条、升级区域和工具箱区域。
  */
 public class MUIInscriberPanel extends AEBasePanel {
 
     private final ContainerInscriber cvc;
 
-    // ========== 进度�?==========
+    // ========== 进度条 ==========
     private GuiProgressBar pb;
 
     public MUIInscriberPanel(final InventoryPlayer ip, final TileInscriber te) {
@@ -56,11 +56,11 @@ public class MUIInscriberPanel extends AEBasePanel {
         return ((ContainerUpgradeable) this.inventorySlots).hasToolbox();
     }
 
-    // ========== 初始�?==========
+    // ========== 初始化 ==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始�?
+        // initGui 处理初始化
     }
 
     @Override

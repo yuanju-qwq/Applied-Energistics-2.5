@@ -43,8 +43,8 @@ import appeng.api.storage.data.IAEStackType;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.slots.VirtualMEPatternSlot;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
-import appeng.client.mui.widgets.MUIButtonWidget;
-import appeng.client.mui.widgets.MUITabContainer;
+import appeng.client.gui.widgets.GuiImgButton;
+import appeng.client.gui.widgets.GuiTabButton;
 import appeng.container.implementations.ContainerPatternEncoder;
 import appeng.container.implementations.ContainerPatternTerm;
 import appeng.container.implementations.ContainerWirelessPatternTerminal;
@@ -94,19 +94,19 @@ public class MUIPatternTermPanel extends MUIMEMonitorablePanel implements IJEIGh
 
     // ========== UI controls ==========
 
-    private MUITabContainer tabCraftButton;
-    private MUITabContainer tabProcessButton;
-    private MUIButtonWidget substitutionsEnabledBtn;
-    private MUIButtonWidget substitutionsDisabledBtn;
-    private MUIButtonWidget encodeBtn;
-    private MUIButtonWidget clearBtn;
-    private MUIButtonWidget x2Btn;
-    private MUIButtonWidget x3Btn;
-    private MUIButtonWidget plusOneBtn;
-    private MUIButtonWidget divTwoBtn;
-    private MUIButtonWidget divThreeBtn;
-    private MUIButtonWidget minusOneBtn;
-    private MUIButtonWidget maxCountBtn;
+    private GuiTabButton tabCraftButton;
+    private GuiTabButton tabProcessButton;
+    private GuiImgButton substitutionsEnabledBtn;
+    private GuiImgButton substitutionsDisabledBtn;
+    private GuiImgButton encodeBtn;
+    private GuiImgButton clearBtn;
+    private GuiImgButton x2Btn;
+    private GuiImgButton x3Btn;
+    private GuiImgButton plusOneBtn;
+    private GuiImgButton divTwoBtn;
+    private GuiImgButton divThreeBtn;
+    private GuiImgButton minusOneBtn;
+    private GuiImgButton maxCountBtn;
     public Map<Target<?>, Object> mapTargetSlot = new HashMap<>();
 
     protected VirtualMEPatternSlot[] craftingVSlots;

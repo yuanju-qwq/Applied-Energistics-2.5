@@ -184,7 +184,7 @@ public class AEItemStack extends AEStack<IAEItemStack> implements IAEItemStack {
 
     @Override
     public IStorageChannel<IAEItemStack> getChannel() {
-        return AEItemStackType.INSTANCE;
+        return AEItemStackType.INSTANCE.getStorageChannel();
     }
 
     @Override

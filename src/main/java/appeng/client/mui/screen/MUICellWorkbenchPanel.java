@@ -59,6 +59,7 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
     private GuiImgButton clear;
     private GuiImgButton partition;
     private GuiToggleButton copyMode;
+    private GuiImgButton fuzzyBtn;
 
     // ========== Virtual slot ==========
     private VirtualMEPhantomSlot[] configSlots;
@@ -85,10 +86,10 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
         this.partition = new GuiImgButton(this.guiLeft - 18, this.guiTop + 28, Settings.ACTIONS, ActionItems.WRENCH);
         this.copyMode = new GuiToggleButton(this.guiLeft - 18, this.guiTop + 48, 11 * 16 + 5, 12 * 16 + 5,
                 GuiText.CopyMode.getLocal(), GuiText.CopyModeDesc.getLocal());
-        this.fuzzyMode = new GuiImgButton(this.guiLeft - 18, this.guiTop + 68, Settings.FUZZY_MODE,
+        this.fuzzyBtn = new GuiImgButton(this.guiLeft - 18, this.guiTop + 68, Settings.FUZZY_MODE,
                 FuzzyMode.IGNORE_ALL);
 
-        this.buttonList.add(this.fuzzyMode);
+        this.buttonList.add(this.fuzzyBtn);
         this.buttonList.add(this.partition);
         this.buttonList.add(this.clear);
         this.buttonList.add(this.copyMode);
@@ -159,7 +160,7 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
                 }
             }
         }
-        this.fuzzyMode.setVisibility(hasFuzzy);
+        this.fuzzyBtn.setVisibility(hasFuzzy);
     }
 
     @Override
@@ -188,10 +189,10 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
                 NetworkHandler.instance().sendToServer(new PacketValueConfig("CellWorkbench.Action", "Partition"));
             } else if (btn == this.clear) {
                 NetworkHandler.instance().sendToServer(new PacketValueConfig("CellWorkbench.Action", "Clear"));
-            } else if (btn == this.fuzzyMode) {
+            } else if (btn == this.fuzzyBtn) {
                 final boolean backwards = Mouse.isButtonDown(1);
 
-                FuzzyMode fz = (FuzzyMode) this.fuzzyMode.getCurrentValue();
+                FuzzyMode fz = (FuzzyMode) this.fuzzyBtn.getCurrentValue();
                 fz = appeng.util.EnumCycler.rotateEnum(fz, backwards, Settings.FUZZY_MODE.getPossibleValues());
 
                 NetworkHandler.instance().sendToServer(new PacketValueConfig("CellWorkbench.Fuzzy", fz.name()));

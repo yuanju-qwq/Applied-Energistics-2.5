@@ -110,9 +110,10 @@ public interface IMEInventory<T extends IAEStackBase> {
      *
      * @return the remaining portion that was not injected, or null if fully injected
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     default IAEStack<?> injectItemsGeneric(final IAEStack<?> input, final Actionable type, final IActionSource src) {
-        return ((IMEInventory) this).injectItems(input, type, src);
+        IMEInventory raw = (IMEInventory) this;
+        return (IAEStack<?>) raw.injectItems((IAEStackBase) input, type, src);
     }
 
     /**
@@ -120,9 +121,10 @@ public interface IMEInventory<T extends IAEStackBase> {
      *
      * @return the extracted stack, or null
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     default IAEStack<?> extractItemsGeneric(final IAEStack<?> request, final Actionable mode, final IActionSource src) {
-        return ((IMEInventory) this).extractItems(request, mode, src);
+        IMEInventory raw = (IMEInventory) this;
+        return (IAEStack<?>) raw.extractItems((IAEStackBase) request, mode, src);
     }
 
     /**
@@ -131,8 +133,9 @@ public interface IMEInventory<T extends IAEStackBase> {
      * @param out the list to receive results (type must match this inventory)
      * @return the passed-in list
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     default IItemList<?> getAvailableItemsGeneric(final IItemList<?> out) {
-        return ((IMEInventory) this).getAvailableItems(out);
+        IMEInventory raw = (IMEInventory) this;
+        return (IItemList<?>) raw.getAvailableItems(out);
     }
 }

@@ -36,8 +36,10 @@ import appeng.core.sync.packets.PacketValueConfig;
 import appeng.helpers.ICustomNameObject;
 
 /**
- * MUI 版重命名�?GUI 面板�? *
- * 提供文本输入框和确认按钮，用于重命名方块/物品�? * ESC/Enter 键关闭面板并发送重命名数据包�? */
+ * MUI 版重命名器 GUI 面板。
+ * 提供文本输入框和确认按钮，用于重命名方块/物品。
+ * ESC/Enter 键关闭面板并发送重命名数据包。
+ */
 public class MUIRenamerPanel extends AEBasePanel {
 
     private static final int TEXT_FIELD_X = 9;
@@ -58,7 +60,7 @@ public class MUIRenamerPanel extends AEBasePanel {
         this.xSize = 256;
     }
 
-    // ========== 初始�?==========
+    // ========== 初始化 ==========
 
     @Override
     protected void setupWidgets() {
@@ -84,7 +86,7 @@ public class MUIRenamerPanel extends AEBasePanel {
                 this.guiTop + TEXT_FIELD_Y,
                 12,
                 12,
-                "�?));
+                "\u2192"));
     }
 
     // ========== 渲染 ==========

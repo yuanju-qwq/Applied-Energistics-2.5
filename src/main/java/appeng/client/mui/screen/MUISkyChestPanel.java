@@ -28,9 +28,9 @@ import appeng.integration.Integrations;
 import appeng.tile.storage.TileSkyChest;
 
 /**
- * MUI 版陨石箱 GUI 面板�?
+ * MUI 版陨石箱 GUI 面板。
  *
- * 纯展示型面板，包含背景贴图、标题文字，以及 InvTweaks 兼容的空格键处理�?
+ * 纯展示型面板，包含背景贴图、标题文字，以及 InvTweaks 兼容的空格键处理。
  */
 public class MUISkyChestPanel extends AEBasePanel {
 
@@ -43,7 +43,7 @@ public class MUISkyChestPanel extends AEBasePanel {
         this.ySize = 195;
     }
 
-    // ========== 初始�?==========
+    // ========== 初始化 ==========
 
     @Override
     protected void setupWidgets() {

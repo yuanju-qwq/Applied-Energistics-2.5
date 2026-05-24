@@ -52,9 +52,10 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
 
     protected boolean hasChanged = true;
 
+    @SuppressWarnings("unchecked")
     public MEMonitorHandler(final IMEInventoryHandler<T> t) {
         this.internalHandler = t;
-        this.cachedList = t.getStackType().createList();
+        this.cachedList = (IItemList<T>) (Object) t.getStackType().createList();
     }
 
     public MEMonitorHandler(final IMEInventoryHandler<T> t, final IAEStackType<T> type) {

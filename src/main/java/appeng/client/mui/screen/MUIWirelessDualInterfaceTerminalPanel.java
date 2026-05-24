@@ -37,6 +37,7 @@ import appeng.api.config.Settings;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
+import appeng.client.me.ItemRepo;
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.mui.AEBaseMEPanel;
 import appeng.client.mui.module.InterfaceListModule;
@@ -507,6 +508,11 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     }
 
     // ========== MEItemBrowserModule.Host 实现 ==========
+
+    @Override
+    public List<GuiButton> getButtonList() {
+        return this.buttonList;
+    }
 
     @Override
     public IConfigManager getConfigSrc() {

@@ -27,9 +27,9 @@ import appeng.core.localization.GuiText;
 import appeng.tile.grindstone.TileGrinder;
 
 /**
- * MUI 版石英磨�?GUI 面板�?
+ * MUI 版石英磨矿机 GUI 面板。
  *
- * 纯展示型面板，仅包含背景贴图和标题文字，无按�?交互�?
+ * 纯展示型面板，仅包含背景贴图和标题文字，无按钮交互。
  */
 public class MUIGrinderPanel extends AEBasePanel {
 
@@ -42,7 +42,7 @@ public class MUIGrinderPanel extends AEBasePanel {
         this.ySize = 176;
     }
 
-    // ========== 初始�?==========
+    // ========== 初始化 ==========
 
     @Override
     protected void setupWidgets() {

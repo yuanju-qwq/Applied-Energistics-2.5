@@ -46,6 +46,8 @@ import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.oredict.OreDictionary;
 
+import com.github.bsideup.jabel.Desugar;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
@@ -75,6 +77,7 @@ public class ItemRepo {
      * @param amount    the stored quantity (0 if only craftable)
      * @param craftable whether this resource can be auto-crafted
      */
+    @Desugar
     public record RepoEntry(AEKey what, long amount, boolean craftable) {
 
         public RepoEntry {

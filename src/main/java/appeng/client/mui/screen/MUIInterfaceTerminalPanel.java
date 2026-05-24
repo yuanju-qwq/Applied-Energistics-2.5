@@ -757,7 +757,7 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
     private ClientDCInternalInv getById(final long id, final long sortBy, final String unlocalizedName) {
         return this.byId.computeIfAbsent(id, key -> {
             this.refreshList = true;
-            return new ClientDCInternalInv(0, sortBy, unlocalizedName);
+            return new ClientDCInternalInv(0, key, sortBy, unlocalizedName);
         });
     }
 
@@ -765,7 +765,7 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel implements IInterface
             final int slotCount) {
         return this.providerById.computeIfAbsent(id, key -> {
             this.refreshList = true;
-            return new ClientDCInternalInv(slotCount, sortBy, unlocalizedName);
+            return new ClientDCInternalInv(slotCount, key, sortBy, unlocalizedName);
         });
     }
 

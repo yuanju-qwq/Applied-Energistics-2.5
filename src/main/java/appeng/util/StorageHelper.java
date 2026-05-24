@@ -180,16 +180,18 @@ public final class StorageHelper {
         inv.getAvailableItemsGeneric(out);
     }
 
+    @SuppressWarnings("unchecked")
     public static IItemList<? extends IAEStack<?>> getAvailableItems(final IMEInventory<?> inv) {
-        return inv.getAvailableItems();
+        return (IItemList<? extends IAEStack<?>>) (Object) inv.getAvailableItems();
     }
 
+    @SuppressWarnings("unchecked")
     public static <T extends IAEStack<T>> IItemList<T> getStorageView(final IMEInventory<T> inv) {
         if (inv instanceof IMEMonitor<?>) {
             return getStorageViewFromMonitor(inv);
         }
 
-        return inv.getAvailableItems(inv.getStackType().createList());
+        return inv.getAvailableItems((IItemList<T>) (Object) inv.getStackType().createList());
     }
 
     @SuppressWarnings("unchecked")

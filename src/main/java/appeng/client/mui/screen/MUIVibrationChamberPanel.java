@@ -30,15 +30,15 @@ import appeng.core.localization.GuiText;
 import appeng.tile.misc.TileVibrationChamber;
 
 /**
- * MUI 版振动仓 GUI 面板�?
+ * MUI 版振动仓 GUI 面板。
  *
- * 显示 AE/t 功率输出进度条和燃烧火焰动画�?
+ * 显示 AE/t 功率输出进度条和燃烧火焰动画。
  */
 public class MUIVibrationChamberPanel extends AEBasePanel {
 
     private final ContainerVibrationChamber cvc;
 
-    // ========== 进度�?==========
+    // ========== 进度条 ==========
     private GuiProgressBar pb;
 
     public MUIVibrationChamberPanel(final InventoryPlayer ip, final TileVibrationChamber te) {
@@ -51,11 +51,11 @@ public class MUIVibrationChamberPanel extends AEBasePanel {
         this.ySize = 166;
     }
 
-    // ========== 初始�?==========
+    // ========== 初始化 ==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始�?
+        // initGui 处理初始化
     }
 
     @Override

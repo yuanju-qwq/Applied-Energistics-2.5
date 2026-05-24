@@ -247,7 +247,7 @@ public abstract class AEBasePanel extends GuiContainer {
     /**
      * 添加一个 MUI 控件。
      */
-    protected <T extends IMUIWidget> T addWidget(T widget) {
+    public <T extends IMUIWidget> T addWidget(T widget) {
         this.widgets.add(widget);
         if (widget instanceof GuiButton) {
             this.buttonList.add((GuiButton) widget);
@@ -1109,7 +1109,7 @@ public abstract class AEBasePanel extends GuiContainer {
     /**
      * 绘制多行工具提示（带颜色格式化）。
      */
-    protected void drawTooltip(int x, int y, List<String> lines) {
+    public void drawTooltip(int x, int y, List<String> lines) {
         if (lines.isEmpty()) {
             return;
         }
@@ -1184,7 +1184,7 @@ public abstract class AEBasePanel extends GuiContainer {
      * @param maxRows 屏幕可容纳的最大行数
      * @return 根据终端样式计算的实际行数
      */
-    protected static int computeTerminalRows(int maxRows) {
+    public static int computeTerminalRows(int maxRows) {
         final Enum<?> terminalStyle = appeng.core.AEConfig.instance().getConfigManager()
                 .getSetting(appeng.api.config.Settings.TERMINAL_STYLE);
 

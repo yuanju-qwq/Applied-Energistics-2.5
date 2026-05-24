@@ -50,6 +50,7 @@ import appeng.client.ActionKey;
 import appeng.client.gui.slots.VirtualMEMonitorableSlot;
 import appeng.client.gui.slots.VirtualMEPinSlot;
 import appeng.client.gui.widgets.GuiCustomSlot;
+import appeng.client.gui.widgets.ISortSource;
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.me.InternalSlotME;
 import appeng.client.me.ItemRepo;
@@ -133,6 +134,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     private MUITextFieldWidget searchField;
     protected int perRow = 9;
     protected int reservedSpace = 0;
+    protected int lowerTextureOffset = 0;
     protected boolean customSortOrder = true;
     protected int rows = 0;
     private boolean isAutoFocus = false;
@@ -215,7 +217,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
         @Override
         public int getOffsetX() {
-            return offsetX;
+            return guiLeft;
         }
 
         @Override
@@ -390,7 +392,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             for (int x = 0; x < this.perRow; x++) {
                 final int idx = x + y * this.perRow;
                 this.guiSlots.add(new VirtualMEMonitorableSlot(
-                        idx, this.offsetX + x * 18, normalSlotOffsetY + y * 18, this.repo, idx));
+                        idx, this.guiLeft + x * 18, normalSlotOffsetY + y * 18, this.repo, idx));
             }
         }
 
@@ -438,7 +440,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             for (int x = 0; x < this.perRow; x++) {
                 this.getMeSlots()
                         .add(new InternalSlotME(this.repo, x + y * this.perRow,
-                                this.offsetX + x * 18, normalSlotOffsetY + y * 18));
+                                this.guiLeft + x * 18, normalSlotOffsetY + y * 18));
             }
         }
     }
@@ -448,7 +450,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         // Terminal search field
         this.searchField = MUITextFieldWidget.addSearchField(this,
                 MUITextFieldWidget.SearchFieldSpec.builder(
-                        Math.max(SEARCH_FIELD_X_MIN, this.offsetX),
+                        Math.max(SEARCH_FIELD_X_MIN, this.guiLeft),
                         SEARCH_FIELD_Y,
                         SEARCH_FIELD_WIDTH)
                         .height(SEARCH_FIELD_HEIGHT)

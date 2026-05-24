@@ -42,7 +42,7 @@ import appeng.core.localization.ButtonToolTips;
  * Each button controls whether its associated {@link AEKeyType} is visible in the terminal grid.
  * When disabled, the button renders at 50% opacity.
  */
-public class MUITypeFilterButton implements IMUIWidget, ITooltip, net.minecraft.client.gui.GuiButtonAccessor {
+public class MUITypeFilterButton implements IMUIWidget, ITooltip {
 
     private static final ResourceLocation STATES_TEXTURE = new ResourceLocation("appliedenergistics2",
             "textures/guis/states.png");

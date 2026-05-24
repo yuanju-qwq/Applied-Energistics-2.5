@@ -44,6 +44,7 @@ import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.IStorageMonitorableAccessor;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.capabilities.Capabilities;
@@ -326,7 +327,7 @@ public class TileCondenser extends AEBaseInvTile implements IConfigManagerHost, 
             if (type == AEItemStackType.INSTANCE) {
                 return (IMEMonitor<T>) this.itemInventory;
             } else {
-                return new CondenserVoidInventory<>(TileCondenser.this, type);
+                return new CondenserVoidInventory<>(TileCondenser.this, type.getStorageChannel());
             }
         }
     }

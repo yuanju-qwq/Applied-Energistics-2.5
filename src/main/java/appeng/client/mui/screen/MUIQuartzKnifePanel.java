@@ -33,13 +33,13 @@ import appeng.core.sync.packets.PacketValueConfig;
 import appeng.items.contents.QuartzKnifeObj;
 
 /**
- * MUI 版石英切割刀 GUI 面板�?
+ * MUI 版石英切割刀 GUI 面板。
  *
- * 提供物品命名文本输入框，用于给处理器/存储组件命名�?
+ * 提供物品命名文本输入框，用于给处理器/存储组件命名。
  */
 public class MUIQuartzKnifePanel extends AEBasePanel {
 
-    // ========== 文本�?==========
+    // ========== 文本框 ==========
     private GuiTextField name;
 
     public MUIQuartzKnifePanel(final InventoryPlayer ip, final QuartzKnifeObj te) {
@@ -51,11 +51,11 @@ public class MUIQuartzKnifePanel extends AEBasePanel {
         this.ySize = 184;
     }
 
-    // ========== 初始�?==========
+    // ========== 初始化 ==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始�?
+        // initGui 处理初始化
     }
 
     @Override

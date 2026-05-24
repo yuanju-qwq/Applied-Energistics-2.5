@@ -52,7 +52,8 @@ public class ApiClientHelper implements IClientHelper {
                     .getFormattedText());
         }
 
-        IItemList<T> itemList = cellInventory.getStackType().createList();
+        @SuppressWarnings("unchecked")
+        IItemList<T> itemList = (IItemList<T>) (Object) cellInventory.getStackType().createList();
 
         if (handler.isPreformatted()) {
             final String list = (handler.getIncludeExcludeMode() == IncludeExclude.WHITELIST ? GuiText.Included
