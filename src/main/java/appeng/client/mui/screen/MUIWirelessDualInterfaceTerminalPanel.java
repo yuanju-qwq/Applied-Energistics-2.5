@@ -518,4 +518,14 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     public IConfigManager getConfigSrc() {
         return this.configSrc;
     }
+
+    @Override
+    public boolean hasViewCell() {
+        return false;
+    }
+
+    @Override
+    public void requestScrollBarUpdate() {
+        // No-op for compact mode — scrollbar is managed internally by the module
+    }
 }

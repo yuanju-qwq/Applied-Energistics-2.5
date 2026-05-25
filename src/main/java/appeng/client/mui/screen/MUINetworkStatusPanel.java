@@ -239,7 +239,10 @@ public class MUINetworkStatusPanel extends AEBasePanel
         this.repo.clear();
 
         for (final IAEStack<?> is : list) {
-            this.repo.postUpdate(is);
+            var key = is.toAEKey();
+            if (key != null) {
+                this.repo.postUpdate(key, is.getStackSize(), is.isCraftable());
+            }
         }
 
         this.repo.updateView();

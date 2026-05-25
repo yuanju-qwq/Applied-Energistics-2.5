@@ -20,7 +20,7 @@ package appeng.client.mui.module;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
@@ -33,6 +33,7 @@ import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.client.gui.slots.VirtualMEMonitorableSlot;
 import appeng.client.gui.widgets.GuiImgButton;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.gui.widgets.ISortSource;
 import appeng.client.me.ItemRepo;
@@ -46,43 +47,266 @@ import appeng.integration.Integrations;
 import appeng.util.Platform;
 
 /**
- * ME 物品浏览模块 — 从 GuiWirelessDualInterfaceTerminal 中提取的可复用组件。
+ * ME item browser module — reusable component for ME network item browsing.
  *
- * <p>负责：
+ * <p>Supports two layout modes via {@link LayoutConfig}:
  * <ul>
- *   <li>ItemRepo + VirtualMEMonitorableSlot 的 4x4 网格</li>
- *   <li>排序/视图/排序方向/搜索模式按钮</li>
- *   <li>搜索框 + JEI 同步</li>
- *   <li>物品面板Scrollbar</li>
- *   <li>面板拖拽支持</li>
- *   <li>IMEInventoryUpdateReceiver 数据转发</li>
+ *   <li>{@link LayoutConfig#compact()} — 4-column side panel (used by WirelessDualInterfaceTerminal)</li>
+ *   <li>{@link LayoutConfig#standard()} — 9-column main panel (used by MUIMEMonitorablePanel)</li>
+ * </ul>
+ *
+ * <p>Responsible for:
+ * <ul>
+ *   <li>ItemRepo + VirtualMEMonitorableSlot grid</li>
+ *   <li>Sort / view / sort direction / search mode buttons</li>
+ *   <li>Search field + JEI sync</li>
+ *   <li>Scrollbar management</li>
+ *   <li>Panel drag support (compact mode only)</li>
+ *   <li>IMEInventoryUpdateReceiver data forwarding</li>
  * </ul>
  */
 public class MEItemBrowserModule implements ISortSource {
 
-    private static final int SEARCH_FIELD_OFFSET_X = 3;
-    private static final int SEARCH_FIELD_OFFSET_Y = 4;
-    private static final int SEARCH_FIELD_WIDTH = 72;
-    private static final int SEARCH_FIELD_HEIGHT = 12;
-
-    // ========== 纹理 ==========
-
-    private static final ResourceLocation ITEMS_TEXTURE = new ResourceLocation("appliedenergistics2",
-            "textures/gui/widget/items.png");
-
-    // ========== 布局常量 ==========
-
-    static final int ITEM_PANEL_WIDTH = 101;
-    private static final int ITEM_PANEL_ROWS = 4;
-    private static final int ITEM_PANEL_COLS = 4;
-    private static final int ITEM_GRID_OFFSET_X = 5;
-    private static final int ITEM_GRID_OFFSET_Y = 18;
-    static final int ITEM_PANEL_HEIGHT = 96;
-
-    // ========== 宿主接口 ==========
+    // ========== Layout configuration ==========
 
     /**
-     * 宿主 GUI 必须实现此接口来提供模块所需的上下文。
+     * Layout configuration for the ME browser module.
+     * Encapsulates all layout parameters that differ between compact and standard modes.
+     */
+    public static final class LayoutConfig {
+
+        // Grid dimensions
+        private final int cols;
+        private final int fixedRows; // 0 = dynamic rows (calculated from screen height)
+
+        // Panel size
+        private final int panelWidth;
+        private final int panelHeight; // 0 = dynamic height (calculated from rows)
+
+        // Grid offsets within the panel
+        private final int gridOffsetX;
+        private final int gridOffsetY;
+
+        // Search field
+        private final int searchFieldX;
+        private final int searchFieldY;
+        private final int searchFieldWidth;
+        private final int searchFieldHeight;
+        private final int searchFieldMaxLength;
+
+        // Scrollbar
+        private final int scrollbarLeftOffset; // relative to panel right edge
+        private final int scrollbarTopOffset; // relative to grid top
+
+        // Texture
+        private final ResourceLocation texture;
+        private final boolean hasOwnTexture; // false = host draws background
+
+        // Features
+        private final boolean draggable;
+        private final boolean hasSortButtons; // compact mode has its own sort buttons
+
+        // Positioning mode
+        private final boolean sidePanel; // true = positioned left of main GUI, false = main GUI itself
+
+        private LayoutConfig(Builder builder) {
+            this.cols = builder.cols;
+            this.fixedRows = builder.fixedRows;
+            this.panelWidth = builder.panelWidth;
+            this.panelHeight = builder.panelHeight;
+            this.gridOffsetX = builder.gridOffsetX;
+            this.gridOffsetY = builder.gridOffsetY;
+            this.searchFieldX = builder.searchFieldX;
+            this.searchFieldY = builder.searchFieldY;
+            this.searchFieldWidth = builder.searchFieldWidth;
+            this.searchFieldHeight = builder.searchFieldHeight;
+            this.searchFieldMaxLength = builder.searchFieldMaxLength;
+            this.scrollbarLeftOffset = builder.scrollbarLeftOffset;
+            this.scrollbarTopOffset = builder.scrollbarTopOffset;
+            this.texture = builder.texture;
+            this.hasOwnTexture = builder.hasOwnTexture;
+            this.draggable = builder.draggable;
+            this.hasSortButtons = builder.hasSortButtons;
+            this.sidePanel = builder.sidePanel;
+        }
+
+        public int getCols() {
+            return cols;
+        }
+
+        public int getFixedRows() {
+            return fixedRows;
+        }
+
+        public int getPanelWidth() {
+            return panelWidth;
+        }
+
+        public int getPanelHeight() {
+            return panelHeight;
+        }
+
+        public int getGridOffsetX() {
+            return gridOffsetX;
+        }
+
+        public int getGridOffsetY() {
+            return gridOffsetY;
+        }
+
+        public int getSearchFieldX() {
+            return searchFieldX;
+        }
+
+        public int getSearchFieldY() {
+            return searchFieldY;
+        }
+
+        public int getSearchFieldWidth() {
+            return searchFieldWidth;
+        }
+
+        public int getSearchFieldHeight() {
+            return searchFieldHeight;
+        }
+
+        public int getSearchFieldMaxLength() {
+            return searchFieldMaxLength;
+        }
+
+        public int getScrollbarLeftOffset() {
+            return scrollbarLeftOffset;
+        }
+
+        public int getScrollbarTopOffset() {
+            return scrollbarTopOffset;
+        }
+
+        public ResourceLocation getTexture() {
+            return texture;
+        }
+
+        public boolean hasOwnTexture() {
+            return hasOwnTexture;
+        }
+
+        public boolean isDraggable() {
+            return draggable;
+        }
+
+        public boolean hasSortButtons() {
+            return hasSortButtons;
+        }
+
+        public boolean isSidePanel() {
+            return sidePanel;
+        }
+
+        /**
+         * Compact layout: 4-column side panel with own texture and sort buttons.
+         * Used by WirelessDualInterfaceTerminal.
+         */
+        public static LayoutConfig compact() {
+            return new Builder()
+                    .cols(4)
+                    .fixedRows(4)
+                    .panelWidth(101)
+                    .panelHeight(96)
+                    .gridOffsetX(5)
+                    .gridOffsetY(18)
+                    .searchFieldX(3)
+                    .searchFieldY(4)
+                    .searchFieldWidth(72)
+                    .searchFieldHeight(12)
+                    .searchFieldMaxLength(25)
+                    .scrollbarLeftOffset(14)
+                    .scrollbarTopOffset(0)
+                    .texture(new ResourceLocation("appliedenergistics2", "textures/gui/widget/items.png"))
+                    .hasOwnTexture(true)
+                    .draggable(true)
+                    .hasSortButtons(true)
+                    .sidePanel(true)
+                    .build();
+        }
+
+        /**
+         * Standard layout: 9-column main panel.
+         * Used by MUIMEMonitorablePanel.
+         * The host panel handles background drawing; this module manages the grid and search.
+         */
+        public static LayoutConfig standard() {
+            return new Builder()
+                    .cols(9)
+                    .fixedRows(0) // dynamic
+                    .panelWidth(197)
+                    .panelHeight(0) // dynamic
+                    .gridOffsetX(0)
+                    .gridOffsetY(18)
+                    .searchFieldX(80) // minimum X, adjusted at runtime
+                    .searchFieldY(4)
+                    .searchFieldWidth(90)
+                    .searchFieldHeight(12)
+                    .searchFieldMaxLength(50)
+                    .scrollbarLeftOffset(22) // 197 - 175 = 22
+                    .scrollbarTopOffset(0)
+                    .texture(null)
+                    .hasOwnTexture(false)
+                    .draggable(false)
+                    .hasSortButtons(true) // sort buttons now managed by this module
+                    .sidePanel(false)
+                    .build();
+        }
+
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public static final class Builder {
+            private int cols = 9;
+            private int fixedRows = 0;
+            private int panelWidth = 197;
+            private int panelHeight = 0;
+            private int gridOffsetX = 0;
+            private int gridOffsetY = 18;
+            private int searchFieldX = 80;
+            private int searchFieldY = 4;
+            private int searchFieldWidth = 90;
+            private int searchFieldHeight = 12;
+            private int searchFieldMaxLength = 50;
+            private int scrollbarLeftOffset = 22;
+            private int scrollbarTopOffset = 0;
+            private ResourceLocation texture = null;
+            private boolean hasOwnTexture = false;
+            private boolean draggable = false;
+            private boolean hasSortButtons = false;
+            private boolean sidePanel = false;
+
+            public Builder cols(int v) { this.cols = v; return this; }
+            public Builder fixedRows(int v) { this.fixedRows = v; return this; }
+            public Builder panelWidth(int v) { this.panelWidth = v; return this; }
+            public Builder panelHeight(int v) { this.panelHeight = v; return this; }
+            public Builder gridOffsetX(int v) { this.gridOffsetX = v; return this; }
+            public Builder gridOffsetY(int v) { this.gridOffsetY = v; return this; }
+            public Builder searchFieldX(int v) { this.searchFieldX = v; return this; }
+            public Builder searchFieldY(int v) { this.searchFieldY = v; return this; }
+            public Builder searchFieldWidth(int v) { this.searchFieldWidth = v; return this; }
+            public Builder searchFieldHeight(int v) { this.searchFieldHeight = v; return this; }
+            public Builder searchFieldMaxLength(int v) { this.searchFieldMaxLength = v; return this; }
+            public Builder scrollbarLeftOffset(int v) { this.scrollbarLeftOffset = v; return this; }
+            public Builder scrollbarTopOffset(int v) { this.scrollbarTopOffset = v; return this; }
+            public Builder texture(ResourceLocation v) { this.texture = v; return this; }
+            public Builder hasOwnTexture(boolean v) { this.hasOwnTexture = v; return this; }
+            public Builder draggable(boolean v) { this.draggable = v; return this; }
+            public Builder hasSortButtons(boolean v) { this.hasSortButtons = v; return this; }
+            public Builder sidePanel(boolean v) { this.sidePanel = v; return this; }
+            public LayoutConfig build() { return new LayoutConfig(this); }
+        }
+    }
+
+    // ========== Host interface ==========
+
+    /**
+     * The host GUI must implement this interface to provide context for the module.
      */
     public interface Host {
         int getGuiLeft();
@@ -102,39 +326,83 @@ public class MEItemBrowserModule implements ISortSource {
         List<GuiButton> getButtonList();
 
         /**
-         * 请求宿主重新初始化 GUI。
+         * Whether the terminal has view cells (affects view mode button visibility).
+         */
+        boolean hasViewCell();
+
+        /**
+         * JEI offset for button positioning.
+         */
+        int getJeiOffset();
+
+        /**
+         * Request the host to reinitialize the GUI.
          */
         void requestReinitialize();
+
+        /**
+         * Request the host to update the scrollbar.
+         */
+        void requestScrollBarUpdate();
     }
 
-    // ========== 数据 ==========
+    // ========== Data ==========
 
     private final Host host;
+    private final LayoutConfig layout;
     private final ItemRepo itemRepo;
     private final MUIScrollBar itemPanelScrollbar;
 
     private MUITextFieldWidget itemSearchField;
     private static String memoryText = "";
 
-    // 按钮
-    private GuiImgButton sortByBox;
-    private GuiImgButton sortDirBox;
-    private GuiImgButton viewBox;
-    private GuiImgButton searchBoxSettings;
+    // Sort/view buttons — compact mode (GuiImgButton, added to buttonList)
+    private GuiImgButton sortByBoxLegacy;
+    private GuiImgButton sortDirBoxLegacy;
+    private GuiImgButton viewBoxLegacy;
+    private GuiImgButton searchBoxSettingsLegacy;
 
-    // 面板拖拽
+    // Sort/view buttons — standard mode (MUIButtonWidget, registered via addWidget)
+    private MUIButtonWidget sortByBox;
+    private MUIButtonWidget sortDirBox;
+    private MUIButtonWidget viewBox;
+    private MUIButtonWidget searchBoxSettings;
+
+    // Panel drag (compact mode only)
     private PatternEncodingModule.PanelDragState dragState;
+
+    // Dynamic rows (standard mode)
+    private int rows = 0;
 
     // ========== Construction ==========
 
+    /**
+     * Create module with compact layout (backward compatible).
+     */
     public MEItemBrowserModule(Host host) {
-        this.host = host;
-        this.itemPanelScrollbar = new MUIScrollBar();
-        this.itemRepo = new ItemRepo(this.itemPanelScrollbar, this);
-        this.itemRepo.setRowSize(ITEM_PANEL_COLS);
+        this(host, LayoutConfig.compact());
     }
 
-    // ========== 访问器 ==========
+    /**
+     * Create module with specified layout configuration.
+     */
+    public MEItemBrowserModule(Host host, LayoutConfig layout) {
+        this.host = host;
+        this.layout = layout;
+        this.itemPanelScrollbar = new MUIScrollBar();
+        this.itemRepo = new ItemRepo(this.itemPanelScrollbar, this);
+        this.itemRepo.setRowSize(layout.getCols());
+
+        if (layout.getFixedRows() > 0) {
+            this.rows = layout.getFixedRows();
+        }
+    }
+
+    // ========== Accessors ==========
+
+    public LayoutConfig getLayout() {
+        return layout;
+    }
 
     public ItemRepo getItemRepo() {
         return itemRepo;
@@ -152,95 +420,57 @@ public class MEItemBrowserModule implements ISortSource {
         return dragState;
     }
 
-    /**
-     * 获取面板的绝对 X 坐标。
-     */
-    public int getPanelAbsX() {
-        return host.getGuiLeft() - ITEM_PANEL_WIDTH + (dragState != null ? dragState.getDragOffsetX() : 0);
+    public int getRows() {
+        return rows;
+    }
+
+    public void setRows(int rows) {
+        this.rows = rows;
     }
 
     /**
-     * 获取面板的绝对 Y 坐标。
+     * Set the search field from an external source (e.g. the host panel).
+     * Used when the host creates the search field externally and syncs it to the module.
+     *
+     * @deprecated Prefer letting the module create the search field via
+     *             {@link #initStandardPanel(int, int)} or {@link #initPanel()}.
      */
-    public int getPanelAbsY() {
-        return host.getGuiTop() + host.getYSize() - ITEM_PANEL_HEIGHT
-                + (dragState != null ? dragState.getDragOffsetY() : 0);
+    @Deprecated
+    public void setItemSearchField(MUITextFieldWidget searchField) {
+        this.itemSearchField = searchField;
     }
 
-    /**
-     * 获取面板相对于 guiLeft 的 X 偏移。
-     */
-    public int getPanelRelX() {
-        return -ITEM_PANEL_WIDTH + (dragState != null ? dragState.getDragOffsetX() : 0);
-    }
+    // ========== Standard mode initialization ==========
 
     /**
-     * 获取面板相对于 guiTop 的 Y 偏移。
+     * Initialize the standard mode panel: create search field, VirtualMEMonitorableSlot grid,
+     * and scrollbar. Call from the host panel's initGui after rows and pin offsets are calculated.
+     *
+     * @param normalSlotRows   the number of rows available for normal ME slots (after pin rows)
+     * @param normalSlotOffsetY the absolute Y offset where normal ME slots should start
+     *                         (accounts for pin rows: 18 + totalPinRows * 18)
      */
-    public int getPanelRelY() {
-        return host.getYSize() - ITEM_PANEL_HEIGHT + (dragState != null ? dragState.getDragOffsetY() : 0);
-    }
+    public void initStandardPanel(int normalSlotRows, int normalSlotOffsetY) {
+        if (layout.isSidePanel()) {
+            return;
+        }
 
-    // ========== Initialization ==========
+        final int guiLeft = host.getGuiLeft();
 
-    /**
-     * 初始化拖拽状态。在 initGui 开始时调用。
-     */
-    public void initDragState() {
-        this.dragState = new PatternEncodingModule.PanelDragState((mouseX, mouseY) -> {
-            final int absX = getPanelAbsX();
-            final int absY = getPanelAbsY();
-            return mouseX >= absX && mouseX < absX + ITEM_PANEL_WIDTH
-                    && mouseY >= absY && mouseY < absY + ITEM_GRID_OFFSET_Y;
-        });
-    }
-
-    /**
-     * 创建搜索框和按钮、VirtualMEMonitorableSlot 网格。在 initGui 中调用。
-     */
-    public void initPanel() {
-        final int itemAbsX = getPanelAbsX();
-        final int itemAbsY = getPanelAbsY();
-        final int itemRelX = getPanelRelX();
-        final int itemRelY = getPanelRelY();
-        final List<GuiButton> buttonList = host.getButtonList();
-        final IConfigManager configSrc = host.getConfigSrc();
-
-        // 排序/视图按钮
-        int sortBtnOffset = itemAbsY + 18;
-
-        this.sortByBox = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.SORT_BY,
-                configSrc.getSetting(Settings.SORT_BY));
-        buttonList.add(this.sortByBox);
-        sortBtnOffset += 20;
-
-        this.viewBox = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.VIEW_MODE,
-                configSrc.getSetting(Settings.VIEW_MODE));
-        buttonList.add(this.viewBox);
-        sortBtnOffset += 20;
-
-        this.sortDirBox = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.SORT_DIRECTION,
-                configSrc.getSetting(Settings.SORT_DIRECTION));
-        buttonList.add(this.sortDirBox);
-        sortBtnOffset += 20;
-
-        this.searchBoxSettings = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.SEARCH_MODE,
-                AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE));
-        buttonList.add(this.searchBoxSettings);
-
-        // 搜索框
+        // Create search field (standard mode)
         this.itemSearchField = new MUITextFieldWidget(
-                SEARCH_FIELD_OFFSET_X,
-                SEARCH_FIELD_OFFSET_Y,
-                SEARCH_FIELD_WIDTH,
-                SEARCH_FIELD_HEIGHT)
+                Math.max(layout.getSearchFieldX(), guiLeft),
+                layout.getSearchFieldY(),
+                layout.getSearchFieldWidth(),
+                layout.getSearchFieldHeight())
                         .setEnableBackground(false)
-                        .setMaxStringLength(25)
+                        .setMaxStringLength(layout.getSearchFieldMaxLength())
                         .setTextColor(0xFFFFFF)
                         .setVisible(true)
                         .setTextChangeListener(this::updateSearchText);
+        host.getPanel().addWidget(this.itemSearchField);
 
-        // SearchBoxMode JEI 同步
+        // SearchBoxMode JEI sync
         final Enum searchModeSetting = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
         final boolean isJEIEnabled = SearchBoxMode.JEI_AUTOSEARCH == searchModeSetting
                 || SearchBoxMode.JEI_MANUAL_SEARCH == searchModeSetting;
@@ -254,38 +484,342 @@ public class MEItemBrowserModule implements ISortSource {
             this.itemRepo.setSearchString(memoryText);
         }
 
-        // 清除旧的 ME Virtual slot
+        // Clear old ME Virtual slots
         host.getPanel().getGuiSlots().removeIf(s -> s instanceof VirtualMEMonitorableSlot);
 
-        // 创建 4x4 ME Virtual slot
-        for (int row = 0; row < ITEM_PANEL_ROWS; row++) {
-            for (int col = 0; col < ITEM_PANEL_COLS; col++) {
-                final int slotIdx = col + row * ITEM_PANEL_COLS;
-                final int slotX = itemRelX + ITEM_GRID_OFFSET_X + col * 18;
-                final int slotY = itemRelY + ITEM_GRID_OFFSET_Y + row * 18;
+        // Create VirtualMEMonitorableSlot grid with pin offset
+        createStandardVirtualSlots(normalSlotRows, normalSlotOffsetY);
+
+        // Setup scrollbar
+        setupStandardScrollbar(normalSlotRows);
+
+        this.itemRepo.setPower(true);
+    }
+
+    /**
+     * Create VirtualMEMonitorableSlot grid for standard mode with pin offset.
+     */
+    private void createStandardVirtualSlots(int normalSlotRows, int normalSlotOffsetY) {
+        for (int row = 0; row < normalSlotRows; row++) {
+            for (int col = 0; col < layout.getCols(); col++) {
+                final int slotIdx = col + row * layout.getCols();
+                final int slotX = host.getGuiLeft() + col * 18;
+                final int slotY = normalSlotOffsetY + row * 18;
                 host.getPanel().getGuiSlots().add(new VirtualMEMonitorableSlot(
                         slotIdx, slotX, slotY, this.itemRepo, slotIdx));
             }
         }
+    }
 
-        // 设置Scrollbar
-        this.itemPanelScrollbar.setLeft(itemRelX + ITEM_PANEL_WIDTH - 14)
-                .setTop(itemRelY + ITEM_GRID_OFFSET_Y)
-                .setHeight(ITEM_PANEL_ROWS * 18 - 2);
+    /**
+     * Setup the scrollbar for standard mode.
+     */
+    private void setupStandardScrollbar(int normalSlotRows) {
+        this.itemPanelScrollbar.setLeft(host.getGuiLeft() + layout.getPanelWidth() - layout.getScrollbarLeftOffset())
+                .setTop(host.getGuiTop() + layout.getGridOffsetY() + layout.getScrollbarTopOffset())
+                .setHeight(normalSlotRows * 18 - 2);
         this.updateItemPanelScrollbar();
+    }
+
+    /**
+     * Apply terminal search configuration to the search field.
+     * Call from the host panel's initGui after initStandardPanel().
+     *
+     * @param searchConfig the terminal search configuration
+     * @param memoryText   the persisted search text
+     * @param textChangeListener callback when search text changes (updates repo + scrollbar)
+     */
+    public void applySearchConfig(MUITextFieldWidget.TerminalSearchConfig searchConfig,
+            String memoryText, Consumer<String> textChangeListener) {
+        if (this.itemSearchField != null) {
+            this.itemSearchField.applyTerminalSearchConfig(searchConfig, memoryText, textChangeListener);
+        }
+    }
+
+    // ========== Position calculation (compact mode) ==========
+
+    /**
+     * Get the panel's absolute X coordinate (compact mode).
+     */
+    public int getPanelAbsX() {
+        if (layout.isSidePanel()) {
+            return host.getGuiLeft() - layout.getPanelWidth()
+                    + (dragState != null ? dragState.getDragOffsetX() : 0);
+        }
+        return host.getGuiLeft();
+    }
+
+    /**
+     * Get the panel's absolute Y coordinate (compact mode).
+     */
+    public int getPanelAbsY() {
+        if (layout.isSidePanel()) {
+            int height = layout.getPanelHeight() > 0 ? layout.getPanelHeight() : rows * 18 + layout.getGridOffsetY();
+            return host.getGuiTop() + host.getYSize() - height
+                    + (dragState != null ? dragState.getDragOffsetY() : 0);
+        }
+        return host.getGuiTop();
+    }
+
+    /**
+     * Get the panel's X offset relative to guiLeft (compact mode).
+     */
+    public int getPanelRelX() {
+        if (layout.isSidePanel()) {
+            return -layout.getPanelWidth() + (dragState != null ? dragState.getDragOffsetX() : 0);
+        }
+        return 0;
+    }
+
+    /**
+     * Get the panel's Y offset relative to guiTop (compact mode).
+     */
+    public int getPanelRelY() {
+        if (layout.isSidePanel()) {
+            int height = layout.getPanelHeight() > 0 ? layout.getPanelHeight() : rows * 18 + layout.getGridOffsetY();
+            return host.getYSize() - height + (dragState != null ? dragState.getDragOffsetY() : 0);
+        }
+        return 0;
+    }
+
+    // ========== Initialization ==========
+
+    /**
+     * Initialize drag state. Call at the beginning of initGui (compact mode only).
+     */
+    public void initDragState() {
+        if (!layout.isDraggable()) {
+            return;
+        }
+        this.dragState = new PatternEncodingModule.PanelDragState((mouseX, mouseY) -> {
+            final int absX = getPanelAbsX();
+            final int absY = getPanelAbsY();
+            return mouseX >= absX && mouseX < absX + layout.getPanelWidth()
+                    && mouseY >= absY && mouseY < absY + layout.getGridOffsetY();
+        });
+    }
+
+    /**
+     * Create search field, sort buttons, and VirtualMEMonitorableSlot grid.
+     * Call from initGui after rows are calculated.
+     */
+    public void initPanel() {
+        final int itemAbsX = getPanelAbsX();
+        final int itemAbsY = getPanelAbsY();
+        final int itemRelX = getPanelRelX();
+        final int itemRelY = getPanelRelY();
+        final List<GuiButton> buttonList = host.getButtonList();
+        final IConfigManager configSrc = host.getConfigSrc();
+
+        // Sort/view buttons
+        if (layout.hasSortButtons()) {
+            if (layout.isSidePanel()) {
+                buildCompactSortButtons(itemAbsX, itemAbsY, buttonList, configSrc);
+            } else {
+                buildStandardSortButtons(configSrc);
+            }
+        }
+
+        // Search field
+        this.itemSearchField = new MUITextFieldWidget(
+                layout.getSearchFieldX(),
+                layout.getSearchFieldY(),
+                layout.getSearchFieldWidth(),
+                layout.getSearchFieldHeight())
+                        .setEnableBackground(false)
+                        .setMaxStringLength(layout.getSearchFieldMaxLength())
+                        .setTextColor(0xFFFFFF)
+                        .setVisible(true)
+                        .setTextChangeListener(this::updateSearchText);
+
+        // SearchBoxMode JEI sync
+        final Enum searchModeSetting = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
+        final boolean isJEIEnabled = SearchBoxMode.JEI_AUTOSEARCH == searchModeSetting
+                || SearchBoxMode.JEI_MANUAL_SEARCH == searchModeSetting;
+
+        if (isJEIEnabled && Platform.isJEIEnabled()) {
+            memoryText = Integrations.jei().getSearchText();
+        }
+
+        if (!memoryText.isEmpty()) {
+            this.itemSearchField.setText(memoryText);
+            this.itemRepo.setSearchString(memoryText);
+        }
+
+        // Clear old ME Virtual slots
+        host.getPanel().getGuiSlots().removeIf(s -> s instanceof VirtualMEMonitorableSlot);
+
+        // Create VirtualMEMonitorableSlot grid
+        createVirtualSlots(itemRelX, itemRelY);
+
+        // Setup scrollbar
+        setupScrollbar(itemRelX, itemRelY);
 
         this.itemRepo.setPower(true);
+    }
+
+    // ========== Sort button builders ==========
+
+    /**
+     * Build sort/view buttons for compact mode (GuiImgButton, added to buttonList).
+     */
+    private void buildCompactSortButtons(int itemAbsX, int itemAbsY, List<GuiButton> buttonList,
+            IConfigManager configSrc) {
+        int sortBtnOffset = itemAbsY + layout.getGridOffsetY();
+
+        this.sortByBoxLegacy = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.SORT_BY,
+                configSrc.getSetting(Settings.SORT_BY));
+        buttonList.add(this.sortByBoxLegacy);
+        sortBtnOffset += 20;
+
+        this.viewBoxLegacy = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.VIEW_MODE,
+                configSrc.getSetting(Settings.VIEW_MODE));
+        buttonList.add(this.viewBoxLegacy);
+        sortBtnOffset += 20;
+
+        this.sortDirBoxLegacy = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.SORT_DIRECTION,
+                configSrc.getSetting(Settings.SORT_DIRECTION));
+        buttonList.add(this.sortDirBoxLegacy);
+        sortBtnOffset += 20;
+
+        this.searchBoxSettingsLegacy = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.SEARCH_MODE,
+                AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE));
+        buttonList.add(this.searchBoxSettingsLegacy);
+    }
+
+    /**
+     * Build sort/view buttons for standard mode (MUIButtonWidget, registered via addWidget).
+     * Called from setupWidgets() via buildAndRegisterSortButtons().
+     */
+    private void buildStandardSortButtons(IConfigManager configSrc) {
+        AEBasePanel panel = host.getPanel();
+        int offset = 8 + host.getJeiOffset();
+
+        this.sortByBox = new MUIButtonWidget(-18, offset, Settings.SORT_BY,
+                configSrc.getSetting(Settings.SORT_BY));
+        this.sortByBox.setOnClick(btn -> handleSortButtonClick(btn));
+        panel.addWidget(this.sortByBox);
+        offset += 20;
+
+        if (host.hasViewCell()) {
+            this.viewBox = new MUIButtonWidget(-18, offset, Settings.VIEW_MODE,
+                    configSrc.getSetting(Settings.VIEW_MODE));
+            this.viewBox.setOnClick(btn -> handleSortButtonClick(btn));
+            panel.addWidget(this.viewBox);
+            offset += 20;
+        }
+
+        this.sortDirBox = new MUIButtonWidget(-18, offset, Settings.SORT_DIRECTION,
+                configSrc.getSetting(Settings.SORT_DIRECTION));
+        this.sortDirBox.setOnClick(btn -> handleSortButtonClick(btn));
+        panel.addWidget(this.sortDirBox);
+        offset += 20;
+
+        this.searchBoxSettings = new MUIButtonWidget(-18, offset, Settings.SEARCH_MODE,
+                AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE));
+        this.searchBoxSettings.setOnClick(btn -> handleSortButtonClick(btn));
+        panel.addWidget(this.searchBoxSettings);
+    }
+
+    /**
+     * Build and register sort buttons for standard mode.
+     * Call from the host panel's setupWidgets().
+     * For compact mode, sort buttons are created in initPanel() instead.
+     */
+    public void buildAndRegisterSortButtons() {
+        if (layout.hasSortButtons() && !layout.isSidePanel()) {
+            buildStandardSortButtons(host.getConfigSrc());
+        }
+    }
+
+    /**
+     * Common click handler for sort/view/search-mode MUI buttons (standard mode).
+     */
+    private void handleSortButtonClick(MUIButtonWidget btn) {
+        final Settings setting = btn.getSetting();
+        if (setting == null || setting == Settings.ACTIONS) {
+            return;
+        }
+
+        final boolean backwards = org.lwjgl.input.Mouse.isButtonDown(1);
+        final Enum<?> cv = btn.getCurrentValue();
+        final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
+                setting.getPossibleValues());
+
+        if (btn == this.searchBoxSettings) {
+            AEConfig.instance().getConfigManager().putSetting(setting, next);
+        } else {
+            try {
+                NetworkHandler.instance()
+                        .sendToServer(new PacketValueConfig(setting.name(), next.name()));
+            } catch (final IOException e) {
+                AELog.debug(e);
+            }
+        }
+
+        btn.set(next);
+
+        if (next.getClass() == SearchBoxMode.class) {
+            host.requestReinitialize();
+        }
+    }
+
+    /**
+     * Get the number of visible sort buttons (for type filter positioning).
+     */
+    public int getVisibleSortButtonCount() {
+        int count = 0;
+        if (layout.isSidePanel()) {
+            if (sortByBoxLegacy != null) count++;
+            if (viewBoxLegacy != null) count++;
+            if (sortDirBoxLegacy != null) count++;
+            if (searchBoxSettingsLegacy != null) count++;
+        } else {
+            if (sortByBox != null && sortByBox.isVisible()) count++;
+            if (viewBox != null && viewBox.isVisible()) count++;
+            if (sortDirBox != null && sortDirBox.isVisible()) count++;
+            if (searchBoxSettings != null && searchBoxSettings.isVisible()) count++;
+        }
+        return count;
+    }
+
+    /**
+     * Create VirtualMEMonitorableSlot grid at the specified relative position.
+     */
+    private void createVirtualSlots(int relX, int relY) {
+        int effectiveRows = layout.getFixedRows() > 0 ? layout.getFixedRows() : rows;
+        for (int row = 0; row < effectiveRows; row++) {
+            for (int col = 0; col < layout.getCols(); col++) {
+                final int slotIdx = col + row * layout.getCols();
+                final int slotX = relX + layout.getGridOffsetX() + col * 18;
+                final int slotY = relY + layout.getGridOffsetY() + row * 18;
+                host.getPanel().getGuiSlots().add(new VirtualMEMonitorableSlot(
+                        slotIdx, slotX, slotY, this.itemRepo, slotIdx));
+            }
+        }
+    }
+
+    /**
+     * Setup the scrollbar position and range.
+     */
+    private void setupScrollbar(int relX, int relY) {
+        int effectiveRows = layout.getFixedRows() > 0 ? layout.getFixedRows() : rows;
+        this.itemPanelScrollbar.setLeft(relX + layout.getPanelWidth() - layout.getScrollbarLeftOffset())
+                .setTop(relY + layout.getGridOffsetY() + layout.getScrollbarTopOffset())
+                .setHeight(effectiveRows * 18 - 2);
+        this.updateItemPanelScrollbar();
     }
 
     // ========== Scrollbar ==========
 
     public void updateItemPanelScrollbar() {
+        int effectiveRows = layout.getFixedRows() > 0 ? layout.getFixedRows() : rows;
         this.itemPanelScrollbar.setRange(0,
-                (this.itemRepo.size() + ITEM_PANEL_COLS - 1) / ITEM_PANEL_COLS - ITEM_PANEL_ROWS,
-                Math.max(1, ITEM_PANEL_ROWS / 6));
+                (this.itemRepo.size() + layout.getCols() - 1) / layout.getCols() - effectiveRows,
+                Math.max(1, effectiveRows / 6));
     }
 
-    // ========== IMEInventoryUpdateReceiver 数据接收 ==========
+    // ========== Data updates ==========
 
     /**
      * Receive ME network inventory updates using RepoEntry (preferred path).
@@ -300,56 +834,68 @@ public class MEItemBrowserModule implements ISortSource {
 
     /**
      * @deprecated Use {@link #postRepoEntryUpdate(List)} instead.
-     * 接收 ME 网络库存变化通知，更新 ItemRepo。
-     * 由宿主的 IMEInventoryUpdateReceiver.postUpdate 转发调用。
+     *             Converts IAEStack list to RepoEntry and delegates.
      */
     @Deprecated
     public void postUpdate(final List<IAEStack<?>> list) {
         for (final IAEStack<?> is : list) {
-            this.itemRepo.postUpdate(is);
+            var key = is.toAEKey();
+            if (key != null) {
+                this.itemRepo.postUpdate(key, is.getStackSize(), is.isCraftable());
+            }
         }
         this.itemRepo.updateView();
         this.updateItemPanelScrollbar();
     }
 
-    // ========== 渲染: drawBG ==========
+    // ========== Rendering: drawBG ==========
 
     /**
-     * 绘制 ME 物品浏览面板的背景。
+     * Draw the ME browser panel background (compact mode with own texture).
+     * For standard mode, the host panel handles background drawing.
      */
     public void drawBG(int offsetX, int offsetY) {
+        if (!layout.hasOwnTexture()) {
+            return;
+        }
+
         final int panelX = getPanelAbsX();
         final int panelY = getPanelAbsY();
 
         GlStateManager.color(1, 1, 1, 1);
-        host.getPanel().mc.getTextureManager().bindTexture(ITEMS_TEXTURE);
-        host.getPanel().drawTexturedModalRect(panelX, panelY, 0, 0, ITEM_PANEL_WIDTH, ITEM_PANEL_HEIGHT);
+        host.getPanel().mc.getTextureManager().bindTexture(layout.getTexture());
+        host.getPanel().drawTexturedModalRect(panelX, panelY, 0, 0, layout.getPanelWidth(), layout.getPanelHeight());
 
-        // 绘制Scrollbar
+        // Draw scrollbar
         GlStateManager.pushMatrix();
         GlStateManager.translate(offsetX, offsetY, 0);
         this.itemPanelScrollbar.draw(host.getPanel());
         GlStateManager.popMatrix();
 
-        // 搜索框
+        // Draw search field background
         if (this.itemSearchField != null) {
-            this.itemSearchField.setPosition(getPanelRelX() + SEARCH_FIELD_OFFSET_X, getPanelRelY() + SEARCH_FIELD_OFFSET_Y);
+            this.itemSearchField.setPosition(
+                    getPanelRelX() + layout.getSearchFieldX(),
+                    getPanelRelY() + layout.getSearchFieldY());
             this.itemSearchField.drawBackground(host.getPanel(), host.getGuiLeft(), host.getGuiTop(), 0, 0, 0.0F);
         }
     }
 
-    // ========== drawScreen: 按钮重建 ==========
+    // ========== drawScreen: button population ==========
 
     /**
-     * 在 drawScreen 中调用，将按钮添加到 buttonList。
-     * 在 buttonList.clear() 之后调用。
+     * Add sort/view buttons to the button list.
+     * Call in drawScreen after buttonList.clear() (compact mode only).
      */
     public void populateButtons() {
+        if (!layout.hasSortButtons() || !layout.isSidePanel()) {
+            return;
+        }
         final List<GuiButton> buttonList = host.getButtonList();
-        addIfNotNull(buttonList, this.sortByBox);
-        addIfNotNull(buttonList, this.sortDirBox);
-        addIfNotNull(buttonList, this.viewBox);
-        addIfNotNull(buttonList, this.searchBoxSettings);
+        addIfNotNull(buttonList, this.sortByBoxLegacy);
+        addIfNotNull(buttonList, this.sortDirBoxLegacy);
+        addIfNotNull(buttonList, this.viewBoxLegacy);
+        addIfNotNull(buttonList, this.searchBoxSettingsLegacy);
     }
 
     private static void addIfNotNull(List<GuiButton> list, GuiButton btn) {
@@ -358,14 +904,18 @@ public class MEItemBrowserModule implements ISortSource {
         }
     }
 
-    // ========== 输入处理: actionPerformed ==========
+    // ========== Input: actionPerformed ==========
 
     /**
-     * 处理 ME 面板的按钮点击（排序/视图/搜索模式）。
+     * Handle sort/view/search-mode button clicks (compact mode only).
      *
-     * @return true 如果事件被消费
+     * @return true if the event was consumed
      */
     public boolean actionPerformed(GuiButton btn) {
+        if (!layout.hasSortButtons() || !layout.isSidePanel()) {
+            return false;
+        }
+
         if (!(btn instanceof GuiImgButton iBtn) || iBtn.getSetting() == Settings.ACTIONS) {
             return false;
         }
@@ -375,7 +925,7 @@ public class MEItemBrowserModule implements ISortSource {
         final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
                 iBtn.getSetting().getPossibleValues());
 
-        if (btn == this.searchBoxSettings) {
+        if (btn == this.searchBoxSettingsLegacy) {
             AEConfig.instance().getConfigManager().putSetting(iBtn.getSetting(), next);
         } else {
             try {
@@ -394,12 +944,12 @@ public class MEItemBrowserModule implements ISortSource {
         return true;
     }
 
-    // ========== 输入处理: keyTyped ==========
+    // ========== Input: keyTyped ==========
 
     /**
-     * 处理键盘事件（ME 搜索框输入）。
+     * Handle keyboard events (search field input).
      *
-     * @return true 如果事件被消费
+     * @return true if the event was consumed
      */
     public boolean keyTyped(char character, int key) {
         if (this.itemSearchField != null && this.itemSearchField.isFocused()
@@ -409,14 +959,18 @@ public class MEItemBrowserModule implements ISortSource {
         return false;
     }
 
-    // ========== 输入处理: mouseClicked ==========
+    // ========== Input: mouseClicked ==========
 
     /**
-     * 处理鼠标点击（搜索框焦点 + 右键清除）。
+     * Handle mouse clicks (search field focus + right-click clear).
      */
     public void mouseClicked(int xCoord, int yCoord, int btn) {
         if (this.itemSearchField != null) {
-            this.itemSearchField.setPosition(getPanelRelX() + SEARCH_FIELD_OFFSET_X, getPanelRelY() + SEARCH_FIELD_OFFSET_Y);
+            if (layout.isSidePanel()) {
+                this.itemSearchField.setPosition(
+                        getPanelRelX() + layout.getSearchFieldX(),
+                        getPanelRelY() + layout.getSearchFieldY());
+            }
             this.itemSearchField.mouseClicked(xCoord - host.getGuiLeft(), yCoord - host.getGuiTop(), btn);
             if (btn == 1 && this.isMouseOverSearchField(xCoord, yCoord)) {
                 this.itemSearchField.setText("");
@@ -424,30 +978,34 @@ public class MEItemBrowserModule implements ISortSource {
         }
     }
 
-    // ========== 输入处理: mouseWheel ==========
+    // ========== Input: mouseWheel ==========
 
     /**
-     * 处理鼠标滚轮（ME 面板区域内的滚动）。
+     * Handle mouse wheel scrolling within the browser area.
      *
-     * @return true 如果事件被消费
+     * @return true if the event was consumed
      */
     public boolean mouseWheelEvent(int x, int y, int wheel) {
-        final int panelX = getPanelAbsX();
-        final int panelY = getPanelAbsY();
+        if (layout.isSidePanel()) {
+            final int panelX = getPanelAbsX();
+            final int panelY = getPanelAbsY();
+            int panelHeight = layout.getPanelHeight() > 0 ? layout.getPanelHeight()
+                    : rows * 18 + layout.getGridOffsetY();
 
-        if (x >= panelX && x < panelX + ITEM_PANEL_WIDTH
-                && y >= panelY && y < panelY + ITEM_PANEL_HEIGHT) {
-            this.itemPanelScrollbar.wheel(wheel);
-            this.itemRepo.updateView();
-            return true;
+            if (x >= panelX && x < panelX + layout.getPanelWidth()
+                    && y >= panelY && y < panelY + panelHeight) {
+                this.itemPanelScrollbar.wheel(wheel);
+                this.itemRepo.updateView();
+                return true;
+            }
         }
         return false;
     }
 
     /**
-     * 尝试处理Scrollbar的鼠标拖动。
+     * Try to handle scrollbar mouse drag.
      *
-     * @return true 如果Scrollbar滚动位置发生了改变
+     * @return true if the scrollbar scroll position changed
      */
     public boolean handleScrollbarClick(int mouseX, int mouseY) {
         final int oldScroll = this.itemPanelScrollbar.getCurrentScroll();
@@ -459,10 +1017,10 @@ public class MEItemBrowserModule implements ISortSource {
         return false;
     }
 
-    // ========== GUI 关闭 ==========
+    // ========== GUI close ==========
 
     /**
-     * 保存搜索框文本到 memoryText。在 onGuiClosed 中调用。
+     * Save search field text to memoryText. Call from onGuiClosed.
      */
     public void onGuiClosed() {
         if (this.itemSearchField != null) {
@@ -476,17 +1034,17 @@ public class MEItemBrowserModule implements ISortSource {
         }
     }
 
-    // ========== 搜索框焦点管理 ==========
+    // ========== Search field focus ==========
 
     /**
-     * 搜索框是否有焦点。
+     * Check if the search field has focus.
      */
     public boolean isSearchFieldFocused() {
         return this.itemSearchField != null && this.itemSearchField.isFocused();
     }
 
     /**
-     * 设置搜索框焦点。
+     * Set search field focus.
      */
     public void setSearchFieldFocused(boolean focused) {
         if (this.itemSearchField != null) {
@@ -494,14 +1052,16 @@ public class MEItemBrowserModule implements ISortSource {
         }
     }
 
-    // ========== IConfigManagerHost 回调 ==========
+    // ========== Config update callback ==========
 
     /**
-     * 配置变更时更新按钮和视图。
-     * 由宿主的 IConfigManagerHost.updateSetting 转发调用。
+     * Update button states and repo view when a config setting changes.
+     * Called by the host's IConfigManagerHost.updateSetting.
      */
     public void updateSetting() {
         final IConfigManager configSrc = host.getConfigSrc();
+
+        // Standard mode (MUIButtonWidget)
         if (this.sortByBox != null) {
             this.sortByBox.set(configSrc.getSetting(Settings.SORT_BY));
         }
@@ -511,10 +1071,22 @@ public class MEItemBrowserModule implements ISortSource {
         if (this.viewBox != null) {
             this.viewBox.set(configSrc.getSetting(Settings.VIEW_MODE));
         }
+
+        // Compact mode (GuiImgButton)
+        if (this.sortByBoxLegacy != null) {
+            this.sortByBoxLegacy.set(configSrc.getSetting(Settings.SORT_BY));
+        }
+        if (this.sortDirBoxLegacy != null) {
+            this.sortDirBoxLegacy.set(configSrc.getSetting(Settings.SORT_DIRECTION));
+        }
+        if (this.viewBoxLegacy != null) {
+            this.viewBoxLegacy.set(configSrc.getSetting(Settings.VIEW_MODE));
+        }
+
         this.itemRepo.updateView();
     }
 
-    // ========== ISortSource 实现 ==========
+    // ========== ISortSource ==========
 
     @Override
     public Enum getSortBy() {
@@ -531,13 +1103,15 @@ public class MEItemBrowserModule implements ISortSource {
         return host.getConfigSrc().getSetting(Settings.VIEW_MODE);
     }
 
-    // ========== 区域检测 ==========
+    // ========== Internal helpers ==========
 
     private boolean isMouseOverSearchField(int mouseX, int mouseY) {
-        final int itemAbsX = getPanelAbsX();
-        final int itemAbsY = getPanelAbsY();
-        return mouseX >= itemAbsX + SEARCH_FIELD_OFFSET_X && mouseX < itemAbsX + SEARCH_FIELD_OFFSET_X + SEARCH_FIELD_WIDTH
-                && mouseY >= itemAbsY + SEARCH_FIELD_OFFSET_Y && mouseY < itemAbsY + SEARCH_FIELD_OFFSET_Y + SEARCH_FIELD_HEIGHT;
+        final int absX = getPanelAbsX();
+        final int absY = getPanelAbsY();
+        return mouseX >= absX + layout.getSearchFieldX()
+                && mouseX < absX + layout.getSearchFieldX() + layout.getSearchFieldWidth()
+                && mouseY >= absY + layout.getSearchFieldY()
+                && mouseY < absY + layout.getSearchFieldY() + layout.getSearchFieldHeight();
     }
 
     private void updateSearchText(String searchText) {
@@ -554,9 +1128,11 @@ public class MEItemBrowserModule implements ISortSource {
     }
 
     /**
-     * 获取面板的绝对屏幕坐标（JEI 排除区用）。
+     * Get the panel's absolute screen coordinates (JEI exclusion area).
      */
     public java.awt.Rectangle getJEIExclusionRect() {
-        return new java.awt.Rectangle(getPanelAbsX(), getPanelAbsY(), ITEM_PANEL_WIDTH, ITEM_PANEL_HEIGHT);
+        int panelHeight = layout.getPanelHeight() > 0 ? layout.getPanelHeight()
+                : rows * 18 + layout.getGridOffsetY();
+        return new java.awt.Rectangle(getPanelAbsX(), getPanelAbsY(), layout.getPanelWidth(), panelHeight);
     }
 }

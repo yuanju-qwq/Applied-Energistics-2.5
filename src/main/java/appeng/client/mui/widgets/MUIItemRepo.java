@@ -163,11 +163,14 @@ public class MUIItemRepo implements IMUIWidget {
 
     /**
      * @deprecated Use {@link #postUpdate(AEKey, long, boolean)} instead.
-     * 更新一个 AE 栈。
+     *             Converts IAEStack to AEKey and delegates.
      */
     @Deprecated
     public void postUpdate(IAEStack<?> stack) {
-        this.repo.postUpdate(stack);
+        var key = stack.toAEKey();
+        if (key != null) {
+            this.repo.postUpdate(key, stack.getStackSize(), stack.isCraftable());
+        }
     }
 
     /**

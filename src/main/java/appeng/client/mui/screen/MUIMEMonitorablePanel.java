@@ -58,6 +58,7 @@ import appeng.client.me.SlotME;
 import appeng.client.mui.AEBaseMEPanel;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEMUITheme;
+import appeng.client.mui.module.MEItemBrowserModule;
 import appeng.client.mui.module.TerminalPinSystem;
 import appeng.client.mui.module.TerminalToolbar;
 import appeng.client.mui.widgets.MUITextFieldWidget;
@@ -81,22 +82,35 @@ import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 
 /**
- * MUI ME terminal panel — base class for all terminals.
- * <p>
- * Delegates complex subsystems to:
+ * MUI ME terminal panel �?base class for all terminals.
+ *
+ * <p>Delegates ME browsing logic to {@link MEItemBrowserModule} (standard layout):
  * <ul>
- *   <li>{@link TerminalToolbar} — settings buttons, type filter toggles (AEKeyType-based),
- *       pins button, crafting status tab</li>
- *   <li>{@link TerminalPinSystem} — pin row calculation, VirtualMEPinSlot creation,
- *       pin interactions</li>
+ *   <li>ItemRepo management + data updates</li>
+ *   <li>Search field + JEI sync</li>
+ *   <li>VirtualMEMonitorableSlot grid creation</li>
+ *   <li>Scrollbar management</li>
+ *   <li>ISortSource implementation</li>
  * </ul>
- * <p>
- * Subclasses: crafting terminal, pattern terminal, wireless terminals,
+ *
+ * <p>Panel-specific concerns retained:
+ * <ul>
+ *   <li>{@link TerminalToolbar} �?settings buttons, type filter toggles, pins button, crafting status tab</li>
+ *   <li>{@link TerminalPinSystem} �?pin row calculation, VirtualMEPinSlot creation, pin interactions</li>
+ *   <li>ViewCell management</li>
+ *   <li>Background rendering (terminal texture)</li>
+ *   <li>Advanced search key handling (auto-focus, toggle focus, terminal search config)</li>
+ *   <li>Mouse wheel item scrolling (roll up/down)</li>
+ *   <li>Delayed update pause logic</li>
+ * </ul>
+ *
+ * <p>Subclasses: crafting terminal, pattern terminal, wireless terminals,
  * portable cell, security station, expanded processing pattern terminal.
  */
 @SideOnly(Side.CLIENT)
 public class MUIMEMonitorablePanel extends AEBaseMEPanel
-        implements ISortSource, IConfigManagerHost, IMEMonitorableGuiCallback {
+        implements ISortSource, IConfigManagerHost, IMEMonitorableGuiCallback,
+        MEItemBrowserModule.Host {
 
     // ========== Static fields ==========
 
@@ -108,16 +122,8 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     private static final int MAGIC_HEIGHT_NUMBER = 114 + 1;
 
-    private static final int SEARCH_FIELD_X_MIN = 80;
-    private static final int SEARCH_FIELD_Y = 4;
-    private static final int SEARCH_FIELD_WIDTH = 90;
-    private static final int SEARCH_FIELD_HEIGHT = 12;
-    private static final int SEARCH_FIELD_MAX_LENGTH = 50;
-    private static final int SEARCH_FIELD_SELECTION_COLOR = 0xFF008000;
-
     // ========== Core data ==========
 
-    protected final ItemRepo repo;
     private final IConfigManager configSrc;
     private final boolean viewCell;
     private final ItemStack[] myCurrentViewCells = new ItemStack[5];
@@ -125,13 +131,13 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     // ========== Extracted modules ==========
 
+    private final MEItemBrowserModule browserModule;
     private final TerminalToolbar toolbar;
     private final TerminalPinSystem pinSystem;
 
     // ========== Terminal state ==========
 
     private GuiText myName;
-    private MUITextFieldWidget searchField;
     protected int perRow = 9;
     protected int reservedSpace = 0;
     protected int lowerTextureOffset = 0;
@@ -143,6 +149,15 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     private boolean delayedUpdate;
 
     protected final int jeiOffset = Platform.isJEIEnabled() ? 24 : 0;
+
+    // ========== Convenience accessor ==========
+
+    /**
+     * Get the ItemRepo from the browser module.
+     */
+    protected ItemRepo getRepo() {
+        return this.browserModule.getItemRepo();
+    }
 
     // ========== Constructor ==========
 
@@ -160,7 +175,6 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
         final MUIScrollBar scrollbar = new MUIScrollBar();
         this.setScrollBar(scrollbar);
-        this.repo = new ItemRepo(scrollbar, this);
 
         this.xSize = 185;
         this.ySize = 204;
@@ -188,6 +202,9 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             this.myName = GuiText.Terminal;
         }
 
+        // ME browser module (standard 9-column layout)
+        this.browserModule = new MEItemBrowserModule(this, MEItemBrowserModule.LayoutConfig.standard());
+
         this.pinSystem = new TerminalPinSystem(new PinSystemHost());
         this.toolbar = new TerminalToolbar(new ToolbarHost());
     }
@@ -202,7 +219,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
         @Override
         public ItemRepo getRepo() {
-            return repo;
+            return browserModule.getItemRepo();
         }
 
         @Override
@@ -254,7 +271,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
         @Override
         public ItemRepo getRepo() {
-            return repo;
+            return browserModule.getItemRepo();
         }
 
         @Override
@@ -316,23 +333,86 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         public TerminalPinSystem getPinSystem() {
             return pinSystem;
         }
+
+        @Override
+        public MEItemBrowserModule getBrowserModule() {
+            return browserModule;
+        }
+    }
+
+    // ========== MEItemBrowserModule.Host implementation ==========
+
+    @Override
+    public int getGuiLeft() {
+        return this.guiLeft;
+    }
+
+    @Override
+    public int getGuiTop() {
+        return this.guiTop;
+    }
+
+    @Override
+    public int getXSize() {
+        return this.xSize;
+    }
+
+    @Override
+    public int getYSize() {
+        return this.ySize;
+    }
+
+    @Override
+    public net.minecraft.client.gui.FontRenderer getFontRenderer() {
+        return this.fontRenderer;
+    }
+
+    @Override
+    public AEBasePanel getPanel() {
+        return this;
+    }
+
+    @Override
+    public IConfigManager getConfigSrc() {
+        return this.configSrc;
+    }
+
+    @Override
+    public List<GuiButton> getButtonList() {
+        return this.buttonList;
+    }
+
+    @Override
+    public void requestReinitialize() {
+        this.reinitalize();
+    }
+
+    @Override
+    public boolean hasViewCell() {
+        return this.viewCell;
+    }
+
+    @Override
+    public int getJeiOffset() {
+        return this.jeiOffset;
+    }
+
+    @Override
+    public void requestScrollBarUpdate() {
+        this.updateScrollBar();
     }
 
     // ========== IMEMonitorableGuiCallback ==========
 
     @Override
     public void postRepoEntryUpdate(final List<ItemRepo.RepoEntry> entries) {
-        for (final ItemRepo.RepoEntry entry : entries) {
-            this.repo.postUpdate(entry);
-        }
+        this.browserModule.postRepoEntryUpdate(entries);
         handlePostUpdatePauseAndRefresh();
     }
 
     @Override
     public void postUpdate(final List<IAEStack<?>> list) {
-        for (final IAEStack<?> is : list) {
-            this.repo.postUpdate(is);
-        }
+        this.browserModule.postUpdate(list);
         handlePostUpdatePauseAndRefresh();
     }
 
@@ -352,14 +432,14 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         }
 
         if (!this.delayedUpdate) {
-            this.repo.updateView();
+            getRepo().updateView();
             this.updateScrollBar();
         }
     }
 
     private void updateScrollBar() {
         this.getScrollBar().setTop(18).setLeft(175).setHeight(this.rows * 18 - 2);
-        this.getScrollBar().setRange(0, (this.repo.size() + this.perRow - 1) / this.perRow - this.rows,
+        this.getScrollBar().setRange(0, (getRepo().size() + this.perRow - 1) / this.perRow - this.rows,
                 Math.max(1, this.rows / 6));
     }
 
@@ -375,12 +455,15 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         this.rows = Math.min(this.rows, this.getMaxRows());
         this.rows = Math.max(this.rows, this.getMinRows());
 
+        // Sync rows to browser module
+        this.browserModule.setRows(this.rows);
+
         // --- Pin system: sync & calculate ---
         this.pinSystem.syncFromContainer();
         int normalSlotOffsetY = this.pinSystem.calculateAndCreateSlots();
         int normalSlotRows = Math.max(0, this.rows - this.pinSystem.getTotalPinRows());
 
-        // --- Normal ME slots ---
+        // --- Normal ME slots (InternalSlotME for rendering) ---
         clearAndBuildInternalSlots(normalSlotRows, normalSlotOffsetY);
 
         super.initGui();
@@ -388,13 +471,9 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         // --- Register pin + normal virtual slots ---
         this.guiSlots.removeIf(s -> s instanceof VirtualMEMonitorableSlot || s instanceof VirtualMEPinSlot);
         this.pinSystem.registerToGuiSlots();
-        for (int y = 0; y < normalSlotRows; y++) {
-            for (int x = 0; x < this.perRow; x++) {
-                final int idx = x + y * this.perRow;
-                this.guiSlots.add(new VirtualMEMonitorableSlot(
-                        idx, this.guiLeft + x * 18, normalSlotOffsetY + y * 18, this.repo, idx));
-            }
-        }
+
+        // Create search field, VirtualMEMonitorableSlot grid, and scrollbar via browser module
+        this.browserModule.initStandardPanel(normalSlotRows, normalSlotOffsetY);
 
         this.ySize = MAGIC_HEIGHT_NUMBER + this.rows * 18 + this.reservedSpace;
         this.centerVertically();
@@ -407,8 +486,8 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
                 MUITextFieldWidget.TerminalSearchConfig.fromCurrentSetting();
         this.isAutoFocus = searchConfig.isAutoFocus();
 
-        this.searchField.applyTerminalSearchConfig(searchConfig, memoryText, text -> {
-            this.repo.setSearchString(text);
+        this.browserModule.applySearchConfig(searchConfig, memoryText, text -> {
+            getRepo().setSearchString(text);
             this.updateScrollBar();
         });
 
@@ -439,7 +518,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         for (int y = 0; y < normalSlotRows; y++) {
             for (int x = 0; x < this.perRow; x++) {
                 this.getMeSlots()
-                        .add(new InternalSlotME(this.repo, x + y * this.perRow,
+                        .add(new InternalSlotME(getRepo(), x + y * this.perRow,
                                 this.guiLeft + x * 18, normalSlotOffsetY + y * 18));
             }
         }
@@ -447,22 +526,10 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     protected void setupWidgets() {
-        // Terminal search field
-        this.searchField = MUITextFieldWidget.addSearchField(this,
-                MUITextFieldWidget.SearchFieldSpec.builder(
-                        Math.max(SEARCH_FIELD_X_MIN, this.guiLeft),
-                        SEARCH_FIELD_Y,
-                        SEARCH_FIELD_WIDTH)
-                        .height(SEARCH_FIELD_HEIGHT)
-                        .onTextChange(text -> {
-                            this.repo.setSearchString(text);
-                            this.updateScrollBar();
-                        })
-                        .build());
-        this.searchField.setMaxStringLength(SEARCH_FIELD_MAX_LENGTH);
-        this.searchField.setSelectionColor(SEARCH_FIELD_SELECTION_COLOR);
+        // Sort/view/search-mode buttons (managed by MEItemBrowserModule)
+        this.browserModule.buildAndRegisterSortButtons();
 
-        // Toolbar: settings buttons + type filter buttons (AEKeyType-based) + pins + crafting status
+        // Toolbar: terminal style + type filter + pins + crafting status
         this.toolbar.buildAndRegister();
     }
 
@@ -505,7 +572,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
                 }
             }
             if (update) {
-                this.repo.setViewCell(this.myCurrentViewCells);
+                getRepo().setViewCell(this.myCurrentViewCells);
             }
         }
     }
@@ -516,14 +583,14 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     protected boolean isPowered() {
-        return this.repo.hasPower();
+        return getRepo().hasPower();
     }
 
     // ========== Input events ==========
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
-        // Legacy TypeToggleButton handling removed — type filter is now handled by TerminalToolbar
+        // Legacy TypeToggleButton handling removed �?type filter is now handled by TerminalToolbar
         // Subclasses may add their own buttons here via super.actionPerformed()
     }
 
@@ -541,19 +608,23 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     @Override
     public void onGuiClosed() {
         super.onGuiClosed();
-        memoryText = this.searchField.getText();
+        MUITextFieldWidget searchField = this.browserModule.getItemSearchField();
+        memoryText = searchField != null ? searchField.getText() : "";
     }
 
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
+        MUITextFieldWidget searchField = this.browserModule.getItemSearchField();
         if (!this.checkHotbarKeys(key)) {
             if (AppEng.proxy.isActionKey(ActionKey.TOGGLE_FOCUS, key)) {
-                this.searchField.setFocused(!this.searchField.isFocused());
+                if (searchField != null) {
+                    searchField.setFocused(!searchField.isFocused());
+                }
                 return;
             }
 
-            if (this.searchField.isFocused() && key == Keyboard.KEY_RETURN) {
-                this.searchField.setFocused(false);
+            if (searchField != null && searchField.isFocused() && key == Keyboard.KEY_RETURN) {
+                searchField.setFocused(false);
                 return;
             }
 
@@ -561,7 +632,9 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
                     this.currentMouseY);
 
             final MUITextFieldWidget.TerminalKeyResult result =
-                    this.searchField.handleTerminalKeyTyped(character, key, this.isAutoFocus, mouseInGui);
+                    searchField != null
+                            ? searchField.handleTerminalKeyTyped(character, key, this.isAutoFocus, mouseInGui)
+                            : MUITextFieldWidget.TerminalKeyResult.NOT_HANDLED;
 
             switch (result) {
                 case HANDLED:
@@ -578,7 +651,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     public void updateScreen() {
-        this.repo.setPower(this.monitorableContainer.isPowered());
+        getRepo().setPower(this.monitorableContainer.isPowered());
         if (this.delayedUpdate) {
             final boolean pauseEnabled = AEConfig.instance().getConfigManager()
                     .getSetting(Settings.PAUSE_WHEN_HOLDING_SHIFT) == YesNo.YES;
@@ -598,7 +671,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             }
         }
         if (!this.delayedUpdate) {
-            this.repo.updateView();
+            getRepo().updateView();
             this.updateScrollBar();
         }
         super.updateScreen();
@@ -682,7 +755,8 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     @Override
     public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
         this.toolbar.updateSetting(manager, settingName, newValue);
-        this.repo.updateView();
+        this.browserModule.updateSetting();
+        getRepo().updateView();
     }
 
     // ========== JEI integration ==========
@@ -692,7 +766,9 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
         int yOffset = guiTop + 8 + this.jeiOffset;
 
-        int totalVisibleButtons = toolbar.getVisibleSettingsButtonCount()
+        int sortButtonCount = this.browserModule.getVisibleSortButtonCount();
+        int totalVisibleButtons = sortButtonCount
+                + toolbar.getVisibleSettingsButtonCount()
                 + toolbar.getVisibleTypeFilterButtonCount();
 
         Rectangle sortDir = new Rectangle(guiLeft - 18, yOffset, 20,
@@ -725,6 +801,10 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     // ========== Accessors ==========
 
+    public MEItemBrowserModule getBrowserModule() {
+        return this.browserModule;
+    }
+
     public int getReservedSpace() {
         return this.reservedSpace;
     }
@@ -743,11 +823,11 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     public boolean isTypeEnabled(IAEStackType<?> type) {
         AEKeyType keyType = AEKeyType.fromLegacyType(type);
-        return keyType != null && this.repo.isTypeEnabled(keyType);
+        return keyType != null && getRepo().isTypeEnabled(keyType);
     }
 
     public boolean isTypeEnabled(AEKeyType type) {
-        return this.repo.isTypeEnabled(type);
+        return getRepo().isTypeEnabled(type);
     }
 
     public ContainerMEMonitorable getMonitorableContainer() {

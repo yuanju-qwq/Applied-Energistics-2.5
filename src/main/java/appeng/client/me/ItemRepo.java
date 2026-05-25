@@ -27,9 +27,9 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
+import appeng.api.storage.AEKeyFilter;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.client.gui.widgets.IScrollSource;
 import appeng.client.gui.widgets.ISortSource;
 import appeng.core.AEConfig;
@@ -60,7 +60,8 @@ import java.util.function.Predicate;
  * ({@link KeyCounter} + craftable set), applies search/filter/sort to produce
  * a flat view of {@link RepoEntry} for rendering.
  * <p>
- * Legacy {@link IAEStack}-based input is supported via deprecated bridge methods.
+ * Type filtering uses a composite {@link AEKeyFilter} built from
+ * {@link AEKeyType#filter()} for each enabled type.
  */
 public class ItemRepo {
 
@@ -144,9 +145,16 @@ public class ItemRepo {
     private final ISortSource sortSrc;
 
     /**
-     * Type filter: whether a given AEKeyType is enabled for display.
+     * Type filter state: maps AEKeyType -> enabled.
+     * Used to rebuild the composite {@link #typeFilter} on change.
      */
-    private final Map<AEKeyType, Boolean> typeFilters = new IdentityHashMap<>();
+    private final Map<AEKeyType, Boolean> typeFilterState = new IdentityHashMap<>();
+
+    /**
+     * Composite AEKeyFilter built from {@link #typeFilterState}.
+     * A key passes the filter if its type is enabled (or no types are explicitly disabled).
+     */
+    private AEKeyFilter typeFilter = AEKeyFilter.none();
 
     private int rowSize = 9;
 
@@ -187,16 +195,6 @@ public class ItemRepo {
         return this.view.get(idx);
     }
 
-    /**
-     * @deprecated Use {@link #getEntry(int)} instead. This method converts to legacy IAEStack.
-     */
-    @Deprecated
-    @Nullable
-    public IAEStack<?> getReferenceItem(int idx) {
-        RepoEntry entry = getEntry(idx);
-        return entry != null ? entry.toIAEStack() : null;
-    }
-
     // ==================== Data mutation (AEKey-based primary API) ====================
 
     /**
@@ -230,18 +228,6 @@ public class ItemRepo {
         postUpdate(entry.what(), entry.amount(), entry.craftable());
     }
 
-    /**
-     * @deprecated Use {@link #postUpdate(AEKey, long, boolean)} instead.
-     *             Legacy bridge: accepts IAEStack and converts to AEKey internally.
-     */
-    @Deprecated
-    public void postUpdate(final IAEStack<?> is) {
-        var key = is.toAEKey();
-        if (key != null) {
-            postUpdate(key, is.getStackSize(), is.isCraftable());
-        }
-    }
-
     // ==================== Query ====================
 
     /**
@@ -256,18 +242,6 @@ public class ItemRepo {
      */
     public boolean isCraftable(AEKey key) {
         return this.craftableKeys.contains(key);
-    }
-
-    /**
-     * @deprecated Use {@link #getAmount(AEKey)} instead. Legacy bridge.
-     */
-    @Deprecated
-    public long getItemCount(final IAEItemStack is) {
-        var key = AEItemKey.fromIAEItemStack(is);
-        if (key == null) {
-            return 0;
-        }
-        return this.counter.get(key);
     }
 
     // ==================== Configuration ====================
@@ -343,9 +317,8 @@ public class ItemRepo {
                 long amount = entry.getLongValue();
                 boolean craftable = this.craftableKeys.contains(key);
 
-                // Type filter check
-                AEKeyType keyType = key.getType();
-                if (!this.typeFilters.getOrDefault(keyType, true)) {
+                // Type filter check using composite AEKeyFilter
+                if (!this.typeFilter.matches(key)) {
                     continue;
                 }
 
@@ -721,9 +694,11 @@ public class ItemRepo {
 
     /**
      * Set whether a given AEKeyType is enabled for display.
+     * Rebuilds the composite AEKeyFilter after the change.
      */
     public void setTypeFilter(AEKeyType type, boolean enabled) {
-        this.typeFilters.put(type, enabled);
+        this.typeFilterState.put(type, enabled);
+        rebuildTypeFilter();
         this.resort = true;
     }
 
@@ -731,28 +706,36 @@ public class ItemRepo {
      * @return whether a given AEKeyType is enabled for display
      */
     public boolean isTypeEnabled(AEKeyType type) {
-        return this.typeFilters.getOrDefault(type, true);
+        return this.typeFilterState.getOrDefault(type, true);
     }
 
     /**
-     * @deprecated Use {@link #setTypeFilter(AEKeyType, boolean)} instead.
-     *             Legacy bridge: accepts IAEStackType and converts to AEKeyType.
+     * Rebuild the composite AEKeyFilter from the current type filter state.
+     * <p>
+     * The filter is built by combining each enabled type's {@link AEKeyType#filter()}.
+     * If all types are enabled (or no types are explicitly set), the filter accepts everything.
      */
-    @Deprecated
-    public void setTypeFilter(IAEStackType<?> type, boolean enabled) {
-        AEKeyType keyType = AEKeyType.fromLegacyType(type);
-        if (keyType != null) {
-            setTypeFilter(keyType, enabled);
+    private void rebuildTypeFilter() {
+        // Check if any type is explicitly disabled
+        boolean hasDisabled = false;
+        for (Boolean enabled : this.typeFilterState.values()) {
+            if (!enabled) {
+                hasDisabled = true;
+                break;
+            }
         }
-    }
 
-    /**
-     * @deprecated Use {@link #isTypeEnabled(AEKeyType)} instead.
-     */
-    @Deprecated
-    public boolean isTypeEnabled(IAEStackType<?> type) {
-        AEKeyType keyType = AEKeyType.fromLegacyType(type);
-        return keyType != null && isTypeEnabled(keyType);
+        if (!hasDisabled) {
+            // All types enabled: accept everything
+            this.typeFilter = AEKeyFilter.none();
+            return;
+        }
+
+        // Build composite filter: a key passes if its type is enabled
+        this.typeFilter = what -> {
+            AEKeyType keyType = what.getType();
+            return this.typeFilterState.getOrDefault(keyType, true);
+        };
     }
 
     // ==================== Simple search for non-item types ====================

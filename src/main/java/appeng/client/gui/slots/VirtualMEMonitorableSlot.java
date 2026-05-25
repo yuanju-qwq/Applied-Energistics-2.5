@@ -26,8 +26,9 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidUtil;
 
-import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEItemStack;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.me.ItemRepo;
 import appeng.client.me.ItemRepo.RepoEntry;
@@ -37,10 +38,11 @@ import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.helpers.InventoryAction;
 
 /**
- * 通用终端（ME Monitorable）使用的Virtual slot。
+ * Virtual slot for ME Monitorable terminals.
  * <p>
- * 从 {@link ItemRepo} 中按索引获取当前应该显示的 AE 栈。
- * 默认配置为显示数量、合成文字和合成图标。
+ * Reads display data from {@link ItemRepo} via {@link RepoEntry} (AEKey-based).
+ * Click handling uses AEKey to determine the interaction type (item vs fluid)
+ * and constructs the appropriate {@link InventoryAction}.
  */
 public class VirtualMEMonitorableSlot extends VirtualMESlot {
 
@@ -63,6 +65,10 @@ public class VirtualMEMonitorableSlot extends VirtualMESlot {
         return this.repo.getEntry(this.slotIndex);
     }
 
+    /**
+     * @deprecated Use {@link #getRepoEntry()} instead.
+     */
+    @Deprecated
     @Override
     @Nullable
     public IAEStack<?> getAEStack() {
@@ -82,44 +88,46 @@ public class VirtualMEMonitorableSlot extends VirtualMESlot {
             return;
         }
 
-        final IAEStack<?> aeStack = this.getAEStack();
+        final RepoEntry entry = this.getRepoEntry();
+        final AEKey what = entry != null ? entry.what() : null;
+        final long amount = entry != null ? entry.amount() : 0;
+        final boolean craftable = entry != null && entry.craftable();
+
         final ItemStack heldStack = player.inventory.getItemStack();
         final boolean hasItemInHand = !heldStack.isEmpty();
         final boolean hasFluidInHand = this.hasFluidInHand(heldStack);
-        if (aeStack == null && !hasItemInHand) {
+
+        if (what == null && !hasItemInHand) {
             return;
         }
 
         InventoryAction action = null;
-        IAEItemStack itemStack = (aeStack instanceof IAEItemStack) ? (IAEItemStack) aeStack : null;
 
-        if (aeStack instanceof IAEFluidStack) {
+        // Determine interaction type using AEKey instead of IAEStack instanceof
+        final boolean isFluid = what instanceof AEFluidKey;
+        final boolean isItem = what instanceof AEItemKey;
+
+        if (isFluid) {
             action = mouseButton == 1 || hasFluidInHand ? InventoryAction.EMPTY_ITEM : InventoryAction.FILL_ITEM;
-        } else if (aeStack == null && hasFluidInHand) {
+        } else if (what == null && hasFluidInHand) {
             action = InventoryAction.EMPTY_ITEM;
         } else if (hasItemInHand) {
             action = mouseButton == 1 ? InventoryAction.SPLIT_OR_PLACE_SINGLE : InventoryAction.PICKUP_OR_SET_DOWN;
         } else if (GuiScreen.isShiftKeyDown()) {
-            // Shift+点击 = 快速移动
             action = (mouseButton == 1) ? InventoryAction.PICKUP_SINGLE : InventoryAction.SHIFT_CLICK;
         } else if (mouseButton == 1) {
-            // 右键 = 取出一半/放置单个
             action = InventoryAction.SPLIT_OR_PLACE_SINGLE;
         } else {
-            // 左键 = 拾取/放下
             action = InventoryAction.PICKUP_OR_SET_DOWN;
 
-            // 如果栈数量为 0 或按住 Alt 且手上没有物品，触发自动合成
-            if (itemStack != null
-                    && (itemStack.getStackSize() == 0 || GuiScreen.isAltKeyDown())
-                    && !hasItemInHand) {
+            // Auto-craft: if amount is 0 or Alt is held and no item in hand
+            if (isItem && (amount == 0 || GuiScreen.isAltKeyDown()) && !hasItemInHand) {
                 action = InventoryAction.AUTO_CRAFT;
             }
         }
 
         if (GuiScreen.isCtrlKeyDown() && mouseButton == 2) {
-            // Ctrl+中键 = 创造模式复制 或 自动合成
-            if (itemStack != null && itemStack.isCraftable()) {
+            if (craftable) {
                 action = InventoryAction.AUTO_CRAFT;
             } else if (player.capabilities.isCreativeMode) {
                 action = InventoryAction.CREATIVE_DUPLICATE;
@@ -128,6 +136,8 @@ public class VirtualMEMonitorableSlot extends VirtualMESlot {
 
         if (action != null) {
             if (player.openContainer instanceof AEBaseContainer container) {
+                // Convert AEKey to IAEStack for network packet compatibility
+                IAEStack<?> aeStack = entry != null ? entry.toIAEStack() : null;
                 container.setTargetStack(aeStack);
                 final int inventorySize = container.inventorySlots.size();
                 final PacketInventoryAction p = new PacketInventoryAction(action, inventorySize, -1);
