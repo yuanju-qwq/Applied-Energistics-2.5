@@ -41,6 +41,7 @@ import appeng.api.config.Settings;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.IMUIWidget;
+import appeng.client.mui.module.SearchBarModule;
 import appeng.core.AEConfig;
 import appeng.integration.Integrations;
 
@@ -76,47 +77,66 @@ public class MUITextFieldWidget implements IMUIWidget {
     }
 
     /**
-     * 搜索框默认样式常量，供终端类页面统一复用。
+     * Search field default style constants.
+     *
+     * @deprecated Use {@link SearchBarModule.SearchFieldStyle} instead.
      */
+    @Deprecated
     public static final class SearchFieldStyle {
-        public static final int DEFAULT_HEIGHT = 12;
-        public static final int DEFAULT_MAX_LENGTH = 25;
-        public static final int DEFAULT_TEXT_COLOR = 0xFFFFFF;
+        public static final int DEFAULT_HEIGHT = SearchBarModule.SearchFieldStyle.DEFAULT_HEIGHT;
+        public static final int DEFAULT_MAX_LENGTH = SearchBarModule.SearchFieldStyle.DEFAULT_MAX_LENGTH;
+        public static final int DEFAULT_TEXT_COLOR = SearchBarModule.SearchFieldStyle.DEFAULT_TEXT_COLOR;
 
         private SearchFieldStyle() {
         }
     }
 
     /**
-     * 终端搜索字段组，适用于 inputs / outputs / names 三联搜索框场景。
+     * Search field group for triple-search scenarios.
+     *
+     * @deprecated Use {@link SearchBarModule.SearchFieldGroup} instead.
      */
+    @Deprecated
     public static final class SearchFieldGroup {
-        @Nullable
-        private final SearchFieldSpec inputs;
-        @Nullable
-        private final SearchFieldSpec outputs;
-        @Nullable
-        private final SearchFieldSpec names;
+        private final SearchBarModule.SearchFieldGroup delegate;
 
-        private SearchFieldGroup(Builder builder) {
-            this.inputs = builder.inputs;
-            this.outputs = builder.outputs;
-            this.names = builder.names;
+        public SearchFieldGroup(@Nullable SearchFieldSpec inputs,
+                @Nullable SearchFieldSpec outputs,
+                @Nullable SearchFieldSpec names) {
+            SearchBarModule.SearchFieldGroup.Builder builder = SearchBarModule.SearchFieldGroup.builder();
+            if (inputs != null) {
+                builder.inputs(inputs.getDelegate());
+            }
+            if (outputs != null) {
+                builder.outputs(outputs.getDelegate());
+            }
+            if (names != null) {
+                builder.names(names.getDelegate());
+            }
+            this.delegate = builder.build();
+        }
+
+        private SearchFieldGroup(SearchBarModule.SearchFieldGroup delegate) {
+            this.delegate = delegate;
+        }
+
+        SearchBarModule.SearchFieldGroup getDelegate() {
+            return this.delegate;
         }
 
         @Nullable
         public SearchFieldSpec getInputs() {
-            return this.inputs;
+            return this.delegate.getInputs() == null ? null : new SearchFieldSpec(this.delegate.getInputs());
         }
 
         @Nullable
         public SearchFieldSpec getOutputs() {
-            return this.outputs;
+            return this.delegate.getOutputs() == null ? null : new SearchFieldSpec(this.delegate.getOutputs());
         }
 
         @Nullable
         public SearchFieldSpec getNames() {
-            return this.names;
+            return this.delegate.getNames() == null ? null : new SearchFieldSpec(this.delegate.getNames());
         }
 
         public static Builder builder() {
@@ -124,59 +144,74 @@ public class MUITextFieldWidget implements IMUIWidget {
         }
 
         public static final class Builder {
-            @Nullable
-            private SearchFieldSpec inputs;
-            @Nullable
-            private SearchFieldSpec outputs;
-            @Nullable
-            private SearchFieldSpec names;
-
-            private Builder() {
-            }
+            private final SearchBarModule.SearchFieldGroup.Builder delegate = SearchBarModule.SearchFieldGroup.builder();
 
             public Builder inputs(@Nullable SearchFieldSpec inputs) {
-                this.inputs = inputs;
+                this.delegate.inputs(inputs == null ? null : inputs.getDelegate());
                 return this;
             }
 
             public Builder outputs(@Nullable SearchFieldSpec outputs) {
-                this.outputs = outputs;
+                this.delegate.outputs(outputs == null ? null : outputs.getDelegate());
                 return this;
             }
 
             public Builder names(@Nullable SearchFieldSpec names) {
-                this.names = names;
+                this.delegate.names(names == null ? null : names.getDelegate());
                 return this;
             }
 
             public SearchFieldGroup build() {
-                return new SearchFieldGroup(this);
+                return new SearchFieldGroup(this.delegate.build());
             }
         }
     }
 
     /**
-     * 搜索框构建参数。
+     * Search field construction parameters.
+     *
+     * @deprecated Use {@link SearchBarModule.SearchFieldSpec} instead.
      */
+    @Deprecated
     public static final class SearchFieldSpec {
-        private final int x;
-        private final int y;
-        private final int width;
-        private final int height;
-        @Nullable
-        private final String tooltip;
-        @Nullable
-        private final Consumer<String> textChangeListener;
-        private final boolean focused;
+        private final SearchBarModule.SearchFieldSpec delegate;
 
-        private SearchFieldSpec(Builder builder) {
-            this.x = builder.x;
-            this.y = builder.y;
-            this.width = builder.width;
-            this.height = builder.height;
-            this.tooltip = builder.tooltip;
-            this.textChangeListener = builder.textChangeListener;
-            this.focused = builder.focused;
+        private SearchFieldSpec(SearchBarModule.SearchFieldSpec delegate) {
+            this.delegate = delegate;
+        }
+
+        SearchBarModule.SearchFieldSpec getDelegate() {
+            return this.delegate;
+        }
+
+        public int getX() {
+            return this.delegate.getX();
+        }
+
+        public int getY() {
+            return this.delegate.getY();
+        }
+
+        public int getWidth() {
+            return this.delegate.getWidth();
+        }
+
+        public int getHeight() {
+            return this.delegate.getHeight();
+        }
+
+        @Nullable
+        public String getTooltip() {
+            return this.delegate.getTooltip();
+        }
+
+        @Nullable
+        public Consumer<String> getTextChangeListener() {
+            return this.delegate.getTextChangeListener();
+        }
+
+        public boolean isFocused() {
+            return this.delegate.isFocused();
         }
 
         public static Builder builder(int x, int y, int width) {
@@ -184,44 +219,34 @@ public class MUITextFieldWidget implements IMUIWidget {
         }
 
         public static final class Builder {
-            private final int x;
-            private final int y;
-            private final int width;
-            private int height = SearchFieldStyle.DEFAULT_HEIGHT;
-            @Nullable
-            private String tooltip;
-            @Nullable
-            private Consumer<String> textChangeListener;
-            private boolean focused;
+            private final SearchBarModule.SearchFieldSpec.Builder delegate;
 
             private Builder(int x, int y, int width) {
-                this.x = x;
-                this.y = y;
-                this.width = width;
+                this.delegate = SearchBarModule.SearchFieldSpec.builder(x, y, width);
             }
 
             public Builder tooltip(@Nullable String tooltip) {
-                this.tooltip = tooltip;
+                this.delegate.tooltip(tooltip);
                 return this;
             }
 
             public Builder onTextChange(@Nullable Consumer<String> textChangeListener) {
-                this.textChangeListener = textChangeListener;
+                this.delegate.onTextChange(textChangeListener);
                 return this;
             }
 
             public Builder focused(boolean focused) {
-                this.focused = focused;
+                this.delegate.focused(focused);
                 return this;
             }
 
             public Builder height(int height) {
-                this.height = height;
+                this.delegate.height(height);
                 return this;
             }
 
             public SearchFieldSpec build() {
-                return new SearchFieldSpec(this);
+                return new SearchFieldSpec(this.delegate.build());
             }
         }
     }
@@ -267,31 +292,32 @@ public class MUITextFieldWidget implements IMUIWidget {
     }
 
     /**
-     * 为 panel 注册一个统一样式的搜索输入框。
+     * Register a single search field on the panel.
+     *
+     * @deprecated Use {@link SearchBarModule#addSearchField(AEBasePanel, SearchBarModule.SearchFieldSpec)} instead.
      */
+    @Deprecated
     public static MUITextFieldWidget addSearchField(AEBasePanel panel, SearchFieldSpec spec) {
-        return panel.addWidget(new MUITextFieldWidget(spec.x, spec.y, spec.width, spec.height)
-                .setEnableBackground(false)
-                .setMaxStringLength(SearchFieldStyle.DEFAULT_MAX_LENGTH)
-                .setTextColor(SearchFieldStyle.DEFAULT_TEXT_COLOR)
-                .setTooltip(spec.tooltip)
-                .setTextChangeListener(spec.textChangeListener)
-                .setFocused(spec.focused));
+        return SearchBarModule.addSearchField(panel, spec.getDelegate());
     }
 
     /**
-     * 为 panel 批量注册终端搜索字段组。
+     * Register a triple search field group on the panel.
+     *
+     * @deprecated Use {@link SearchBarModule#addSearchFieldGroup(AEBasePanel, SearchBarModule.SearchFieldGroup)} instead.
      */
+    @Deprecated
     public static SearchFieldWidgets addSearchFieldGroup(AEBasePanel panel, SearchFieldGroup group) {
-        MUITextFieldWidget inputs = group.getInputs() == null ? null : addSearchField(panel, group.getInputs());
-        MUITextFieldWidget outputs = group.getOutputs() == null ? null : addSearchField(panel, group.getOutputs());
-        MUITextFieldWidget names = group.getNames() == null ? null : addSearchField(panel, group.getNames());
-        return new SearchFieldWidgets(inputs, outputs, names);
+        SearchBarModule.SearchFieldWidgets widgets = SearchBarModule.addSearchFieldGroup(panel, group.getDelegate());
+        return new SearchFieldWidgets(widgets.getInputs(), widgets.getOutputs(), widgets.getNames());
     }
 
     /**
-     * 已注册的搜索字段组实例。
+     * Registered search field widget instances.
+     *
+     * @deprecated Use {@link SearchBarModule.SearchFieldWidgets} instead.
      */
+    @Deprecated
     public static final class SearchFieldWidgets {
         @Nullable
         private final MUITextFieldWidget inputs;
@@ -300,7 +326,7 @@ public class MUITextFieldWidget implements IMUIWidget {
         @Nullable
         private final MUITextFieldWidget names;
 
-        private SearchFieldWidgets(@Nullable MUITextFieldWidget inputs,
+        public SearchFieldWidgets(@Nullable MUITextFieldWidget inputs,
                 @Nullable MUITextFieldWidget outputs,
                 @Nullable MUITextFieldWidget names) {
             this.inputs = inputs;
@@ -327,68 +353,49 @@ public class MUITextFieldWidget implements IMUIWidget {
     // ========== Terminal search mode support ==========
 
     /**
-     * Terminal search mode configuration, derived from {@link SearchBoxMode} settings.
-     * <p>
-     * Encapsulates the three boolean flags that control terminal search behavior:
-     * auto-focus, keep-filter (memory text), and JEI synchronization.
-     * All terminal subclasses can share a single derivation path.
+     * Terminal search mode configuration.
+     *
+     * @deprecated Use {@link SearchBarModule.TerminalSearchConfig} instead.
      */
+    @Deprecated
     public static final class TerminalSearchConfig {
-        private final boolean autoFocus;
-        private final boolean keepFilter;
-        private final boolean jeiEnabled;
+        private final SearchBarModule.TerminalSearchConfig delegate;
 
-        private TerminalSearchConfig(boolean autoFocus, boolean keepFilter, boolean jeiEnabled) {
-            this.autoFocus = autoFocus;
-            this.keepFilter = keepFilter;
-            this.jeiEnabled = jeiEnabled;
+        public TerminalSearchConfig(boolean autoFocus, boolean keepFilter, boolean jeiEnabled) {
+            this.delegate = new SearchBarModule.TerminalSearchConfig(autoFocus, keepFilter, jeiEnabled);
         }
 
-        /**
-         * Derive the configuration from the current {@link SearchBoxMode} setting.
-         */
+        private TerminalSearchConfig(SearchBarModule.TerminalSearchConfig delegate) {
+            this.delegate = delegate;
+        }
+
         public static TerminalSearchConfig fromCurrentSetting() {
-            final Enum<?> mode = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
-
-            boolean autoFocus = mode == SearchBoxMode.AUTOSEARCH
-                    || mode == SearchBoxMode.JEI_AUTOSEARCH
-                    || mode == SearchBoxMode.AUTOSEARCH_KEEP
-                    || mode == SearchBoxMode.JEI_AUTOSEARCH_KEEP;
-
-            boolean keepFilter = mode == SearchBoxMode.AUTOSEARCH_KEEP
-                    || mode == SearchBoxMode.JEI_AUTOSEARCH_KEEP
-                    || mode == SearchBoxMode.MANUAL_SEARCH_KEEP
-                    || mode == SearchBoxMode.JEI_MANUAL_SEARCH_KEEP;
-
-            boolean jeiEnabled = mode == SearchBoxMode.JEI_AUTOSEARCH
-                    || mode == SearchBoxMode.JEI_MANUAL_SEARCH;
-
-            return new TerminalSearchConfig(autoFocus, keepFilter, jeiEnabled);
+            return new TerminalSearchConfig(SearchBarModule.TerminalSearchConfig.fromCurrentSetting());
         }
 
         public boolean isAutoFocus() {
-            return this.autoFocus;
+            return this.delegate.isAutoFocus();
         }
 
         public boolean isKeepFilter() {
-            return this.keepFilter;
+            return this.delegate.isKeepFilter();
         }
 
         public boolean isJEIEnabled() {
-            return this.jeiEnabled;
+            return this.delegate.isJEIEnabled();
+        }
+
+        SearchBarModule.TerminalSearchConfig getDelegate() {
+            return this.delegate;
         }
     }
 
     /**
      * Apply terminal search mode configuration to this search field.
-     * <p>
-     * Handles auto-focus, JEI text sync, and memory text restoration.
-     * Typically called from {@code initGui()} after {@code super.initGui()}.
      *
-     * @param config         the terminal search config derived from the current setting
-     * @param memoryText     the static memory text (kept across GUI reopen)
-     * @param searchCallback callback to apply the restored search text to the repo
+     * @deprecated Use {@link SearchBarModule#applyTerminalSearchConfig(SearchBarModule.TerminalSearchConfig, Consumer)} instead.
      */
+    @Deprecated
     public void applyTerminalSearchConfig(TerminalSearchConfig config,
             String memoryText, @Nullable Consumer<String> searchCallback) {
         this.setFocused(config.isAutoFocus());
@@ -408,18 +415,11 @@ public class MUITextFieldWidget implements IMUIWidget {
     }
 
     /**
-     * Handle a key event with terminal-specific behavior:
-     * empty-space suppression, auto-focus-on-type, and focus priority logic.
-     * <p>
-     * This method should be called from the panel's {@code keyTyped()} after
-     * hotbar key check and toggle-focus handling, but before {@code super.keyTyped()}.
+     * Handle a key event with terminal-specific behavior.
      *
-     * @param character  the typed character
-     * @param key        the key code
-     * @param autoFocus  whether auto-focus mode is enabled
-     * @param mouseInGui whether the mouse cursor is inside the GUI area
-     * @return {@link TerminalKeyResult} indicating how the key was handled
+     * @deprecated Use {@link SearchBarModule#handleTerminalKeyTyped(char, int, boolean)} instead.
      */
+    @Deprecated
     public TerminalKeyResult handleTerminalKeyTyped(char character, int key,
             boolean autoFocus, boolean mouseInGui) {
         // Suppress leading space in empty search field
@@ -452,8 +452,11 @@ public class MUITextFieldWidget implements IMUIWidget {
     }
 
     /**
-     * Result of {@link #handleTerminalKeyTyped}.
+     * Result of terminal key event handling.
+     *
+     * @deprecated Use {@link SearchBarModule.TerminalKeyResult} instead.
      */
+    @Deprecated
     public enum TerminalKeyResult {
         /** The key event was consumed by the search field. */
         HANDLED,

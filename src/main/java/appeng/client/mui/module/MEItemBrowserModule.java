@@ -356,6 +356,9 @@ public class MEItemBrowserModule implements ISortSource {
     private MUITextFieldWidget itemSearchField;
     private static String memoryText = "";
 
+    // Search bar module (manages search field lifecycle, terminal search config, JEI sync)
+    private final SearchBarModule searchBarModule;
+
     // Sort/view buttons — compact mode (GuiImgButton, added to buttonList)
     private GuiImgButton sortByBoxLegacy;
     private GuiImgButton sortDirBoxLegacy;
@@ -392,6 +395,7 @@ public class MEItemBrowserModule implements ISortSource {
         this.itemPanelScrollbar = new MUIScrollBar();
         this.itemRepo = new ItemRepo(this.itemPanelScrollbar, this);
         this.itemRepo.setRowSize(layout.getCols());
+        this.searchBarModule = new SearchBarModule(new SearchBarHost(), SearchBarModule.SearchMode.SINGLE);
 
         if (layout.getFixedRows() > 0) {
             this.rows = layout.getFixedRows();
@@ -457,18 +461,15 @@ public class MEItemBrowserModule implements ISortSource {
 
         final int guiLeft = host.getGuiLeft();
 
-        // Create search field (standard mode)
-        this.itemSearchField = new MUITextFieldWidget(
-                Math.max(layout.getSearchFieldX(), guiLeft),
-                layout.getSearchFieldY(),
-                layout.getSearchFieldWidth(),
-                layout.getSearchFieldHeight())
-                        .setEnableBackground(false)
-                        .setMaxStringLength(layout.getSearchFieldMaxLength())
-                        .setTextColor(0xFFFFFF)
-                        .setVisible(true)
-                        .setTextChangeListener(this::updateSearchText);
-        host.getPanel().addWidget(this.itemSearchField);
+        // Create search field via SearchBarModule
+        this.itemSearchField = this.searchBarModule.initSingleField(
+                SearchBarModule.SearchFieldSpec.builder(
+                        Math.max(layout.getSearchFieldX(), guiLeft),
+                        layout.getSearchFieldY(),
+                        layout.getSearchFieldWidth())
+                        .height(layout.getSearchFieldHeight())
+                        .onTextChange(this::updateSearchText)
+                        .build());
 
         // SearchBoxMode JEI sync
         final Enum searchModeSetting = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
@@ -528,12 +529,29 @@ public class MEItemBrowserModule implements ISortSource {
      * @param searchConfig the terminal search configuration
      * @param memoryText   the persisted search text
      * @param textChangeListener callback when search text changes (updates repo + scrollbar)
+     * @deprecated Use {@link #getSearchBarModule()} and
+     *             {@link SearchBarModule#applyTerminalSearchConfig(SearchBarModule.TerminalSearchConfig, Consumer)} instead.
      */
+    @Deprecated
     public void applySearchConfig(MUITextFieldWidget.TerminalSearchConfig searchConfig,
             String memoryText, Consumer<String> textChangeListener) {
         if (this.itemSearchField != null) {
             this.itemSearchField.applyTerminalSearchConfig(searchConfig, memoryText, textChangeListener);
         }
+    }
+
+    /**
+     * Apply terminal search configuration via SearchBarModule.
+     * Call from the host panel's initGui after initStandardPanel().
+     *
+     * @param searchConfig the terminal search configuration
+     * @param textChangeListener callback when search text changes (updates repo + scrollbar)
+     */
+    public void applySearchConfig(SearchBarModule.TerminalSearchConfig searchConfig,
+            Consumer<String> textChangeListener) {
+        this.searchBarModule.setMemoryText(memoryText);
+        this.searchBarModule.applyTerminalSearchConfig(searchConfig, textChangeListener);
+        memoryText = this.searchBarModule.getMemoryText();
     }
 
     // ========== Position calculation (compact mode) ==========
@@ -620,17 +638,15 @@ public class MEItemBrowserModule implements ISortSource {
             }
         }
 
-        // Search field
-        this.itemSearchField = new MUITextFieldWidget(
-                layout.getSearchFieldX(),
-                layout.getSearchFieldY(),
-                layout.getSearchFieldWidth(),
-                layout.getSearchFieldHeight())
-                        .setEnableBackground(false)
-                        .setMaxStringLength(layout.getSearchFieldMaxLength())
-                        .setTextColor(0xFFFFFF)
-                        .setVisible(true)
-                        .setTextChangeListener(this::updateSearchText);
+        // Search field (created via SearchBarModule)
+        this.itemSearchField = this.searchBarModule.initSingleField(
+                SearchBarModule.SearchFieldSpec.builder(
+                        layout.getSearchFieldX(),
+                        layout.getSearchFieldY(),
+                        layout.getSearchFieldWidth())
+                        .height(layout.getSearchFieldHeight())
+                        .onTextChange(this::updateSearchText)
+                        .build());
 
         // SearchBoxMode JEI sync
         final Enum searchModeSetting = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
@@ -971,7 +987,7 @@ public class MEItemBrowserModule implements ISortSource {
                         getPanelRelX() + layout.getSearchFieldX(),
                         getPanelRelY() + layout.getSearchFieldY());
             }
-            this.itemSearchField.mouseClicked(xCoord - host.getGuiLeft(), yCoord - host.getGuiTop(), btn);
+            this.searchBarModule.handleMouseClicked(xCoord, yCoord, btn);
             if (btn == 1 && this.isMouseOverSearchField(xCoord, yCoord)) {
                 this.itemSearchField.setText("");
             }
@@ -1023,15 +1039,8 @@ public class MEItemBrowserModule implements ISortSource {
      * Save search field text to memoryText. Call from onGuiClosed.
      */
     public void onGuiClosed() {
-        if (this.itemSearchField != null) {
-            memoryText = this.itemSearchField.getText();
-            final Enum searchModeSetting = AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE);
-            final boolean isJEISync = SearchBoxMode.JEI_AUTOSEARCH == searchModeSetting
-                    || SearchBoxMode.JEI_MANUAL_SEARCH == searchModeSetting;
-            if (isJEISync && Platform.isJEIEnabled()) {
-                Integrations.jei().setSearchText(memoryText);
-            }
-        }
+        this.searchBarModule.onGuiClosed();
+        memoryText = this.searchBarModule.getMemoryText();
     }
 
     // ========== Search field focus ==========
@@ -1040,16 +1049,14 @@ public class MEItemBrowserModule implements ISortSource {
      * Check if the search field has focus.
      */
     public boolean isSearchFieldFocused() {
-        return this.itemSearchField != null && this.itemSearchField.isFocused();
+        return this.searchBarModule.isAnyFieldFocused();
     }
 
     /**
      * Set search field focus.
      */
     public void setSearchFieldFocused(boolean focused) {
-        if (this.itemSearchField != null) {
-            this.itemSearchField.setFocused(focused);
-        }
+        this.searchBarModule.setFocused(focused);
     }
 
     // ========== Config update callback ==========
@@ -1134,5 +1141,38 @@ public class MEItemBrowserModule implements ISortSource {
         int panelHeight = layout.getPanelHeight() > 0 ? layout.getPanelHeight()
                 : rows * 18 + layout.getGridOffsetY();
         return new java.awt.Rectangle(getPanelAbsX(), getPanelAbsY(), layout.getPanelWidth(), panelHeight);
+    }
+
+    // ========== SearchBarModule accessor ==========
+
+    /**
+     * Get the search bar module for external access (e.g. from host panel).
+     */
+    public SearchBarModule getSearchBarModule() {
+        return this.searchBarModule;
+    }
+
+    // ========== SearchBarModule.Host implementation ==========
+
+    private final class SearchBarHost implements SearchBarModule.Host {
+        @Override
+        public AEBasePanel getPanel() {
+            return host.getPanel();
+        }
+
+        @Override
+        public int getGuiLeft() {
+            return host.getGuiLeft();
+        }
+
+        @Override
+        public int getGuiTop() {
+            return host.getGuiTop();
+        }
+
+        @Override
+        public void requestReinitialize() {
+            host.requestReinitialize();
+        }
     }
 }

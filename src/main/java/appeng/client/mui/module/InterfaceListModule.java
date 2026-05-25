@@ -161,6 +161,9 @@ public class InterfaceListModule {
     private MUITextFieldWidget searchFieldInputs;
     private MUITextFieldWidget searchFieldNames;
 
+    // Search bar module (manages triple search field lifecycle, keyboard/mouse handling)
+    private SearchBarModule searchBarModule;
+
     // Toolbar buttons (MUI widgets, registered on host panel)
     private MUIButtonWidget guiButtonHideFull;
     private MUIButtonWidget guiButtonAssemblersOnly;
@@ -248,19 +251,19 @@ public class InterfaceListModule {
         return searchFieldNames;
     }
 
-    // ========== 搜索字段创建 ==========
+    // ========== Search field creation ==========
 
-    private MUITextFieldWidget.SearchFieldGroup createSearchFieldGroup() {
-        return MUITextFieldWidget.SearchFieldGroup.builder()
-                .inputs(MUITextFieldWidget.SearchFieldSpec.builder(32, 25, 86)
+    private SearchBarModule.SearchFieldGroup createSearchFieldGroup() {
+        return SearchBarModule.SearchFieldGroup.builder()
+                .inputs(SearchBarModule.SearchFieldSpec.builder(32, 25, 86)
                         .tooltip(ButtonToolTips.SearchFieldInputs.getLocal())
                         .onTextChange(text -> refreshList())
                         .build())
-                .outputs(MUITextFieldWidget.SearchFieldSpec.builder(32, 38, 86)
+                .outputs(SearchBarModule.SearchFieldSpec.builder(32, 38, 86)
                         .tooltip(ButtonToolTips.SearchFieldOutputs.getLocal())
                         .onTextChange(text -> refreshList())
                         .build())
-                .names(MUITextFieldWidget.SearchFieldSpec.builder(32 + 99, 38, 71)
+                .names(SearchBarModule.SearchFieldSpec.builder(32 + 99, 38, 71)
                         .tooltip(ButtonToolTips.SearchFieldNames.getLocal())
                         .onTextChange(text -> refreshList())
                         .focused(true)
@@ -290,8 +293,10 @@ public class InterfaceListModule {
      * Must be called after calculateRows and after the host sets ySize/guiTop.
      */
     public void initSearchFieldsAndButtons() {
-        MUITextFieldWidget.SearchFieldWidgets searchFields = MUITextFieldWidget.addSearchFieldGroup(
-                host.getPanel(),
+        // Initialize search bar module (TRIPLE mode)
+        this.searchBarModule = new SearchBarModule(new SearchBarHost(), SearchBarModule.SearchMode.TRIPLE);
+
+        SearchBarModule.SearchFieldWidgets searchFields = this.searchBarModule.initTripleFields(
                 this.createSearchFieldGroup());
         searchFieldInputs = searchFields.getInputs();
         searchFieldOutputs = searchFields.getOutputs();
@@ -534,9 +539,9 @@ public class InterfaceListModule {
      * Handle mouse clicks (search field focus).
      */
     public void mouseClicked(int xCoord, int yCoord, int btn) {
-        this.searchFieldInputs.mouseClicked(xCoord - host.getGuiLeft(), yCoord - host.getGuiTop(), btn);
-        this.searchFieldOutputs.mouseClicked(xCoord - host.getGuiLeft(), yCoord - host.getGuiTop(), btn);
-        this.searchFieldNames.mouseClicked(xCoord - host.getGuiLeft(), yCoord - host.getGuiTop(), btn);
+        if (this.searchBarModule != null) {
+            this.searchBarModule.handleMouseClicked(xCoord, yCoord, btn);
+        }
     }
 
     /**
@@ -545,21 +550,7 @@ public class InterfaceListModule {
      * @return true if the event was consumed (should not be passed to the host super.keyTyped)
      */
     public boolean keyTyped(char character, int key) {
-        if (character == ' ') {
-            if ((this.searchFieldInputs.getText().isEmpty() && this.searchFieldInputs.isFocused())
-                    || (this.searchFieldOutputs.getText().isEmpty() && this.searchFieldOutputs.isFocused())
-                    || (this.searchFieldNames.getText().isEmpty() && this.searchFieldNames.isFocused())) {
-                return true;
-            }
-        } else if (character == '\t') {
-            if (handleTab()) {
-                return true;
-            }
-        }
-
-        if (this.searchFieldInputs.textboxKeyTyped(character, key)
-                || this.searchFieldOutputs.textboxKeyTyped(character, key)
-                || this.searchFieldNames.textboxKeyTyped(character, key)) {
+        if (this.searchBarModule != null && this.searchBarModule.handleTripleKeyTyped(character, key)) {
             this.refreshList();
             return true;
         }
@@ -646,33 +637,13 @@ public class InterfaceListModule {
     /**
      * Cycle search field focus with Tab key.
      *
-     * @return true 如果焦点切换成功
+     * @return true if focus was cycled successfully
+     * @deprecated Use {@link SearchBarModule#handleTripleKeyTyped(char, int)} instead (Tab is handled internally).
      */
+    @Deprecated
     public boolean handleTab() {
-        if (searchFieldInputs.isFocused()) {
-            searchFieldInputs.setFocused(false);
-            if (AEBasePanel.isShiftKeyDown()) {
-                searchFieldNames.setFocused(true);
-            } else {
-                searchFieldOutputs.setFocused(true);
-            }
-            return true;
-        } else if (searchFieldOutputs.isFocused()) {
-            searchFieldOutputs.setFocused(false);
-            if (AEBasePanel.isShiftKeyDown()) {
-                searchFieldInputs.setFocused(true);
-            } else {
-                searchFieldNames.setFocused(true);
-            }
-            return true;
-        } else if (searchFieldNames.isFocused()) {
-            searchFieldNames.setFocused(false);
-            if (AEBasePanel.isShiftKeyDown()) {
-                searchFieldOutputs.setFocused(true);
-            } else {
-                searchFieldInputs.setFocused(true);
-            }
-            return true;
+        if (this.searchBarModule != null) {
+            return this.searchBarModule.handleTripleKeyTyped('\t', 0);
         }
         return false;
     }
@@ -681,37 +652,32 @@ public class InterfaceListModule {
      * Check if any search field has focus.
      */
     public boolean isAnySearchFieldFocused() {
-        return (searchFieldInputs != null && searchFieldInputs.isFocused())
-                || (searchFieldOutputs != null && searchFieldOutputs.isFocused())
-                || (searchFieldNames != null && searchFieldNames.isFocused());
+        return this.searchBarModule != null && this.searchBarModule.isAnyFieldFocused();
     }
 
     /**
      * Get the index of the currently focused search field (0=Inputs, 1=Outputs, 2=Names, -1=none).
      */
     public int getFocusedFieldIndex() {
-        if (searchFieldInputs != null && searchFieldInputs.isFocused()) return 0;
-        if (searchFieldOutputs != null && searchFieldOutputs.isFocused()) return 1;
-        if (searchFieldNames != null && searchFieldNames.isFocused()) return 2;
-        return -1;
+        return this.searchBarModule != null ? this.searchBarModule.getFocusedFieldIndex() : -1;
     }
 
     /**
      * Set search field focus.
      */
     public void setFocusedField(int index) {
-        if (searchFieldInputs != null) searchFieldInputs.setFocused(index == 0);
-        if (searchFieldOutputs != null) searchFieldOutputs.setFocused(index == 1);
-        if (searchFieldNames != null) searchFieldNames.setFocused(index == 2);
+        if (this.searchBarModule != null) {
+            this.searchBarModule.setFocusedField(index);
+        }
     }
 
     /**
      * Clear all search field focus.
      */
     public void clearFocus() {
-        if (searchFieldInputs != null) searchFieldInputs.setFocused(false);
-        if (searchFieldOutputs != null) searchFieldOutputs.setFocused(false);
-        if (searchFieldNames != null) searchFieldNames.setFocused(false);
+        if (this.searchBarModule != null) {
+            this.searchBarModule.setFocused(false);
+        }
     }
 
     // ========== 数据更新 ==========
@@ -982,5 +948,38 @@ public class InterfaceListModule {
         }
 
         return o;
+    }
+
+    // ========== SearchBarModule accessor ==========
+
+    /**
+     * Get the search bar module for external access.
+     */
+    public SearchBarModule getSearchBarModule() {
+        return this.searchBarModule;
+    }
+
+    // ========== SearchBarModule.Host implementation ==========
+
+    private final class SearchBarHost implements SearchBarModule.Host {
+        @Override
+        public AEBasePanel getPanel() {
+            return host.getPanel();
+        }
+
+        @Override
+        public int getGuiLeft() {
+            return host.getGuiLeft();
+        }
+
+        @Override
+        public int getGuiTop() {
+            return host.getGuiTop();
+        }
+
+        @Override
+        public void requestReinitialize() {
+            host.requestReinitialize();
+        }
     }
 }

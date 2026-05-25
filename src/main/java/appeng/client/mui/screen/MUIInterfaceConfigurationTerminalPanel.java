@@ -45,6 +45,7 @@ import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.module.SearchBarModule;
 import appeng.client.mui.widgets.MUIButtonPool;
 import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.client.mui.widgets.MUITextFieldWidget;
@@ -94,6 +95,9 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
     private boolean refreshList = false;
     private MUITextFieldWidget searchFieldInputs;
 
+    // Search bar module (manages single search field lifecycle)
+    private SearchBarModule searchBarModule;
+
     /** Dynamic highlight button pool (replaces per-frame GuiImgButton creation) */
     private MUIButtonPool highlightButtonPool;
 
@@ -110,9 +114,11 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
 
     @Override
     protected void setupWidgets() {
-        // Search widget registration is centralized here to keep initGui focused on layout refresh.
-        this.searchFieldInputs = MUITextFieldWidget.addSearchField(this,
-                MUITextFieldWidget.SearchFieldSpec.builder(
+        // Initialize search bar module (SINGLE mode)
+        this.searchBarModule = new SearchBarModule(new SearchBarHost(), SearchBarModule.SearchMode.SINGLE);
+
+        this.searchFieldInputs = this.searchBarModule.initSingleField(
+                SearchBarModule.SearchFieldSpec.builder(
                         SEARCH_FIELD_X,
                         SEARCH_FIELD_Y,
                         SEARCH_FIELD_WIDTH)
@@ -255,8 +261,8 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
-        if (this.searchFieldInputs != null) {
-            this.searchFieldInputs.mouseClicked(xCoord - this.guiLeft, yCoord - this.guiTop, btn);
+        if (this.searchBarModule != null) {
+            this.searchBarModule.handleMouseClicked(xCoord, yCoord, btn);
         }
         super.mouseClicked(xCoord, yCoord, btn);
     }
@@ -296,11 +302,13 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
         if (!this.checkHotbarKeys(key)) {
-            if (character == ' ' && this.searchFieldInputs.getText().isEmpty() && this.searchFieldInputs.isFocused()) {
+            // Suppress leading space in empty search field
+            if (character == ' ' && this.searchFieldInputs != null
+                    && this.searchFieldInputs.getText().isEmpty() && this.searchFieldInputs.isFocused()) {
                 return;
             }
 
-            if (!this.searchFieldInputs.textboxKeyTyped(character, key)) {
+            if (this.searchFieldInputs == null || !this.searchFieldInputs.textboxKeyTyped(character, key)) {
                 super.keyTyped(character, key);
             }
         }
@@ -490,5 +498,30 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
     @Override
     public Map<IGhostIngredientHandler.Target<?>, Object> getFakeSlotTargetMap() {
         return mapTargetSlot;
+    }
+
+    // ========== SearchBarModule.Host implementation ==========
+
+    private final class SearchBarHost implements SearchBarModule.Host {
+        @Override
+        public AEBasePanel getPanel() {
+            return MUIInterfaceConfigurationTerminalPanel.this;
+        }
+
+        @Override
+        public int getGuiLeft() {
+            return guiLeft;
+        }
+
+        @Override
+        public int getGuiTop() {
+            return guiTop;
+        }
+
+        @Override
+        public void requestReinitialize() {
+            buttonList.clear();
+            initGui();
+        }
     }
 }

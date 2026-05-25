@@ -59,6 +59,7 @@ import appeng.client.mui.AEBaseMEPanel;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.module.MEItemBrowserModule;
+import appeng.client.mui.module.SearchBarModule;
 import appeng.client.mui.module.TerminalPinSystem;
 import appeng.client.mui.module.TerminalToolbar;
 import appeng.client.mui.widgets.MUITextFieldWidget;
@@ -482,11 +483,11 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         this.toolbar.positionTypeFilterButtons();
 
         // --- Search mode configuration ---
-        final MUITextFieldWidget.TerminalSearchConfig searchConfig =
-                MUITextFieldWidget.TerminalSearchConfig.fromCurrentSetting();
+        final SearchBarModule.TerminalSearchConfig searchConfig =
+                SearchBarModule.TerminalSearchConfig.fromCurrentSetting();
         this.isAutoFocus = searchConfig.isAutoFocus();
 
-        this.browserModule.applySearchConfig(searchConfig, memoryText, text -> {
+        this.browserModule.applySearchConfig(searchConfig, text -> {
             getRepo().setSearchString(text);
             this.updateScrollBar();
         });
@@ -608,8 +609,8 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     @Override
     public void onGuiClosed() {
         super.onGuiClosed();
-        MUITextFieldWidget searchField = this.browserModule.getItemSearchField();
-        memoryText = searchField != null ? searchField.getText() : "";
+        this.browserModule.onGuiClosed();
+        memoryText = this.browserModule.getSearchBarModule().getMemoryText();
     }
 
     @Override
@@ -631,10 +632,8 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             final boolean mouseInGui = this.isPointInRegion(0, 0, this.xSize, this.ySize, this.currentMouseX,
                     this.currentMouseY);
 
-            final MUITextFieldWidget.TerminalKeyResult result =
-                    searchField != null
-                            ? searchField.handleTerminalKeyTyped(character, key, this.isAutoFocus, mouseInGui)
-                            : MUITextFieldWidget.TerminalKeyResult.NOT_HANDLED;
+            final SearchBarModule.TerminalKeyResult result =
+                    this.browserModule.getSearchBarModule().handleTerminalKeyTyped(character, key, mouseInGui);
 
             switch (result) {
                 case HANDLED:
