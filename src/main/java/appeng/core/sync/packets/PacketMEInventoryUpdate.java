@@ -59,9 +59,10 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
     private static final int STREAM_MASK = 0xff;
 
     // GenericStack format marker byte placed at the beginning of compressed payload.
-    // 0x00-0xFE are reserved for legacy IAEStack type network IDs,
-    // so 0xFF serves as a non-colliding discriminator.
+    // 0x00-0xFD are reserved for legacy IAEStack type network IDs.
     private static final byte FORMAT_GENERIC_STACK = (byte) 0xFF;
+    // Marker for GenericStack format where each entry carries a craftable boolean.
+    private static final byte FORMAT_GENERIC_STACK_WITH_CRAFTABLE = (byte) 0xFE;
 
     // Read side — legacy IAEStack format.
     @Nullable
@@ -69,6 +70,9 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
     // Read side — new GenericStack format (mutually exclusive with list).
     @Nullable
     private List<GenericStack> genericList;
+    // Parallel to genericList: craftable flag per entry (null when not using craftable format).
+    @Nullable
+    private List<Boolean> genericCraftableFlags;
 
     private final byte ref;
 
@@ -91,6 +95,7 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
         this.compressFrame = null;
         this.list = new ArrayList<>();
         this.genericList = null;
+        this.genericCraftableFlags = null;
         this.ref = stream.readByte();
 
         final PacketBuffer wrappedStream = new PacketBuffer(stream);
@@ -117,10 +122,25 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
             if (uncompressedBuf.readableBytes() > 0) {
                 // Peek first byte to detect format
                 byte firstByte = uncompressedBuf.getByte(uncompressedBuf.readerIndex());
-                if (firstByte == FORMAT_GENERIC_STACK) {
+                if (firstByte == FORMAT_GENERIC_STACK_WITH_CRAFTABLE) {
+                    uncompressedBuf.readByte();
+                    this.genericList = new ArrayList<>();
+                    this.genericCraftableFlags = new ArrayList<>();
+                    this.list.clear();
+                    final PacketBuffer uncompressed = new PacketBuffer(uncompressedBuf);
+                    while (uncompressed.readableBytes() > 0) {
+                        GenericStack stack = GenericStack.readBuffer(uncompressed);
+                        boolean craftable = uncompressed.readBoolean();
+                        if (stack != null) {
+                            this.genericList.add(stack);
+                            this.genericCraftableFlags.add(craftable);
+                        }
+                    }
+                } else if (firstByte == FORMAT_GENERIC_STACK) {
                     // Skip the format marker
                     uncompressedBuf.readByte();
                     this.genericList = new ArrayList<>();
+                    this.genericCraftableFlags = null;
                     this.list.clear();
                     final PacketBuffer uncompressed = new PacketBuffer(uncompressedBuf);
                     while (uncompressed.readableBytes() > 0) {
@@ -186,7 +206,11 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
             ((ContainerCraftingCPU) c).postGenericStackUpdate(this.genericList, this.ref);
         }
         if (c instanceof ContainerMEMonitorable) {
-            ((ContainerMEMonitorable) c).postGenericStackUpdate(this.genericList);
+            if (this.genericCraftableFlags != null) {
+                ((ContainerMEMonitorable) c).postGenericStackUpdate(this.genericList, this.genericCraftableFlags);
+            } else {
+                ((ContainerMEMonitorable) c).postGenericStackUpdate(this.genericList);
+            }
         }
         if (c instanceof ContainerWirelessDualInterfaceTerminal) {
             ((ContainerWirelessDualInterfaceTerminal) c).postGenericStackUpdate(this.genericList);
@@ -264,7 +288,7 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
     }
 
     /**
-     * Append a GenericStack (AEKey-based format).
+     * Append a GenericStack (AEKey-based format) without craftable flag.
      * Writes a {@value #FORMAT_GENERIC_STACK} marker byte before the first entry.
      * Cannot be mixed with {@link #appendStack(IAEStack)} in the same packet.
      */
@@ -280,6 +304,35 @@ public class PacketMEInventoryUpdate extends AppEngPacket {
         if (!this.usesGenericFormat) {
             // Write format marker byte before first GenericStack entry
             this.compressFrame.write(FORMAT_GENERIC_STACK);
+            this.writtenBytes += 1;
+            this.usesGenericFormat = true;
+        }
+        if (this.writtenBytes + tmp.readableBytes() > UNCOMPRESSED_PACKET_BYTE_LIMIT) {
+            throw new BufferOverflowException();
+        } else {
+            this.writtenBytes += tmp.readableBytes();
+            this.compressFrame.write(tmp.array(), 0, tmp.readableBytes());
+            this.empty = false;
+        }
+    }
+
+    /**
+     * Append a GenericStack with a craftable flag.
+     * Writes a {@value #FORMAT_GENERIC_STACK_WITH_CRAFTABLE} marker byte before the first entry.
+     * Cannot be mixed with {@link #appendStack(IAEStack)} in the same packet.
+     */
+    public void appendStack(final GenericStack stack, final boolean craftable) throws IOException, BufferOverflowException {
+        if (!this.usesGenericFormat && this.writtenBytes > 0) {
+            throw new IllegalStateException("Cannot mix IAEStack and GenericStack in the same packet");
+        }
+
+        final PacketBuffer tmp = new PacketBuffer(Unpooled.buffer(OPERATION_BYTE_LIMIT));
+        GenericStack.writeBuffer(stack, tmp);
+        tmp.writeBoolean(craftable);
+
+        this.compressFrame.flush();
+        if (!this.usesGenericFormat) {
+            this.compressFrame.write(FORMAT_GENERIC_STACK_WITH_CRAFTABLE);
             this.writtenBytes += 1;
             this.usesGenericFormat = true;
         }

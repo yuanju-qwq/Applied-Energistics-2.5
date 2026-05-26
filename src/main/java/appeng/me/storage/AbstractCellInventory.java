@@ -22,11 +22,20 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.items.IItemHandler;
 
+import java.util.Collections;
+import java.util.Set;
+
 import appeng.api.config.FuzzyMode;
 import appeng.api.implementations.items.IStorageCell;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.KeyCounter;
+import appeng.api.storage.AEKeyFilter;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ISaveProvider;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.util.Platform;
@@ -54,6 +63,19 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
     private short storedItemTypes = 0;
     private long storedItemCount = 0;
     protected IItemList<T> cellItems;
+
+    /**
+     * AEKey-based primary storage. All mutating operations go through this counter.
+     * The legacy {@link #cellItems} is a lazy-derived view that gets rebuilt on access if stale.
+     */
+    @javax.annotation.Nullable
+    private KeyCounter cellKeyCounter = null;
+
+    /**
+     * When true, {@link #cellItems} is stale and must be rebuilt from {@link #cellKeyCounter}.
+     */
+    private boolean cellItemsDirty = false;
+
     private final ItemStack i;
     protected final IStorageCell<T> cellType;
     protected final int itemsPerByte;
@@ -86,10 +108,93 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
         this.cellItems = null;
     }
 
+    /**
+     * Reads the cell's config inventory (whitelist/blacklist filter) and returns the set of AEKeys.
+     * Each slot may hold an ItemStack representing an item or fluid that the cell is configured to accept or reject.
+     *
+     * @return unmodifiable set of keys from the config, or empty set if none configured
+     */
+    public Set<AEKey> getFilterKeys() {
+        final IItemHandler config = this.cellType.getConfigInventory(this.i);
+        if (config == null || config.getSlots() == 0) {
+            return Collections.emptySet();
+        }
+        final java.util.HashSet<AEKey> keys = new java.util.HashSet<>();
+        for (int slot = 0; slot < config.getSlots(); slot++) {
+            final net.minecraft.item.ItemStack is = config.getStackInSlot(slot);
+            if (is.isEmpty()) {
+                continue;
+            }
+            // Try item key first, then fluid key
+            AEKey key = AEItemKey.of(is);
+            if (key == null) {
+                key = AEFluidKey.of(net.minecraftforge.fluids.FluidUtil.getFluidContained(is));
+            }
+            if (key != null) {
+                keys.add(key);
+            }
+        }
+        return Collections.unmodifiableSet(keys);
+    }
+
+    /**
+     * @return an {@link AEKeyFilter} that matches keys in the cell's configured filter,
+     *         or {@link AEKeyFilter#none()} if no filter is configured.
+     */
+    public AEKeyFilter getAEKeyFilter() {
+        final Set<AEKey> filterKeys = getFilterKeys();
+        if (filterKeys.isEmpty()) {
+            return AEKeyFilter.none();
+        }
+        return filterKeys::contains;
+    }
+
+    /**
+     * @return the AEKey-based primary storage counter
+     */
+    public KeyCounter getKeyCounter() {
+        if (this.cellKeyCounter == null) {
+            this.cellKeyCounter = new KeyCounter();
+            // Populate from cellItems if already loaded
+            if (this.cellItems != null) {
+                for (final T v : this.cellItems) {
+                    AEKey key = v.toAEKey();
+                    if (key != null) {
+                        this.cellKeyCounter.set(key, v.getStackSize());
+                    }
+                }
+            }
+        }
+        return this.cellKeyCounter;
+    }
+
+    private void rebuildCellItemsFromKeyCounter() {
+        if (this.cellItems == null) {
+            this.cellItems = this.getStackType().createList();
+        } else {
+            this.cellItems.resetStatus();
+        }
+        for (var entry : this.cellKeyCounter) {
+            AEKey key = entry.getKey();
+            long amount = entry.getLongValue();
+            if (amount <= 0) {
+                continue;
+            }
+            @SuppressWarnings("unchecked")
+            T stack = (T) key.toIAEStack(amount);
+            if (stack != null) {
+                this.cellItems.add(stack);
+            }
+        }
+        this.cellItemsDirty = false;
+    }
+
     protected IItemList<T> getCellItems() {
         if (this.cellItems == null) {
             this.cellItems = this.getStackType().createList();
             this.loadCellItems();
+        } else if (this.cellItemsDirty && this.cellKeyCounter != null) {
+            rebuildCellItemsFromKeyCounter();
         }
 
         return this.cellItems;
@@ -103,23 +208,29 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
 
         long itemCount = 0;
 
-        // add new pretty stuff...
+        // write from primary KeyCounter (old NBT format for backward compat)
         int x = 0;
-        for (final T v : this.cellItems) {
-            itemCount += v.getStackSize();
+        final KeyCounter kc = this.getKeyCounter();
+        for (var entry : kc) {
+            AEKey key = entry.getKey();
+            long amount = entry.getLongValue();
+            if (amount <= 0) {
+                continue;
+            }
+            itemCount += amount;
 
             final NBTTagCompound g = new NBTTagCompound();
-            v.writeToNBT(g);
+            key.toIAEStack(amount).writeToNBT(g);
             this.tagCompound.setTag(ITEM_SLOT_KEYS[x], g);
-            this.tagCompound.setLong(ITEM_SLOT_COUNT_KEYS[x], v.getStackSize());
+            this.tagCompound.setLong(ITEM_SLOT_COUNT_KEYS[x], amount);
 
             x++;
         }
 
         final short oldStoredItems = this.storedItemTypes;
 
-        this.storedItemTypes = (short) this.cellItems.size();
-        if (this.cellItems.isEmpty()) {
+        this.storedItemTypes = (short) x;
+        if (x == 0) {
             this.tagCompound.removeTag(ITEM_TYPE_TAG);
         } else {
             this.tagCompound.setShort(ITEM_TYPE_TAG, this.storedItemTypes);
@@ -142,13 +253,19 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
     }
 
     protected void saveChanges() {
-        // recalculate values
-        this.storedItemTypes = (short) this.cellItems.size();
+        // recalculate values from primary KeyCounter
+        final KeyCounter kc = this.getKeyCounter();
+        this.storedItemTypes = 0;
         this.storedItemCount = 0;
-        for (final T v : this.cellItems) {
-            this.storedItemCount += v.getStackSize();
+        for (var entry : kc) {
+            long amount = entry.getLongValue();
+            if (amount > 0) {
+                this.storedItemTypes++;
+                this.storedItemCount += amount;
+            }
         }
 
+        this.cellItemsDirty = true;
         this.isPersisted = false;
         if (this.container != null) {
             this.container.saveChanges(this);
@@ -164,6 +281,9 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
         }
 
         this.cellItems.resetStatus(); // clears totals and stuff.
+        if (this.cellKeyCounter != null) {
+            this.cellKeyCounter.reset();
+        }
 
         final long types = this.getStoredItemTypes();
         boolean needsUpdate = false;
@@ -173,6 +293,8 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
             long stackSize = this.tagCompound.getLong(ITEM_SLOT_COUNT_KEYS[slot]);
             needsUpdate |= !this.loadCellItem(compoundTag, stackSize);
         }
+
+        this.cellItemsDirty = false;
 
         if (needsUpdate) {
             this.saveChanges();
@@ -191,12 +313,32 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
     @Override
     public abstract IAEStackType<T> getStackType();
 
-    @Override
-    public IItemList<T> getAvailableItems(final IItemList<T> out) {
-        for (final T item : this.getCellItems()) {
-            out.add(item);
-        }
+    /**
+     * @return the AEKey-based {@link KeyCounter} of all stored items
+     */
+    public KeyCounter getAvailableKeyCounter() {
+        return this.getKeyCounter();
+    }
 
+    /**
+     * @deprecated Use {@link #getAvailableKeyCounter()} instead.
+     * Fills the provided legacy IItemList from the internal KeyCounter.
+     */
+    @Override
+    @Deprecated
+    public IItemList<T> getAvailableItems(final IItemList<T> out) {
+        for (var entry : this.getKeyCounter()) {
+            AEKey key = entry.getKey();
+            long amount = entry.getLongValue();
+            if (amount <= 0) {
+                continue;
+            }
+            @SuppressWarnings("unchecked")
+            T stack = (T) key.toIAEStack(amount);
+            if (stack != null) {
+                out.add(stack);
+            }
+        }
         return out;
     }
 

@@ -18,6 +18,8 @@
 
 package appeng.me.storage;
 
+import java.util.Set;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.items.IItemHandler;
@@ -26,7 +28,9 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.config.IncludeExclude;
 import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IUpgradeModule;
+import appeng.api.stacks.AEKey;
 import appeng.api.storage.ICellInventory;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IStorageChannel;
@@ -88,12 +92,26 @@ public class BasicCellInventoryHandler<T extends IAEStack<T>> extends MEInventor
                 }
             }
 
-            for (int x = 0; x < config.getSlots(); x++) {
-                final ItemStack is = config.getStackInSlot(x);
-                if (!is.isEmpty()) {
-                    final T configItem = type.createStack(is);
-                    if (configItem != null) {
-                        priorityList.add(configItem);
+            // Use AEKey-based filter config if available (preferred path)
+            if (ci instanceof AbstractCellInventory abstractCell) {
+                final Set<AEKey> filterKeys = abstractCell.getFilterKeys();
+                if (!filterKeys.isEmpty()) {
+                    for (AEKey key : filterKeys) {
+                        final IAEStack<?> stack = key.toIAEStack(1);
+                        if (stack != null) {
+                            priorityList.addGeneric(stack);
+                        }
+                    }
+                }
+            } else {
+                // Legacy path: read from IItemHandler config
+                for (int x = 0; x < config.getSlots(); x++) {
+                    final ItemStack is = config.getStackInSlot(x);
+                    if (!is.isEmpty()) {
+                        final T configItem = type.createStack(is);
+                        if (configItem != null) {
+                            priorityList.add(configItem);
+                        }
                     }
                 }
             }

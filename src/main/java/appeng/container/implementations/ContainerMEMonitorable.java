@@ -111,6 +111,13 @@ public class ContainerMEMonitorable extends AEBaseContainer
      */
     private final KeyCounter updateKeyCounter = new KeyCounter();
 
+    /**
+     * Tracks which keys had their craftable flag set in the most recent changes.
+     * Parallels updateKeyCounter; entries are removed when craftable becomes false.
+     * Reset together with updateKeyCounter after detectAndSendChanges sends the packet.
+     */
+    private final Set<AEKey> craftableChangeSet = new HashSet<>();
+
     private final IConfigManager clientCM;
     private final ITerminalHost host;
 
@@ -364,21 +371,23 @@ public class ContainerMEMonitorable extends AEBaseContainer
                 // Full resync of all type inventories
                 this.needListUpdate = false;
                 this.updateKeyCounter.reset();
+                this.craftableChangeSet.clear();
                 for (final Object c : this.listeners) {
                     if (c instanceof EntityPlayerMP player) {
                         this.queueInventory(player);
                     }
                 }
             } else {
-                // Incremental: send changed entries directly from KeyCounter
+                // Incremental: send changed entries directly from KeyCounter with craftable flags
                 try {
                     PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
                     for (var entry : this.updateKeyCounter) {
                         AEKey key = entry.getKey();
                         long amount = entry.getLongValue();
+                        boolean craftable = this.craftableChangeSet.contains(key);
                         try {
-                            piu.appendStack(new GenericStack(key, amount));
+                            piu.appendStack(new GenericStack(key, amount), craftable);
                         } catch (final BufferOverflowException boe) {
                             for (final Object c : this.listeners) {
                                 if (c instanceof EntityPlayerMP) {
@@ -386,12 +395,13 @@ public class ContainerMEMonitorable extends AEBaseContainer
                                 }
                             }
                             piu = new PacketMEInventoryUpdate();
-                            piu.appendStack(new GenericStack(key, amount));
+                            piu.appendStack(new GenericStack(key, amount), craftable);
                         }
                     }
 
                     if (!piu.isEmpty()) {
                         this.updateKeyCounter.reset();
+                        this.craftableChangeSet.clear();
                         for (final Object c : this.listeners) {
                             if (c instanceof EntityPlayerMP) {
                                 NetworkHandler.instance().sendTo(piu, (EntityPlayerMP) c);
@@ -487,11 +497,11 @@ public class ContainerMEMonitorable extends AEBaseContainer
                         continue;
                     }
                     try {
-                        piu.appendStack(new GenericStack(key, send.getStackSize()));
+                        piu.appendStack(new GenericStack(key, send.getStackSize()), send.isCraftable());
                     } catch (final BufferOverflowException boe) {
                         NetworkHandler.instance().sendTo(piu, player);
                         piu = new PacketMEInventoryUpdate();
-                        piu.appendStack(new GenericStack(key, send.getStackSize()));
+                        piu.appendStack(new GenericStack(key, send.getStackSize()), send.isCraftable());
                     }
                 }
             }
@@ -534,6 +544,11 @@ public class ContainerMEMonitorable extends AEBaseContainer
             AEKey key = aes.toAEKey();
             if (key != null) {
                 this.updateKeyCounter.set(key, aes.getStackSize());
+                if (aes.isCraftable()) {
+                    this.craftableChangeSet.add(key);
+                } else {
+                    this.craftableChangeSet.remove(key);
+                }
             }
         }
     }
@@ -616,19 +631,36 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * Client-side handler for {@link appeng.core.sync.packets.PacketMEGenericStackUpdate}.
+     * Client-side handler for GenericStack format inventory updates
+     * with explicit craftable flags.
+     * <p>
+     * Converts GenericStack list + craftable flags to RepoEntry and dispatches via
+     * {@link IMEMonitorableGuiCallback#postRepoEntryUpdate(List)}.
+     */
+    public void postGenericStackUpdate(final List<GenericStack> list, final List<Boolean> craftableFlags) {
+        if (this.gui instanceof IMEMonitorableGuiCallback guiMonitorable) {
+            final int size = Math.min(list.size(), craftableFlags != null ? craftableFlags.size() : 0);
+            final List<appeng.client.me.ItemRepo.RepoEntry> entries = new java.util.ArrayList<>(size);
+            for (int i = 0; i < size; i++) {
+                GenericStack gs = list.get(i);
+                boolean craftable = craftableFlags.get(i);
+                entries.add(new appeng.client.me.ItemRepo.RepoEntry(gs.what(), gs.amount(), craftable));
+            }
+            guiMonitorable.postRepoEntryUpdate(entries);
+        }
+    }
+
+    /**
+     * Client-side handler for GenericStack format inventory updates
+     * without craftable flags (all entries default to not craftable).
      * <p>
      * Converts GenericStack list directly to RepoEntry and dispatches via
      * {@link IMEMonitorableGuiCallback#postRepoEntryUpdate(List)}.
-     * Falls back to the legacy IAEStack path for non-MUI GUIs.
      */
     public void postGenericStackUpdate(final List<GenericStack> list) {
         if (this.gui instanceof IMEMonitorableGuiCallback guiMonitorable) {
-            // Convert GenericStack -> RepoEntry directly (no IAEStack intermediate)
             final List<appeng.client.me.ItemRepo.RepoEntry> entries = new java.util.ArrayList<>(list.size());
             for (GenericStack gs : list) {
-                // GenericStack does not carry craftable info; default to false.
-                // The server sends craftable stacks with amount=0 as a separate entry.
                 entries.add(new appeng.client.me.ItemRepo.RepoEntry(gs.what(), gs.amount(), false));
             }
             guiMonitorable.postRepoEntryUpdate(entries);

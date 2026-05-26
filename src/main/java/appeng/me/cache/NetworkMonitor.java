@@ -31,10 +31,13 @@ import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.events.MENetworkStorageEvent;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.me.storage.ItemWatcher;
@@ -53,6 +56,26 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
     private final IAEStackType<T> myStackType;
     @Nonnull
     private final IItemList<T> cachedList;
+
+    /**
+     * AEKey-based primary cache. All inventory state is stored here.
+     * The legacy {@link #cachedList} is a lazy-derived view rebuilt on demand.
+     */
+    @Nonnull
+    private final KeyCounter keyCounter = new KeyCounter();
+
+    /**
+     * Tracks which AEKeys are craftable. Used when rebuilding the legacy IItemList view.
+     */
+    @Nonnull
+    private final Set<AEKey> craftableKeys = new HashSet<>();
+
+    /**
+     * When true, {@link #cachedList} is stale and must be rebuilt from {@link #keyCounter}
+     * on the next call to {@link #getStorageList()}.
+     */
+    private boolean listDirty = true;
+
     @Nonnull
     private final Object2ObjectMap<IMEMonitorHandlerReceiver<? super T>, Object> listeners;
 
@@ -115,10 +138,64 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
         gridCount += count;
     }
 
+    /**
+     * @return the AEKey-based primary cache
+     */
+    @Nonnull
+    public KeyCounter getKeyCounter() {
+        return this.keyCounter;
+    }
+
+    /**
+     * @deprecated Use {@link #getKeyCounter()} instead.
+     * Returns a legacy IItemList view built on-demand from the internal KeyCounter.
+     */
     @Nonnull
     @Override
+    @Deprecated
     public IItemList<T> getStorageList() {
+        if (this.listDirty) {
+            rebuildCachedList();
+        }
         return this.cachedList;
+    }
+
+    /**
+     * Rebuilds the legacy {@link #cachedList} from the primary {@link #keyCounter}
+     * and {@link #craftableKeys}. Called on-demand when {@link #getStorageList()} is invoked.
+     */
+    @SuppressWarnings("unchecked")
+    private void rebuildCachedList() {
+        this.cachedList.resetStatus();
+
+        // Add all stored entries with their craftable flag
+        for (var entry : this.keyCounter) {
+            AEKey key = entry.getKey();
+            long amount = entry.getLongValue();
+            if (amount == 0) {
+                continue;
+            }
+            IAEStackBase stack = key.toIAEStack(amount);
+            if (stack != null) {
+                if (this.craftableKeys.contains(key)) {
+                    stack.setCraftable(true);
+                }
+                this.cachedList.addGeneric((IAEStack<?>) stack);
+            }
+        }
+
+        // Add craftable-only entries (amount 0 but craftable)
+        for (AEKey key : this.craftableKeys) {
+            if (this.keyCounter.get(key) == 0) {
+                IAEStackBase stack = key.toIAEStack(0);
+                if (stack != null) {
+                    stack.setCraftable(true);
+                    this.cachedList.addGeneric((IAEStack<?>) stack);
+                }
+            }
+        }
+
+        this.listDirty = false;
     }
 
     @Override
@@ -168,14 +245,17 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
 
     protected void updateCraftables(Iterable<T> input, IActionSource src) {
         for (final T changedItem : input) {
+            AEKey key = changedItem.toAEKey();
+            if (key == null) {
+                continue;
+            }
             if (changedItem.isCraftable()) {
-                this.cachedList.add(changedItem);
+                this.craftableKeys.add(key);
             } else {
-                T i = this.cachedList.findPrecise(changedItem);
-                if (i != null)
-                    i.setCraftable(false);
+                this.craftableKeys.remove(key);
             }
         }
+        this.listDirty = true;
     }
 
     protected void postChange(final boolean add, final Iterable<T> changes, final IActionSource src) {
@@ -196,7 +276,13 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
             }
 
             incGridCurrentCount(change.getStackSize());
-            this.cachedList.addStorage(change);
+
+            // Update primary KeyCounter cache
+            AEKey key = change.toAEKey();
+            if (key != null) {
+                this.keyCounter.add(key, change.getStackSize());
+            }
+            this.listDirty = true;
 
             if (this.myGridCache.getInterestManager().containsKey(change)) {
                 final Collection<ItemWatcher> list = this.myGridCache.getInterestManager().get(change);
@@ -243,18 +329,30 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
 
     void forceUpdate() {
         forceUpdate = false;
+
+        // Read from the handler into a temporary IItemList, then convert to KeyCounter
+        this.keyCounter.clear();
+        this.craftableKeys.clear();
         this.cachedList.resetStatus();
         this.getAvailableItems(this.cachedList);
 
         long count = 0;
         for (T stack : this.cachedList) {
-            count += stack.getStackSize();
+            AEKey key = stack.toAEKey();
+            if (key != null) {
+                long amount = stack.getStackSize();
+                this.keyCounter.set(key, amount);
+                count += amount;
+                if (stack.isCraftable()) {
+                    this.craftableKeys.add(key);
+                }
+            }
 
             if (this.myGridCache.getInterestManager().containsKey(stack)) {
                 final Collection<ItemWatcher> list = this.myGridCache.getInterestManager().get(stack);
 
                 if (!list.isEmpty()) {
-                    IAEStack<T> fullStack = this.getStorageList().findPrecise(stack);
+                    IAEStack<T> fullStack = this.cachedList.findPrecise(stack);
 
                     if (fullStack == null) {
                         fullStack = stack.copy();
@@ -264,7 +362,7 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
                     this.myGridCache.getInterestManager().enableTransactions();
 
                     for (final ItemWatcher iw : list) {
-                        iw.getHost().onStackChange(this.getStorageList(), fullStack, stack, null, this.myStackType);
+                        iw.getHost().onStackChange(this.cachedList, fullStack, stack, null, this.myStackType);
                     }
 
                     this.myGridCache.getInterestManager().disableTransactions();
@@ -273,6 +371,7 @@ public class NetworkMonitor<T extends IAEStack<T>> implements IMEMonitor<T> {
         }
 
         gridCount = count;
+        this.listDirty = false;
 
         final Iterator<Entry<IMEMonitorHandlerReceiver<? super T>, Object>> i = this.getListeners();
         while (i.hasNext()) {

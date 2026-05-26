@@ -8,6 +8,8 @@ import appeng.api.config.Actionable;
 import appeng.api.exceptions.AppEngException;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ISaveProvider;
 import appeng.api.storage.IStorageChannel;
@@ -123,8 +125,15 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
             }
         }
 
-        final T l = this.getCellItems().findPrecise(input);
-        if (l != null) {
+        final AEKey key = input.toAEKey();
+        if (key == null) {
+            return input;
+        }
+
+        final KeyCounter kc = this.getKeyCounter();
+        final long existing = kc.get(key);
+
+        if (existing > 0) {
             final long remainingItemCount = this.getRemainingItemCount();
             if (remainingItemCount <= 0) {
                 return input;
@@ -134,13 +143,13 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
                 final T r = input.copy();
                 r.setStackSize(r.getStackSize() - remainingItemCount);
                 if (mode == Actionable.MODULATE) {
-                    l.setStackSize(l.getStackSize() + remainingItemCount);
+                    kc.set(key, existing + remainingItemCount);
                     this.saveChanges();
                 }
                 return r;
             } else {
                 if (mode == Actionable.MODULATE) {
-                    l.setStackSize(l.getStackSize() + input.getStackSize());
+                    kc.set(key, existing + input.getStackSize());
                     this.saveChanges();
                 }
                 return null;
@@ -156,17 +165,14 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
                     final T toReturn = input.copy();
                     toReturn.setStackSize(input.getStackSize() - remainingItemCount);
                     if (mode == Actionable.MODULATE) {
-                        final T toWrite = input.copy();
-                        toWrite.setStackSize(remainingItemCount);
-
-                        this.cellItems.add(toWrite);
+                        kc.set(key, remainingItemCount);
                         this.saveChanges();
                     }
                     return toReturn;
                 }
 
                 if (mode == Actionable.MODULATE) {
-                    this.cellItems.add(input);
+                    kc.set(key, input.getStackSize());
                     this.saveChanges();
                 }
 
@@ -185,24 +191,31 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
 
         final long size = Math.min(Integer.MAX_VALUE, request.getStackSize());
 
-        T Results = null;
+        final AEKey key = request.toAEKey();
+        if (key == null) {
+            return null;
+        }
 
-        final T l = this.getCellItems().findPrecise(request);
-        if (l != null) {
-            Results = l.copy();
+        final KeyCounter kc = this.getKeyCounter();
+        final long existing = kc.get(key);
 
-            if (l.getStackSize() <= size) {
-                Results.setStackSize(l.getStackSize());
-                if (mode == Actionable.MODULATE) {
-                    l.setStackSize(0);
-                    this.saveChanges();
-                }
-            } else {
-                Results.setStackSize(size);
-                if (mode == Actionable.MODULATE) {
-                    l.setStackSize(l.getStackSize() - size);
-                    this.saveChanges();
-                }
+        if (existing <= 0) {
+            return null;
+        }
+
+        T Results = request.copy();
+
+        if (existing <= size) {
+            Results.setStackSize(existing);
+            if (mode == Actionable.MODULATE) {
+                kc.set(key, 0);
+                this.saveChanges();
+            }
+        } else {
+            Results.setStackSize(size);
+            if (mode == Actionable.MODULATE) {
+                kc.set(key, existing - size);
+                this.saveChanges();
             }
         }
 
@@ -239,6 +252,10 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
 
         if (stackSize > 0) {
             this.cellItems.add(t);
+            AEKey k = t.toAEKey();
+            if (k != null) {
+                this.getKeyCounter().set(k, stackSize);
+            }
         }
 
         return true;
