@@ -44,20 +44,29 @@ import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.core.sync.packets.PacketValueConfig;
 
 /**
- * Terminal toolbar module — panel-level buttons for MUIMEMonitorablePanel.
+ * Terminal toolbar module — panel-level buttons for terminal GUIs.
+ *
+ * <p>Supports two layout modes:
+ * <ul>
+ *   <li>{@link #STANDARD} — left-margin button column (MUIButtonWidget), used by MUIMEMonitorablePanel</li>
+ *   <li>{@link #COMPACT} — side panel left-edge buttons (MUIButtonWidget), used by WirelessDualInterfaceTerminal</li>
+ * </ul>
  *
  * <p>Responsible for:
  * <ul>
  *   <li>Terminal style button</li>
+ *   <li>Sort / view / sort direction / search mode buttons</li>
  *   <li>Type filter toggle buttons (using {@link MUITypeFilterButton} driven by {@link AEKeyType})</li>
  *   <li>Pins state button</li>
  *   <li>Crafting status tab button</li>
  * </ul>
- *
- * <p>Sort / view / sort direction / search mode buttons are managed by
- * {@link MEItemBrowserModule} (both compact and standard layouts).
  */
 public class TerminalToolbar {
+
+    // ========== Layout mode ==========
+
+    public static final String LAYOUT_STANDARD = "standard";
+    public static final String LAYOUT_COMPACT = "compact";
 
     // ========== Host interface ==========
 
@@ -90,10 +99,34 @@ public class TerminalToolbar {
 
         TerminalPinSystem getPinSystem();
 
+        // --- Compact mode support ---
+
         /**
-         * Get the ME item browser module (for sort button count and positioning).
+         * Returns {@code true} for compact side-panel layout, {@code false} for standard main-panel layout.
          */
-        MEItemBrowserModule getBrowserModule();
+        boolean isCompactLayout();
+
+        /**
+         * X offset of the compact panel relative to {@code guiLeft} (for MUIButtonWidget positioning).
+         * Returns 0 in standard layout.
+         */
+        int getCompactPanelRelX();
+
+        /**
+         * Y offset of the compact panel relative to {@code guiTop} (for MUIButtonWidget positioning).
+         * Returns 0 in standard layout.
+         */
+        int getCompactPanelRelY();
+
+        /**
+         * Width of the compact panel. Only meaningful in compact mode.
+         */
+        int getCompactPanelWidth();
+
+        /**
+         * Height of the compact panel. Only meaningful in compact mode.
+         */
+        int getCompactPanelHeight();
     }
 
     // ========== Panel-level buttons ==========
@@ -103,6 +136,13 @@ public class TerminalToolbar {
     private MUIButtonWidget terminalStyleBox;
     private MUIButtonWidget pinsStateButton;
     private MUITabContainer craftingStatusBtn;
+
+    // ========== Sort/view buttons ==========
+
+    private MUIButtonWidget sortByBox;
+    private MUIButtonWidget sortDirBox;
+    private MUIButtonWidget viewBox;
+    private MUIButtonWidget searchBoxSettings;
 
     // ========== Type filter buttons ==========
 
@@ -130,10 +170,94 @@ public class TerminalToolbar {
     // ========== Build & register ==========
 
     /**
-     * Create and register panel-level toolbar buttons onto the panel.
-     * Call from {@code setupWidgets()} after {@link MEItemBrowserModule#buildAndRegisterSortButtons()}.
+     * Create and register all toolbar buttons.
+     *
+     * <p>In standard layout this creates all buttons (sort + terminal style + type filter + pins + crafting).
+     * In compact layout this only creates the sort buttons.
+     *
+     * <p>Call from {@code setupWidgets()} for standard mode, or from {@code initGui()} for compact mode.
      */
     public void buildAndRegister() {
+        if (host.isCompactLayout()) {
+            buildCompactSortButtons();
+        } else {
+            buildStandardSortButtons();
+            buildStandardToolbarButtons();
+        }
+    }
+
+    /**
+     * Build compact-mode sort buttons ({@link MUIButtonWidget}).
+     * Positioned relative to the compact panel's offset from {@code guiLeft}/{@code guiTop}.
+     */
+    private void buildCompactSortButtons() {
+        AEBasePanel panel = host.getPanel();
+        IConfigManager configSrc = host.getConfigManager();
+        int relX = host.getCompactPanelRelX() - 18;
+        int relY = host.getCompactPanelRelY() + 18;
+
+        this.sortByBox = new MUIButtonWidget(relX, relY, Settings.SORT_BY,
+                configSrc.getSetting(Settings.SORT_BY));
+        this.sortByBox.setOnClick(btn -> handleSortButtonClick(btn));
+        panel.addWidget(this.sortByBox);
+        relY += 20;
+
+        this.viewBox = new MUIButtonWidget(relX, relY, Settings.VIEW_MODE,
+                configSrc.getSetting(Settings.VIEW_MODE));
+        this.viewBox.setOnClick(btn -> handleSortButtonClick(btn));
+        panel.addWidget(this.viewBox);
+        relY += 20;
+
+        this.sortDirBox = new MUIButtonWidget(relX, relY, Settings.SORT_DIRECTION,
+                configSrc.getSetting(Settings.SORT_DIRECTION));
+        this.sortDirBox.setOnClick(btn -> handleSortButtonClick(btn));
+        panel.addWidget(this.sortDirBox);
+        relY += 20;
+
+        this.searchBoxSettings = new MUIButtonWidget(relX, relY, Settings.SEARCH_MODE,
+                AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE));
+        this.searchBoxSettings.setOnClick(btn -> handleSortButtonClick(btn));
+        panel.addWidget(this.searchBoxSettings);
+    }
+
+    /**
+     * Build standard-mode sort buttons ({@link MUIButtonWidget}, registered via {@code addWidget}).
+     */
+    private void buildStandardSortButtons() {
+        AEBasePanel panel = host.getPanel();
+        IConfigManager configSrc = host.getConfigManager();
+        int offset = 8 + host.getJeiOffset();
+
+        this.sortByBox = new MUIButtonWidget(-18, offset, Settings.SORT_BY,
+                configSrc.getSetting(Settings.SORT_BY));
+        this.sortByBox.setOnClick(btn -> handleSortButtonClick(btn));
+        panel.addWidget(this.sortByBox);
+        offset += 20;
+
+        if (host.hasViewCell()) {
+            this.viewBox = new MUIButtonWidget(-18, offset, Settings.VIEW_MODE,
+                    configSrc.getSetting(Settings.VIEW_MODE));
+            this.viewBox.setOnClick(btn -> handleSortButtonClick(btn));
+            panel.addWidget(this.viewBox);
+            offset += 20;
+        }
+
+        this.sortDirBox = new MUIButtonWidget(-18, offset, Settings.SORT_DIRECTION,
+                configSrc.getSetting(Settings.SORT_DIRECTION));
+        this.sortDirBox.setOnClick(btn -> handleSortButtonClick(btn));
+        panel.addWidget(this.sortDirBox);
+        offset += 20;
+
+        this.searchBoxSettings = new MUIButtonWidget(-18, offset, Settings.SEARCH_MODE,
+                AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE));
+        this.searchBoxSettings.setOnClick(btn -> handleSortButtonClick(btn));
+        panel.addWidget(this.searchBoxSettings);
+    }
+
+    /**
+     * Build standard-mode toolbar buttons (terminal style, type filter, pins, crafting status).
+     */
+    private void buildStandardToolbarButtons() {
         AEBasePanel panel = host.getPanel();
         boolean isPortableCell = host.isPortableCell();
         boolean isWireless = host.isWirelessTerm();
@@ -197,12 +321,14 @@ public class TerminalToolbar {
 
     /**
      * Position type filter buttons and terminal style button after layout is known.
-     * Call from {@code initGui()} after guiLeft/guiTop are finalized.
+     * Call from {@code initGui()} after guiLeft/guiTop are finalized (standard mode only).
      */
     public void positionTypeFilterButtons() {
-        // Calculate offset: sort buttons (from MEItemBrowserModule) + terminal style button
-        MEItemBrowserModule browserModule = host.getBrowserModule();
-        int sortButtonCount = browserModule != null ? browserModule.getVisibleSortButtonCount() : 0;
+        if (host.isCompactLayout()) {
+            return;
+        }
+
+        int sortButtonCount = getVisibleSortButtonCount();
         int settingsButtonCount = sortButtonCount + (terminalStyleBox != null ? 1 : 0);
 
         int typeOffset = host.getGuiTop() + 8 + host.getJeiOffset() + settingsButtonCount * 20;
@@ -219,10 +345,44 @@ public class TerminalToolbar {
         }
     }
 
+    // ========== Sort button click (standard mode) ==========
+
+    /**
+     * Common click handler for sort/view/search-mode MUI buttons (standard mode).
+     */
+    private void handleSortButtonClick(MUIButtonWidget btn) {
+        final Settings setting = btn.getSetting();
+        if (setting == null || setting == Settings.ACTIONS) {
+            return;
+        }
+
+        final boolean backwards = Mouse.isButtonDown(1);
+        final Enum<?> cv = btn.getCurrentValue();
+        final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
+                setting.getPossibleValues());
+
+        if (btn == this.searchBoxSettings) {
+            AEConfig.instance().getConfigManager().putSetting(setting, next);
+        } else {
+            try {
+                NetworkHandler.instance()
+                        .sendToServer(new PacketValueConfig(setting.name(), next.name()));
+            } catch (final IOException e) {
+                AELog.debug(e);
+            }
+        }
+
+        btn.set(next);
+
+        if (next.getClass() == SearchBoxMode.class) {
+            host.reinitializeGui();
+        }
+    }
+
     // ========== Settings button click ==========
 
     /**
-     * Common click handler for panel-level settings buttons.
+     * Common click handler for panel-level settings buttons (terminal style, etc.).
      */
     private void handleSettingsButtonClick(MUIButtonWidget btn) {
         final Settings setting = btn.getSetting();
@@ -256,14 +416,33 @@ public class TerminalToolbar {
     // ========== updateSetting callback ==========
 
     /**
-     * Update button states from the config manager after a setting changed on the server side.
-     * Note: sort/view/sortDir/searchMode buttons are now handled by MEItemBrowserModule.updateSetting().
+     * Update all button states from the config manager after a setting changed on the server side.
      */
     public void updateSetting(IConfigManager manager, Enum<?> settingName, Enum<?> newValue) {
-        // No sort/view buttons to update here — they are managed by MEItemBrowserModule
+        if (this.sortByBox != null) {
+            this.sortByBox.set(manager.getSetting(Settings.SORT_BY));
+        }
+        if (this.sortDirBox != null) {
+            this.sortDirBox.set(manager.getSetting(Settings.SORT_DIRECTION));
+        }
+        if (this.viewBox != null) {
+            this.viewBox.set(manager.getSetting(Settings.VIEW_MODE));
+        }
     }
 
     // ========== JEI exclusion helpers ==========
+
+    /**
+     * Get the number of visible sort buttons (for type filter positioning and JEI exclusion).
+     */
+    public int getVisibleSortButtonCount() {
+        int count = 0;
+        if (sortByBox != null && sortByBox.isVisible()) count++;
+        if (viewBox != null && viewBox.isVisible()) count++;
+        if (sortDirBox != null && sortDirBox.isVisible()) count++;
+        if (searchBoxSettings != null && searchBoxSettings.isVisible()) count++;
+        return count;
+    }
 
     public int getVisibleSettingsButtonCount() {
         int count = 0;

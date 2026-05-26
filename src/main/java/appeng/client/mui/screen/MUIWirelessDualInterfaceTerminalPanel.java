@@ -40,9 +40,12 @@ import appeng.api.util.IConfigurableObject;
 import appeng.client.me.ItemRepo;
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.mui.AEBaseMEPanel;
+import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.module.InterfaceListModule;
 import appeng.client.mui.module.MEItemBrowserModule;
 import appeng.client.mui.module.PatternEncodingModule;
+import appeng.client.mui.module.TerminalPinSystem;
+import appeng.client.mui.module.TerminalToolbar;
 import appeng.container.implementations.ContainerWirelessDualInterfaceTerminal;
 import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
 import appeng.container.slot.AppEngSlot;
@@ -86,6 +89,9 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     private PatternEncodingModule patternEncodingModule;
     private MEItemBrowserModule meItemBrowserModule;
 
+    // 工具栏按钮模块
+    private TerminalToolbar toolbar;
+
     // 无线终端共通功能（无线升级图标）
     private final WirelessTerminalHelper wirelessHelper = new WirelessTerminalHelper();
 
@@ -128,6 +134,8 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         this.meItemBrowserModule = new MEItemBrowserModule(this);
         this.meItemBrowserModule.initDragState();
 
+        this.toolbar = new TerminalToolbar(new ToolbarHost());
+
         // 计算行数
         this.interfaceListModule.calculateRows();
         final int rows = this.interfaceListModule.getRows();
@@ -144,6 +152,9 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         this.patternEncodingModule.initButtons();
         this.patternEncodingModule.initVirtualSlots();
         this.meItemBrowserModule.initPanel();
+
+        // 工具栏按钮（排序、视图、搜索模式等）
+        this.toolbar.buildAndRegister();
 
         // 定位槽位
         this.patternEncodingModule.repositionSlots();
@@ -206,6 +217,9 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
 
     @Override
     public void updateSetting(final IConfigManager manager, final Enum<?> settingName, final Enum<?> newValue) {
+        if (this.toolbar != null) {
+            this.toolbar.updateSetting(manager, settingName, newValue);
+        }
         if (this.meItemBrowserModule != null) {
             this.meItemBrowserModule.updateSetting();
         }
@@ -257,9 +271,6 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         if (this.patternEncodingModule != null) {
             this.patternEncodingModule.populateButtons();
         }
-        if (this.meItemBrowserModule != null) {
-            this.meItemBrowserModule.populateButtons();
-        }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
 
@@ -278,10 +289,6 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
             return;
         }
 
-        // ME物品浏览模块的按钮
-        if (this.meItemBrowserModule != null && this.meItemBrowserModule.actionPerformed(btn)) {
-            return;
-        }
     }
 
     @Override
@@ -405,11 +412,11 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     public List<Rectangle> getJEIExclusionArea() {
         final List<Rectangle> exclusionArea = new ArrayList<>();
 
-        // 接口列表左侧按钮区域
-        int visibleButtons = (int) this.buttonList.stream().filter(v -> v.enabled && v.x < guiLeft).count();
-        if (visibleButtons > 0) {
+        // 工具栏排序按钮区域
+        int sortButtonCount = this.toolbar != null ? this.toolbar.getVisibleSortButtonCount() : 0;
+        if (sortButtonCount > 0) {
             exclusionArea.add(new Rectangle(guiLeft - 18, guiTop + 8 + jeiOffset, 20,
-                    visibleButtons * 20 + visibleButtons - 2));
+                    sortButtonCount * 20 + sortButtonCount - 2));
         }
 
         // 样板编码面板区域
@@ -527,5 +534,107 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     @Override
     public void requestScrollBarUpdate() {
         // No-op for compact mode — scrollbar is managed internally by the module
+    }
+
+    // ========== TerminalToolbar.Host 实现 ==========
+
+    private final class ToolbarHost implements TerminalToolbar.Host {
+        @Override
+        public IConfigManager getConfigManager() {
+            return configSrc;
+        }
+
+        @Override
+        public ItemRepo getRepo() {
+            return meItemBrowserModule.getItemRepo();
+        }
+
+        @Override
+        public AEBasePanel getPanel() {
+            return MUIWirelessDualInterfaceTerminalPanel.this;
+        }
+
+        @Override
+        public boolean hasViewCell() {
+            return false;
+        }
+
+        @Override
+        public boolean isWirelessTerm() {
+            return true;
+        }
+
+        @Override
+        public boolean isPortableCell() {
+            return false;
+        }
+
+        @Override
+        public boolean isSecurityStation() {
+            return false;
+        }
+
+        @Override
+        public int getJeiOffset() {
+            return jeiOffset;
+        }
+
+        @Override
+        public int getGuiLeft() {
+            return guiLeft;
+        }
+
+        @Override
+        public int getGuiTop() {
+            return guiTop;
+        }
+
+        @Override
+        public int getRows() {
+            return meItemBrowserModule.getRows();
+        }
+
+        @Override
+        public void reinitializeGui() {
+            buttonList.clear();
+            initGui();
+        }
+
+        @Override
+        public void updateScrollBar() {
+            // No-op for compact mode — scrollbar is managed internally by the module
+        }
+
+        @Override
+        public TerminalPinSystem getPinSystem() {
+            return null; // Not used in compact mode
+        }
+
+        @Override
+        public boolean isCompactLayout() {
+            return true;
+        }
+
+        @Override
+        public int getCompactPanelRelX() {
+            return meItemBrowserModule.getPanelRelX();
+        }
+
+        @Override
+        public int getCompactPanelRelY() {
+            return meItemBrowserModule.getPanelRelY();
+        }
+
+        @Override
+        public int getCompactPanelWidth() {
+            return meItemBrowserModule.getLayout().getPanelWidth();
+        }
+
+        @Override
+        public int getCompactPanelHeight() {
+            int ph = meItemBrowserModule.getLayout().getPanelHeight();
+            if (ph > 0) return ph;
+            return meItemBrowserModule.getRows() * 18 + meItemBrowserModule.getLayout().getGridOffsetY();
+        }
     }
 }

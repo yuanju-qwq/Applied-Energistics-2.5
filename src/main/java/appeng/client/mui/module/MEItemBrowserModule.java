@@ -18,7 +18,6 @@
 
 package appeng.client.mui.module;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -32,17 +31,12 @@ import appeng.api.config.Settings;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.client.gui.slots.VirtualMEMonitorableSlot;
-import appeng.client.gui.widgets.GuiImgButton;
-import appeng.client.mui.widgets.MUIButtonWidget;
-import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.gui.widgets.ISortSource;
+import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.me.ItemRepo;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.core.AEConfig;
-import appeng.core.AELog;
-import appeng.core.sync.network.NetworkHandler;
-import appeng.core.sync.packets.PacketValueConfig;
 import appeng.integration.Integrations;
 import appeng.util.Platform;
 
@@ -58,12 +52,15 @@ import appeng.util.Platform;
  * <p>Responsible for:
  * <ul>
  *   <li>ItemRepo + VirtualMEMonitorableSlot grid</li>
- *   <li>Sort / view / sort direction / search mode buttons</li>
  *   <li>Search field + JEI sync</li>
  *   <li>Scrollbar management</li>
  *   <li>Panel drag support (compact mode only)</li>
  *   <li>IMEInventoryUpdateReceiver data forwarding</li>
+ *   <li>ISortSource implementation</li>
  * </ul>
+ *
+ * <p>Sort / view / sort direction / search mode buttons are now managed by
+ * {@link TerminalToolbar}.
  */
 public class MEItemBrowserModule implements ISortSource {
 
@@ -359,20 +356,8 @@ public class MEItemBrowserModule implements ISortSource {
     // Search bar module (manages search field lifecycle, terminal search config, JEI sync)
     private final SearchBarModule searchBarModule;
 
-    // Sort/view buttons — compact mode (GuiImgButton, added to buttonList)
-    private GuiImgButton sortByBoxLegacy;
-    private GuiImgButton sortDirBoxLegacy;
-    private GuiImgButton viewBoxLegacy;
-    private GuiImgButton searchBoxSettingsLegacy;
-
-    // Sort/view buttons — standard mode (MUIButtonWidget, registered via addWidget)
-    private MUIButtonWidget sortByBox;
-    private MUIButtonWidget sortDirBox;
-    private MUIButtonWidget viewBox;
-    private MUIButtonWidget searchBoxSettings;
-
     // Panel drag (compact mode only)
-    private PatternEncodingModule.PanelDragState dragState;
+    private PanelDragState dragState;
 
     // Dynamic rows (standard mode)
     private int rows = 0;
@@ -420,7 +405,7 @@ public class MEItemBrowserModule implements ISortSource {
         return itemSearchField;
     }
 
-    public PatternEncodingModule.PanelDragState getDragState() {
+    public PanelDragState getDragState() {
         return dragState;
     }
 
@@ -609,7 +594,7 @@ public class MEItemBrowserModule implements ISortSource {
         if (!layout.isDraggable()) {
             return;
         }
-        this.dragState = new PatternEncodingModule.PanelDragState((mouseX, mouseY) -> {
+        this.dragState = new PanelDragState((mouseX, mouseY) -> {
             final int absX = getPanelAbsX();
             final int absY = getPanelAbsY();
             return mouseX >= absX && mouseX < absX + layout.getPanelWidth()
@@ -626,18 +611,6 @@ public class MEItemBrowserModule implements ISortSource {
         final int itemAbsY = getPanelAbsY();
         final int itemRelX = getPanelRelX();
         final int itemRelY = getPanelRelY();
-        final List<GuiButton> buttonList = host.getButtonList();
-        final IConfigManager configSrc = host.getConfigSrc();
-
-        // Sort/view buttons
-        if (layout.hasSortButtons()) {
-            if (layout.isSidePanel()) {
-                buildCompactSortButtons(itemAbsX, itemAbsY, buttonList, configSrc);
-            } else {
-                buildStandardSortButtons(configSrc);
-            }
-        }
-
         // Search field (created via SearchBarModule)
         this.itemSearchField = this.searchBarModule.initSingleField(
                 SearchBarModule.SearchFieldSpec.builder(
@@ -672,131 +645,6 @@ public class MEItemBrowserModule implements ISortSource {
         setupScrollbar(itemRelX, itemRelY);
 
         this.itemRepo.setPower(true);
-    }
-
-    // ========== Sort button builders ==========
-
-    /**
-     * Build sort/view buttons for compact mode (GuiImgButton, added to buttonList).
-     */
-    private void buildCompactSortButtons(int itemAbsX, int itemAbsY, List<GuiButton> buttonList,
-            IConfigManager configSrc) {
-        int sortBtnOffset = itemAbsY + layout.getGridOffsetY();
-
-        this.sortByBoxLegacy = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.SORT_BY,
-                configSrc.getSetting(Settings.SORT_BY));
-        buttonList.add(this.sortByBoxLegacy);
-        sortBtnOffset += 20;
-
-        this.viewBoxLegacy = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.VIEW_MODE,
-                configSrc.getSetting(Settings.VIEW_MODE));
-        buttonList.add(this.viewBoxLegacy);
-        sortBtnOffset += 20;
-
-        this.sortDirBoxLegacy = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.SORT_DIRECTION,
-                configSrc.getSetting(Settings.SORT_DIRECTION));
-        buttonList.add(this.sortDirBoxLegacy);
-        sortBtnOffset += 20;
-
-        this.searchBoxSettingsLegacy = new GuiImgButton(itemAbsX - 18, sortBtnOffset, Settings.SEARCH_MODE,
-                AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE));
-        buttonList.add(this.searchBoxSettingsLegacy);
-    }
-
-    /**
-     * Build sort/view buttons for standard mode (MUIButtonWidget, registered via addWidget).
-     * Called from setupWidgets() via buildAndRegisterSortButtons().
-     */
-    private void buildStandardSortButtons(IConfigManager configSrc) {
-        AEBasePanel panel = host.getPanel();
-        int offset = 8 + host.getJeiOffset();
-
-        this.sortByBox = new MUIButtonWidget(-18, offset, Settings.SORT_BY,
-                configSrc.getSetting(Settings.SORT_BY));
-        this.sortByBox.setOnClick(btn -> handleSortButtonClick(btn));
-        panel.addWidget(this.sortByBox);
-        offset += 20;
-
-        if (host.hasViewCell()) {
-            this.viewBox = new MUIButtonWidget(-18, offset, Settings.VIEW_MODE,
-                    configSrc.getSetting(Settings.VIEW_MODE));
-            this.viewBox.setOnClick(btn -> handleSortButtonClick(btn));
-            panel.addWidget(this.viewBox);
-            offset += 20;
-        }
-
-        this.sortDirBox = new MUIButtonWidget(-18, offset, Settings.SORT_DIRECTION,
-                configSrc.getSetting(Settings.SORT_DIRECTION));
-        this.sortDirBox.setOnClick(btn -> handleSortButtonClick(btn));
-        panel.addWidget(this.sortDirBox);
-        offset += 20;
-
-        this.searchBoxSettings = new MUIButtonWidget(-18, offset, Settings.SEARCH_MODE,
-                AEConfig.instance().getConfigManager().getSetting(Settings.SEARCH_MODE));
-        this.searchBoxSettings.setOnClick(btn -> handleSortButtonClick(btn));
-        panel.addWidget(this.searchBoxSettings);
-    }
-
-    /**
-     * Build and register sort buttons for standard mode.
-     * Call from the host panel's setupWidgets().
-     * For compact mode, sort buttons are created in initPanel() instead.
-     */
-    public void buildAndRegisterSortButtons() {
-        if (layout.hasSortButtons() && !layout.isSidePanel()) {
-            buildStandardSortButtons(host.getConfigSrc());
-        }
-    }
-
-    /**
-     * Common click handler for sort/view/search-mode MUI buttons (standard mode).
-     */
-    private void handleSortButtonClick(MUIButtonWidget btn) {
-        final Settings setting = btn.getSetting();
-        if (setting == null || setting == Settings.ACTIONS) {
-            return;
-        }
-
-        final boolean backwards = org.lwjgl.input.Mouse.isButtonDown(1);
-        final Enum<?> cv = btn.getCurrentValue();
-        final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
-                setting.getPossibleValues());
-
-        if (btn == this.searchBoxSettings) {
-            AEConfig.instance().getConfigManager().putSetting(setting, next);
-        } else {
-            try {
-                NetworkHandler.instance()
-                        .sendToServer(new PacketValueConfig(setting.name(), next.name()));
-            } catch (final IOException e) {
-                AELog.debug(e);
-            }
-        }
-
-        btn.set(next);
-
-        if (next.getClass() == SearchBoxMode.class) {
-            host.requestReinitialize();
-        }
-    }
-
-    /**
-     * Get the number of visible sort buttons (for type filter positioning).
-     */
-    public int getVisibleSortButtonCount() {
-        int count = 0;
-        if (layout.isSidePanel()) {
-            if (sortByBoxLegacy != null) count++;
-            if (viewBoxLegacy != null) count++;
-            if (sortDirBoxLegacy != null) count++;
-            if (searchBoxSettingsLegacy != null) count++;
-        } else {
-            if (sortByBox != null && sortByBox.isVisible()) count++;
-            if (viewBox != null && viewBox.isVisible()) count++;
-            if (sortDirBox != null && sortDirBox.isVisible()) count++;
-            if (searchBoxSettings != null && searchBoxSettings.isVisible()) count++;
-        }
-        return count;
     }
 
     /**
@@ -895,69 +743,6 @@ public class MEItemBrowserModule implements ISortSource {
                     getPanelRelY() + layout.getSearchFieldY());
             this.itemSearchField.drawBackground(host.getPanel(), host.getGuiLeft(), host.getGuiTop(), 0, 0, 0.0F);
         }
-    }
-
-    // ========== drawScreen: button population ==========
-
-    /**
-     * Add sort/view buttons to the button list.
-     * Call in drawScreen after buttonList.clear() (compact mode only).
-     */
-    public void populateButtons() {
-        if (!layout.hasSortButtons() || !layout.isSidePanel()) {
-            return;
-        }
-        final List<GuiButton> buttonList = host.getButtonList();
-        addIfNotNull(buttonList, this.sortByBoxLegacy);
-        addIfNotNull(buttonList, this.sortDirBoxLegacy);
-        addIfNotNull(buttonList, this.viewBoxLegacy);
-        addIfNotNull(buttonList, this.searchBoxSettingsLegacy);
-    }
-
-    private static void addIfNotNull(List<GuiButton> list, GuiButton btn) {
-        if (btn != null) {
-            list.add(btn);
-        }
-    }
-
-    // ========== Input: actionPerformed ==========
-
-    /**
-     * Handle sort/view/search-mode button clicks (compact mode only).
-     *
-     * @return true if the event was consumed
-     */
-    public boolean actionPerformed(GuiButton btn) {
-        if (!layout.hasSortButtons() || !layout.isSidePanel()) {
-            return false;
-        }
-
-        if (!(btn instanceof GuiImgButton iBtn) || iBtn.getSetting() == Settings.ACTIONS) {
-            return false;
-        }
-
-        final boolean backwards = org.lwjgl.input.Mouse.isButtonDown(1);
-        final Enum cv = iBtn.getCurrentValue();
-        final Enum<?> next = appeng.util.EnumCycler.rotateEnumWildcard(cv, backwards,
-                iBtn.getSetting().getPossibleValues());
-
-        if (btn == this.searchBoxSettingsLegacy) {
-            AEConfig.instance().getConfigManager().putSetting(iBtn.getSetting(), next);
-        } else {
-            try {
-                NetworkHandler.instance()
-                        .sendToServer(new PacketValueConfig(iBtn.getSetting().name(), next.name()));
-            } catch (final IOException e) {
-                AELog.debug(e);
-            }
-        }
-
-        iBtn.set(next);
-
-        if (next.getClass() == SearchBoxMode.class) {
-            host.requestReinitialize();
-        }
-        return true;
     }
 
     // ========== Input: keyTyped ==========
@@ -1062,34 +847,10 @@ public class MEItemBrowserModule implements ISortSource {
     // ========== Config update callback ==========
 
     /**
-     * Update button states and repo view when a config setting changes.
-     * Called by the host's IConfigManagerHost.updateSetting.
+     * Refresh the item repo view when a config setting changes.
+     * Sort button states are now managed by {@link TerminalToolbar#updateSetting}.
      */
     public void updateSetting() {
-        final IConfigManager configSrc = host.getConfigSrc();
-
-        // Standard mode (MUIButtonWidget)
-        if (this.sortByBox != null) {
-            this.sortByBox.set(configSrc.getSetting(Settings.SORT_BY));
-        }
-        if (this.sortDirBox != null) {
-            this.sortDirBox.set(configSrc.getSetting(Settings.SORT_DIRECTION));
-        }
-        if (this.viewBox != null) {
-            this.viewBox.set(configSrc.getSetting(Settings.VIEW_MODE));
-        }
-
-        // Compact mode (GuiImgButton)
-        if (this.sortByBoxLegacy != null) {
-            this.sortByBoxLegacy.set(configSrc.getSetting(Settings.SORT_BY));
-        }
-        if (this.sortDirBoxLegacy != null) {
-            this.sortDirBoxLegacy.set(configSrc.getSetting(Settings.SORT_DIRECTION));
-        }
-        if (this.viewBoxLegacy != null) {
-            this.viewBoxLegacy.set(configSrc.getSetting(Settings.VIEW_MODE));
-        }
-
         this.itemRepo.updateView();
     }
 

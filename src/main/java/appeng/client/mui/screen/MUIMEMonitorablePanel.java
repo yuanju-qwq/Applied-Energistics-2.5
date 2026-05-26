@@ -336,8 +336,28 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         }
 
         @Override
-        public MEItemBrowserModule getBrowserModule() {
-            return browserModule;
+        public boolean isCompactLayout() {
+            return false;
+        }
+
+        @Override
+        public int getCompactPanelRelX() {
+            return 0;
+        }
+
+        @Override
+        public int getCompactPanelRelY() {
+            return 0;
+        }
+
+        @Override
+        public int getCompactPanelWidth() {
+            return 0;
+        }
+
+        @Override
+        public int getCompactPanelHeight() {
+            return 0;
         }
     }
 
@@ -527,10 +547,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     protected void setupWidgets() {
-        // Sort/view/search-mode buttons (managed by MEItemBrowserModule)
-        this.browserModule.buildAndRegisterSortButtons();
-
-        // Toolbar: terminal style + type filter + pins + crafting status
+        // Toolbar: sort/view/search-mode + terminal style + type filter + pins + crafting status
         this.toolbar.buildAndRegister();
     }
 
@@ -765,7 +782,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
         int yOffset = guiTop + 8 + this.jeiOffset;
 
-        int sortButtonCount = this.browserModule.getVisibleSortButtonCount();
+        int sortButtonCount = this.toolbar.getVisibleSortButtonCount();
         int totalVisibleButtons = sortButtonCount
                 + toolbar.getVisibleSettingsButtonCount()
                 + toolbar.getVisibleTypeFilterButtonCount();
