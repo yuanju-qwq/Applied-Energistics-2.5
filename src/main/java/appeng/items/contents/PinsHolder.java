@@ -31,7 +31,7 @@ import net.minecraftforge.common.util.Constants;
 
 import appeng.api.config.PinSectionOrder;
 import appeng.api.config.PinsRows;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEKey;
 import appeng.core.AELog;
 import appeng.core.AppEng;
 
@@ -166,8 +166,8 @@ public class PinsHolder extends WorldSavedData {
         for (int i = 0; i < list.tagCount() && i < maxSlots; i++) {
             NBTTagCompound stackTag = list.getCompoundTagAt(i);
             if (!stackTag.isEmpty()) {
-                IAEStack<?> stack = IAEStack.fromNBTGeneric(stackTag);
-                this.pinList.setPin(offset + i, stack);
+                AEKey key = AEKey.fromTagGeneric(stackTag);
+                this.pinList.setPin(offset + i, key);
             }
         }
     }
@@ -185,9 +185,9 @@ public class PinsHolder extends WorldSavedData {
 
         // Write up to the last non-null entry
         for (int i = 0; i <= lastNonNull; i++) {
-            IAEStack<?> stack = this.pinList.getPin(offset + i);
-            if (stack != null) {
-                list.appendTag(stack.toNBTGeneric());
+            AEKey key = this.pinList.getPin(offset + i);
+            if (key != null) {
+                list.appendTag(key.toTagGeneric());
             } else {
                 list.appendTag(new NBTTagCompound());
             }

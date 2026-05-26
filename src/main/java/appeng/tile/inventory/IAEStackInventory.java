@@ -26,23 +26,24 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.Constants.NBT;
 import net.minecraftforge.items.IItemHandler;
 
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.core.AELog;
 import appeng.util.Platform;
 
 /**
- * Generic AE stack inventory that can store any type of {@link IAEStack} (items, fluids, etc.).
+ * Generic AE stack inventory that can store any type of {@link GenericStack} (items, fluids, etc.).
  * <p>
- * Unlike {@link AppEngInternalAEInventory}, this class is not limited to {@link appeng.api.storage.data.IAEItemStack},
- * and can mix-store different types of {@link IAEStack} in the same inventory.
+ * Unlike {@link AppEngInternalAEInventory}, this class is not limited to item stacks,
+ * and can mix-store different resource types in the same inventory.
  * </p>
  */
 public class IAEStackInventory {
 
     private final IIAEStackInventory owner;
-    private final IAEStack<?>[] inv;
+    private final GenericStack[] inv;
     private final int size;
     private final StorageName storageName;
 
@@ -54,7 +55,7 @@ public class IAEStackInventory {
     public IAEStackInventory(final IIAEStackInventory owner, final int size, StorageName storageName) {
         this.owner = owner;
         this.size = size;
-        this.inv = new IAEStack<?>[size];
+        this.inv = new GenericStack[size];
         this.storageName = storageName;
     }
 
@@ -71,33 +72,55 @@ public class IAEStackInventory {
      */
     public boolean isEmpty() {
         for (int x = 0; x < this.size; x++) {
-            if (this.inv[x] != null) {
+            if (getGenericStack(x) != null) {
                 return false;
             }
         }
         return true;
     }
 
+    // ---- GenericStack API (primary) ----
+
     /**
-     * Get the generic AE stack at the specified slot.
+     * Get the {@link GenericStack} at the specified slot.
      *
      * @param slot the slot index
-     * @return the IAEStack at that slot, possibly null
+     * @return the GenericStack at that slot, possibly null
      */
     @Nullable
-    public IAEStack<?> getAEStackInSlot(final int slot) {
+    public GenericStack getGenericStack(final int slot) {
         return this.inv[slot];
     }
 
     /**
-     * Set the generic AE stack at the specified slot, and trigger {@link #markDirty()}.
+     * Set the {@link GenericStack} at the specified slot, and trigger {@link #markDirty()}.
      *
      * @param slot  the slot index
      * @param stack the stack to place, or null to clear
      */
-    public void putAEStackInSlot(final int slot, @Nullable IAEStack<?> stack) {
+    public void setGenericStack(final int slot, @Nullable GenericStack stack) {
         this.inv[slot] = stack;
         this.markDirty();
+    }
+
+    // ---- Legacy IAEStack API (deprecated) ----
+
+    /**
+     * @deprecated Use {@link #getGenericStack(int)} instead.
+     */
+    @Nullable
+    @Deprecated
+    public IAEStack<?> getAEStackInSlot(final int slot) {
+        GenericStack gs = getGenericStack(slot);
+        return gs != null ? gs.toIAEStack() : null;
+    }
+
+    /**
+     * @deprecated Use {@link #setGenericStack(int, GenericStack)} instead.
+     */
+    @Deprecated
+    public void putAEStackInSlot(final int slot, @Nullable IAEStack<?> stack) {
+        setGenericStack(slot, GenericStack.fromIAEStack(stack));
     }
 
     // ---- NBT serialization/deserialization ----
@@ -137,10 +160,9 @@ public class IAEStackInventory {
     private void writeToNBTInternal(final NBTTagCompound target) {
         for (int x = 0; x < this.size; x++) {
             try {
-                if (this.inv[x] != null) {
-                    final NBTTagCompound c = new NBTTagCompound();
-                    appeng.util.AEStackSerialization.writeStackNBT(this.inv[x], c);
-                    target.setTag("#" + x, c);
+                GenericStack gs = getGenericStack(x);
+                if (gs != null) {
+                    target.setTag("#" + x, GenericStack.writeTag(gs));
                 }
             } catch (final Exception ignored) {
             }
@@ -165,7 +187,7 @@ public class IAEStackInventory {
                 final String key = "#" + x;
                 if (target.hasKey(key, NBT.TAG_COMPOUND)) {
                     final NBTTagCompound c = target.getCompoundTag(key);
-                    this.inv[x] = Platform.readStackNBT(c, true);
+                    setGenericStack(x, GenericStack.readTag(c));
                 }
             } catch (final Exception e) {
                 AELog.debug(e);
@@ -207,7 +229,7 @@ public class IAEStackInventory {
 
     /**
      * Returns a read-only {@link IItemHandler} view of this inventory.
-     * Only IAEItemStack entries are visible as ItemStack; other types (e.g. fluids) appear as empty.
+     * Only item-type entries are visible as ItemStack; other types (e.g. fluids) appear as empty.
      * Mutations through the IItemHandler (insert/extract) write back to this IAEStackInventory.
      */
     public IItemHandler asItemHandler() {
@@ -216,7 +238,7 @@ public class IAEStackInventory {
 
     /**
      * Read-write IItemHandler adapter that delegates to the parent IAEStackInventory.
-     * Only IAEItemStack slots are accessible; fluid/other stack types appear as empty.
+     * Only item-type slots are accessible; fluid/other stack types appear as empty.
      */
     private class ItemHandlerView implements IItemHandler {
         @Override
@@ -227,9 +249,9 @@ public class IAEStackInventory {
         @Nonnull
         @Override
         public ItemStack getStackInSlot(int slot) {
-            final IAEStack<?> s = inv[slot];
-            if (s instanceof IAEItemStack is) {
-                return is.createItemStack();
+            final GenericStack gs = getGenericStack(slot);
+            if (gs != null && gs.what() instanceof AEItemKey itemKey) {
+                return itemKey.toStack((int) Math.min(gs.amount(), Integer.MAX_VALUE));
             }
             return ItemStack.EMPTY;
         }
@@ -241,7 +263,7 @@ public class IAEStackInventory {
                 return ItemStack.EMPTY;
             }
             if (!simulate) {
-                putAEStackInSlot(slot, appeng.util.item.AEItemStack.fromItemStack(stack));
+                setGenericStack(slot, GenericStack.fromItemStack(stack));
             }
             return ItemStack.EMPTY;
         }
@@ -249,12 +271,12 @@ public class IAEStackInventory {
         @Nonnull
         @Override
         public ItemStack extractItem(int slot, int amount, boolean simulate) {
-            final IAEStack<?> s = inv[slot];
+            final GenericStack gs = getGenericStack(slot);
             if (!simulate) {
-                putAEStackInSlot(slot, null);
+                setGenericStack(slot, null);
             }
-            if (s instanceof IAEItemStack is) {
-                return is.createItemStack();
+            if (gs != null && gs.what() instanceof AEItemKey itemKey) {
+                return itemKey.toStack((int) Math.min(gs.amount(), Integer.MAX_VALUE));
             }
             return ItemStack.EMPTY;
         }

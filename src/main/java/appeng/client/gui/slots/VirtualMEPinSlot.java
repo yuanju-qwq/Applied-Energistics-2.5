@@ -31,7 +31,9 @@ import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
+import appeng.api.stacks.AEKey;
 import appeng.api.storage.data.IAEStack;
+import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.core.AppEng;
 import appeng.items.contents.PinList;
 
@@ -74,8 +76,33 @@ public class VirtualMEPinSlot extends VirtualMESlot {
 
     @Override
     @Nullable
+    public RepoEntry getRepoEntry() {
+        AEKey key = this.pinList.getPin(this.slotIndex);
+        if (key == null) {
+            return null;
+        }
+        return new RepoEntry(key, 0L, false);
+    }
+
+    @Override
+    @Nullable
+    @Deprecated
     public IAEStack<?> getAEStack() {
-        return this.pinList.getPin(this.slotIndex);
+        AEKey key = this.pinList.getPin(this.slotIndex);
+        if (key == null) {
+            return null;
+        }
+        return key.toIAEStack(0);
+    }
+
+    @Override
+    @Nullable
+    public Object getIngredient() {
+        AEKey key = this.pinList.getPin(this.slotIndex);
+        if (key != null) {
+            return key.asItemStackRepresentation();
+        }
+        return null;
     }
 
     @Override

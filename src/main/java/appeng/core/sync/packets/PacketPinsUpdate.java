@@ -26,12 +26,13 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
+import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.config.PinSectionOrder;
 import appeng.api.config.PinsRows;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEKey;
 import appeng.container.implementations.ContainerMEMonitorable;
 import appeng.core.AELog;
 import appeng.core.sync.AppEngPacket;
@@ -77,12 +78,13 @@ public class PacketPinsUpdate extends AppEngPacket {
             this.sectionOrder = PinSectionOrder.values()[stream.readByte()];
 
             int count = stream.readShort();
+            PacketBuffer packetBuffer = new PacketBuffer(stream);
             for (int i = 0; i < count; i++) {
                 int slotIndex = stream.readShort();
                 boolean hasStack = stream.readBoolean();
                 if (hasStack) {
-                    IAEStack<?> stack = IAEStack.fromPacketGeneric(stream);
-                    this.pinList.setPin(slotIndex, stack);
+                    AEKey key = AEKey.readKey(packetBuffer);
+                    this.pinList.setPin(slotIndex, key);
                 }
             }
         } else {
@@ -116,17 +118,13 @@ public class PacketPinsUpdate extends AppEngPacket {
         }
 
         data.writeShort(nonNullCount);
+        PacketBuffer packetBuffer = new PacketBuffer(data);
         for (int i = 0; i < PinList.TOTAL_SLOTS; i++) {
-            IAEStack<?> stack = pinList.getPin(i);
-            if (stack != null) {
+            AEKey key = pinList.getPin(i);
+            if (key != null) {
                 data.writeShort(i);
                 data.writeBoolean(true);
-                try {
-                    IAEStack.writeToPacketGeneric(data, stack);
-                } catch (IOException e) {
-                    AELog.warn(e, String.format("Failed to write pin stack to packet at slot %d", i));
-                    data.writeBoolean(false);
-                }
+                AEKey.writeKey(packetBuffer, key);
             }
         }
 

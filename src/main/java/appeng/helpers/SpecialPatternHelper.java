@@ -13,6 +13,7 @@ import net.minecraft.world.World;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
 import appeng.api.networking.crafting.ICraftingPatternDetails;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -41,6 +42,12 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
     private final ItemStack patternItem;
     private final boolean isCrafting;
     private final boolean canSubstitute;
+
+    // GenericStack arrays (primary)
+    private final GenericStack[] inputStacks;
+    private final GenericStack[] outputStacks;
+    private final GenericStack[] condensedInputStacks;
+    private final GenericStack[] condensedOutputStacks;
 
     // Item-type inputs/outputs (backward compatible with legacy interface)
     private final IAEItemStack[] inputs;
@@ -215,6 +222,24 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
 
         // Condense generic outputs
         this.genericCondensedOutputs = condenseGenericList(this.genericOutputs);
+
+        // ========== GenericStack array initialization ==========
+        this.inputStacks = new GenericStack[this.genericInputs.length];
+        for (int i = 0; i < this.genericInputs.length; i++) {
+            this.inputStacks[i] = GenericStack.fromIAEStack(this.genericInputs[i]);
+        }
+        this.outputStacks = new GenericStack[this.genericOutputs.length];
+        for (int i = 0; i < this.genericOutputs.length; i++) {
+            this.outputStacks[i] = GenericStack.fromIAEStack(this.genericOutputs[i]);
+        }
+        this.condensedInputStacks = new GenericStack[this.genericCondensedInputs.length];
+        for (int i = 0; i < this.genericCondensedInputs.length; i++) {
+            this.condensedInputStacks[i] = GenericStack.fromIAEStack(this.genericCondensedInputs[i]);
+        }
+        this.condensedOutputStacks = new GenericStack[this.genericCondensedOutputs.length];
+        for (int i = 0; i < this.genericCondensedOutputs.length; i++) {
+            this.condensedOutputStacks[i] = GenericStack.fromIAEStack(this.genericCondensedOutputs[i]);
+        }
     }
 
     // ===== Interface implementation =====
@@ -224,7 +249,29 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         return false; // Special patterns are for processing only
     }
 
-    // ========== Generic entry point methods (supports items + fluids and other types) ==========
+    // ========== GenericStack entry point methods (primary) ==========
+
+    @Override
+    public GenericStack[] getInputStacks() {
+        return this.inputStacks;
+    }
+
+    @Override
+    public GenericStack[] getOutputStacks() {
+        return this.outputStacks;
+    }
+
+    @Override
+    public GenericStack[] getCondensedInputStacks() {
+        return this.condensedInputStacks;
+    }
+
+    @Override
+    public GenericStack[] getCondensedOutputStacks() {
+        return this.condensedOutputStacks;
+    }
+
+    // ========== Generic entry point methods (deprecated) ==========
 
     @Override
     public IAEStack<?>[] getAEInputs() {

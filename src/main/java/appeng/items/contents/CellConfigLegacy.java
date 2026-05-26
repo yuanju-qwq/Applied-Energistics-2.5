@@ -23,11 +23,10 @@ import javax.annotation.Nonnull;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.tile.inventory.IAEStackInventory;
-import appeng.util.item.AEItemStack;
 
 /**
  * Compatibility adapter that wraps {@link IAEStackInventory} as {@link IItemHandler}.
@@ -55,9 +54,9 @@ public class CellConfigLegacy implements IItemHandler {
     @Nonnull
     @Override
     public ItemStack getStackInSlot(int slot) {
-        IAEStack<?> stack = this.config.getAEStackInSlot(slot);
-        if (stack instanceof IAEItemStack) {
-            return ((IAEItemStack) stack).createItemStack();
+        GenericStack gs = this.config.getGenericStack(slot);
+        if (gs != null && gs.what() instanceof AEItemKey itemKey) {
+            return itemKey.toStack((int) Math.min(gs.amount(), Integer.MAX_VALUE));
         }
         return ItemStack.EMPTY;
     }
@@ -69,7 +68,7 @@ public class CellConfigLegacy implements IItemHandler {
             return ItemStack.EMPTY;
         }
         if (!simulate) {
-            this.config.putAEStackInSlot(slot, AEItemStack.fromItemStack(stack));
+            this.config.setGenericStack(slot, GenericStack.fromItemStack(stack));
         }
         return ItemStack.EMPTY;
     }
@@ -77,11 +76,11 @@ public class CellConfigLegacy implements IItemHandler {
     @Nonnull
     @Override
     public ItemStack extractItem(int slot, int amount, boolean simulate) {
-        IAEStack<?> stack = this.config.getAEStackInSlot(slot);
-        if (stack instanceof IAEItemStack) {
-            ItemStack result = ((IAEItemStack) stack).createItemStack();
+        GenericStack gs = this.config.getGenericStack(slot);
+        if (gs != null && gs.what() instanceof AEItemKey itemKey) {
+            ItemStack result = itemKey.toStack((int) Math.min(gs.amount(), Integer.MAX_VALUE));
             if (!simulate) {
-                this.config.putAEStackInSlot(slot, null);
+                this.config.setGenericStack(slot, null);
             }
             return result;
         }

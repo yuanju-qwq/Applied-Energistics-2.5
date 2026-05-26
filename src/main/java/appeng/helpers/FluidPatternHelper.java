@@ -33,6 +33,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
 
 import appeng.api.networking.crafting.ICraftingPatternDetails;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -58,6 +59,12 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
     private final ItemStack patternItem;
     private final IAEItemStack pattern;
     private int priority = 0;
+
+    // GenericStack arrays (primary)
+    private final GenericStack[] inputStacks;
+    private final GenericStack[] outputStacks;
+    private final GenericStack[] condensedInputStacks;
+    private final GenericStack[] condensedOutputStacks;
 
     // 物品类型的输入/输出（向后兼容旧接口）
     private final IAEItemStack[] inputs;
@@ -196,6 +203,24 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
         this.genericCondensedInputs = condenseGenericList(this.genericInputs);
         this.genericCondensedOutputs = condenseGenericList(this.genericOutputs);
 
+        // Build GenericStack arrays
+        this.inputStacks = new GenericStack[this.genericInputs.length];
+        for (int i = 0; i < this.genericInputs.length; i++) {
+            this.inputStacks[i] = GenericStack.fromIAEStack(this.genericInputs[i]);
+        }
+        this.outputStacks = new GenericStack[this.genericOutputs.length];
+        for (int i = 0; i < this.genericOutputs.length; i++) {
+            this.outputStacks[i] = GenericStack.fromIAEStack(this.genericOutputs[i]);
+        }
+        this.condensedInputStacks = new GenericStack[this.genericCondensedInputs.length];
+        for (int i = 0; i < this.genericCondensedInputs.length; i++) {
+            this.condensedInputStacks[i] = GenericStack.fromIAEStack(this.genericCondensedInputs[i]);
+        }
+        this.condensedOutputStacks = new GenericStack[this.genericCondensedOutputs.length];
+        for (int i = 0; i < this.genericCondensedOutputs.length; i++) {
+            this.condensedOutputStacks[i] = GenericStack.fromIAEStack(this.genericCondensedOutputs[i]);
+        }
+
         if (this.genericCondensedInputs.length == 0 || this.genericCondensedOutputs.length == 0) {
             throw new IllegalStateException("No pattern here!");
         }
@@ -214,6 +239,30 @@ public class FluidPatternHelper implements ICraftingPatternDetails, Comparable<F
     public boolean isCraftable() {
         return false;
     }
+
+    // --- GenericStack methods (primary) ---
+
+    @Override
+    public GenericStack[] getInputStacks() {
+        return this.inputStacks;
+    }
+
+    @Override
+    public GenericStack[] getOutputStacks() {
+        return this.outputStacks;
+    }
+
+    @Override
+    public GenericStack[] getCondensedInputStacks() {
+        return this.condensedInputStacks;
+    }
+
+    @Override
+    public GenericStack[] getCondensedOutputStacks() {
+        return this.condensedOutputStacks;
+    }
+
+    // --- Legacy IAEStack methods (deprecated) ---
 
     @Override
     public IAEStack<?>[] getCondensedAEInputs() {

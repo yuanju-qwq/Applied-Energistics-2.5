@@ -20,7 +20,7 @@ package appeng.items.contents;
 
 import javax.annotation.Nullable;
 
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEKey;
 
 /**
  * Array container for storing terminal Pins data.
@@ -45,10 +45,10 @@ public class PinList {
     /** Total number of slots */
     public static final int TOTAL_SLOTS = CRAFTING_SLOTS + PLAYER_SLOTS;
 
-    private final IAEStack<?>[] pins;
+    private final AEKey[] pins;
 
     public PinList() {
-        this.pins = new IAEStack[TOTAL_SLOTS];
+        this.pins = new AEKey[TOTAL_SLOTS];
     }
 
     public int size() {
@@ -56,14 +56,14 @@ public class PinList {
     }
 
     @Nullable
-    public IAEStack<?> getPin(int index) {
+    public AEKey getPin(int index) {
         if (index < 0 || index >= this.pins.length) {
             return null;
         }
         return this.pins[index];
     }
 
-    public void setPin(int index, @Nullable IAEStack<?> pin) {
+    public void setPin(int index, @Nullable AEKey pin) {
         if (index >= 0 && index < this.pins.length) {
             this.pins[index] = pin;
         }

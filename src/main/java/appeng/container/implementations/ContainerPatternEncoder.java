@@ -32,7 +32,7 @@ import appeng.api.networking.security.IActionHost;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
@@ -51,7 +51,6 @@ import appeng.container.slot.SlotRestrictedInput;
 import appeng.core.AELog;
 import appeng.core.sync.packets.PacketPatternSlot;
 import appeng.fluids.items.FluidDummyItem;
-import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.IContainerCraftingPacket;
 import appeng.items.contents.CellConfigLegacy;
 import appeng.items.storage.ItemViewCell;
@@ -794,32 +793,37 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     }
 
     NBTBase createItemTag(final ItemStack i) {
-        final NBTTagCompound c = new NBTTagCompound();
-
-        if (!i.isEmpty()) {
-            // FluidDummyItem（流体占位物品）：使用泛型格式序列化为流体
-            if (i.getItem() instanceof FluidDummyItem fluidDummy) {
-                FluidStack fs = fluidDummy.getFluidStack(i);
-                if (fs != null) {
-                    IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(fs);
-                    if (aeFluid != null) {
-                        return aeFluid.toNBTGeneric();
-                    }
-                }
-            }
-            // 流体容器（桶等）：提取流体后使用泛型格式序列化
-            FluidStack fluid = FluidUtil.getFluidContained(i);
-            if (fluid != null && fluid.amount > 0) {
-                IAEFluidStack aeFluid = AEFluidStack.fromFluidStack(fluid);
-                if (aeFluid != null) {
-                    aeFluid.setStackSize((long) fluid.amount * i.getCount());
-                    return aeFluid.toNBTGeneric();
-                }
-            }
-            // 普通物品：使用标准序列化
-            stackWriteToNBT(i, c);
+        if (i.isEmpty()) {
+            return new NBTTagCompound();
         }
 
+        // Try item key first
+        GenericStack gs = GenericStack.fromItemStack(i);
+        if (gs != null) {
+            return GenericStack.writeTag(gs);
+        }
+
+        // FluidDummyItem (fluid placeholder item): serialize as fluid
+        if (i.getItem() instanceof FluidDummyItem fluidDummy) {
+            FluidStack fs = fluidDummy.getFluidStack(i);
+            if (fs != null) {
+                gs = GenericStack.fromFluidStack(fs);
+                if (gs != null) return GenericStack.writeTag(gs);
+            }
+        }
+
+        // Fluid container (bucket etc.): extract fluid and serialize
+        FluidStack fluid = FluidUtil.getFluidContained(i);
+        if (fluid != null && fluid.amount > 0) {
+            gs = GenericStack.fromFluidStack(fluid);
+            if (gs != null) {
+                return GenericStack.writeTag(new GenericStack(gs.what(), (long) fluid.amount * i.getCount()));
+            }
+        }
+
+        // Fallback: standard item serialization
+        final NBTTagCompound c = new NBTTagCompound();
+        stackWriteToNBT(i, c);
         return c;
     }
 

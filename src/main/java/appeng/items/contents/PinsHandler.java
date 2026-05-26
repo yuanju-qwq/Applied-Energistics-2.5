@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 
 import appeng.api.config.PinSectionOrder;
 import appeng.api.config.PinsRows;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEKey;
 import appeng.helpers.IPinsHandler;
 
 /**
@@ -78,8 +78,8 @@ public class PinsHandler implements IPinsHandler {
     }
 
     @Override
-    public boolean addPlayerPin(@Nullable IAEStack<?> stack) {
-        if (stack == null) {
+    public boolean addPlayerPin(@Nullable AEKey key) {
+        if (key == null) {
             return false;
         }
 
@@ -87,8 +87,8 @@ public class PinsHandler implements IPinsHandler {
 
         // Check if already exists
         for (int i = PinList.PLAYER_OFFSET; i < PinList.PLAYER_OFFSET + PinList.PLAYER_SLOTS; i++) {
-            IAEStack<?> existing = pins.getPin(i);
-            if (existing != null && existing.isSameType(stack)) {
+            AEKey existing = pins.getPin(i);
+            if (key.equals(existing)) {
                 return false;
             }
         }
@@ -96,9 +96,7 @@ public class PinsHandler implements IPinsHandler {
         // Find the first empty slot
         for (int i = PinList.PLAYER_OFFSET; i < PinList.PLAYER_OFFSET + PinList.PLAYER_SLOTS; i++) {
             if (pins.getPin(i) == null) {
-                IAEStack<?> pinStack = stack.copy();
-                pinStack.setStackSize(0);
-                pins.setPin(i, pinStack);
+                pins.setPin(i, key);
                 this.markDirty();
                 return true;
             }
@@ -108,8 +106,8 @@ public class PinsHandler implements IPinsHandler {
     }
 
     @Override
-    public boolean removePin(@Nullable IAEStack<?> stack) {
-        if (stack == null) {
+    public boolean removePin(@Nullable AEKey key) {
+        if (key == null) {
             return false;
         }
 
@@ -117,8 +115,8 @@ public class PinsHandler implements IPinsHandler {
         PinList pins = this.holder.getPinList();
 
         for (int i = 0; i < PinList.TOTAL_SLOTS; i++) {
-            IAEStack<?> existing = pins.getPin(i);
-            if (existing != null && existing.isSameType(stack)) {
+            AEKey existing = pins.getPin(i);
+            if (key.equals(existing)) {
                 pins.setPin(i, null);
                 removed = true;
             }
@@ -132,15 +130,15 @@ public class PinsHandler implements IPinsHandler {
     }
 
     @Override
-    public boolean isPinned(@Nullable IAEStack<?> stack) {
-        if (stack == null) {
+    public boolean isPinned(@Nullable AEKey key) {
+        if (key == null) {
             return false;
         }
 
         PinList pins = this.holder.getPinList();
         for (int i = 0; i < PinList.TOTAL_SLOTS; i++) {
-            IAEStack<?> existing = pins.getPin(i);
-            if (existing != null && existing.isSameType(stack)) {
+            AEKey existing = pins.getPin(i);
+            if (key.equals(existing)) {
                 return true;
             }
         }

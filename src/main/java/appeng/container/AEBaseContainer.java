@@ -58,6 +58,7 @@ import appeng.api.storage.StorageName;
 import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.stacks.AEKey;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.me.SlotME;
 import appeng.container.guisync.GuiSync;
@@ -981,7 +982,13 @@ public abstract class AEBaseContainer extends Container {
             case SET_CONTAINER_PIN:
             case UNSET_PIN:
                 if (this instanceof appeng.container.implementations.ContainerMEMonitorable monContainer) {
-                    monContainer.handlePinAction(action, this.getTargetGenericStack());
+                    IAEStack<?> target = this.getTargetGenericStack();
+                    if (target != null) {
+                        AEKey key = target.toAEKey();
+                        if (key != null) {
+                            monContainer.handlePinAction(action, key);
+                        }
+                    }
                 }
                 break;
             default:

@@ -27,8 +27,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.FuzzyMode;
+import appeng.api.stacks.GenericStack;
 import appeng.items.contents.CellConfigLegacy;
-import appeng.items.contents.CellConfigLegacyWrapper;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStackType;
 
@@ -66,14 +66,49 @@ public interface ICellWorkbenchItem {
     /**
      * Get the generic version of the config inventory, which can store any AE stack type such as items, fluids, etc.
      * <p>
-     * Default implementation wraps the legacy {@link #getConfigInventory(ItemStack)} via {@link CellConfigLegacyWrapper}.
+     * Default implementation wraps the legacy {@link #getConfigInventory(ItemStack)} via an inline adapter.
      * Subclasses are recommended to override this method directly for native multi-type stack support.
      *
      * @param is cell item
      * @return generic config inventory
      */
     default IAEStackInventory getConfigAEInventory(ItemStack is) {
-        return new CellConfigLegacyWrapper(this.getConfigInventory(is));
+        var legacy = this.getConfigInventory(is);
+        if (legacy instanceof IAEStackInventory) {
+            return (IAEStackInventory) legacy;
+        }
+        return new IAEStackInventory(null, legacy.getSlots()) {
+            @Override
+            public net.minecraftforge.items.IItemHandler asItemHandler() {
+                return legacy;
+            }
+
+            @Override
+            public boolean isEmpty() {
+                for (int i = 0; i < legacy.getSlots(); i++) {
+                    if (!legacy.getStackInSlot(i).isEmpty()) return false;
+                }
+                return true;
+            }
+
+            @Override
+            public GenericStack getGenericStack(int slot) {
+                var stack = legacy.getStackInSlot(slot);
+                return stack.isEmpty() ? null : GenericStack.fromItemStack(stack);
+            }
+
+            @Override
+            public void setGenericStack(int slot, GenericStack stack) {
+                if (legacy instanceof net.minecraftforge.items.IItemHandlerModifiable mod) {
+                    if (stack != null && stack.what() instanceof appeng.api.stacks.AEItemKey itemKey) {
+                        mod.setStackInSlot(slot, itemKey.toStack((int) Math.min(stack.amount(), Integer.MAX_VALUE)));
+                    } else {
+                        mod.setStackInSlot(slot, net.minecraft.item.ItemStack.EMPTY);
+                    }
+                }
+                this.markDirty();
+            }
+        };
     }
 
     /**

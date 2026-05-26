@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 
 import appeng.api.config.PinSectionOrder;
 import appeng.api.config.PinsRows;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEKey;
 import appeng.items.contents.PinList;
 
 /**
@@ -68,25 +68,25 @@ public interface IPinsHandler {
     void setSectionOrder(PinSectionOrder order);
 
     /**
-     * 在玩家 Pins 区域中添加一个栈。
+     * 在玩家 Pins 区域中添加一个键。
      *
-     * @param stack 要钉选的栈
+     * @param key 要钉选的键
      * @return 是否添加成功（可能已满或已存在）
      */
-    boolean addPlayerPin(@Nullable IAEStack<?> stack);
+    boolean addPlayerPin(@Nullable AEKey key);
 
     /**
-     * 从所有区域中移除指定栈的 Pin。
+     * 从所有区域中移除指定键的 Pin。
      *
-     * @param stack 要取消钉选的栈
+     * @param key 要取消钉选的键
      * @return 是否有移除操作发生
      */
-    boolean removePin(@Nullable IAEStack<?> stack);
+    boolean removePin(@Nullable AEKey key);
 
     /**
-     * 判断指定栈是否已被钉选。
+     * 判断指定键是否已被钉选。
      */
-    boolean isPinned(@Nullable IAEStack<?> stack);
+    boolean isPinned(@Nullable AEKey key);
 
     /**
      * 标记 Pins 数据已变更，需要同步到客户端。

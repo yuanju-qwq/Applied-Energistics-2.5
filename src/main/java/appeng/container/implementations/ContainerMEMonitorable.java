@@ -760,19 +760,19 @@ public class ContainerMEMonitorable extends AEBaseContainer
      * Process Pin action request from the client.
      *
      * @param action Pin action type
-     * @param stack  related stack (may be null)
+     * @param key    related AEKey (may be null)
      */
-    public void handlePinAction(appeng.helpers.InventoryAction action, IAEStack<?> stack) {
-        if (this.serverPinsHandler == null || stack == null) {
+    public void handlePinAction(appeng.helpers.InventoryAction action, AEKey key) {
+        if (this.serverPinsHandler == null || key == null) {
             return;
         }
 
         switch (action) {
             case SET_ITEM_PIN:
-                this.serverPinsHandler.addPlayerPin(stack);
+                this.serverPinsHandler.addPlayerPin(key);
                 break;
             case UNSET_PIN:
-                this.serverPinsHandler.removePin(stack);
+                this.serverPinsHandler.removePin(key);
                 break;
             default:
                 break;

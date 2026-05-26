@@ -30,6 +30,7 @@ import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 
@@ -68,34 +69,76 @@ public interface ICraftingPatternDetails {
      */
     boolean isCraftable();
 
-    // ========== Generic main entry methods (supporting item + fluid and other types) ==========
+    // ========== GenericStack main entry methods (primary) ==========
+
+    /**
+     * Get raw inputs as GenericStack[], includes null placeholders to preserve slot positions.
+     */
+    default GenericStack[] getInputStacks() {
+        return convertToGenericStacks(getAEInputs());
+    }
+
+    /**
+     * Get raw outputs as GenericStack[].
+     */
+    default GenericStack[] getOutputStacks() {
+        return convertToGenericStacks(getAEOutputs());
+    }
+
+    /**
+     * Get condensed inputs as GenericStack[], merges identical stacks, no nulls.
+     */
+    default GenericStack[] getCondensedInputStacks() {
+        return convertToGenericStacks(getCondensedAEInputs());
+    }
+
+    /**
+     * Get condensed outputs as GenericStack[], merges identical stacks, no nulls.
+     */
+    default GenericStack[] getCondensedOutputStacks() {
+        return convertToGenericStacks(getCondensedAEOutputs());
+    }
+
+    // ========== Legacy generic main entry methods (deprecated) ==========
 
     /**
      * Get raw inputs (supporting item + fluid and other types), includes null placeholders to preserve slot positions.
+     *
+     * @deprecated Use {@link #getInputStacks()} instead
      */
+    @Deprecated
     IAEStack<?>[] getAEInputs();
 
     /**
      * Get condensed inputs (supporting item + fluid and other types), merges identical stacks, no nulls.
+     *
+     * @deprecated Use {@link #getCondensedInputStacks()} instead
      */
+    @Deprecated
     IAEStack<?>[] getCondensedAEInputs();
 
     /**
      * Get condensed outputs (supporting item + fluid and other types), merges identical stacks, no nulls.
+     *
+     * @deprecated Use {@link #getCondensedOutputStacks()} instead
      */
+    @Deprecated
     IAEStack<?>[] getCondensedAEOutputs();
 
     /**
      * Get raw outputs (supporting item + fluid and other types).
+     *
+     * @deprecated Use {@link #getOutputStacks()} instead
      */
+    @Deprecated
     IAEStack<?>[] getAEOutputs();
 
-    // ========== Legacy item-type methods (deprecated, default to converting from generic methods) ==========
+    // ========== Legacy item-type methods (deprecated) ==========
 
     /**
      * Get raw inputs (item type), includes null placeholders to preserve slot positions.
      *
-     * @deprecated Use {@link #getAEInputs()} instead
+     * @deprecated Use {@link #getInputStacks()} instead
      */
     @Deprecated
     default IAEItemStack[] getInputs() {
@@ -105,7 +148,7 @@ public interface ICraftingPatternDetails {
     /**
      * Get condensed inputs (item type), merges identical items, no nulls.
      *
-     * @deprecated Use {@link #getCondensedAEInputs()} instead
+     * @deprecated Use {@link #getCondensedInputStacks()} instead
      */
     @Deprecated
     default IAEItemStack[] getCondensedInputs() {
@@ -115,7 +158,7 @@ public interface ICraftingPatternDetails {
     /**
      * Get condensed outputs (item type), merges identical items, no nulls.
      *
-     * @deprecated Use {@link #getCondensedAEOutputs()} instead
+     * @deprecated Use {@link #getCondensedOutputStacks()} instead
      */
     @Deprecated
     default IAEItemStack[] getCondensedOutputs() {
@@ -125,12 +168,14 @@ public interface ICraftingPatternDetails {
     /**
      * Get raw outputs (item type).
      *
-     * @deprecated Use {@link #getAEOutputs()} instead
+     * @deprecated Use {@link #getOutputStacks()} instead
      */
     @Deprecated
     default IAEItemStack[] getOutputs() {
         return filterItemStacks(getAEOutputs());
     }
+
+    // ========== Static conversion helpers ==========
 
     /**
      * Filter out item-type stacks from a generic stack array, preserving array size and null positions.
@@ -141,6 +186,30 @@ public interface ICraftingPatternDetails {
             if (stacks[i] instanceof IAEItemStack) {
                 result[i] = (IAEItemStack) stacks[i];
             }
+        }
+        return result;
+    }
+
+    /**
+     * Convert an IAEStack<?>[] to GenericStack[].
+     */
+    static GenericStack[] convertToGenericStacks(IAEStack<?>[] stacks) {
+        if (stacks == null) return null;
+        GenericStack[] result = new GenericStack[stacks.length];
+        for (int i = 0; i < stacks.length; i++) {
+            result[i] = GenericStack.fromIAEStack(stacks[i]);
+        }
+        return result;
+    }
+
+    /**
+     * Convert a GenericStack[] to IAEStack<?>[].
+     */
+    static IAEStack<?>[] convertFromGenericStacks(GenericStack[] stacks) {
+        if (stacks == null) return null;
+        IAEStack<?>[] result = new IAEStack<?>[stacks.length];
+        for (int i = 0; i < stacks.length; i++) {
+            result[i] = stacks[i] != null ? stacks[i].toIAEStack() : null;
         }
         return result;
     }

@@ -35,6 +35,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.crafting.IShapedRecipe;
 
 import appeng.api.networking.crafting.ICraftingPatternDetails;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.container.ContainerNull;
@@ -59,6 +60,10 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     private final InventoryCrafting testFrame;
     private final ItemStack correctOutput;
     private final IRecipe standardRecipe;
+    private final GenericStack[] inputStacks;
+    private final GenericStack[] outputStacks;
+    private final GenericStack[] condensedInputStacks;
+    private final GenericStack[] condensedOutputStacks;
     private final IAEItemStack[] condensedInputs;
     private final IAEItemStack[] condensedOutputs;
     private final IAEItemStack[] inputs;
@@ -151,6 +156,16 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
         this.outputs = out.toArray(new IAEItemStack[outputLength]);
         this.substituteInputs = new HashMap<>(CRAFTING_INPUT_LIMIT);
 
+        // Build GenericStack arrays
+        this.inputStacks = new GenericStack[this.inputs.length];
+        for (int i = 0; i < this.inputs.length; i++) {
+            this.inputStacks[i] = GenericStack.fromIAEStack(this.inputs[i]);
+        }
+        this.outputStacks = new GenericStack[this.outputs.length];
+        for (int i = 0; i < this.outputs.length; i++) {
+            this.outputStacks[i] = GenericStack.fromIAEStack(this.outputs[i]);
+        }
+
         final Map<IAEItemStack, IAEItemStack> tmpOutputs = new HashMap<>();
 
         for (final IAEItemStack io : this.outputs) {
@@ -201,6 +216,16 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
         for (final IAEItemStack io : tmpOutputs.values()) {
             this.condensedOutputs[offset] = io;
             offset++;
+        }
+
+        // Build condensed GenericStack arrays
+        this.condensedInputStacks = new GenericStack[this.condensedInputs.length];
+        for (int i = 0; i < this.condensedInputs.length; i++) {
+            this.condensedInputStacks[i] = GenericStack.fromIAEStack(this.condensedInputs[i]);
+        }
+        this.condensedOutputStacks = new GenericStack[this.condensedOutputs.length];
+        for (int i = 0; i < this.condensedOutputs.length; i++) {
+            this.condensedOutputStacks[i] = GenericStack.fromIAEStack(this.condensedOutputs[i]);
         }
     }
 
@@ -268,6 +293,30 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     public boolean isCraftable() {
         return this.isCrafting;
     }
+
+    // --- GenericStack methods (primary) ---
+
+    @Override
+    public GenericStack[] getInputStacks() {
+        return this.inputStacks;
+    }
+
+    @Override
+    public GenericStack[] getOutputStacks() {
+        return this.outputStacks;
+    }
+
+    @Override
+    public GenericStack[] getCondensedInputStacks() {
+        return this.condensedInputStacks;
+    }
+
+    @Override
+    public GenericStack[] getCondensedOutputStacks() {
+        return this.condensedOutputStacks;
+    }
+
+    // --- Legacy IAEStack methods (deprecated) ---
 
     @Override
     public IAEStack<?>[] getAEInputs() {

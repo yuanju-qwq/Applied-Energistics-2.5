@@ -36,6 +36,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants.NBT;
 
 import appeng.api.networking.crafting.ICraftingPatternDetails;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.util.item.AEItemStack;
@@ -57,17 +58,23 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
     private final boolean canBeSubstitute;
     private int priority = 0;
 
-    // Legacy item-type arrays (backward compatible with old interface)
-    private final IAEItemStack[] inputs;
-    private final IAEItemStack[] outputs;
-    private final IAEItemStack[] condensedInputs;
-    private final IAEItemStack[] condensedOutputs;
+    // GenericStack arrays (primary)
+    private final GenericStack[] inputStacks;
+    private final GenericStack[] outputStacks;
+    private final GenericStack[] condensedInputStacks;
+    private final GenericStack[] condensedOutputStacks;
 
-    // Generic stack arrays (main entry, supports items + fluids and all types)
+    // Legacy IAEStack arrays (deprecated, converted from GenericStack)
     private final IAEStack<?>[] aeInputs;
     private final IAEStack<?>[] aeOutputs;
     private final IAEStack<?>[] condensedAEInputs;
     private final IAEStack<?>[] condensedAEOutputs;
+
+    // Legacy item-type arrays (deprecated)
+    private final IAEItemStack[] inputs;
+    private final IAEItemStack[] outputs;
+    private final IAEItemStack[] condensedInputs;
+    private final IAEItemStack[] condensedOutputs;
 
     // Input-only recipe support (inputOnly / tunnel pattern)
     private final boolean inputOnly;
@@ -105,6 +112,10 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         final NBTTagList inTag = encodedValue.getTagList("in", NBT.TAG_COMPOUND);
         final NBTTagList outTag = encodedValue.getTagList("out", NBT.TAG_COMPOUND);
 
+        // GenericStack list (primary)
+        final List<GenericStack> inGenericStack = new ArrayList<>();
+        final List<GenericStack> outGenericStack = new ArrayList<>();
+
         // Legacy item list (compatible with old API getInputs/getOutputs)
         final List<IAEItemStack> inLegacy = new ArrayList<>();
         final List<IAEItemStack> outLegacy = new ArrayList<>();
@@ -124,6 +135,8 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
                 throw new IllegalStateException("No pattern here!");
             }
 
+            // GenericStack list
+            inGenericStack.add(GenericStack.fromIAEStack(aeStack));
             // Legacy item list: convert fluids to FluidDummyItem items via stackConvert
             inLegacy.add(stackConvert(aeStack));
             in.add(aeStack);
@@ -139,6 +152,8 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
                 throw new IllegalStateException("No pattern here!");
             }
 
+            // GenericStack list
+            outGenericStack.add(GenericStack.fromIAEStack(aeStack));
             outLegacy.add(stackConvert(aeStack));
             out.add(aeStack);
         }
@@ -153,6 +168,12 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         this.aeOutputs = out.toArray(new IAEStack<?>[0]);
         this.condensedAEInputs = convertToCondensedAEList(this.aeInputs);
         this.condensedAEOutputs = convertToCondensedAEList(this.aeOutputs);
+
+        // ========== Build GenericStack arrays ==========
+        this.inputStacks = inGenericStack.toArray(new GenericStack[0]);
+        this.outputStacks = outGenericStack.toArray(new GenericStack[0]);
+        this.condensedInputStacks = condenseGenericStackList(inGenericStack);
+        this.condensedOutputStacks = condenseGenericStackList(outGenericStack);
 
         // ========== Validity check ==========
         if (this.condensedAEInputs.length == 0) {
@@ -183,7 +204,29 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         return false;
     }
 
-    // --- Generic main entry methods ---
+    // --- GenericStack main entry methods (primary) ---
+
+    @Override
+    public GenericStack[] getInputStacks() {
+        return this.inputStacks;
+    }
+
+    @Override
+    public GenericStack[] getOutputStacks() {
+        return this.outputStacks;
+    }
+
+    @Override
+    public GenericStack[] getCondensedInputStacks() {
+        return this.condensedInputStacks;
+    }
+
+    @Override
+    public GenericStack[] getCondensedOutputStacks() {
+        return this.condensedOutputStacks;
+    }
+
+    // --- Legacy IAEStack methods (deprecated) ---
 
     @Override
     public IAEStack<?>[] getAEInputs() {
@@ -304,6 +347,20 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
     }
 
     // ========== Static utility methods ==========
+
+    /**
+     * Condense a List of GenericStack, merging same-key stacks by summing amounts.
+     */
+    public static GenericStack[] condenseGenericStackList(List<GenericStack> stacks) {
+        var map = new java.util.LinkedHashMap<appeng.api.stacks.AEKey, Long>();
+        for (var gs : stacks) {
+            if (gs == null) continue;
+            map.merge(gs.what(), gs.amount(), Long::sum);
+        }
+        return map.entrySet().stream()
+                .map(e -> new GenericStack(e.getKey(), e.getValue()))
+                .toArray(GenericStack[]::new);
+    }
 
     /**
      * Load generic stack array from NBT tag list.

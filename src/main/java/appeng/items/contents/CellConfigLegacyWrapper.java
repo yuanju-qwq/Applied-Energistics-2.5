@@ -23,20 +23,25 @@ import javax.annotation.Nullable;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.IItemHandlerModifiable;
 
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEStack;
 import appeng.tile.inventory.IAEStackInventory;
-import appeng.util.item.AEItemStack;
 
 /**
  * Compatibility adapter that wraps a legacy {@link IItemHandler} as {@link IAEStackInventory}.
  * <p>
  * Used when legacy code only provides getConfigInventory() (IItemHandler) but new code needs
  * getConfigAEInventory() (IAEStackInventory).
- * Converts ItemStack to AEItemStack on read, and IAEItemStack back to ItemStack on write.
+ * Converts ItemStack to GenericStack on read, and GenericStack back to ItemStack on write.
  * </p>
+ *
+ * @deprecated Implement {@link appeng.api.storage.ICellWorkbenchItem#getConfigAEInventory(net.minecraft.item.ItemStack)}
+ *             directly instead of relying on this wrapper.
  */
+@Deprecated
 public class CellConfigLegacyWrapper extends IAEStackInventory {
 
     private final IItemHandler inventory;
@@ -58,23 +63,19 @@ public class CellConfigLegacyWrapper extends IAEStackInventory {
 
     @Nullable
     @Override
-    public IAEStack<?> getAEStackInSlot(final int slot) {
+    public GenericStack getGenericStack(final int slot) {
         ItemStack stack = this.inventory.getStackInSlot(slot);
         if (stack.isEmpty()) {
             return null;
         }
-        return AEItemStack.fromItemStack(stack);
+        return GenericStack.fromItemStack(stack);
     }
 
     @Override
-    public void putAEStackInSlot(final int slot, @Nullable IAEStack<?> stack) {
-        // IItemHandler doesn't provide a direct set method, need to extract then insert
-        // However we assume this is a config-type inventory (usually phantom slot), so we operate directly
-        if (this.inventory instanceof net.minecraftforge.items.IItemHandlerModifiable) {
-            net.minecraftforge.items.IItemHandlerModifiable modifiable =
-                    (net.minecraftforge.items.IItemHandlerModifiable) this.inventory;
-            if (stack instanceof appeng.api.storage.data.IAEItemStack) {
-                modifiable.setStackInSlot(slot, ((appeng.api.storage.data.IAEItemStack) stack).createItemStack());
+    public void setGenericStack(final int slot, @Nullable GenericStack stack) {
+        if (this.inventory instanceof IItemHandlerModifiable modifiable) {
+            if (stack != null && stack.what() instanceof AEItemKey itemKey) {
+                modifiable.setStackInSlot(slot, itemKey.toStack((int) Math.min(stack.amount(), Integer.MAX_VALUE)));
             } else {
                 modifiable.setStackInSlot(slot, ItemStack.EMPTY);
             }
