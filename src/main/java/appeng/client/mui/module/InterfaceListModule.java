@@ -18,7 +18,6 @@
 
 package appeng.client.mui.module;
 
-import static appeng.client.render.BlockPosHighlighter.hilightBlock;
 import static appeng.helpers.ItemStackHelper.stackFromNBT;
 
 import java.io.IOException;
@@ -38,7 +37,6 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTUtil;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.Constants;
 
 import appeng.api.config.ActionItems;
@@ -56,10 +54,8 @@ import appeng.core.AEConfig;
 import appeng.core.AppEng;
 import appeng.core.localization.ButtonToolTips;
 import appeng.core.localization.GuiText;
-import appeng.core.localization.PlayerMessages;
 import appeng.helpers.PatternProviderLogic;
 import appeng.helpers.PatternHelper;
-import appeng.util.BlockPosUtils;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
 
@@ -147,15 +143,12 @@ public class InterfaceListModule {
     private final Map<Long, ClientDCInternalInv> providerById = new HashMap<>();
 
     private final HashMultimap<String, ClientDCInternalInv> byName = HashMultimap.create();
-    private final HashMap<ClientDCInternalInv, BlockPos> blockPosHashMap = new HashMap<>();
-    private final HashMap<MUIButtonWidget, ClientDCInternalInv> highlightButtonMap = new HashMap<>();
     private final HashMap<MUIButtonWidget, ClientDCInternalInv> doubleButtonMap = new HashMap<>();
     private final Map<ClientDCInternalInv, Integer> numUpgradesMap = new HashMap<>();
     private final ArrayList<String> names = new ArrayList<>();
     private final ArrayList<Object> lines = new ArrayList<>();
     private final Set<Object> matchedStacks = new HashSet<>();
     private final Map<String, Set<Object>> cachedSearches = new WeakHashMap<>();
-    private final Map<ClientDCInternalInv, Integer> dimHashMap = new HashMap<>();
 
     private MUITextFieldWidget searchFieldOutputs;
     private MUITextFieldWidget searchFieldInputs;
@@ -181,6 +174,9 @@ public class InterfaceListModule {
     private boolean onlyMolecularAssemblers = false;
     private boolean onlyBrokenRecipes = false;
     private int rows = 6;
+
+    /** Highlight module (block position highlighting, cross-dimension detection) */
+    private HighlightModule highlightModule;
 
     /** Whether to enable per-row double-stacks button (WirelessDualInterfaceTerminal specific feature) */
     private boolean enableDoubleButton = false;
@@ -223,24 +219,12 @@ public class InterfaceListModule {
         return lines;
     }
 
-    public HashMap<MUIButtonWidget, ClientDCInternalInv> getHighlightButtonMap() {
-        return highlightButtonMap;
-    }
-
     public HashMap<MUIButtonWidget, ClientDCInternalInv> getDoubleButtonMap() {
         return doubleButtonMap;
     }
 
     public Map<ClientDCInternalInv, Integer> getNumUpgradesMap() {
         return numUpgradesMap;
-    }
-
-    public HashMap<ClientDCInternalInv, BlockPos> getBlockPosHashMap() {
-        return blockPosHashMap;
-    }
-
-    public Map<ClientDCInternalInv, Integer> getDimHashMap() {
-        return dimHashMap;
     }
 
     public HashMap<Long, ClientDCInternalInv> getById() {
@@ -328,9 +312,12 @@ public class InterfaceListModule {
                             this.refreshList();
                         }));
 
-        // Dynamic highlight button pool
-        this.highlightButtonPool = new MUIButtonPool()
-                .setDefaultOnClick(btn -> this.onHighlightClicked(btn));
+        // Highlight module
+        this.highlightModule = new HighlightModule(new HighlightModuleHost());
+
+        // Dynamic highlight button pool (wired through HighlightModule)
+        this.highlightButtonPool = new MUIButtonPool();
+        this.highlightModule.wirePoolClickHandler(this.highlightButtonPool);
         host.addModuleWidget(this.highlightButtonPool);
 
         // Dynamic double-stacks button pool (only used when enableDoubleButton is true)
@@ -467,7 +454,6 @@ public class InterfaceListModule {
 
         // Reset dynamic button pools
         highlightButtonPool.reset();
-        highlightButtonMap.clear();
         doubleButtonPool.reset();
         doubleButtonMap.clear();
         panel.inventorySlots.inventorySlots.removeIf(slot -> slot instanceof SlotDisconnected);
@@ -490,10 +476,9 @@ public class InterfaceListModule {
             final Object lineObj = this.lines.get(currentScroll + x);
             if (lineObj instanceof ClientDCInternalInv inv) {
 
-                // Acquire highlight button from pool (panel-relative coordinates)
-                MUIButtonWidget hlBtn = this.highlightButtonPool.acquireSettings(
-                        4, offset + 1, Settings.ACTIONS, ActionItems.HIGHLIGHT_INTERFACE);
-                highlightButtonMap.put(hlBtn, inv);
+                // Acquire highlight button from pool via HighlightModule (panel-relative coordinates)
+                this.highlightModule.createHighlightButton(
+                        this.highlightButtonPool, 4, offset + 1, inv);
 
                 // Acquire double-stacks button from pool (if enabled)
                 if (enableDoubleButton) {
@@ -571,38 +556,6 @@ public class InterfaceListModule {
     }
 
     // ========== MUI button onClick handlers ==========
-
-    /**
-     * Handle highlight button click (from MUIButtonPool onClick callback).
-     * Locates the interface in the world and highlights its block position.
-     */
-    private void onHighlightClicked(MUIButtonWidget btn) {
-        ClientDCInternalInv inv = highlightButtonMap.get(btn);
-        if (inv == null) {
-            return;
-        }
-        BlockPos blockPos = blockPosHashMap.get(inv);
-        BlockPos blockPos2 = host.getPanel().mc.player.getPosition();
-        int playerDim = host.getPanel().mc.world.provider.getDimension();
-        int interfaceDim = dimHashMap.getOrDefault(inv, playerDim);
-        if (playerDim != interfaceDim) {
-            try {
-                host.getPanel().mc.player.sendStatusMessage(
-                        PlayerMessages.InterfaceInOtherDimParam.get(interfaceDim,
-                                DimensionManager.getWorld(interfaceDim).provider.getDimensionType().getName()),
-                        false);
-            } catch (Exception e) {
-                host.getPanel().mc.player.sendStatusMessage(PlayerMessages.InterfaceInOtherDim.get(), false);
-            }
-        } else {
-            hilightBlock(blockPos,
-                    System.currentTimeMillis() + 500 * BlockPosUtils.getDistance(blockPos, blockPos2), playerDim);
-            host.getPanel().mc.player.sendStatusMessage(
-                    PlayerMessages.InterfaceHighlighted.get(blockPos.getX(), blockPos.getY(), blockPos.getZ()),
-                    false);
-        }
-        host.getPanel().mc.player.closeScreen();
-    }
 
     /**
      * Handle double-stacks button click (from MUIButtonPool onClick callback).
@@ -710,8 +663,9 @@ public class InterfaceListModule {
                         current = this.getById(id, invData.getLong("sortBy"), invData.getString("un"));
                     }
 
-                    blockPosHashMap.put(current, NBTUtil.getPosFromTag(invData.getCompoundTag("pos")));
-                    dimHashMap.put(current, invData.getInteger("dim"));
+                    highlightModule.updatePosition(current,
+                            NBTUtil.getPosFromTag(invData.getCompoundTag("pos")),
+                            invData.getInteger("dim"));
 
                     if (!isProvider) {
                         numUpgradesMap.put(current, invData.getInteger("numUpgrades"));
@@ -980,6 +934,20 @@ public class InterfaceListModule {
         @Override
         public void requestReinitialize() {
             host.requestReinitialize();
+        }
+    }
+
+    // ========== HighlightModule.Host implementation ==========
+
+    private final class HighlightModuleHost implements HighlightModule.Host {
+        @Override
+        public net.minecraft.entity.player.EntityPlayer getPlayer() {
+            return host.getPanel().mc.player;
+        }
+
+        @Override
+        public void closeScreen() {
+            host.getPanel().mc.player.closeScreen();
         }
     }
 }

@@ -18,7 +18,6 @@
 
 package appeng.client.mui.screen;
 
-import static appeng.client.render.BlockPosHighlighter.hilightBlock;
 import static appeng.helpers.ItemStackHelper.stackFromNBT;
 
 import java.awt.*;
@@ -34,7 +33,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTUtil;
 import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.common.DimensionManager;
 
 import mezz.jei.api.gui.IGhostIngredientHandler;
 
@@ -45,6 +43,7 @@ import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.module.HighlightModule;
 import appeng.client.mui.module.SearchBarModule;
 import appeng.client.mui.widgets.MUIButtonPool;
 import appeng.client.mui.widgets.MUIButtonWidget;
@@ -54,12 +53,10 @@ import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
 import appeng.container.interfaces.IJEIGhostIngredients;
 import appeng.container.slot.AppEngSlot;
 import appeng.core.localization.GuiText;
-import appeng.core.localization.PlayerMessages;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.helpers.InterfaceLogic;
 import appeng.helpers.InventoryAction;
-import appeng.util.BlockPosUtils;
 import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
@@ -81,15 +78,12 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
 
     private final HashMap<Long, ClientDCInternalInv> byId = new HashMap<>();
     private final HashMultimap<String, ClientDCInternalInv> byName = HashMultimap.create();
-    private final HashMap<ClientDCInternalInv, BlockPos> blockPosHashMap = new HashMap<>();
-    private final HashMap<MUIButtonWidget, ClientDCInternalInv> highlightButtonMap = new HashMap<>();
     private final Map<ClientDCInternalInv, Integer> numUpgradesMap = new HashMap<>();
     private final ArrayList<String> names = new ArrayList<>();
     private final ArrayList<Object> lines = new ArrayList<>();
     private final Set<Object> matchedStacks = new HashSet<>();
     private final Set<ClientDCInternalInv> matchedInterfaces = new HashSet<>();
     private final Map<String, Set<Object>> cachedSearches = new WeakHashMap<>();
-    private final Map<ClientDCInternalInv, Integer> dimHashMap = new HashMap<>();
     public Map<IGhostIngredientHandler.Target<?>, Object> mapTargetSlot = new HashMap<>();
 
     private boolean refreshList = false;
@@ -97,6 +91,9 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
 
     // Search bar module (manages single search field lifecycle)
     private SearchBarModule searchBarModule;
+
+    /** Highlight module (block position highlighting, cross-dimension detection) */
+    private HighlightModule highlightModule;
 
     /** Dynamic highlight button pool (replaces per-frame GuiImgButton creation) */
     private MUIButtonPool highlightButtonPool;
@@ -127,9 +124,12 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
                         .onTextChange(text -> this.refreshList())
                         .build());
 
-        // Dynamic highlight button pool
-        this.highlightButtonPool = new MUIButtonPool()
-                .setDefaultOnClick(btn -> this.onHighlightClicked(btn));
+        // Highlight module
+        this.highlightModule = new HighlightModule(new HighlightModuleHost());
+
+        // Dynamic highlight button pool (wired through HighlightModule)
+        this.highlightButtonPool = new MUIButtonPool();
+        this.highlightModule.wirePoolClickHandler(this.highlightButtonPool);
         this.addWidget(this.highlightButtonPool);
     }
 
@@ -155,7 +155,6 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
     @Override
     public void drawScreen(final int mouseX, final int mouseY, final float partialTicks) {
         this.highlightButtonPool.reset();
-        this.highlightButtonMap.clear();
         this.inventorySlots.inventorySlots.removeIf(slot -> slot instanceof SlotDisconnected);
 
         final int currentScroll = this.getScrollBar().getCurrentScroll();
@@ -166,9 +165,8 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
             final Object lineObj = this.lines.get(currentScroll + x);
             if (lineObj instanceof ClientDCInternalInv inv) {
 
-                MUIButtonWidget hlBtn = this.highlightButtonPool.acquireSettings(
-                        4, offset, Settings.ACTIONS, ActionItems.HIGHLIGHT_INTERFACE);
-                highlightButtonMap.put(hlBtn, inv);
+                this.highlightModule.createHighlightButton(
+                        this.highlightButtonPool, 4, offset, inv);
 
                 int extraLines = numUpgradesMap.get(inv);
 
@@ -267,38 +265,6 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         super.mouseClicked(xCoord, yCoord, btn);
     }
 
-    /**
-     * Handle highlight button click (from MUIButtonPool onClick callback).
-     * Locates the interface in the world and highlights its block position.
-     */
-    private void onHighlightClicked(MUIButtonWidget btn) {
-        ClientDCInternalInv inv = highlightButtonMap.get(btn);
-        if (inv == null) {
-            return;
-        }
-        BlockPos blockPos = blockPosHashMap.get(inv);
-        BlockPos blockPos2 = mc.player.getPosition();
-        int playerDim = mc.world.provider.getDimension();
-        int interfaceDim = dimHashMap.get(inv);
-        if (playerDim != interfaceDim) {
-            try {
-                mc.player.sendStatusMessage(
-                        PlayerMessages.InterfaceInOtherDimParam.get(interfaceDim,
-                                DimensionManager.getWorld(interfaceDim).provider.getDimensionType().getName()),
-                        false);
-            } catch (Exception e) {
-                mc.player.sendStatusMessage(PlayerMessages.InterfaceInOtherDim.get(), false);
-            }
-        } else {
-            hilightBlock(blockPos,
-                    System.currentTimeMillis() + 500 * BlockPosUtils.getDistance(blockPos, blockPos2), playerDim);
-            mc.player.sendStatusMessage(
-                    PlayerMessages.InterfaceHighlighted.get(blockPos.getX(), blockPos.getY(), blockPos.getZ()),
-                    false);
-        }
-        mc.player.closeScreen();
-    }
-
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
         if (!this.checkHotbarKeys(key)) {
@@ -331,8 +297,9 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
                     final NBTTagCompound invData = in.getCompoundTag(key);
                     final ClientDCInternalInv current = this.getById(id, invData.getLong("sortBy"),
                             invData.getString("un"));
-                    blockPosHashMap.put(current, NBTUtil.getPosFromTag(invData.getCompoundTag("pos")));
-                    dimHashMap.put(current, invData.getInteger("dim"));
+                    highlightModule.updatePosition(current,
+                            NBTUtil.getPosFromTag(invData.getCompoundTag("pos")),
+                            invData.getInteger("dim"));
                     numUpgradesMap.put(current, invData.getInteger("numUpgrades"));
 
                     for (int x = 0; x < current.getInventory().getSlots(); x++) {
@@ -522,6 +489,20 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         public void requestReinitialize() {
             buttonList.clear();
             initGui();
+        }
+    }
+
+    // ========== HighlightModule.Host implementation ==========
+
+    private final class HighlightModuleHost implements HighlightModule.Host {
+        @Override
+        public net.minecraft.entity.player.EntityPlayer getPlayer() {
+            return mc.player;
+        }
+
+        @Override
+        public void closeScreen() {
+            mc.player.closeScreen();
         }
     }
 }
