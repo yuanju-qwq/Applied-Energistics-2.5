@@ -271,27 +271,6 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         return this.condensedOutputStacks;
     }
 
-    // ========== Generic entry point methods (deprecated) ==========
-
-    @Override
-    public IAEStack<?>[] getAEInputs() {
-        return this.genericInputs;
-    }
-
-    @Override
-    public IAEStack<?>[] getCondensedAEInputs() {
-        return this.genericCondensedInputs;
-    }
-
-    @Override
-    public IAEStack<?>[] getAEOutputs() {
-        return this.genericOutputs;
-    }
-
-    @Override
-    public IAEStack<?>[] getCondensedAEOutputs() {
-        return this.genericCondensedOutputs;
-    }
 
     @Override
     public boolean canSubstitute() {

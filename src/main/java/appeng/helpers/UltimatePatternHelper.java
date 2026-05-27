@@ -44,8 +44,7 @@ import appeng.util.item.AEItemStack;
 /**
  * Unified processing recipe (non-crafting-table recipe) parser with native support for generic stacks (items + fluids, etc.).
  * <p>
- * Replaces {@link FluidPatternHelper} and {@link SpecialPatternHelper},
- * reads stack data from NBT via {@link appeng.util.Platform#readStackNBT},
+ * Replaces {@link SpecialPatternHelper}; reads stack data from NBT via {@link appeng.util.Platform#readStackNBT},
  * Automatically handles both new format (with "StackType" key) and legacy format (plain ItemStack / FluidDummyItem) migration.
  * <p>
  * Design reference from the class of the same name in Applied-Energistics-2-Unofficial.
@@ -224,50 +223,6 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
     @Override
     public GenericStack[] getCondensedOutputStacks() {
         return this.condensedOutputStacks;
-    }
-
-    // --- Legacy IAEStack methods (deprecated) ---
-
-    @Override
-    public IAEStack<?>[] getAEInputs() {
-        return this.aeInputs;
-    }
-
-    @Override
-    public IAEStack<?>[] getCondensedAEInputs() {
-        return this.condensedAEInputs;
-    }
-
-    @Override
-    public IAEStack<?>[] getAEOutputs() {
-        return this.aeOutputs;
-    }
-
-    @Override
-    public IAEStack<?>[] getCondensedAEOutputs() {
-        return this.condensedAEOutputs;
-    }
-
-    // --- Legacy item-type methods (override default implementations to avoid redundant filtering) ---
-
-    @Override
-    public IAEItemStack[] getInputs() {
-        return this.inputs;
-    }
-
-    @Override
-    public IAEItemStack[] getCondensedInputs() {
-        return this.condensedInputs;
-    }
-
-    @Override
-    public IAEItemStack[] getOutputs() {
-        return this.outputs;
-    }
-
-    @Override
-    public IAEItemStack[] getCondensedOutputs() {
-        return this.condensedOutputs;
     }
 
     // --- Other interface methods ---

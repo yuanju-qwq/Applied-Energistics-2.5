@@ -27,7 +27,6 @@ import javax.annotation.Nullable;
 
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 
@@ -59,18 +58,7 @@ public interface ICraftingCPU extends IBaseMonitor<IAEStackBase> {
     String getName();
 
     /**
-     * @return final output of the current crafting operation, or null if not crafting
-     * @deprecated 使用 {@link #getFinalMultiOutput()} 替代
-     */
-    @Deprecated
-    @Nullable
-    default IAEItemStack getFinalOutput() {
-        IAEStack<?> output = getFinalMultiOutput();
-        return output instanceof IAEItemStack ? (IAEItemStack) output : null;
-    }
-
-    /**
-     * 泛型版本：返回当前合成操作的最终输出（可能是物品或流体），如果没有合成则返回 null。
+     * 返回当前合成操作的最终输出（可能是物品或流体），如果没有合成则返回 null。
      */
     @Nullable
     default IAEStack<?> getFinalMultiOutput() {

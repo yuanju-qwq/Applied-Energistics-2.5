@@ -205,7 +205,8 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
     }
 
     @Override
-    public IAEItemStack injectCraftedItems(final ICraftingLink link, final IAEItemStack items, final Actionable mode) {
+    public IAEStack<?> injectCraftedItems(final ICraftingLink link, final IAEStack<?> itemsParam, final Actionable mode) {
+        final IAEItemStack items = (IAEItemStack) itemsParam;
         final InventoryAdaptor d = this.getHandler();
 
         try {

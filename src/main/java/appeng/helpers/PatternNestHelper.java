@@ -294,7 +294,31 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
     }
 
     private boolean isFluidPattern(ItemStack stack) {
-        return FluidPatternHelper.isFluidPattern(stack);
+        if (stack.isEmpty() || !stack.hasTagCompound()) {
+            return false;
+        }
+        final NBTTagCompound nbt = stack.getTagCompound();
+
+        if (nbt.getBoolean("fluidPattern")) {
+            return true;
+        }
+
+        if (nbt.hasKey("fluidIn") || nbt.hasKey("fluidOut")) {
+            return true;
+        }
+
+        return hasGenericEntries(nbt.getTagList("in", 10))
+                || hasGenericEntries(nbt.getTagList("out", 10));
+    }
+
+    private static boolean hasGenericEntries(NBTTagList tagList) {
+        for (int i = 0; i < tagList.tagCount(); i++) {
+            NBTTagCompound tag = tagList.getCompoundTagAt(i);
+            if (tag.hasKey("StackType") || tag.hasKey("aeTypeId")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void markItemAs(final int slotIndex, final ItemStack i, final TestStatus b) {
@@ -382,28 +406,6 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
     @Override
     public GenericStack[] getCondensedOutputStacks() {
         return this.condensedOutputStacks;
-    }
-
-    // --- Legacy IAEStack methods (deprecated) ---
-
-    @Override
-    public IAEStack<?>[] getAEInputs() {
-        return this.inputs;
-    }
-
-    @Override
-    public IAEStack<?>[] getCondensedAEInputs() {
-        return this.condensedInputs;
-    }
-
-    @Override
-    public IAEStack<?>[] getCondensedAEOutputs() {
-        return this.condensedOutputs;
-    }
-
-    @Override
-    public IAEStack<?>[] getAEOutputs() {
-        return this.outputs;
     }
 
     @Override

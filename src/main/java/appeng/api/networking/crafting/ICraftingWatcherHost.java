@@ -24,7 +24,6 @@
 package appeng.api.networking.crafting;
 
 import appeng.api.networking.IGridNodeService;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 
 public interface ICraftingWatcherHost extends IGridNodeService {
@@ -44,12 +43,4 @@ public interface ICraftingWatcherHost extends IGridNodeService {
      * @param what         the changed stack
      */
     void onRequestChange(ICraftingGrid craftingGrid, IAEStack<?> what);
-
-    /**
-     * @deprecated Use {@link #onRequestChange(ICraftingGrid, IAEStack)} instead
-     */
-    @Deprecated
-    default void onRequestChange(ICraftingGrid craftingGrid, IAEItemStack what) {
-        onRequestChange(craftingGrid, (IAEStack<?>) what);
-    }
 }

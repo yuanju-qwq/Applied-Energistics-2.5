@@ -291,8 +291,8 @@ public class TilePatternProvider extends AENetworkInvTile
     }
 
     @Override
-    public IAEItemStack injectCraftedItems(final ICraftingLink link, final IAEItemStack items, final Actionable mode) {
-        return this.logic.injectCraftedItems(link, items, mode);
+    public IAEStack<?> injectCraftedItems(final ICraftingLink link, final IAEStack<?> items, final Actionable mode) {
+        return this.logic.injectCraftedItems(link, (IAEItemStack) items, mode);
     }
 
     @Override

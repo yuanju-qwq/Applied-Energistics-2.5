@@ -23,7 +23,6 @@
 
 package appeng.api.networking.crafting;
 
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 
 /**
@@ -40,12 +39,4 @@ public interface ICraftingProviderHelper {
      * 设置一个栈（物品/流体等）可被发射。
      */
     void setEmitable(IAEStack<?> what);
-
-    /**
-     * @deprecated 使用 {@link #setEmitable(IAEStack)} 替代
-     */
-    @Deprecated
-    default void setEmitable(IAEItemStack what) {
-        setEmitable((IAEStack<?>) what);
-    }
 }

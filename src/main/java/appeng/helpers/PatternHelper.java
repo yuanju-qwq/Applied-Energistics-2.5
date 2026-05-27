@@ -316,28 +316,6 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
         return this.condensedOutputStacks;
     }
 
-    // --- Legacy IAEStack methods (deprecated) ---
-
-    @Override
-    public IAEStack<?>[] getAEInputs() {
-        return this.inputs;
-    }
-
-    @Override
-    public IAEStack<?>[] getCondensedAEInputs() {
-        return this.condensedInputs;
-    }
-
-    @Override
-    public IAEStack<?>[] getCondensedAEOutputs() {
-        return this.condensedOutputs;
-    }
-
-    @Override
-    public IAEStack<?>[] getAEOutputs() {
-        return this.outputs;
-    }
-
     @Override
     public boolean canSubstitute() {
         return this.canSubstitute;

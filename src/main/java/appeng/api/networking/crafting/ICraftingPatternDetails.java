@@ -69,37 +69,29 @@ public interface ICraftingPatternDetails {
      */
     boolean isCraftable();
 
-    // ========== GenericStack main entry methods (primary) ==========
+    // ========== GenericStack main entry methods (primary / abstract) ==========
 
     /**
      * Get raw inputs as GenericStack[], includes null placeholders to preserve slot positions.
      */
-    default GenericStack[] getInputStacks() {
-        return convertToGenericStacks(getAEInputs());
-    }
+    GenericStack[] getInputStacks();
 
     /**
      * Get raw outputs as GenericStack[].
      */
-    default GenericStack[] getOutputStacks() {
-        return convertToGenericStacks(getAEOutputs());
-    }
+    GenericStack[] getOutputStacks();
 
     /**
      * Get condensed inputs as GenericStack[], merges identical stacks, no nulls.
      */
-    default GenericStack[] getCondensedInputStacks() {
-        return convertToGenericStacks(getCondensedAEInputs());
-    }
+    GenericStack[] getCondensedInputStacks();
 
     /**
      * Get condensed outputs as GenericStack[], merges identical stacks, no nulls.
      */
-    default GenericStack[] getCondensedOutputStacks() {
-        return convertToGenericStacks(getCondensedAEOutputs());
-    }
+    GenericStack[] getCondensedOutputStacks();
 
-    // ========== Legacy generic main entry methods (deprecated) ==========
+    // ========== Legacy abstract methods (deprecated, bridge to GenericStack) ==========
 
     /**
      * Get raw inputs (supporting item + fluid and other types), includes null placeholders to preserve slot positions.
@@ -107,7 +99,9 @@ public interface ICraftingPatternDetails {
      * @deprecated Use {@link #getInputStacks()} instead
      */
     @Deprecated
-    IAEStack<?>[] getAEInputs();
+    default IAEStack<?>[] getAEInputs() {
+        return convertFromGenericStacks(getInputStacks());
+    }
 
     /**
      * Get condensed inputs (supporting item + fluid and other types), merges identical stacks, no nulls.
@@ -115,7 +109,9 @@ public interface ICraftingPatternDetails {
      * @deprecated Use {@link #getCondensedInputStacks()} instead
      */
     @Deprecated
-    IAEStack<?>[] getCondensedAEInputs();
+    default IAEStack<?>[] getCondensedAEInputs() {
+        return convertFromGenericStacks(getCondensedInputStacks());
+    }
 
     /**
      * Get condensed outputs (supporting item + fluid and other types), merges identical stacks, no nulls.
@@ -123,7 +119,9 @@ public interface ICraftingPatternDetails {
      * @deprecated Use {@link #getCondensedOutputStacks()} instead
      */
     @Deprecated
-    IAEStack<?>[] getCondensedAEOutputs();
+    default IAEStack<?>[] getCondensedAEOutputs() {
+        return convertFromGenericStacks(getCondensedOutputStacks());
+    }
 
     /**
      * Get raw outputs (supporting item + fluid and other types).
@@ -131,7 +129,9 @@ public interface ICraftingPatternDetails {
      * @deprecated Use {@link #getOutputStacks()} instead
      */
     @Deprecated
-    IAEStack<?>[] getAEOutputs();
+    default IAEStack<?>[] getAEOutputs() {
+        return convertFromGenericStacks(getOutputStacks());
+    }
 
     // ========== Legacy item-type methods (deprecated) ==========
 

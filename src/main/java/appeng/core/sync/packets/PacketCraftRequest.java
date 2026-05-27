@@ -31,6 +31,7 @@ import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.crafting.ICraftingJob;
 import appeng.api.networking.security.IActionHost;
+import appeng.api.storage.data.IAEStack;
 import appeng.container.ContainerOpenContext;
 import appeng.container.implementations.ContainerCraftAmount;
 import appeng.container.implementations.ContainerCraftConfirm;
@@ -88,7 +89,7 @@ public class PacketCraftRequest extends AppEngPacket {
                 try {
                     final ICraftingGrid cg = g.getCache(ICraftingGrid.class);
                     futureJob = cg.beginCraftingJob(cca.getWorld(), cca.getGrid(), cca.getActionSrc(),
-                            cca.getItemToCraft(), null);
+                            (IAEStack<?>) cca.getItemToCraft(), null);
 
                     final ContainerOpenContext context = cca.getOpenContext();
                     if (context != null) {

@@ -35,7 +35,6 @@ import net.minecraft.world.World;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.IGridCache;
 import appeng.api.networking.security.IActionSource;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 
 public interface ICraftingGrid extends IGridCache {
@@ -51,15 +50,6 @@ public interface ICraftingGrid extends IGridCache {
      */
     ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEStack<?> whatToCraft,
             ICraftingPatternDetails details, int slot, World world);
-
-    /**
-     * @deprecated Use {@link #getCraftingFor(IAEStack, ICraftingPatternDetails, int, World)} instead
-     */
-    @Deprecated
-    default ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEItemStack whatToCraft,
-            ICraftingPatternDetails details, int slot, World world) {
-        return getCraftingFor((IAEStack<?>) whatToCraft, details, slot, world);
-    }
 
     /**
      * Get the multi-type pattern mapping of all craftable items/fluids.
@@ -80,15 +70,6 @@ public interface ICraftingGrid extends IGridCache {
      */
     Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc, IAEStack<?> craftWhat,
             ICraftingCallback callback);
-
-    /**
-     * @deprecated Use {@link #beginCraftingJob(World, IGrid, IActionSource, IAEStack, ICraftingCallback)} instead
-     */
-    @Deprecated
-    default Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc, IAEItemStack craftWhat,
-            ICraftingCallback callback) {
-        return beginCraftingJob(world, grid, actionSrc, (IAEStack<?>) craftWhat, callback);
-    }
 
     /**
      * Submit the job to the Crafting system for processing.
@@ -124,14 +105,6 @@ public interface ICraftingGrid extends IGridCache {
     boolean canEmitFor(IAEStack<?> what);
 
     /**
-     * @deprecated Use {@link #canEmitFor(IAEStack)} instead
-     */
-    @Deprecated
-    default boolean canEmitFor(IAEItemStack what) {
-        return canEmitFor((IAEStack<?>) what);
-    }
-
-    /**
      * Check whether the specified stack (item/fluid etc.) is currently being crafted.
      *
      * @param what the stack to check
@@ -140,26 +113,10 @@ public interface ICraftingGrid extends IGridCache {
     boolean isRequesting(IAEStack<?> what);
 
     /**
-     * @deprecated Use {@link #isRequesting(IAEStack)} instead
-     */
-    @Deprecated
-    default boolean isRequesting(IAEItemStack what) {
-        return isRequesting((IAEStack<?>) what);
-    }
-
-    /**
      * Get the total amount of the specified stack being requested by all Crafting CPUs on the grid.
      *
      * @param what the stack to query, stackSize is ignored
      * @return total amount being requested
      */
     long requesting(IAEStack<?> what);
-
-    /**
-     * @deprecated Use {@link #requesting(IAEStack)} instead
-     */
-    @Deprecated
-    default long requesting(IAEItemStack what) {
-        return requesting((IAEStack<?>) what);
-    }
 }
