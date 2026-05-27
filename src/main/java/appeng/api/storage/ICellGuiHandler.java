@@ -10,14 +10,6 @@ import appeng.api.storage.data.IAEStackType;
 
 public interface ICellGuiHandler {
     /**
-     * @deprecated 请使用 {@link #isHandlerFor(IAEStackType)} 代替。
-     */
-    @Deprecated
-    default <T extends IAEStack<T>> boolean isHandlerFor(IStorageChannel<T> channel) {
-        return this.isHandlerFor(channel.getStackType());
-    }
-
-    /**
      * 判断此 handler 是否可以处理指定的栈类型。
      *
      * @param type 栈类型
@@ -33,15 +25,6 @@ public interface ICellGuiHandler {
      */
     default boolean isSpecializedFor(ItemStack is) {
         return false;
-    }
-
-    /**
-     * @deprecated 请使用 {@link #openChestGui(EntityPlayer, IChestOrDrive, ICellHandler, IMEInventoryHandler, ItemStack, IAEStackType)} 代替。
-     */
-    @Deprecated
-    default <T extends IAEStack<T>> void openChestGui(EntityPlayer player, IChestOrDrive chest, ICellHandler cellHandler,
-            IMEInventoryHandler<T> inv, ItemStack is, IStorageChannel<T> chan) {
-        this.openChestGui(player, chest, cellHandler, inv, is, chan.getStackType());
     }
 
     /**

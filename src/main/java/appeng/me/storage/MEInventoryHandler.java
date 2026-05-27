@@ -25,7 +25,6 @@ import appeng.api.config.StorageFilter;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -67,12 +66,6 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
         this.myWhitelist = IncludeExclude.WHITELIST;
         this.setBaseAccess(AccessRestriction.READ_WRITE);
         this.myPartitionList = new DefaultPriorityList<>();
-    }
-
-    /** @deprecated 请使用 {@link #MEInventoryHandler(IMEInventory, IAEStackType)} 代替 */
-    @Deprecated
-    public MEInventoryHandler(final IMEInventory<T> i, final IStorageChannel<T> channel) {
-        this(i, channel.getStackType());
     }
 
     IncludeExclude getWhitelist() {

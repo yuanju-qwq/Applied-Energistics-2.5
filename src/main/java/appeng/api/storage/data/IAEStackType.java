@@ -35,8 +35,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 
-import appeng.api.storage.IStorageChannel;
-
 /**
  * 表示一种 AE 存储栈的类型（如物品、流体等）。
  * <p>
@@ -208,9 +206,4 @@ public interface IAEStackType<T extends IAEStack<T>> {
      */
     int getButtonIconV();
 
-    /**
-     * @return 该类型对应的 {@link IStorageChannel} 实例，用于向后兼容现有的 channel 体系
-     */
-    @Nonnull
-    IStorageChannel<T> getStorageChannel();
 }

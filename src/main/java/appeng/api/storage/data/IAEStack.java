@@ -36,7 +36,6 @@ import javax.annotation.Nullable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.IStorageChannel;
 import appeng.core.AELog;
 
 public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
@@ -154,11 +153,6 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
 
     @Override
     boolean isFluid();
-
-    /**
-     * @return ITEM or FLUID
-     */
-    IStorageChannel<T> getChannel();
 
     @Override
     ItemStack asItemStackRepresentation();

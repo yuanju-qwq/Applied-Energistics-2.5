@@ -35,9 +35,9 @@ import appeng.api.config.Settings;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.storage.ICellWorkbenchItem;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.container.guisync.GuiSync;
 import appeng.container.interfaces.IVirtualSlotHolder;
@@ -195,11 +195,11 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
         final IAEStackInventory inv = this.workBench.getAEInventoryByName(StorageName.CONFIG);
 
         final ItemStack is = this.getUpgradeable().getInventoryByName("cell").getStackInSlot(0);
-        final IStorageChannel channel = is.getItem() instanceof IStorageCell
-                ? ((IStorageCell) is.getItem()).getStackType().getStorageChannel()
-                : AEItemStackType.INSTANCE.getStorageChannel();
+        final IAEStackType<?> type = is.getItem() instanceof IStorageCell
+                ? ((IStorageCell) is.getItem()).getStackType()
+                : AEItemStackType.INSTANCE;
 
-        final IMEInventory<?> cellInv = AEApi.instance().registries().cell().getCellInventory(is, null, channel);
+        final IMEInventory<?> cellInv = AEApi.instance().registries().cell().getCellInventory(is, null, type);
 
         Iterator<IAEStack<?>> i = new NullIterator<>();
         if (cellInv != null) {

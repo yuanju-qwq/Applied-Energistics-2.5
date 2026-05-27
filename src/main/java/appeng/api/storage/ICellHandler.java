@@ -44,15 +44,6 @@ public interface ICellHandler {
     boolean isCell(ItemStack is);
 
     /**
-     * @deprecated 请使用 {@link #getCellInventory(ItemStack, ISaveProvider, IAEStackType)} 代替。
-     */
-    @Deprecated
-    default <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
-            IStorageChannel<T> channel) {
-        return this.getCellInventory(is, host, channel.getStackType());
-    }
-
-    /**
      * 通过 {@link IAEStackType} 获取 cell 的 inventory handler。
      * <p>
      * 如果无法处理该物品，返回 null。

@@ -327,7 +327,7 @@ public class TileCondenser extends AEBaseInvTile implements IConfigManagerHost, 
             if (type == AEItemStackType.INSTANCE) {
                 return (IMEMonitor<T>) this.itemInventory;
             } else {
-                return new CondenserVoidInventory<>(TileCondenser.this, type.getStorageChannel());
+                return new CondenserVoidInventory<>(TileCondenser.this, type);
             }
         }
     }

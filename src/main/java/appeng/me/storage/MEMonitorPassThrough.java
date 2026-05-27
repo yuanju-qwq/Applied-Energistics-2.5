@@ -27,7 +27,6 @@ import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -46,12 +45,6 @@ public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T
         if (i instanceof IMEMonitor) {
             this.monitor = (IMEMonitor<T>) i;
         }
-    }
-
-    /** @deprecated 请使用 {@link #MEMonitorPassThrough(IMEInventory, IAEStackType)} 代替 */
-    @Deprecated
-    public MEMonitorPassThrough(final IMEInventory<T> i, final IStorageChannel<T> channel) {
-        this(i, channel.getStackType());
     }
 
     @Override

@@ -34,7 +34,6 @@ import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 
 import appeng.api.AEApi;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStackType;
@@ -213,15 +212,4 @@ public class AEFluidStackType implements IAEStackType<IAEFluidStack> {
         return 48;
     }
 
-    @Nonnull
-    @Override
-    @SuppressWarnings("unchecked")
-    public IStorageChannel<IAEFluidStack> getStorageChannel() {
-        for (IStorageChannel<?> ch : AEApi.instance().storage().storageChannels()) {
-            if (ch.getStackType() == this) {
-                return (IStorageChannel<IAEFluidStack>) ch;
-            }
-        }
-        throw new IllegalStateException("No IStorageChannel registered for AEFluidStackType");
-    }
 }

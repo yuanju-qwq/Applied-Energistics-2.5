@@ -78,29 +78,10 @@ public interface ICellRegistry {
     ICellHandler getHandler(ItemStack is);
 
     /**
-     * @deprecated 请使用 {@link #getGuiHandler(IAEStackType, ItemStack)} 代替。
-     */
-    @Nullable
-    @Deprecated
-    default <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(IStorageChannel<T> channel, ItemStack is) {
-        return this.getGuiHandler(channel.getStackType(), is);
-    }
-
-    /**
      * 通过 {@link IAEStackType} 获取 GUI handler。
      */
     @Nullable
     <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(IAEStackType<T> type, ItemStack is);
-
-    /**
-     * @deprecated 请使用 {@link #getCellInventory(ItemStack, ISaveProvider, IAEStackType)} 代替。
-     */
-    @Nullable
-    @Deprecated
-    default <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
-            IStorageChannel<T> chan) {
-        return this.getCellInventory(is, host, chan.getStackType());
-    }
 
     /**
      * 通过 {@link IAEStackType} 获取 cell 的 inventory handler。

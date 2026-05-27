@@ -34,7 +34,6 @@ import net.minecraftforge.fluids.FluidStack;
 import appeng.api.config.FuzzyMode;
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEKey;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.core.Api;
@@ -198,11 +197,6 @@ public final class AEFluidStack extends AEStack<IAEFluidStack> implements IAEFlu
     @Override
     public boolean isFluid() {
         return true;
-    }
-
-    @Override
-    public IStorageChannel<IAEFluidStack> getChannel() {
-        return AEFluidStackType.INSTANCE.getStorageChannel();
     }
 
     @Override

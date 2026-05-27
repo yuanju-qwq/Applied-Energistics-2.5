@@ -184,7 +184,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
             return false;
 
         ItemStack paintItem = null;
-        for (final IAEItemStack what : inv.getAvailableItems(getChannel().createList())) {
+        for (final IAEItemStack what : inv.getAvailableItems(getStackType().createList())) {
             final ItemStack def = what.createItemStack();
             def.setCount(1);
             if (getColorFromItem(def) == color) {
@@ -227,7 +227,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
         if (inv == null)
             return false;
 
-        for (IAEItemStack stack : inv.getAvailableItems(getChannel().createList())) {
+        for (IAEItemStack stack : inv.getAvailableItems(getStackType().createList())) {
             ItemStack def = stack.getDefinition();
             if (getColorFromItem(def) == color) {
                 setColor(applicator, def);
@@ -282,7 +282,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
         return AEApi.instance()
                 .registries()
                 .cell()
-                .getCellInventory(stack, null, getChannel());
+                .getCellInventory(stack, null, getStackType());
     }
 
     public ItemStack getColor(final ItemStack is) {
@@ -303,7 +303,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
 
         final IMEInventory<IAEItemStack> inv = getInventory(is);
         if (inv != null) {
-            final IItemList<IAEItemStack> itemList = inv.getAvailableItems(getChannel().createList());
+            final IItemList<IAEItemStack> itemList = inv.getAvailableItems(getStackType().createList());
             if (anchor.isEmpty()) {
                 final IAEItemStack firstItem = itemList.getFirstItem();
                 if (firstItem != null) {

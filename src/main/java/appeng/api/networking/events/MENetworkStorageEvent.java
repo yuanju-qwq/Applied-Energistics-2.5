@@ -24,7 +24,6 @@
 package appeng.api.networking.events;
 
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 
@@ -40,13 +39,10 @@ public class MENetworkStorageEvent extends MENetworkEvent {
 
     public final IMEMonitor<?> monitor;
     public final IAEStackType<?> stackType;
-    /** @deprecated 使用 {@link #stackType} 代替 */
-    @Deprecated
-    public final IStorageChannel<?> channel;
+
 
     public <T extends IAEStack<T>> MENetworkStorageEvent(final IMEMonitor<T> o, final IAEStackType<T> type) {
         this.monitor = o;
         this.stackType = type;
-        this.channel = type.getStorageChannel();
     }
 }

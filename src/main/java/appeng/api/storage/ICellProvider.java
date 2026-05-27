@@ -36,14 +36,6 @@ import appeng.api.storage.data.IAEStackType;
 public interface ICellProvider extends IGridNodeService {
 
     /**
-     * @deprecated 请使用 {@link #getCellArray(IAEStackType)} 代替。
-     */
-    @Deprecated
-    default <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(IStorageChannel<T> channel) {
-        return this.getCellArray(channel.getStackType());
-    }
-
-    /**
      * 通过 {@link IAEStackType} 获取存储 cell 列表。
      * <p>
      * 必须返回对应类型的正确 handler，不能返回 null。

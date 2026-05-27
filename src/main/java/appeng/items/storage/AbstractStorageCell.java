@@ -44,6 +44,7 @@ import appeng.api.implementations.items.IUpgradeModule;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.core.AEConfig;
 import appeng.core.features.AEFeature;
@@ -105,6 +106,9 @@ public abstract class AbstractStorageCell<T extends IAEStack<T>> extends AEBaseI
     public boolean isStorageCell(final ItemStack i) {
         return true;
     }
+
+    @Override
+    public abstract IAEStackType<T> getStackType();
 
     @Override
     public String getUnlocalizedGroupName(final Set<ItemStack> others, final ItemStack is) {

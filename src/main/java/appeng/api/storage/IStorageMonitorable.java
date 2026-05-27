@@ -35,15 +35,6 @@ import appeng.api.storage.data.IAEStackType;
 public interface IStorageMonitorable {
 
     /**
-     * @deprecated 请使用 {@link #getInventory(IAEStackType)} 代替。
-     * 默认实现委托到新方法 {@link #getInventory(IAEStackType)}。
-     */
-    @Deprecated
-    default <T extends IAEStack<T>> IMEMonitor<T> getInventory(IStorageChannel<T> channel) {
-        return this.getInventory(channel.getStackType());
-    }
-
-    /**
      * 通过 {@link IAEStackType} 获取对应的 {@link IMEMonitor}。
      */
     <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type);

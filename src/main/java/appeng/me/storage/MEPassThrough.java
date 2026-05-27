@@ -23,7 +23,6 @@ import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -36,12 +35,6 @@ public class MEPassThrough<T extends IAEStack<T>> implements IMEInventoryHandler
     public MEPassThrough(final IMEInventory<T> i, final IAEStackType<T> type) {
         this.wrappedType = type;
         this.setInternal(i);
-    }
-
-    /** @deprecated 请使用 {@link #MEPassThrough(IMEInventory, IAEStackType)} 代替 */
-    @Deprecated
-    public MEPassThrough(final IMEInventory<T> i, final IStorageChannel<T> channel) {
-        this(i, channel.getStackType());
     }
 
     public IMEInventory<T> getInternal() {

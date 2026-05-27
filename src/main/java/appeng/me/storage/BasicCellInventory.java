@@ -12,7 +12,6 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ISaveProvider;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
@@ -54,10 +53,10 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
         }
     }
 
-    public static <T extends AEStack<T>> boolean isCellOfType(final ItemStack input, IStorageChannel<?> channel) {
+    public static <T extends AEStack<T>> boolean isCellOfType(final ItemStack input, IAEStackType<?> channel) {
         final IStorageCell<?> type = getStorageCell(input);
 
-        return type != null && type.getStackType() == channel.getStackType();
+        return type != null && type.getStackType() == channel;
     }
 
     public static boolean isCell(final ItemStack input) {

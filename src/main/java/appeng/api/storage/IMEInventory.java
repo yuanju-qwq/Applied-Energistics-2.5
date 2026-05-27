@@ -86,16 +86,6 @@ public interface IMEInventory<T extends IAEStackBase> {
     }
 
     /**
-     * @deprecated Use {@link #getStackType()} instead.
-     * @return the type of channel your handler should be part of
-     */
-    @Deprecated
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    default IStorageChannel getChannel() {
-        return getStackType().getStorageChannel();
-    }
-
-    /**
      * @return the {@link IAEStackType} corresponding to this inventory
      */
     IAEStackType<?> getStackType();

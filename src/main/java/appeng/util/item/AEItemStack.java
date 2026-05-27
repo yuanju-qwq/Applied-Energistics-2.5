@@ -40,7 +40,6 @@ import net.minecraftforge.items.ItemHandlerHelper;
 import ic2.api.item.ICustomDamageItem;
 
 import appeng.api.config.FuzzyMode;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.storage.data.IAEItemStack;
@@ -180,11 +179,6 @@ public class AEItemStack extends AEStack<IAEItemStack> implements IAEItemStack {
     @Override
     public boolean isFluid() {
         return false;
-    }
-
-    @Override
-    public IStorageChannel<IAEItemStack> getChannel() {
-        return AEItemStackType.INSTANCE.getStorageChannel();
     }
 
     @Override

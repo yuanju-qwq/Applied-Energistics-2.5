@@ -28,7 +28,6 @@ import javax.annotation.Nonnull;
 import net.minecraft.item.ItemStack;
 
 import appeng.api.storage.ICellWorkbenchItem;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 
@@ -104,20 +103,8 @@ public interface IStorageCell<T extends IAEStack<T>> extends ICellWorkbenchItem 
     double getIdleDrain();
 
     /**
-     * @deprecated 请使用 {@link #getStackType()} 代替。
-     * @return the type of channel your cell should be part of
-     */
-    @Deprecated
-    @Nonnull
-    default IStorageChannel<T> getChannel() {
-        return getStackType().getStorageChannel();
-    }
-
-    /**
      * @return 此 cell 对应的 {@link IAEStackType}
      */
     @Nonnull
-    default IAEStackType<T> getStackType() {
-        return getChannel().getStackType();
-    }
+    IAEStackType<T> getStackType();
 }

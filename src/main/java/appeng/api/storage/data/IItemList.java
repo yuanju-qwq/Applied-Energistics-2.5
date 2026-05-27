@@ -29,7 +29,6 @@ import java.util.Iterator;
 import javax.annotation.Nullable;
 
 import appeng.api.config.FuzzyMode;
-import appeng.api.storage.IStorageChannel;
 
 /**
  * Represents a legacy typed list of AE stacks.
@@ -39,9 +38,7 @@ import appeng.api.storage.IStorageChannel;
  * <p>
  * Don't Implement.
  * <p>
- * Construct with - For items: AEApi.instance().storage().getStorageChannel( IItemStorageChannel.class).createList() -
- * For fluids: AEApi.instance().storage().getStorageChannel( IFluidStorageChannel.class).createList() - Replace with the
- * corresponding {@link IStorageChannel} type for non native channels
+ * Construct via {@link IAEStackType#createList()}.
  */
 public interface IItemList<T extends IAEStackBase> extends IItemContainer<T>, Iterable<T> {
 

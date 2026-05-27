@@ -23,7 +23,6 @@ import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -31,11 +30,11 @@ import appeng.api.storage.data.IItemList;
 class CondenserVoidInventory<T extends IAEStack<T>> implements IMEMonitor<T> {
 
     private final TileCondenser target;
-    private final IStorageChannel<T> channel;
+    private final IAEStackType<T> stackType;
 
-    CondenserVoidInventory(final TileCondenser te, final IStorageChannel<T> channel) {
+    CondenserVoidInventory(final TileCondenser te, final IAEStackType<T> stackType) {
         this.target = te;
-        this.channel = channel;
+        this.stackType = stackType;
     }
 
     @Override
@@ -45,7 +44,7 @@ class CondenserVoidInventory<T extends IAEStack<T>> implements IMEMonitor<T> {
         }
 
         if (input != null) {
-            this.target.addPower(input.getStackSize() / (double) this.channel.transferFactor());
+            this.target.addPower(input.getStackSize() / (double) this.stackType.transferFactor());
         }
         return null;
     }
@@ -62,17 +61,12 @@ class CondenserVoidInventory<T extends IAEStack<T>> implements IMEMonitor<T> {
 
     @Override
     public IItemList<T> getStorageList() {
-        return this.channel.createList();
-    }
-
-    @Override
-    public IStorageChannel<T> getChannel() {
-        return this.channel;
+        return this.stackType.createList();
     }
 
     @Override
     public IAEStackType<T> getStackType() {
-        return this.channel.getStackType();
+        return this.stackType;
     }
 
     @Override

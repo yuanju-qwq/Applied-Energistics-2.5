@@ -31,7 +31,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 
 import appeng.api.AEApi;
-import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -128,15 +127,4 @@ public class AEItemStackType implements IAEStackType<IAEItemStack> {
         return 48;
     }
 
-    @Nonnull
-    @Override
-    @SuppressWarnings("unchecked")
-    public IStorageChannel<IAEItemStack> getStorageChannel() {
-        for (IStorageChannel<?> ch : AEApi.instance().storage().storageChannels()) {
-            if (ch.getStackType() == this) {
-                return (IStorageChannel<IAEItemStack>) ch;
-            }
-        }
-        throw new IllegalStateException("No IStorageChannel registered for AEItemStackType");
-    }
 }

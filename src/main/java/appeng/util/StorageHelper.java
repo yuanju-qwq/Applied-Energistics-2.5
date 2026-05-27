@@ -34,8 +34,9 @@ import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.IStorageChannel;
+import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.core.stats.Stats;
 
@@ -150,29 +151,29 @@ public final class StorageHelper {
 
     public static void postChanges(final IStorageGrid gs, final ItemStack removed, final ItemStack added,
             final IActionSource src) {
-        for (final IStorageChannel<?> chan : AEApi.instance().storage().storageChannels()) {
+        for (final IAEStackType<?> stackType : AEStackTypeRegistry.getAllTypes()) {
             final IItemList<? extends IAEStack<?>> myChanges;
 
             if (!removed.isEmpty()) {
-                final IMEInventory<?> myInv = AEApi.instance().registries().cell().getCellInventory(removed, null, chan);
+                final IMEInventory<?> myInv = AEApi.instance().registries().cell().getCellInventory(removed, null, stackType);
                 if (myInv != null) {
                     myChanges = getAvailableItems(myInv);
                     for (final IAEStack<?> is : myChanges) {
                         is.setStackSize(-is.getStackSize());
                     }
                 } else {
-                    myChanges = chan.createList();
+                    myChanges = stackType.createList();
                 }
             } else {
-                myChanges = chan.createList();
+                myChanges = stackType.createList();
             }
             if (!added.isEmpty()) {
-                final IMEInventory<?> myInv = AEApi.instance().registries().cell().getCellInventory(added, null, chan);
+                final IMEInventory<?> myInv = AEApi.instance().registries().cell().getCellInventory(added, null, stackType);
                 if (myInv != null) {
                     getAvailableItemsInto(myInv, myChanges);
                 }
             }
-            gs.postAlterationOfStoredItems(chan.getStackType(), myChanges, src);
+            gs.postAlterationOfStoredItems(stackType, myChanges, src);
         }
     }
 

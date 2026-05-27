@@ -33,8 +33,6 @@ import appeng.api.storage.ICellInventory;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.IStorageChannel;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.util.Platform;
@@ -48,12 +46,6 @@ import appeng.util.prioritylist.PrecisePriorityList;
  */
 public class BasicCellInventoryHandler<T extends IAEStack<T>> extends MEInventoryHandler<T>
         implements ICellInventoryHandler<T> {
-    /** @deprecated 璇蜂娇鐢?{@link #BasicCellInventoryHandler(IMEInventory, IAEStackType)} 浠ｆ浛 */
-    @Deprecated
-    @SuppressWarnings("unchecked")
-    public BasicCellInventoryHandler(final IMEInventory<T> c, final IStorageChannel<T> channel) {
-        this(c, channel.getStackType());
-    }
 
     @SuppressWarnings("unchecked")
     public BasicCellInventoryHandler(final IMEInventory<T> c, final IAEStackType<T> type) {
