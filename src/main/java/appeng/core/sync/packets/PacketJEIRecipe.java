@@ -199,7 +199,7 @@ public class PacketJEIRecipe extends AppEngPacket {
                 if (currentItem.isEmpty() && recipe.size() > x && recipe.get(x) != null) {
                     // for each variant
                     for (int y = 0; y < this.recipe.get(x).length && currentItem.isEmpty(); y++) {
-                        final IAEStack<?> request = AEItemStack.fromItemStack(this.recipe.get(x)[y]);
+                        final IAEItemStack request = AEItemStack.fromItemStack(this.recipe.get(x)[y]);
                         if (request != null) {
                             // try ae
                             if ((filter == null || filter.isListed(request))

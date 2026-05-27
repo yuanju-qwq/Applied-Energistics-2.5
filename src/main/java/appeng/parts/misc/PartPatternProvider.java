@@ -54,6 +54,7 @@ import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.IConfigManager;
 import appeng.core.AppEng;
