@@ -358,25 +358,25 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     public interface IMEInventoryUpdateReceiver {
         /**
          * Receive ME network inventory updates using RepoEntry (preferred path).
-         * Default implementation falls back to the legacy IAEStack path.
          */
-        default void postRepoEntryUpdate(List<appeng.client.me.ItemRepo.RepoEntry> entries) {
-            List<IAEStack<?>> legacyList = new java.util.ArrayList<>(entries.size());
-            for (appeng.client.me.ItemRepo.RepoEntry entry : entries) {
-                IAEStack<?> stack = entry.toIAEStack();
-                if (stack != null) {
-                    legacyList.add(stack);
-                }
-            }
-            postUpdate(legacyList);
-        }
+        void postRepoEntryUpdate(List<appeng.client.me.ItemRepo.RepoEntry> entries);
 
         /**
          * @deprecated Use {@link #postRepoEntryUpdate(List)} instead.
          * Receive item/fluid list updates from the ME network.
+         * Default implementation converts to RepoEntry and delegates.
          */
         @Deprecated
-        void postUpdate(List<IAEStack<?>> list);
+        default void postUpdate(List<IAEStack<?>> list) {
+            List<appeng.client.me.ItemRepo.RepoEntry> entries = new java.util.ArrayList<>(list.size());
+            for (IAEStack<?> stack : list) {
+                var key = stack.toAEKey();
+                if (key != null) {
+                    entries.add(new appeng.client.me.ItemRepo.RepoEntry(key, stack.getStackSize(), stack.isCraftable()));
+                }
+            }
+            postRepoEntryUpdate(entries);
+        }
     }
 
     // ========== IContainerCraftingPacket 接口实现 ==========

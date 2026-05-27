@@ -30,15 +30,15 @@ import appeng.core.localization.GuiText;
 import appeng.tile.misc.TileVibrationChamber;
 
 /**
- * MUI 版振动仓 GUI 面板。
+ * MUI vibration chamber GUI panel.
  *
- * 显示 AE/t 功率输出进度条和燃烧火焰动画。
+ * Displays AE/t power output progress bar and burning flame animation.
  */
 public class MUIVibrationChamberPanel extends AEBasePanel {
 
     private final ContainerVibrationChamber cvc;
 
-    // ========== 进度条 ==========
+    // ========== Progress bar ==========
     private GuiProgressBar pb;
 
     public MUIVibrationChamberPanel(final InventoryPlayer ip, final TileVibrationChamber te) {
@@ -51,11 +51,11 @@ public class MUIVibrationChamberPanel extends AEBasePanel {
         this.ySize = 166;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始化
+        // initGui handles initialization
     }
 
     @Override
@@ -66,7 +66,7 @@ public class MUIVibrationChamberPanel extends AEBasePanel {
         this.buttonList.add(this.pb);
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -76,7 +76,7 @@ public class MUIVibrationChamberPanel extends AEBasePanel {
         this.pb.setFullMsg(TileVibrationChamber.POWER_PER_TICK * this.cvc.getCurrentProgress()
                 / TileVibrationChamber.DILATION_SCALING + " AE/t");
 
-        // 燃烧火焰动画
+        // Burning flame animation
         if (this.cvc.getRemainingBurnTime() > 0) {
             final int i1 = this.cvc.getRemainingBurnTime() * 12 / 100;
             this.bindTexture("guis/vibchamber.png");

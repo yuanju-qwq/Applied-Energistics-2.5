@@ -24,11 +24,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.lwjgl.input.Mouse;
-import org.lwjgl.opengl.GL11;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
@@ -58,15 +57,15 @@ import appeng.parts.reporting.PartPatternTerminal;
 import appeng.parts.reporting.PartTerminal;
 
 /**
- * MUI 版Crafting status面板。
+ * MUI version of the Crafting status panel.
  * <p>
- * 继承 {@link MUICraftingCPUPanel}，在左侧增加 CPU 选择器列表，
- * 右上角增加返回原始终端的 Tab 按钮。
+ * Extends {@link MUICraftingCPUPanel}, adds a CPU selector list on the left,
+ * and a Tab button in the top-right corner to return to the original terminal.
  */
 @SideOnly(Side.CLIENT)
 public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraftingStatusGuiCallback {
 
-    // ========== CPU 选择器表格尺寸常量 ==========
+    // ========== CPU selector table size constants ==========
 
     private static final int CPU_TABLE_WIDTH = 94;
     private static final int CPU_TABLE_HEIGHT = 164;
@@ -75,7 +74,7 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
     private static final int CPU_TABLE_SLOT_WIDTH = 67;
     private static final int CPU_TABLE_SLOT_HEIGHT = 23;
 
-    // ========== 数据 ==========
+    // ========== Data ==========
 
     private final ContainerCraftingStatus status;
     private GuiButton selectCPU;
@@ -183,7 +182,7 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
         final int textColor = 0x202020;
         final int pausedColor = 0xFFA500;
 
-        // 绘制 CPU 槽位列表
+        // Draw CPU slot list
         for (int i = firstCpu; i < firstCpu + 6 && i < cpus.size(); i++) {
             if (i < 0) {
                 continue;
@@ -196,20 +195,20 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
             int x = -CPU_TABLE_WIDTH + 9;
             int y = 19 + (i - firstCpu) * CPU_TABLE_SLOT_HEIGHT;
 
-            // 槽位背景颜色
+            // Slot background color
             if (cpu.getSerial() == this.status.selectedCpuSerial) {
-                GL11.glColor4f(0.0F, 0.8352F, 1.0F, 1.0F);
+                GlStateManager.color(0.0F, 0.8352F, 1.0F, 1.0F);
             } else if (hoveredCpu != null && hoveredCpu.getSerial() == cpu.getSerial()) {
-                GL11.glColor4f(0.65F, 0.9F, 1.0F, 1.0F);
+                GlStateManager.color(0.65F, 0.9F, 1.0F, 1.0F);
             } else {
-                GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+                GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
             }
             this.bindTexture("guis/cpu_selector.png");
             this.drawTexturedModalRect(x, y, CPU_TABLE_SLOT_XOFF, CPU_TABLE_SLOT_YOFF,
                     CPU_TABLE_SLOT_WIDTH, CPU_TABLE_SLOT_HEIGHT);
-            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 
-            // CPU 名称
+            // CPU name
             String name = cpu.getName();
             if (name == null || name.isEmpty()) {
                 name = GuiText.CPUs.getLocal() + " #" + cpu.getSerial();
@@ -220,15 +219,15 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
             if (name.length() > 12) {
                 name = name.substring(0, 11) + "..";
             }
-            GL11.glPushMatrix();
-            GL11.glTranslatef(x + 3, y + 3, 0);
-            GL11.glScalef(0.8f, 0.8f, 1.0f);
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(x + 3, y + 3, 0);
+            GlStateManager.scale(0.8f, 0.8f, 1.0f);
             font.drawString(name, 0, 0, cpu.isPause() ? pausedColor : textColor);
-            GL11.glPopMatrix();
+            GlStateManager.popMatrix();
 
-            // CPU 状态区域
-            GL11.glPushMatrix();
-            GL11.glTranslatef(x + 3, y + 11, 0);
+            // CPU status area
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(x + 3, y + 11, 0);
             IAEItemStack craftingStack = cpu.getCrafting();
             if (cpu.isPause()) {
                 drawStatusIcon(font, 16 * 12, GuiText.Pause.getLocal(), pausedColor);
@@ -241,19 +240,19 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
             } else {
                 drawStatusIcon(font, 16 * 4 + 3, cpu.formatStorage(), textColor);
             }
-            GL11.glPopMatrix();
+            GlStateManager.popMatrix();
 
-            // 合成物品图标
+            // Crafting item icon
             if (craftingStack != null) {
-                GL11.glPushMatrix();
-                GL11.glTranslatef(x + CPU_TABLE_SLOT_WIDTH - 19, y + 3, 0);
+                GlStateManager.pushMatrix();
+                GlStateManager.translate(x + CPU_TABLE_SLOT_WIDTH - 19, y + 3, 0);
                 this.drawItem(0, 0, craftingStack.createItemStack());
-                GL11.glPopMatrix();
+                GlStateManager.popMatrix();
             }
         }
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 
-        // CPU 悬停提示
+        // CPU hover tooltip
         StringBuilder tooltip = new StringBuilder();
         if (hoveredCpu != null) {
             buildCpuTooltip(hoveredCpu, tooltip);
@@ -278,7 +277,7 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
                 CPU_TABLE_WIDTH, CPU_TABLE_HEIGHT);
     }
 
-    // ========== JEI 排除区域 ==========
+    // ========== JEI exclusion area ==========
 
     @Override
     public List<Rectangle> getJEIExclusionArea() {
@@ -288,7 +287,7 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
         return area;
     }
 
-    // ========== 鼠标事件 ==========
+    // ========== Mouse events ==========
 
     @Override
     protected void mouseClicked(int xCoord, int yCoord, int btn) throws IOException {
@@ -338,11 +337,11 @@ public class MUICraftingStatusPanel extends MUICraftingCPUPanel implements ICraf
         this.bindTexture("guis/states.png");
         int uvY = iconIndex / 16;
         int uvX = iconIndex - uvY * 16;
-        GL11.glScalef(0.5f, 0.5f, 1.0f);
-        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.scale(0.5f, 0.5f, 1.0f);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         this.drawTexturedModalRect(0, 0, uvX * 16, uvY * 16, 16, 16);
-        GL11.glTranslatef(18.0f, 2.0f, 0.0f);
-        GL11.glScalef(1.5f, 1.5f, 1.0f);
+        GlStateManager.translate(18.0f, 2.0f, 0.0f);
+        GlStateManager.scale(1.5f, 1.5f, 1.0f);
         font.drawString(text, 0, 0, color);
     }
 

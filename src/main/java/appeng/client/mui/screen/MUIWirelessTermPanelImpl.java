@@ -30,9 +30,9 @@ import appeng.container.implementations.ContainerWirelessTerm;
 import appeng.helpers.WirelessTerminalGuiObject;
 
 /**
- * MUI 版无线物品终端面板。
+ * MUI wireless item terminal panel.
  * <p>
- * 继承 {@link MUIMEMonitorablePanel}，添加无线升级图标和终端模式切换按钮。
+ * Extends {@link MUIMEMonitorablePanel}, adding wireless upgrade icon and terminal mode toggle button.
  */
 @SideOnly(Side.CLIENT)
 public class MUIWirelessTermPanelImpl extends MUIMEMonitorablePanel implements MUIWirelessTermPanel {

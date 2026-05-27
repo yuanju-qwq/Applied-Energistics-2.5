@@ -65,15 +65,21 @@ import appeng.util.item.AEItemStackType;
  * <p>Responsible for:
  * <ul>
  *   <li>Managing byId / providerById data (receiving server sync via {@link #postUpdate(NBTTagCompound)})</li>
- *   <li>Three search fields (inputs/outputs/names) and filter buttons (assembler filter/empty slot filter/broken recipe filter/terminal style)</li>
+ *   <li>Search fields (single or triple, configurable via {@link SearchMode}) and filter buttons</li>
  *   <li>Refreshing the list, scrollbar management</li>
- *   <li>Rendering interface list rows in drawBG/drawFG</li>
- *   <li>Dynamically creating SlotDisconnected and highlight buttons in drawScreen</li>
+ *   <li>Rendering interface list rows in drawBG/drawFG (TRIPLE mode only)</li>
+ *   <li>Dynamically creating SlotDisconnected and highlight buttons in drawScreen (TRIPLE mode only)</li>
  *   <li>Keyboard/mouse event forwarding</li>
  *   <li>Block highlight positioning</li>
  * </ul>
  *
  * <p>The host GUI provides context via the {@link Host} interface.
+ *
+ * <p>Supports two search modes:
+ * <ul>
+ *   <li>{@link SearchMode#TRIPLE} — three search fields (inputs/outputs/names) + filter buttons (MUIInterfaceTerminalPanel)</li>
+ *   <li>{@link SearchMode#SINGLE_INPUTS_NAMES} — single search field for item name + interface name matching (MUIInterfaceConfigurationTerminalPanel)</li>
+ * </ul>
  */
 public class InterfaceListModule {
 
@@ -83,6 +89,24 @@ public class InterfaceListModule {
     private static final int MAIN_GUI_WIDTH = 208;
     private static final int MAGIC_HEIGHT_NUMBER = 52 + 99;
     private static final String MOLECULAR_ASSEMBLER = "tile.appliedenergistics2.molecular_assembler";
+
+    // ========== 搜索模式 ==========
+
+    /**
+     * Search mode for the interface list.
+     */
+    public enum SearchMode {
+        /**
+         * Single search field matching both item names and interface names.
+         * Used by {@code MUIInterfaceConfigurationTerminalPanel}.
+         */
+        SINGLE_INPUTS_NAMES,
+        /**
+         * Three search fields (inputs/outputs/names) with filter buttons.
+         * Used by {@code MUIInterfaceTerminalPanel} and wireless variant.
+         */
+        TRIPLE
+    }
 
     // ========== 宿主接口 ==========
 
@@ -138,6 +162,7 @@ public class InterfaceListModule {
     // ========== 数据存储 ==========
 
     private final Host host;
+    private final SearchMode searchMode;
 
     private final HashMap<Long, ClientDCInternalInv> byId = new HashMap<>();
     private final Map<Long, ClientDCInternalInv> providerById = new HashMap<>();
@@ -147,17 +172,22 @@ public class InterfaceListModule {
     private final Map<ClientDCInternalInv, Integer> numUpgradesMap = new HashMap<>();
     private final ArrayList<String> names = new ArrayList<>();
     private final ArrayList<Object> lines = new ArrayList<>();
-    private final Set<Object> matchedStacks = new HashSet<>();
     private final Map<String, Set<Object>> cachedSearches = new WeakHashMap<>();
+
+    /** Stacks that matched the search term (for green highlight overlay). */
+    private final Set<Object> matchedStacks = new HashSet<>();
+
+    /** Interfaces whose name matched the search term (SINGLE mode only, for dim overlay rendering). */
+    private final Set<ClientDCInternalInv> matchedInterfaces = new HashSet<>();
 
     private MUITextFieldWidget searchFieldOutputs;
     private MUITextFieldWidget searchFieldInputs;
     private MUITextFieldWidget searchFieldNames;
 
-    // Search bar module (manages triple search field lifecycle, keyboard/mouse handling)
+    // Search bar module (manages search field lifecycle, keyboard/mouse handling)
     private SearchBarModule searchBarModule;
 
-    // Toolbar buttons (MUI widgets, registered on host panel)
+    // Toolbar buttons (MUI widgets, registered on host panel) — TRIPLE mode only
     private MUIButtonWidget guiButtonHideFull;
     private MUIButtonWidget guiButtonAssemblersOnly;
     private MUIButtonWidget guiButtonBrokenRecipes;
@@ -175,6 +205,12 @@ public class InterfaceListModule {
     private boolean onlyBrokenRecipes = false;
     private int rows = 6;
 
+    /** Slot count for legacy interface inventories (default: PatternProviderLogic.NUMBER_OF_PATTERN_SLOTS). */
+    private final int slotCount;
+
+    /** Max stack size for legacy interface inventories (0 = use default 1-stack constructor). */
+    private final int maxStackSize;
+
     /** Highlight module (block position highlighting, cross-dimension detection) */
     private HighlightModule highlightModule;
 
@@ -185,10 +221,28 @@ public class InterfaceListModule {
     @javax.annotation.Nullable
     private Consumer<ClientDCInternalInv> doubleStacksHandler;
 
-    // ========== Constructor ==========
+    // ========== Constructors ==========
 
+    /**
+     * Create an interface list module with TRIPLE search mode and default slot count.
+     */
     public InterfaceListModule(Host host) {
+        this(host, SearchMode.TRIPLE, PatternProviderLogic.NUMBER_OF_PATTERN_SLOTS, 0);
+    }
+
+    /**
+     * Create an interface list module with full configuration.
+     *
+     * @param host        the host GUI
+     * @param mode        search mode (SINGLE or TRIPLE)
+     * @param slotCount   slot count for legacy interface inventories
+     * @param maxStackSize max stack size (0 = use 1-stack constructor)
+     */
+    public InterfaceListModule(Host host, SearchMode mode, int slotCount, int maxStackSize) {
         this.host = host;
+        this.searchMode = mode;
+        this.slotCount = slotCount;
+        this.maxStackSize = maxStackSize;
     }
 
     // ========== 配置 ==========
@@ -235,6 +289,38 @@ public class InterfaceListModule {
         return searchFieldNames;
     }
 
+    public MUITextFieldWidget getSearchFieldInputs() {
+        return searchFieldInputs;
+    }
+
+    public Map<String, Set<Object>> getCachedSearches() {
+        return cachedSearches;
+    }
+
+    public Set<Object> getMatchedStacks() {
+        return matchedStacks;
+    }
+
+    public Set<ClientDCInternalInv> getMatchedInterfaces() {
+        return matchedInterfaces;
+    }
+
+    public HashMultimap<String, ClientDCInternalInv> getByName() {
+        return byName;
+    }
+
+    public HighlightModule getHighlightModule() {
+        return highlightModule;
+    }
+
+    public MUIButtonPool getHighlightButtonPool() {
+        return highlightButtonPool;
+    }
+
+    public SearchMode getSearchMode() {
+        return searchMode;
+    }
+
     // ========== Search field creation ==========
 
     private SearchBarModule.SearchFieldGroup createSearchFieldGroup() {
@@ -274,10 +360,48 @@ public class InterfaceListModule {
 
     /**
      * Initialize search fields and filter buttons.
+     * Behavior depends on {@link #searchMode}:
+     * <ul>
+     *   <li>TRIPLE: three search fields + toolbar buttons + highlight/double button pools</li>
+     *   <li>SINGLE: single search field + highlight button pool (no toolbar buttons)</li>
+     * </ul>
      * Must be called after calculateRows and after the host sets ySize/guiTop.
      */
     public void initSearchFieldsAndButtons() {
-        // Initialize search bar module (TRIPLE mode)
+        if (searchMode == SearchMode.SINGLE_INPUTS_NAMES) {
+            initSingleModeFields();
+        } else {
+            initTripleModeFields();
+        }
+    }
+
+    private void initSingleModeFields() {
+        this.searchBarModule = new SearchBarModule(new SearchBarHost(), SearchBarModule.SearchMode.SINGLE);
+
+        this.searchFieldInputs = this.searchBarModule.initSingleField(
+                SearchBarModule.SearchFieldSpec.builder(32, 17, 65)
+                        .height(12)
+                        .tooltip("Inputs OR names")
+                        .onTextChange(text -> this.refreshList())
+                        .build());
+
+        // Highlight module
+        this.highlightModule = new HighlightModule(new HighlightModuleHost());
+
+        // Dynamic highlight button pool (wired through HighlightModule)
+        this.highlightButtonPool = new MUIButtonPool();
+        this.highlightModule.wirePoolClickHandler(this.highlightButtonPool);
+        host.addModuleWidget(this.highlightButtonPool);
+
+        // Dynamic double-stacks button pool (unused in single mode, but created for null safety)
+        this.doubleButtonPool = new MUIButtonPool()
+                .setDefaultOnClick(btn -> this.onDoubleStacksClicked(btn));
+        host.addModuleWidget(this.doubleButtonPool);
+
+        this.updateScrollBar();
+    }
+
+    private void initTripleModeFields() {
         this.searchBarModule = new SearchBarModule(new SearchBarHost(), SearchBarModule.SearchMode.TRIPLE);
 
         SearchBarModule.SearchFieldWidgets searchFields = this.searchBarModule.initTripleFields(
@@ -330,9 +454,16 @@ public class InterfaceListModule {
 
     // ========== Scrolling ==========
 
+    /**
+     * Update the scrollbar range and position.
+     * In TRIPLE mode, also sets the scrollbar position/size (panel-relative).
+     * In SINGLE mode, only sets the range (position is managed by the panel).
+     */
     public void updateScrollBar() {
         MUIScrollBar sb = host.getInterfaceScrollBar();
-        sb.setTop(52).setLeft(189).setHeight(this.rows * 18 - 2);
+        if (searchMode == SearchMode.TRIPLE) {
+            sb.setTop(52).setLeft(189).setHeight(this.rows * 18 - 2);
+        }
         sb.setRange(0, this.lines.size() - 1, 1);
     }
 
@@ -458,15 +589,17 @@ public class InterfaceListModule {
         doubleButtonMap.clear();
         panel.inventorySlots.inventorySlots.removeIf(slot -> slot instanceof SlotDisconnected);
 
-        // Update toolbar button values
-        guiButtonAssemblersOnly.set(
-                onlyMolecularAssemblers ? ActionItems.MOLECULAR_ASSEMBLERS_ON
-                        : ActionItems.MOLECULAR_ASSEMBLERS_OFF);
-        guiButtonHideFull.set(onlyShowWithSpace ? ActionItems.TOGGLE_SHOW_FULL_INTERFACES_OFF
-                : ActionItems.TOGGLE_SHOW_FULL_INTERFACES_ON);
-        guiButtonBrokenRecipes.set(onlyBrokenRecipes ? ActionItems.TOGGLE_SHOW_ONLY_INVALID_PATTERNS_ON
-                : ActionItems.TOGGLE_SHOW_ONLY_INVALID_PATTERNS_OFF);
-        terminalStyleBox.set(AEConfig.instance().getConfigManager().getSetting(Settings.TERMINAL_STYLE));
+        // Update toolbar button values (TRIPLE mode only; SINGLE mode panels handle their own slots)
+        if (searchMode == SearchMode.TRIPLE) {
+            guiButtonAssemblersOnly.set(
+                    onlyMolecularAssemblers ? ActionItems.MOLECULAR_ASSEMBLERS_ON
+                            : ActionItems.MOLECULAR_ASSEMBLERS_OFF);
+            guiButtonHideFull.set(onlyShowWithSpace ? ActionItems.TOGGLE_SHOW_FULL_INTERFACES_OFF
+                    : ActionItems.TOGGLE_SHOW_FULL_INTERFACES_ON);
+            guiButtonBrokenRecipes.set(onlyBrokenRecipes ? ActionItems.TOGGLE_SHOW_ONLY_INVALID_PATTERNS_ON
+                    : ActionItems.TOGGLE_SHOW_ONLY_INVALID_PATTERNS_OFF);
+            terminalStyleBox.set(AEConfig.instance().getConfigManager().getSetting(Settings.TERMINAL_STYLE));
+        }
 
         int offset = 51;
         final int currentScroll = host.getInterfaceScrollBar().getCurrentScroll();
@@ -699,8 +832,68 @@ public class InterfaceListModule {
     /**
      * Rebuild the interface list.
      * Filter by search criteria and update lines and scrollbar.
+     * Behavior depends on {@link #searchMode}:
+     * <ul>
+     *   <li>TRIPLE: three search fields (inputs/outputs/names) + filter buttons</li>
+     *   <li>SINGLE: single search field matching item names + interface names</li>
+     * </ul>
      */
     public void refreshList() {
+        if (searchMode == SearchMode.SINGLE_INPUTS_NAMES) {
+            refreshListSingle();
+        } else {
+            refreshListTriple();
+        }
+    }
+
+    private void refreshListSingle() {
+        this.byName.clear();
+        this.matchedStacks.clear();
+        this.matchedInterfaces.clear();
+
+        final String searchTerm = this.searchFieldInputs == null ? ""
+                : this.searchFieldInputs.getText().toLowerCase();
+        final Set<Object> cachedSearch = this.getCacheForSearchTerm(searchTerm);
+        final boolean rebuild = cachedSearch.isEmpty();
+
+        for (final ClientDCInternalInv entry : this.byId.values()) {
+            if (!rebuild && !cachedSearch.contains(entry)) {
+                continue;
+            }
+
+            boolean found = searchTerm.isEmpty();
+
+            if (!found) {
+                int slot = 0;
+                for (final ItemStack itemStack : entry.getInventory()) {
+                    if (slot > 8 + numUpgradesMap.get(entry) * 9) {
+                        break;
+                    }
+                    if (this.itemStackMatchesNameTerm(itemStack, searchTerm)) {
+                        found = true;
+                        matchedStacks.add(itemStack);
+                    }
+                    slot++;
+                }
+            }
+
+            if (searchTerm.isEmpty() || entry.getName().toLowerCase().contains(searchTerm)) {
+                this.matchedInterfaces.add(entry);
+                found = true;
+            }
+
+            if (found) {
+                this.byName.put(entry.getName(), entry);
+                cachedSearch.add(entry);
+            } else {
+                cachedSearch.remove(entry);
+            }
+        }
+
+        this.buildLinesFromNames();
+    }
+
+    private void refreshListTriple() {
         this.byName.clear();
         this.matchedStacks.clear();
 
@@ -721,6 +914,13 @@ public class InterfaceListModule {
         this.filterEntries(this.providerById.values(), cachedSearch, rebuild, searchInputs, searchOutputs,
                 searchNames);
 
+        this.buildLinesFromNames();
+    }
+
+    /**
+     * Build lines list from names (shared between SINGLE and TRIPLE refresh).
+     */
+    private void buildLinesFromNames() {
         this.names.clear();
         this.names.addAll(this.byName.keySet());
         Collections.sort(this.names);
@@ -821,6 +1021,35 @@ public class InterfaceListModule {
         }
     }
 
+    /**
+     * Match an item stack's display name against a search term (SINGLE mode).
+     * Supports negative terms prefixed with "-" or "!".
+     */
+    private boolean itemStackMatchesNameTerm(final ItemStack itemStack, final String searchTerm) {
+        if (itemStack.isEmpty()) {
+            return false;
+        }
+
+        boolean foundMatchingItemStack = false;
+        final String displayName = appeng.util.Platform
+                .getItemDisplayName(AEItemStackType.INSTANCE.createStack(itemStack))
+                .toLowerCase();
+
+        for (String term : searchTerm.split(" ")) {
+            if (term.length() > 1 && (term.startsWith("-") || term.startsWith("!"))) {
+                term = term.substring(1);
+                if (displayName.contains(term)) {
+                    return false;
+                }
+            } else if (displayName.contains(term)) {
+                foundMatchingItemStack = true;
+            } else {
+                return false;
+            }
+        }
+        return foundMatchingItemStack;
+    }
+
     private boolean itemStackMatchesSearchTerm(final ItemStack itemStack, final String searchTerm, int pass) {
         if (itemStack.isEmpty()) {
             return false;
@@ -883,8 +1112,13 @@ public class InterfaceListModule {
         ClientDCInternalInv o = this.byId.get(id);
 
         if (o == null) {
-            this.byId.put(id,
-                    o = new ClientDCInternalInv(PatternProviderLogic.NUMBER_OF_PATTERN_SLOTS, id, sortBy, string));
+            if (this.maxStackSize > 0) {
+                this.byId.put(id,
+                        o = new ClientDCInternalInv(this.slotCount, id, sortBy, string, this.maxStackSize));
+            } else {
+                this.byId.put(id,
+                        o = new ClientDCInternalInv(this.slotCount, id, sortBy, string));
+            }
             this.refreshList = true;
         }
 

@@ -41,10 +41,10 @@ import appeng.helpers.InventoryAction;
 import appeng.helpers.WirelessTerminalGuiObject;
 
 /**
- * MUI 版无线合成终端面板。
+ * MUI wireless crafting terminal panel.
  * <p>
- * 继承 {@link MUIMEMonitorablePanel}，添加 3×3 合成网格 + 清除按钮 +
- * 无线升级图标 + 终端模式切换按钮。
+ * Extends {@link MUIMEMonitorablePanel}, adding a 3x3 crafting grid + clear button +
+ * wireless upgrade icon + terminal mode toggle button.
  */
 @SideOnly(Side.CLIENT)
 public class MUIWirelessCraftingTermPanelImpl extends MUIMEMonitorablePanel implements MUIWirelessTermPanel {

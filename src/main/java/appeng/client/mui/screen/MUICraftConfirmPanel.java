@@ -1,28 +1,13 @@
-/*
- * This file is part of Applied Energistics 2.
- * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
- *
- * Applied Energistics 2 is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Applied Energistics 2 is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
- */
-
 package appeng.client.mui.screen;
 
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.google.common.base.Joiner;
 
@@ -37,6 +22,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.AEApi;
+import appeng.api.stacks.AEKey;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.mui.AEMUITheme;
@@ -58,52 +44,32 @@ import appeng.parts.reporting.PartExpandedProcessingPatternTerminal;
 import appeng.parts.reporting.PartPatternTerminal;
 import appeng.parts.reporting.PartTerminal;
 import appeng.util.Platform;
-import appeng.util.item.IMixedStackList;
-import appeng.util.item.IAEStackList;
 
 /**
- * MUI 版合成确认面板�?
+ * MUI craft confirm panel.
  * <p>
- * 功能：显示合成计划（从仓�?待合�?缺失的物品列表），选择 CPU，确认开始合成�?
- * <p>
- * 特性：
- * <ul>
- *   <li>3 �?× 5 行网格显示物�?/li>
- *   <li>从仓�?/ 待合�?/ 缺失 三种状态指�?/li>
- *   <li>缺失物品红色高亮</li>
- *   <li>CPU 选择按钮（左右键切换�?/li>
- *   <li>字节使用量和协处理器信息</li>
- *   <li>模拟模式标识</li>
- *   <li>合成执行次数（样板）显示</li>
- * </ul>
+ * Internal data storage uses {@link AEKey} + {@code long} amounts instead of {@link IAEStack}.
  */
 @SideOnly(Side.CLIENT)
 public class MUICraftConfirmPanel extends AEBasePanel
         implements ICraftConfirmGuiCallback, AEBasePanelGuiHandler.IMUIVisualListPanel {
 
-    // ========== 常量 ==========
-
     private static final int ROWS = 5;
-
-    // ========== 数据 ==========
 
     private final ContainerCraftConfirm ccc;
 
-    private final IMixedStackList storage = new IAEStackList();
-    private final IMixedStackList pending = new IAEStackList();
-    private final IMixedStackList missing = new IAEStackList();
+    private final Map<AEKey, Long> storage = new HashMap<>();
+    private final Map<AEKey, Long> pending = new HashMap<>();
+    private final Map<AEKey, Long> missing = new HashMap<>();
+    private final Map<AEKey, Long> craftCountsByKey = new HashMap<>();
 
-    private final List<IAEStack<?>> visual = new ArrayList<>();
-
-    // ========== UI 控件 ==========
+    private final List<AEKey> visual = new ArrayList<>();
 
     private AEGuiKey originalGui;
     private GuiButton cancel;
     private GuiButton start;
     private GuiButton selectCPU;
     private int tooltip = -1;
-
-    // ========== 构�?==========
 
     public MUICraftConfirmPanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(new ContainerCraftConfirm(inventoryPlayer, te));
@@ -116,11 +82,10 @@ public class MUICraftConfirmPanel extends AEBasePanel
         this.ccc = (ContainerCraftConfirm) this.inventorySlots;
         this.ccc.setGui((ICraftConfirmGuiCallback) this);
 
-        // 确定来源终端
         if (te instanceof WirelessTerminalGuiObject) {
             ItemStack itemStack = ((WirelessTerminalGuiObject) te).getItemStack();
             Object guiHandler = AEApi.instance().registries().wireless()
-                            .getWirelessTerminalHandler(itemStack).getGuiHandler(itemStack);
+                    .getWirelessTerminalHandler(itemStack).getGuiHandler(itemStack);
             if (guiHandler instanceof appeng.core.sync.AEGuiKey key) {
                 this.originalGui = key;
             } else if (guiHandler instanceof appeng.core.sync.GuiBridge gb) {
@@ -131,15 +96,12 @@ public class MUICraftConfirmPanel extends AEBasePanel
         if (te instanceof PartTerminal) {
             this.originalGui = AEGuiKeys.ME_TERMINAL;
         }
-
         if (te instanceof PartCraftingTerminal) {
             this.originalGui = AEGuiKeys.CRAFTING_TERMINAL;
         }
-
         if (te instanceof PartPatternTerminal) {
             this.originalGui = AEGuiKeys.PATTERN_TERMINAL;
         }
-
         if (te instanceof PartExpandedProcessingPatternTerminal) {
             this.originalGui = AEGuiKeys.EXPANDED_PROCESSING_PATTERN_TERMINAL;
         }
@@ -153,57 +115,57 @@ public class MUICraftConfirmPanel extends AEBasePanel
 
     @Override
     public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
-        switch (ref) {
-            case 0:
-                for (final IAEStack<?> l : list) {
-                    this.handleInput(this.storage, l);
-                }
-                break;
+        for (final IAEStack<?> l : list) {
+            final AEKey key = l.toAEKey();
+            if (key == null) continue;
 
-            case 1:
-                for (final IAEStack<?> l : list) {
-                    this.handleInput(this.pending, l);
-                }
-                break;
+            final long amount = l.getStackSize();
+            final long craftRounds = ref == 1 ? l.getCountRequestableCrafts() : 0;
 
-            case 2:
-                for (final IAEStack<?> l : list) {
-                    this.handleInput(this.missing, l);
-                }
-                break;
+            final Map<AEKey, Long> target = switch (ref) {
+                case 0 -> this.storage;
+                case 1 -> this.pending;
+                case 2 -> this.missing;
+                default -> null;
+            };
+
+            if (target != null) {
+                this.handleInput(target, key, amount, craftRounds);
+            }
         }
 
+        final Set<AEKey> seen = new HashSet<>();
         for (final IAEStack<?> l : list) {
-            final long amt = this.getTotal(l);
+            final AEKey key = l.toAEKey();
+            if (key == null || !seen.add(key)) continue;
 
+            final long amt = this.getTotal(key);
             if (amt <= 0) {
-                this.deleteVisualStack(l);
+                this.deleteVisualStack(key);
             } else {
-                final IAEStack<?> is = this.findVisualStack(l);
-                is.setStackSize(amt);
+                final int idx = this.findVisualIndex(key);
+                final AEKey entry = this.visual.get(idx);
+                // entry is already the right key; amounts are computed at render time
             }
         }
 
         this.updateScrollBar();
     }
 
-    // ========== 初始�?==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // Start 按钮
         this.start = new GuiButton(0, this.guiLeft + 162, this.guiTop + this.ySize - 25, 50, 20,
                 GuiText.Start.getLocal());
         this.start.enabled = false;
         this.buttonList.add(this.start);
 
-        // CPU 选择按钮
         this.selectCPU = new GuiButton(0, this.guiLeft + (219 - 180) / 2, this.guiTop + this.ySize - 68, 180, 20,
                 GuiText.CraftingCPU.getLocal() + ": " + GuiText.Automatic);
         this.selectCPU.enabled = false;
         this.buttonList.add(this.selectCPU);
 
-        // Cancel 按钮（仅当有来源终端时显示）
         if (this.originalGui != null) {
             this.cancel = new GuiButton(0, this.guiLeft + 6, this.guiTop + this.ySize - 25, 50, 20,
                     GuiText.Cancel.getLocal());
@@ -214,12 +176,11 @@ public class MUICraftConfirmPanel extends AEBasePanel
 
     private void updateScrollBar() {
         final int size = this.visual.size();
-
         this.getScrollBar().setTop(19).setLeft(218).setHeight(114);
         this.getScrollBar().setRange(0, (size + 2) / 3 - ROWS, 1);
     }
 
-    // ========== 绘制 ==========
+    // ========== Rendering ==========
 
     @Override
     public void drawScreen(final int mouseX, final int mouseY, final float btn) {
@@ -233,7 +194,6 @@ public class MUICraftConfirmPanel extends AEBasePanel
 
         this.tooltip = -1;
 
-        // 计算鼠标悬停的物品索�?
         final int offY = 23;
         int y = 0;
         int x = 0;
@@ -249,7 +209,6 @@ public class MUICraftConfirmPanel extends AEBasePanel
             }
 
             x++;
-
             if (x > 2) {
                 y++;
                 x = 0;
@@ -283,16 +242,13 @@ public class MUICraftConfirmPanel extends AEBasePanel
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        // 标题�?
         final long BytesUsed = this.ccc.getUsedBytes();
         final String byteUsed = NumberFormat.getInstance().format(BytesUsed);
         final String Add = BytesUsed > 0 ? (byteUsed + ' ' + GuiText.BytesUsed.getLocal())
                 : GuiText.CalculatingWait.getLocal();
         this.fontRenderer.drawString(GuiText.CraftingPlan.getLocal() + " - " + Add, 8, 7, AEMUITheme.COLOR_TITLE);
 
-        // CPU 信息�?
         String dsp = null;
-
         if (this.isSimulation()) {
             dsp = GuiText.Simulation.getLocal();
         } else {
@@ -305,7 +261,6 @@ public class MUICraftConfirmPanel extends AEBasePanel
         final int offset = (219 - this.fontRenderer.getStringWidth(dsp)) / 2;
         this.fontRenderer.drawString(dsp, offset, 165, AEMUITheme.COLOR_TITLE);
 
-        // 物品列表
         final int sectionLength = 67;
 
         int x = 0;
@@ -323,26 +278,21 @@ public class MUICraftConfirmPanel extends AEBasePanel
         final int offY = 23;
 
         for (int z = viewStart; z < Math.min(viewEnd, this.visual.size()); z++) {
-            final IAEStack<?> refStack = this.visual.get(z);
-            if (refStack != null) {
+            final AEKey key = this.visual.get(z);
+            if (key != null) {
                 GlStateManager.pushMatrix();
                 GlStateManager.scale(0.5, 0.5, 0.5);
 
-                final IAEStack<?> stored = this.storage.findPrecise(refStack);
-                final IAEStack<?> pendingStack = this.pending.findPrecise(refStack);
-                final IAEStack<?> missingStack = this.missing.findPrecise(refStack);
+                final long stored = this.storage.getOrDefault(key, 0L);
+                final long pendingAmt = this.pending.getOrDefault(key, 0L);
+                final long missingAmt = this.missing.getOrDefault(key, 0L);
 
                 int lines = 0;
-
-                if (stored != null && stored.getStackSize() > 0) {
+                if (stored > 0) lines++;
+                if (missingAmt > 0) lines++;
+                if (pendingAmt > 0) {
                     lines++;
-                }
-                if (missingStack != null && missingStack.getStackSize() > 0) {
-                    lines++;
-                }
-                if (pendingStack != null && pendingStack.getStackSize() > 0) {
-                    lines++;
-                    if (pendingStack.getCountRequestableCrafts() > 0) {
+                    if (this.craftCountsByKey.getOrDefault(key, 0L) > 0) {
                         lines++;
                     }
                 }
@@ -350,15 +300,10 @@ public class MUICraftConfirmPanel extends AEBasePanel
                 final int negY = ((lines - 1) * 5) / 2;
                 int downY = 0;
 
-                // 从仓�?
-                if (stored != null && stored.getStackSize() > 0) {
-                    String str = Long.toString(stored.getStackSize());
-                    if (stored.getStackSize() >= 10000) {
-                        str = Long.toString(stored.getStackSize() / 1000) + 'k';
-                    }
-                    if (stored.getStackSize() >= 10000000) {
-                        str = Long.toString(stored.getStackSize() / 1000000) + 'm';
-                    }
+                if (stored > 0) {
+                    String str = Long.toString(stored);
+                    if (stored >= 10000) str = Long.toString(stored / 1000) + 'k';
+                    if (stored >= 10000000) str = Long.toString(stored / 1000000) + 'm';
 
                     str = GuiText.FromStorage.getLocal() + ": " + str;
                     final int w = 4 + this.fontRenderer.getStringWidth(str);
@@ -367,22 +312,17 @@ public class MUICraftConfirmPanel extends AEBasePanel
                             (y * offY + yo + 6 - negY + downY) * 2, AEMUITheme.COLOR_TITLE);
 
                     if (this.tooltip == z - viewStart) {
-                        lineList.add(GuiText.FromStorage.getLocal() + ": " + stored.getStackSize());
+                        lineList.add(GuiText.FromStorage.getLocal() + ": " + stored);
                     }
 
                     downY += 5;
                 }
 
-                // 缺失
                 boolean red = false;
-                if (missingStack != null && missingStack.getStackSize() > 0) {
-                    String str = Long.toString(missingStack.getStackSize());
-                    if (missingStack.getStackSize() >= 10000) {
-                        str = Long.toString(missingStack.getStackSize() / 1000) + 'k';
-                    }
-                    if (missingStack.getStackSize() >= 10000000) {
-                        str = Long.toString(missingStack.getStackSize() / 1000000) + 'm';
-                    }
+                if (missingAmt > 0) {
+                    String str = Long.toString(missingAmt);
+                    if (missingAmt >= 10000) str = Long.toString(missingAmt / 1000) + 'k';
+                    if (missingAmt >= 10000000) str = Long.toString(missingAmt / 1000000) + 'm';
 
                     str = GuiText.Missing.getLocal() + ": " + str;
                     final int w = 4 + this.fontRenderer.getStringWidth(str);
@@ -391,22 +331,17 @@ public class MUICraftConfirmPanel extends AEBasePanel
                             (y * offY + yo + 6 - negY + downY) * 2, AEMUITheme.COLOR_TITLE);
 
                     if (this.tooltip == z - viewStart) {
-                        lineList.add(GuiText.Missing.getLocal() + ": " + missingStack.getStackSize());
+                        lineList.add(GuiText.Missing.getLocal() + ": " + missingAmt);
                     }
 
                     red = true;
                     downY += 5;
                 }
 
-                // 待合�?
-                if (pendingStack != null && pendingStack.getStackSize() > 0) {
-                    String str = Long.toString(pendingStack.getStackSize());
-                    if (pendingStack.getStackSize() >= 10000) {
-                        str = Long.toString(pendingStack.getStackSize() / 1000) + 'k';
-                    }
-                    if (pendingStack.getStackSize() >= 10000000) {
-                        str = Long.toString(pendingStack.getStackSize() / 1000000) + 'm';
-                    }
+                if (pendingAmt > 0) {
+                    String str = Long.toString(pendingAmt);
+                    if (pendingAmt >= 10000) str = Long.toString(pendingAmt / 1000) + 'k';
+                    if (pendingAmt >= 10000000) str = Long.toString(pendingAmt / 1000000) + 'm';
 
                     str = GuiText.ToCraft.getLocal() + ": " + str;
                     final int w = 4 + this.fontRenderer.getStringWidth(str);
@@ -415,13 +350,12 @@ public class MUICraftConfirmPanel extends AEBasePanel
                             (y * offY + yo + 6 - negY + downY) * 2, AEMUITheme.COLOR_TITLE);
 
                     if (this.tooltip == z - viewStart) {
-                        lineList.add(GuiText.ToCraft.getLocal() + ": " + pendingStack.getStackSize());
+                        lineList.add(GuiText.ToCraft.getLocal() + ": " + pendingAmt);
                     }
 
                     downY += 5;
 
-                    // 样板执行次数
-                    long craftRounds = pendingStack.getCountRequestableCrafts();
+                    long craftRounds = this.craftCountsByKey.getOrDefault(key, 0L);
                     if (craftRounds > 0) {
                         String roundsStr = String.format("%s: %d", GuiText.PatternExecutionCount.getLocal(),
                                 craftRounds);
@@ -437,18 +371,16 @@ public class MUICraftConfirmPanel extends AEBasePanel
                 final int posX = x * (1 + sectionLength) + xo + sectionLength - 19;
                 final int posY = y * offY + yo;
 
-                final ItemStack is = refStack.asItemStackRepresentation();
+                final ItemStack is = key.asItemStackRepresentation();
 
                 if (this.tooltip == z - viewStart) {
-                    dspToolTip = Platform.getItemDisplayName(refStack);
+                    dspToolTip = key.getDisplayName();
 
-                    if (pendingStack != null) {
-                        long rounds = pendingStack.getCountRequestableCrafts();
-                        if (rounds > 0) {
-                            lineList.add(String.format("%s: %d",
-                                    GuiText.PatternExecutionCount.getLocal(),
-                                    rounds));
-                        }
+                    long rounds = this.craftCountsByKey.getOrDefault(key, 0L);
+                    if (rounds > 0) {
+                        lineList.add(String.format("%s: %d",
+                                GuiText.PatternExecutionCount.getLocal(),
+                                rounds));
                     }
 
                     if (lineList.size() > 0) {
@@ -461,7 +393,6 @@ public class MUICraftConfirmPanel extends AEBasePanel
 
                 this.drawItem(posX, posY, is);
 
-                // 缺失物品红色高亮
                 if (red) {
                     final int startX = x * (1 + sectionLength) + xo;
                     final int startY = posY - 4;
@@ -469,7 +400,6 @@ public class MUICraftConfirmPanel extends AEBasePanel
                 }
 
                 x++;
-
                 if (x > 2) {
                     y++;
                     x = 0;
@@ -489,7 +419,7 @@ public class MUICraftConfirmPanel extends AEBasePanel
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
     }
 
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
@@ -529,79 +459,50 @@ public class MUICraftConfirmPanel extends AEBasePanel
         }
     }
 
-    // ========== 数据处理 ==========
+    // ========== Data processing ==========
 
-    private void handleInput(final IMixedStackList s, final IAEStack<?> l) {
-        IAEStack<?> a = s.findPrecise(l);
-
-        if (l.getStackSize() <= 0) {
-            if (a != null) {
-                a.reset();
-            }
+    private void handleInput(final Map<AEKey, Long> counter, final AEKey key, final long amount, final long craftRounds) {
+        if (amount <= 0) {
+            counter.remove(key);
+            this.craftCountsByKey.remove(key);
         } else {
-            if (a == null) {
-                s.add(l.copy());
-                a = s.findPrecise(l);
-            }
-
-            if (a != null) {
-                a.setStackSize(l.getStackSize());
-                a.setCountRequestableCrafts(l.getCountRequestableCrafts());
+            counter.put(key, amount);
+            if (craftRounds > 0) {
+                this.craftCountsByKey.put(key, craftRounds);
             }
         }
     }
 
-    private long getTotal(final IAEStack<?> is) {
-        final IAEStack<?> a = this.storage.findPrecise(is);
-        final IAEStack<?> c = this.pending.findPrecise(is);
-        final IAEStack<?> m = this.missing.findPrecise(is);
-
+    private long getTotal(final AEKey key) {
         long total = 0;
-
-        if (a != null) {
-            total += a.getStackSize();
-        }
-
-        if (c != null) {
-            total += c.getStackSize();
-        }
-
-        if (m != null) {
-            total += m.getStackSize();
-        }
-
+        total += this.storage.getOrDefault(key, 0L);
+        total += this.pending.getOrDefault(key, 0L);
+        total += this.missing.getOrDefault(key, 0L);
         return total;
     }
 
-    private void deleteVisualStack(final IAEStack<?> l) {
-        final Iterator<IAEStack<?>> i = this.visual.iterator();
-        while (i.hasNext()) {
-            final IAEStack<?> o = i.next();
-            if (o.equals(l)) {
-                i.remove();
-                return;
-            }
-        }
+    private void deleteVisualStack(final AEKey key) {
+        this.visual.removeIf(k -> k.equals(key));
     }
 
-    private IAEStack<?> findVisualStack(final IAEStack<?> l) {
-        for (final IAEStack<?> o : this.visual) {
-            if (o.equals(l)) {
-                return o;
+    private int findVisualIndex(final AEKey key) {
+        for (int i = 0; i < this.visual.size(); i++) {
+            if (this.visual.get(i).equals(key)) {
+                return i;
             }
         }
-
-        final IAEStack<?> stack = l.copy();
-        this.visual.add(stack);
-        return stack;
+        this.visual.add(key);
+        return this.visual.size() - 1;
     }
 
-    // ========== 公共访问�?==========
+    // ========== Public accessors ==========
 
-    public List<IAEStack<?>> getVisual() {
+    @Override
+    public List<AEKey> getVisual() {
         return visual;
     }
 
+    @Override
     public int getDisplayedRows() {
         return ROWS;
     }

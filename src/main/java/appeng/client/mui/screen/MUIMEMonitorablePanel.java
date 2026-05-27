@@ -117,7 +117,6 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     private static int craftingGridOffsetX;
     private static int craftingGridOffsetY;
-    private static String memoryText = "";
 
     // ========== Layout constants ==========
 
@@ -431,12 +430,6 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         handlePostUpdatePauseAndRefresh();
     }
 
-    @Override
-    public void postUpdate(final List<IAEStack<?>> list) {
-        this.browserModule.postUpdate(list);
-        handlePostUpdatePauseAndRefresh();
-    }
-
     private void handlePostUpdatePauseAndRefresh() {
         final boolean pauseEnabled = AEConfig.instance().getConfigManager()
                 .getSetting(Settings.PAUSE_WHEN_HOLDING_SHIFT) == YesNo.YES;
@@ -627,7 +620,6 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
     public void onGuiClosed() {
         super.onGuiClosed();
         this.browserModule.onGuiClosed();
-        memoryText = this.browserModule.getSearchBarModule().getMemoryText();
     }
 
     @Override

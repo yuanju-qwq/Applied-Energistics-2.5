@@ -57,10 +57,10 @@ import appeng.parts.reporting.PartTerminal;
  * <p>
  * Function: input craft amount, click Next/Start to initiate a craft request.
  * <p>
- * 特性：
+ * Features:
  * <ul>
- *   <li>数量输入框支持数学表达式（加减乘除）</li>
- *   <li>4 组增减按钮（可在 AEConfig 中配置增量）</li>
+ *   <li>Amount input supports math expressions (addition, subtraction, multiplication, division)</li>
+ *   <li>4 increment/decrement button pairs (configurable in AEConfig)</li>
  *   <li>Enter key quick submit</li>
  *   <li>Shift+Next starts crafting directly (skips confirmation)</li>
  *   <li>Top-left return button (returns to source terminal)</li>
@@ -69,7 +69,7 @@ import appeng.parts.reporting.PartTerminal;
 @SideOnly(Side.CLIENT)
 public class MUICraftAmountPanel extends AEBasePanel {
 
-    // ========== UI 控件 ==========
+    // ========== UI controls ==========
 
     private GuiTextField amountToCraft;
     private MUITabContainer originalGuiBtn;
@@ -114,7 +114,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
         this.buttonList.add(this.minus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 75, 32, 20, "-" + c));
         this.buttonList.add(this.minus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 75, 38, 20, "-" + d));
 
-        // Next/Start 按钮
+        // Next/Start button
         this.buttonList.add(
                 this.next = new GuiButton(0, this.guiLeft + 128, this.guiTop + 51, 38, 20, GuiText.Next.getLocal()));
 
@@ -178,7 +178,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
         this.amountToCraft.setSelectionPos(0);
     }
 
-    // ========== 绘制 ==========
+    // ========== Drawing ==========
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
@@ -187,7 +187,7 @@ public class MUICraftAmountPanel extends AEBasePanel {
 
     @Override
     protected void drawBG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        // Shift 切换按钮文字
+        // Shift toggles button text
         this.next.displayString = isShiftKeyDown() ? GuiText.Start.getLocal() : GuiText.Next.getLocal();
 
         this.bindTexture("guis/craft_amt.png");
@@ -247,11 +247,11 @@ public class MUICraftAmountPanel extends AEBasePanel {
                 NetworkHandler.instance().sendToServer(new PacketCraftRequest(result, isShiftKeyDown()));
             }
         } catch (final NumberFormatException e) {
-            // 解析失败，重置为 1
+            // Parse failed, reset to 1
             this.amountToCraft.setText("1");
         }
 
-        // 增减按钮
+        // Increment/Decrement buttons
         final boolean isPlus = btn == this.plus1 || btn == this.plus10 || btn == this.plus100 || btn == this.plus1000;
         final boolean isMinus = btn == this.minus1 || btn == this.minus10 || btn == this.minus100
                 || btn == this.minus1000;

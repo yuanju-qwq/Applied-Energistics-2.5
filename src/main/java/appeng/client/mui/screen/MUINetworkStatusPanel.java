@@ -23,21 +23,16 @@ import java.util.List;
 import org.lwjgl.input.Mouse;
 
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 
 import appeng.api.config.Settings;
 import appeng.api.config.SortDir;
 import appeng.api.config.SortOrder;
 import appeng.api.config.ViewItems;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.gui.widgets.ISortSource;
 import appeng.client.me.ItemRepo;
-import appeng.client.me.SlotME;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.container.implementations.ContainerNetworkStatus;
@@ -51,9 +46,9 @@ import appeng.util.Platform;
  * Displays an overview of all devices in the ME network (5 columns x 4 rows grid), including:
  * <ul>
  *   <li>Storage power / max power</li>
- *   <li>功率输入速率 / 功率消耗速率</li>
+ *   <li>Power input rate / power usage rate</li>
  *   <li>Installed count and energy of each device</li>
- *   <li>电源单位切换按钮</li>
+ *   <li>Power unit toggle button</li>
  * </ul>
  */
 public class MUINetworkStatusPanel extends AEBasePanel
@@ -66,7 +61,7 @@ public class MUINetworkStatusPanel extends AEBasePanel
     // ========== Buttons ==========
     private MUIButtonWidget units;
 
-    // ========== Tooltip 跟踪 ==========
+    // ========== Tooltip tracking ==========
     private int tooltip = -1;
 
     public MUINetworkStatusPanel(final ContainerNetworkStatus container) {
@@ -97,12 +92,7 @@ public class MUINetworkStatusPanel extends AEBasePanel
         this.addWidget(this.units);
     }
 
-    @Override
-    public void initGui() {
-        super.initGui();
-    }
-
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     public void drawScreen(final int mouseX, final int mouseY, final float btn) {
@@ -220,7 +210,7 @@ public class MUINetworkStatusPanel extends AEBasePanel
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
     }
 
-    // ========== 数据更新 ==========
+    // ========== Data update ==========
 
     @Override
     public void postRepoEntryUpdate(final List<ItemRepo.RepoEntry> entries) {
@@ -234,61 +224,10 @@ public class MUINetworkStatusPanel extends AEBasePanel
         this.updateScrollBar();
     }
 
-    @Override
-    public void postUpdate(final List<IAEStack<?>> list) {
-        this.repo.clear();
-
-        for (final IAEStack<?> is : list) {
-            var key = is.toAEKey();
-            if (key != null) {
-                this.repo.postUpdate(key, is.getStackSize(), is.isCraftable());
-            }
-        }
-
-        this.repo.updateView();
-        this.updateScrollBar();
-    }
-
     private void updateScrollBar() {
         final int size = this.repo.size();
         this.getScrollBar().setTop(39).setLeft(175).setHeight(78);
         this.getScrollBar().setRange(0, (size + 4) / 5 - this.rows, 1);
-    }
-
-    // ========== Tooltip ==========
-
-    @Override
-    protected void renderToolTip(final ItemStack stack, final int x, final int y) {
-        final Slot s = this.getSlot(x, y);
-
-        if (s instanceof SlotME && stack != null) {
-            IAEItemStack myStack = null;
-
-            try {
-                final SlotME theSlotField = (SlotME) s;
-                myStack = theSlotField.getAEStack();
-            } catch (final Throwable ignore) {
-            }
-
-            if (myStack != null) {
-                ITooltipFlag.TooltipFlags tooltipFlag = this.mc.gameSettings.advancedItemTooltips
-                        ? ITooltipFlag.TooltipFlags.ADVANCED
-                        : ITooltipFlag.TooltipFlags.NORMAL;
-                List<String> currentToolTip = stack.getTooltip(this.mc.player, tooltipFlag);
-
-                while (currentToolTip.size() > 1) {
-                    currentToolTip.remove(1);
-                }
-
-                currentToolTip.add(GuiText.Installed.getLocal() + ": " + (myStack.getStackSize()));
-                currentToolTip.add(GuiText.EnergyDrain.getLocal() + ": "
-                        + Platform.formatPowerLong(myStack.getCountRequestable(), true));
-
-                this.drawTooltip(x, y, currentToolTip);
-            }
-        }
-
-        super.renderToolTip(stack, x, y);
     }
 
     // ========== ISortSource implementation ==========

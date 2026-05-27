@@ -27,9 +27,9 @@ import appeng.core.localization.GuiText;
 import appeng.tile.qnb.TileQuantumBridge;
 
 /**
- * MUI 版量子网络桥 GUI 面板。
+ * MUI quantum network bridge GUI panel.
  *
- * 纯展示型面板，仅包含背景贴图和标题文字，无按钮交互。
+ * Pure display panel, contains only background texture and title text, no button interaction.
  */
 public class MUIQNBPanel extends AEBasePanel {
 
@@ -42,14 +42,14 @@ public class MUIQNBPanel extends AEBasePanel {
         this.ySize = 166;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // 无需额外控件
+        // No additional controls needed
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {

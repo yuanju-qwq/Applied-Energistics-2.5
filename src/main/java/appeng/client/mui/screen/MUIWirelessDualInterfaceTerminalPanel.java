@@ -34,7 +34,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.config.Settings;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.client.me.ItemRepo;
@@ -54,13 +53,13 @@ import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 
 /**
- * MUI 版无线双接口终端面板。
- * <p>
- * 采用模块化组合架构，由三个独立模块组成：
+ * MUI wireless dual-interface terminal panel.
+ *
+ * Modular architecture composed of three independent modules:
  * <ul>
- *   <li>{@link InterfaceListModule} — 接口列表面板（中央区域，滚动列表+搜索+高亮）</li>
- *   <li>{@link PatternEncodingModule} — 样板编码面板（右侧，编码按钮+输入输出网格）</li>
- *   <li>{@link MEItemBrowserModule} — ME物品浏览面板（左侧，4x4网格+搜索+排序）</li>
+ *   <li>{@link InterfaceListModule} — interface list panel (central area, scrollable list + search + highlight)</li>
+ *   <li>{@link PatternEncodingModule} — pattern encoding panel (right side, encode buttons + input/output grid)</li>
+ *   <li>{@link MEItemBrowserModule} — ME item browser panel (left side, 4x4 grid + search + sort)</li>
  * </ul>
  */
 @SideOnly(Side.CLIENT)
@@ -76,23 +75,23 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
 
     private static final int MAIN_GUI_WIDTH = 208;
 
-    // JEI 偏移量
+    // JEI offset
     private final int jeiOffset = Platform.isJEIEnabled() ? 24 : 0;
 
-    // ========== 数据 ==========
+    // ========== Data ==========
 
     private final ContainerWirelessDualInterfaceTerminal dualContainer;
     private final IConfigManager configSrc;
 
-    // 三大模块
+    // Three modules
     private InterfaceListModule interfaceListModule;
     private PatternEncodingModule patternEncodingModule;
     private MEItemBrowserModule meItemBrowserModule;
 
-    // 工具栏按钮模块
+    // Toolbar module
     private TerminalToolbar toolbar;
 
-    // 无线终端共通功能（无线升级图标）
+    // Wireless terminal helper (wireless upgrade icon)
     private final WirelessTerminalHelper wirelessHelper = new WirelessTerminalHelper();
 
     // ========== Construction ==========
@@ -115,7 +114,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
 
     @Override
     public void initGui() {
-        // 创建模块
+        // Create modules
         this.interfaceListModule = new InterfaceListModule(this);
         this.interfaceListModule.setEnableDoubleButton(true);
         this.interfaceListModule.setDoubleStacksHandler(inv -> {
@@ -136,34 +135,34 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
 
         this.toolbar = new TerminalToolbar(new ToolbarHost());
 
-        // 计算行数
+        // Calculate rows
         this.interfaceListModule.calculateRows();
         final int rows = this.interfaceListModule.getRows();
 
         super.initGui();
 
-        // 设置面板尺寸
+        // Set panel size
         final int MAGIC_HEIGHT_NUMBER = 52 + 99;
         this.ySize = MAGIC_HEIGHT_NUMBER + rows * 18;
         this.centerVertically();
 
-        // 初始化三个模块
+        // Initialize the three modules
         this.interfaceListModule.initSearchFieldsAndButtons();
         this.patternEncodingModule.initButtons();
         this.patternEncodingModule.initVirtualSlots();
         this.meItemBrowserModule.initPanel();
 
-        // 工具栏按钮（排序、视图、搜索模式等）
+        // Toolbar buttons (sort, view, search mode, etc.)
         this.toolbar.buildAndRegister();
 
-        // 定位槽位
+        // Reposition slots
         this.patternEncodingModule.repositionSlots();
         this.repositionPlayerSlots();
     }
 
     @Override
     protected void setupWidgets() {
-        // initGui 已处理所有初始化
+        // All initialization is handled in initGui
     }
 
     @Override
@@ -185,7 +184,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         }
     }
 
-    // ========== 回调接口实现 ==========
+    // ========== Callback implementations ==========
 
     // --- IInterfaceTerminalGuiCallback ---
 
@@ -205,14 +204,6 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         }
     }
 
-    @Override
-    @Deprecated
-    public void postUpdate(final List<IAEStack<?>> list) {
-        if (this.meItemBrowserModule != null) {
-            this.meItemBrowserModule.postUpdate(list);
-        }
-    }
-
     // --- IConfigManagerHost ---
 
     @Override
@@ -225,67 +216,51 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         }
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        // 无线升级图标
+        // Wireless upgrade icon
         this.wirelessHelper.drawWirelessIcon(offsetX, offsetY, 198, 127);
 
-        // 接口列表面板背景
-        if (this.interfaceListModule != null) {
-            this.interfaceListModule.drawBG(offsetX, offsetY);
-        }
+        // Interface list panel background
+        this.interfaceListModule.drawBG(offsetX, offsetY);
 
-        // 样板编码面板背景
-        if (this.patternEncodingModule != null) {
-            this.patternEncodingModule.drawBG(offsetX, offsetY);
-        }
+        // Pattern encoding panel background
+        this.patternEncodingModule.drawBG(offsetX, offsetY);
 
-        // ME物品浏览面板背景
-        if (this.meItemBrowserModule != null) {
-            this.meItemBrowserModule.drawBG(offsetX, offsetY);
-        }
+        // ME item browser panel background
+        this.meItemBrowserModule.drawBG(offsetX, offsetY);
     }
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        // 接口列表面板前景
-        if (this.interfaceListModule != null) {
-            this.interfaceListModule.drawFG(offsetX, offsetY,
-                    this.getGuiDisplayName(GuiText.InterfaceTerminal.getLocal()));
-        }
+        // Interface list panel foreground
+        this.interfaceListModule.drawFG(offsetX, offsetY,
+                this.getGuiDisplayName(GuiText.InterfaceTerminal.getLocal()));
 
-        // 样板编码面板前景
-        if (this.patternEncodingModule != null) {
-            this.patternEncodingModule.drawFG();
-        }
+        // Pattern encoding panel foreground
+        this.patternEncodingModule.drawFG();
     }
 
     @Override
     public void drawScreen(final int mouseX, final int mouseY, final float partialTicks) {
-        // 各模块填充按钮和槽位
-        if (this.interfaceListModule != null) {
-            this.interfaceListModule.populateDynamicSlots();
-        }
-        if (this.patternEncodingModule != null) {
-            this.patternEncodingModule.populateButtons();
-        }
+        // Each module populates its buttons and slots
+        this.interfaceListModule.populateDynamicSlots();
+        this.patternEncodingModule.populateButtons();
 
         super.drawScreen(mouseX, mouseY, partialTicks);
 
-        // 搜索框 tooltip
-        if (this.interfaceListModule != null) {
-            this.interfaceListModule.drawSearchFieldTooltips(this, mouseX, mouseY);
-        }
+        // Search field tooltip
+        this.interfaceListModule.drawSearchFieldTooltips(this, mouseX, mouseY);
     }
 
     // ========== Input events ==========
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
-        // 样板编码模块的按钮
-        if (this.patternEncodingModule != null && this.patternEncodingModule.actionPerformed(btn)) {
+        // Pattern encoding module buttons
+        if (this.patternEncodingModule.actionPerformed(btn)) {
             return;
         }
 
@@ -293,37 +268,33 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
-        // 接口列表搜索框
-        if (this.interfaceListModule != null) {
-            this.interfaceListModule.mouseClicked(xCoord, yCoord, btn);
-        }
+        // Interface list search field
+        this.interfaceListModule.mouseClicked(xCoord, yCoord, btn);
 
-        // ME物品搜索框
-        if (this.meItemBrowserModule != null) {
-            this.meItemBrowserModule.mouseClicked(xCoord, yCoord, btn);
-        }
+        // ME item search field
+        this.meItemBrowserModule.mouseClicked(xCoord, yCoord, btn);
 
-        // 面板拖拽（中键）
+        // Panel drag (middle button)
         if (btn == 2) {
-            if (this.patternEncodingModule != null && this.patternEncodingModule.getDragState() != null
+            if (this.patternEncodingModule.getDragState() != null
                     && this.patternEncodingModule.getDragState().isInDragArea(xCoord, yCoord)) {
                 this.patternEncodingModule.getDragState().startDrag(xCoord, yCoord);
                 return;
             }
-            if (this.meItemBrowserModule != null && this.meItemBrowserModule.getDragState() != null
+            if (this.meItemBrowserModule.getDragState() != null
                     && this.meItemBrowserModule.getDragState().isInDragArea(xCoord, yCoord)) {
                 this.meItemBrowserModule.getDragState().startDrag(xCoord, yCoord);
                 return;
             }
         }
 
-        // 样板编码Scrollbar点击
-        if (this.patternEncodingModule != null && this.patternEncodingModule.handleScrollbarClick(xCoord, yCoord)) {
+        // Pattern encoding scrollbar click
+        if (this.patternEncodingModule.handleScrollbarClick(xCoord, yCoord)) {
             return;
         }
 
-        // ME物品浏览Scrollbar点击
-        if (this.meItemBrowserModule != null && this.meItemBrowserModule.handleScrollbarClick(xCoord, yCoord)) {
+        // ME item browser scrollbar click
+        if (this.meItemBrowserModule.handleScrollbarClick(xCoord, yCoord)) {
             return;
         }
 
@@ -332,15 +303,15 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
-        // 面板拖拽更新
+        // Panel drag update
         if (clickedMouseButton == 2) {
-            if (this.patternEncodingModule != null && this.patternEncodingModule.getDragState() != null
+            if (this.patternEncodingModule.getDragState() != null
                     && this.patternEncodingModule.getDragState().isDragging()) {
                 this.patternEncodingModule.getDragState().updateDrag(mouseX, mouseY);
                 this.patternEncodingModule.repositionSlots();
                 return;
             }
-            if (this.meItemBrowserModule != null && this.meItemBrowserModule.getDragState() != null
+            if (this.meItemBrowserModule.getDragState() != null
                     && this.meItemBrowserModule.getDragState().isDragging()) {
                 this.meItemBrowserModule.getDragState().updateDrag(mouseX, mouseY);
                 return;
@@ -351,12 +322,12 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
 
     @Override
     protected void mouseReleased(int mouseX, int mouseY, int state) {
-        // 结束拖拽
+        // End drag
         if (state == 2) {
-            if (this.patternEncodingModule != null && this.patternEncodingModule.getDragState() != null) {
+            if (this.patternEncodingModule.getDragState() != null) {
                 this.patternEncodingModule.getDragState().endDrag();
             }
-            if (this.meItemBrowserModule != null && this.meItemBrowserModule.getDragState() != null) {
+            if (this.meItemBrowserModule.getDragState() != null) {
                 this.meItemBrowserModule.getDragState().endDrag();
             }
         }
@@ -365,13 +336,13 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
 
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
-        // 接口列表搜索框
-        if (this.interfaceListModule != null && this.interfaceListModule.keyTyped(character, key)) {
+        // Interface list search field
+        if (this.interfaceListModule.keyTyped(character, key)) {
             return;
         }
 
-        // ME物品搜索框
-        if (this.meItemBrowserModule != null && this.meItemBrowserModule.keyTyped(character, key)) {
+        // ME item search field
+        if (this.meItemBrowserModule.keyTyped(character, key)) {
             return;
         }
 
@@ -382,17 +353,17 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
 
     @Override
     protected void mouseWheelEvent(final int x, final int y, final int wheel) {
-        // 样板编码面板滚轮
-        if (this.patternEncodingModule != null && this.patternEncodingModule.mouseWheelEvent(x, y, wheel)) {
+        // Pattern encoding panel scroll wheel
+        if (this.patternEncodingModule.mouseWheelEvent(x, y, wheel)) {
             return;
         }
 
-        // ME物品浏览面板滚轮
-        if (this.meItemBrowserModule != null && this.meItemBrowserModule.mouseWheelEvent(x, y, wheel)) {
+        // ME item browser panel scroll wheel
+        if (this.meItemBrowserModule.mouseWheelEvent(x, y, wheel)) {
             return;
         }
 
-        // 接口列表主Scrollbar滚轮
+        // Interface list main scrollbar wheel
         super.mouseWheelEvent(x, y, wheel);
     }
 
@@ -400,39 +371,33 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     public void updateScreen() {
         super.updateScreen();
 
-        // 更新样板编码模块（包括 PlacePattern 和槽位重定位）
-        if (this.patternEncodingModule != null) {
-            this.patternEncodingModule.updateScreen();
-        }
+        // Update pattern encoding module (including PlacePattern and slot repositioning)
+        this.patternEncodingModule.updateScreen();
     }
 
-    // ========== JEI 兼容 ==========
+    // ========== JEI compatibility ==========
 
     @Override
     public List<Rectangle> getJEIExclusionArea() {
         final List<Rectangle> exclusionArea = new ArrayList<>();
 
-        // 工具栏排序按钮区域
-        int sortButtonCount = this.toolbar != null ? this.toolbar.getVisibleSortButtonCount() : 0;
+        // Toolbar sort button area
+        int sortButtonCount = this.toolbar.getVisibleSortButtonCount();
         if (sortButtonCount > 0) {
             exclusionArea.add(new Rectangle(guiLeft - 18, guiTop + 8 + jeiOffset, 20,
                     sortButtonCount * 20 + sortButtonCount - 2));
         }
 
-        // 样板编码面板区域
-        if (this.patternEncodingModule != null) {
-            exclusionArea.add(this.patternEncodingModule.getJEIExclusionRect());
-        }
+        // Pattern encoding panel area
+        exclusionArea.add(this.patternEncodingModule.getJEIExclusionRect());
 
-        // ME物品浏览面板区域
-        if (this.meItemBrowserModule != null) {
-            exclusionArea.add(this.meItemBrowserModule.getJEIExclusionRect());
-        }
+        // ME item browser panel area
+        exclusionArea.add(this.meItemBrowserModule.getJEIExclusionRect());
 
         return exclusionArea;
     }
 
-    // ========== InterfaceListModule.Host 实现 ==========
+    // ========== InterfaceListModule.Host implementation ==========
 
     @Override
     public int getScreenWidth() {
@@ -485,7 +450,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         return this.jeiOffset;
     }
 
-    // ========== PatternEncodingModule.Host 实现 ==========
+    // ========== PatternEncodingModule.Host implementation ==========
 
     @Override
     public ContainerWirelessDualInterfaceTerminal getDualContainer() {
@@ -509,12 +474,12 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
      * pre-fill the machine name when a recipe is transferred).
      */
     public void setSearchFieldSuggestion(final String suggestion) {
-        if (this.interfaceListModule != null && this.interfaceListModule.getSearchFieldNames() != null) {
+        if (this.interfaceListModule.getSearchFieldNames() != null) {
             this.interfaceListModule.getSearchFieldNames().setSuggestion(suggestion);
         }
     }
 
-    // ========== MEItemBrowserModule.Host 实现 ==========
+    // ========== MEItemBrowserModule.Host implementation ==========
 
     @Override
     public List<GuiButton> getButtonList() {
@@ -536,7 +501,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
         // No-op for compact mode — scrollbar is managed internally by the module
     }
 
-    // ========== TerminalToolbar.Host 实现 ==========
+    // ========== TerminalToolbar.Host implementation ==========
 
     private final class ToolbarHost implements TerminalToolbar.Host {
         @Override

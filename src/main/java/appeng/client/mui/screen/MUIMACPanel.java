@@ -30,15 +30,15 @@ import appeng.core.localization.GuiText;
 import appeng.tile.crafting.TileMolecularAssembler;
 
 /**
- * MUI 版分子装配器 GUI 面板。
+ * MUI molecular assembler GUI panel.
  *
- * 继承 {@link MUIUpgradeablePanel}，包含红石模式按钮和合成进度条。
+ * Extends {@link MUIUpgradeablePanel}, contains redstone mode button and crafting progress bar.
  */
 public class MUIMACPanel extends MUIUpgradeablePanel {
 
     private final ContainerMAC container;
 
-    // ========== 进度条 ==========
+    // ========== Progress bar ==========
     private GuiProgressBar pb;
 
     public MUIMACPanel(final InventoryPlayer ip, final TileMolecularAssembler te) {
@@ -61,7 +61,7 @@ public class MUIMACPanel extends MUIUpgradeablePanel {
         this.buttonList.add(this.pb);
     }
 
-    // ========== 按钮 ==========
+    // ========== Buttons ==========
 
     @Override
     protected void addButtons() {
@@ -70,7 +70,7 @@ public class MUIMACPanel extends MUIUpgradeablePanel {
         this.addWidget(this.redstoneMode);
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {

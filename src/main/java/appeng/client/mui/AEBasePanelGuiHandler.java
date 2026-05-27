@@ -35,7 +35,7 @@ import net.minecraft.inventory.Slot;
 import mezz.jei.api.gui.IAdvancedGuiHandler;
 import mezz.jei.api.gui.IGhostIngredientHandler;
 
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEKey;
 import appeng.client.ClientHelper;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiCustomSlot;
@@ -80,7 +80,7 @@ public class AEBasePanelGuiHandler
         if (panel instanceof IMUIVisualListPanel) {
             IMUIVisualListPanel visualPanel = (IMUIVisualListPanel) panel;
             int guiSlotIdx = getSlotIdx(panel, mouseX, mouseY, visualPanel.getDisplayedRows());
-            List<IAEStack<?>> visual = visualPanel.getVisual();
+            List<AEKey> visual = visualPanel.getVisual();
             if (guiSlotIdx >= 0 && guiSlotIdx < visual.size()) {
                 return visual.get(guiSlotIdx).asItemStackRepresentation();
             }
@@ -240,7 +240,7 @@ public class AEBasePanelGuiHandler
      * 实现此接口的面板可以让 JEI 识别虚拟列表中鼠标下的物品。
      */
     public interface IMUIVisualListPanel {
-        List<IAEStack<?>> getVisual();
+        List<AEKey> getVisual();
 
         int getDisplayedRows();
     }

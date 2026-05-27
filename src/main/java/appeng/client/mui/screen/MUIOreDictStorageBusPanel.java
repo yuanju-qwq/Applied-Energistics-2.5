@@ -78,7 +78,7 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
         super.initGui();
     }
 
-    // ========== 按钮管理 ==========
+    // ========== Button management ==========
 
     @Override
     protected void addButtons() {
@@ -140,7 +140,7 @@ public class MUIOreDictStorageBusPanel extends MUIUpgradeablePanel implements IO
         }
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {

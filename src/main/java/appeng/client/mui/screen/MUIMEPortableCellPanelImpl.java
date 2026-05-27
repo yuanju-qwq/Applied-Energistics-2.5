@@ -21,10 +21,10 @@ package appeng.client.mui.screen;
 import appeng.container.implementations.ContainerMEPortableCell;
 
 /**
- * MUI 版 ME 便携单元 GUI 面板。
+ * MUI ME portable cell GUI panel.
  *
- * 继承 {@link MUIMEMonitorablePanel} 并实现 {@link MUIPortableCellPanel} 标记接口，
- * 唯一的差异是将最大行数限制为 3。
+ * Extends {@link MUIMEMonitorablePanel} and implements the {@link MUIPortableCellPanel} marker interface,
+ * with the only difference being a max row limit of 3.
  */
 public class MUIMEPortableCellPanelImpl extends MUIMEMonitorablePanel implements MUIPortableCellPanel {
 

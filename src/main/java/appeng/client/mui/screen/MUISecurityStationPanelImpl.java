@@ -33,14 +33,14 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
 
 /**
- * MUI 版安全终端 GUI 面板。
+ * MUI security station GUI panel.
  *
- * 继承 {@link MUIMEMonitorablePanel} 并实现 {@link MUISecurityStationPanel} 标记接口。
- * 增加了 5 个安全权限切换按钮（注入/提取/合成/建造/安全）。
+ * Extends {@link MUIMEMonitorablePanel} and implements {@link MUISecurityStationPanel} marker interface.
+ * Adds 5 security permission toggle buttons (inject/extract/craft/build/security).
  */
 public class MUISecurityStationPanelImpl extends MUIMEMonitorablePanel implements MUISecurityStationPanel {
 
-    // ========== 权限按钮 ==========
+    // ========== Permission buttons ==========
     private GuiToggleButton inject;
     private GuiToggleButton extract;
     private GuiToggleButton craft;
@@ -52,11 +52,11 @@ public class MUISecurityStationPanelImpl extends MUIMEMonitorablePanel implement
         this.setCustomSortOrder(false);
         this.setReservedSpace(33);
 
-        // 增加宽度以容纳权限按钮
+        // Increase width to accommodate permission buttons
         this.xSize += 56;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     public void initGui() {
@@ -90,7 +90,7 @@ public class MUISecurityStationPanelImpl extends MUIMEMonitorablePanel implement
                         SecurityPermissions.SECURITY.getUnlocalizedTip()));
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -112,7 +112,7 @@ public class MUISecurityStationPanelImpl extends MUIMEMonitorablePanel implement
         return "guis/security_station.png";
     }
 
-    // ========== 按钮事件 ==========
+    // ========== Button events ==========
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
@@ -146,7 +146,7 @@ public class MUISecurityStationPanelImpl extends MUIMEMonitorablePanel implement
         }
     }
 
-    // ========== 排序 ==========
+    // ========== Sorting ==========
 
     @Override
     public Enum getSortBy() {

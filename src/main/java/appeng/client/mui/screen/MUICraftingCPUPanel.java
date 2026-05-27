@@ -1,27 +1,12 @@
-/*
- * This file is part of Applied Energistics 2.
- * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
- *
- * Applied Energistics 2 is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Applied Energistics 2 is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
- */
-
 package appeng.client.mui.screen;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Joiner;
@@ -38,6 +23,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import appeng.api.config.SortDir;
 import appeng.api.config.SortOrder;
 import appeng.api.config.ViewItems;
+import appeng.api.stacks.AEKey;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AEColor;
 import appeng.client.mui.widgets.MUIScrollBar;
@@ -53,28 +39,15 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.util.Platform;
 import appeng.util.ReadableNumberConverter;
-import appeng.util.item.IMixedStackList;
-import appeng.util.item.IAEStackList;
 
 /**
- * MUI 版Crafting CPU 状态面板。
+ * MUI crafting CPU status panel.
  * <p>
- * 功能：显示当前Crafting CPU 的运行状态（已存储/正在合成/待处理的物品和流体列表）。
- * <p>
- * 特性：
- * <ul>
- *   <li>3 列 × 6 行网格显示物品</li>
- *   <li>颜色状态指示（绿色=正在合成，黄色=已排程）</li>
- *   <li>ETA 预计剩余时间显示</li>
- *   <li>追踪/暂停恢复/取消按钮</li>
- *   <li>Scrollbar翻页</li>
- * </ul>
+ * Internal data uses {@link AEKey} + {@code long} amounts instead of {@link IAEStack}.
  */
 @SideOnly(Side.CLIENT)
 public class MUICraftingCPUPanel extends AEBasePanel
         implements ISortSource, ICraftingCPUGuiCallback, AEBasePanelGuiHandler.IMUIVisualListPanel {
-
-    // ========== Constants ==========
 
     private static final int GUI_HEIGHT = 210;
     private static final int GUI_WIDTH = 238;
@@ -107,24 +80,18 @@ public class MUICraftingCPUPanel extends AEBasePanel
     private static final int ITEMSTACK_LEFT_OFFSET = 9;
     private static final int ITEMSTACK_TOP_OFFSET = 22;
 
-    // ========== 数据 ==========
-
     private final ContainerCraftingCPU craftingCpu;
 
-    private IMixedStackList storage = new IAEStackList();
-    private IMixedStackList active = new IAEStackList();
-    private IMixedStackList pending = new IAEStackList();
+    private final Map<AEKey, Long> storage = new HashMap<>();
+    private final Map<AEKey, Long> active = new HashMap<>();
+    private final Map<AEKey, Long> pending = new HashMap<>();
 
-    private List<IAEStack<?>> visual = new ArrayList<>();
-
-    // ========== UI 控件 ==========
+    private final List<AEKey> visual = new ArrayList<>();
 
     private GuiButton cancel;
     private GuiButton switchButton;
     private GuiButton trackButton;
     private int tooltip = -1;
-
-    // ========== Construction ==========
 
     public MUICraftingCPUPanel(final InventoryPlayer inventoryPlayer, final Object te) {
         this(new ContainerCraftingCPU(inventoryPlayer, te));
@@ -141,53 +108,49 @@ public class MUICraftingCPUPanel extends AEBasePanel
         this.setScrollBar(scrollbar);
     }
 
-    // ========== ICraftingCPUGuiCallback ==========
-
     @Override
     public void clearItems() {
-        this.storage = new IAEStackList();
-        this.active = new IAEStackList();
-        this.pending = new IAEStackList();
-        this.visual = new ArrayList<>();
+        this.storage.clear();
+        this.active.clear();
+        this.pending.clear();
+        this.visual.clear();
     }
 
     @Override
     public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
-        switch (ref) {
-            case 0:
-                for (final IAEStack<?> l : list) {
-                    this.handleInput(this.storage, l);
-                }
-                break;
+        for (final IAEStack<?> l : list) {
+            final AEKey key = l.toAEKey();
+            if (key == null) continue;
 
-            case 1:
-                for (final IAEStack<?> l : list) {
-                    this.handleInput(this.active, l);
-                }
-                break;
+            final long amount = l.getStackSize();
 
-            case 2:
-                for (final IAEStack<?> l : list) {
-                    this.handleInput(this.pending, l);
-                }
-                break;
+            final Map<AEKey, Long> target = switch (ref) {
+                case 0 -> this.storage;
+                case 1 -> this.active;
+                case 2 -> this.pending;
+                default -> null;
+            };
+
+            if (target != null) {
+                this.handleInput(target, key, amount);
+            }
         }
 
+        final Set<AEKey> seen = new HashSet<>();
         for (final IAEStack<?> l : list) {
-            final long amt = this.getTotal(l);
+            final AEKey key = l.toAEKey();
+            if (key == null || !seen.add(key)) continue;
 
+            final long amt = this.getTotal(key);
             if (amt <= 0) {
-                this.deleteVisualStack(l);
+                this.deleteVisualStack(key);
             } else {
-                final IAEStack<?> is = this.findVisualStack(l);
-                is.setStackSize(amt);
+                this.findVisualIndex(key);
             }
         }
 
         this.updateScrollBar();
     }
-
-    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
@@ -196,36 +159,30 @@ public class MUICraftingCPUPanel extends AEBasePanel
         this.trackButton = new GuiButton(2,
                 this.guiLeft + TRACK_LEFT_OFFSET,
                 this.guiTop + this.ySize - CANCEL_TOP_OFFSET,
-                TRACK_WIDTH,
-                CANCEL_HEIGHT,
+                TRACK_WIDTH, CANCEL_HEIGHT,
                 GuiText.Track.getLocal());
         this.buttonList.add(this.trackButton);
 
         this.switchButton = new GuiButton(1,
                 this.guiLeft + SWITCH_LEFT_OFFSET,
                 this.guiTop + this.ySize - CANCEL_TOP_OFFSET,
-                SWITCH_WIDTH,
-                CANCEL_HEIGHT,
+                SWITCH_WIDTH, CANCEL_HEIGHT,
                 GuiText.Resume.getLocal() + "/" + GuiText.Pause.getLocal());
         this.buttonList.add(this.switchButton);
 
         this.cancel = new GuiButton(0,
                 this.guiLeft + CANCEL_LEFT_OFFSET,
                 this.guiTop + this.ySize - CANCEL_TOP_OFFSET,
-                CANCEL_WIDTH,
-                CANCEL_HEIGHT,
+                CANCEL_WIDTH, CANCEL_HEIGHT,
                 GuiText.Cancel.getLocal());
         this.buttonList.add(this.cancel);
     }
 
     private void updateScrollBar() {
         final int size = this.visual.size();
-
         this.getScrollBar().setTop(SCROLLBAR_TOP).setLeft(SCROLLBAR_LEFT).setHeight(SCROLLBAR_HEIGHT);
         this.getScrollBar().setRange(0, (size + 2) / 3 - DISPLAYED_ROWS, 1);
     }
-
-    // ========== 按钮事件 ==========
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
@@ -252,8 +209,6 @@ public class MUICraftingCPUPanel extends AEBasePanel
         }
     }
 
-    // ========== 绘制 ==========
-
     @Override
     public void drawScreen(final int mouseX, final int mouseY, final float btn) {
         this.cancel.enabled = !this.visual.isEmpty();
@@ -265,7 +220,6 @@ public class MUICraftingCPUPanel extends AEBasePanel
 
         this.tooltip = -1;
 
-        // 计算鼠标悬停的物品索引
         final int offY = 23;
         int y = 0;
         int x = 0;
@@ -281,7 +235,6 @@ public class MUICraftingCPUPanel extends AEBasePanel
             }
 
             x++;
-
             if (x > 2) {
                 y++;
                 x = 0;
@@ -293,7 +246,6 @@ public class MUICraftingCPUPanel extends AEBasePanel
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        // 标题 + ETA
         String title = this.getGuiDisplayName(GuiText.CraftingStatus.getLocal());
 
         if (this.craftingCpu.getEstimatedTime() > 0 && !this.visual.isEmpty()) {
@@ -306,7 +258,6 @@ public class MUICraftingCPUPanel extends AEBasePanel
 
         this.fontRenderer.drawString(title, TITLE_LEFT_OFFSET, TITLE_TOP_OFFSET, TEXT_COLOR);
 
-        // 物品列表
         int x = 0;
         int y = 0;
         final int viewStart = this.getScrollBar().getCurrentScroll() * 3;
@@ -321,32 +272,28 @@ public class MUICraftingCPUPanel extends AEBasePanel
 
         final ReadableNumberConverter converter = ReadableNumberConverter.INSTANCE;
         for (int z = viewStart; z < Math.min(viewEnd, this.visual.size()); z++) {
-            final IAEStack<?> refStack = this.visual.get(z);
-            if (refStack != null) {
+            final AEKey key = this.visual.get(z);
+            if (key != null) {
                 GlStateManager.pushMatrix();
                 GlStateManager.scale(0.5, 0.5, 0.5);
 
-                final IAEStack<?> stored = this.storage.findPrecise(refStack);
-                final IAEStack<?> activeStack = this.active.findPrecise(refStack);
-                final IAEStack<?> pendingStack = this.pending.findPrecise(refStack);
+                final long stored = this.storage.getOrDefault(key, 0L);
+                final long activeAmt = this.active.getOrDefault(key, 0L);
+                final long pendingAmt = this.pending.getOrDefault(key, 0L);
 
                 int lines = 0;
-
-                if (stored != null && stored.getStackSize() > 0) {
-                    lines++;
-                }
+                if (stored > 0) lines++;
                 boolean isActive = false;
-                if (activeStack != null && activeStack.getStackSize() > 0) {
+                if (activeAmt > 0) {
                     lines++;
                     isActive = true;
                 }
                 boolean scheduled = false;
-                if (pendingStack != null && pendingStack.getStackSize() > 0) {
+                if (pendingAmt > 0) {
                     lines++;
                     scheduled = true;
                 }
 
-                // 颜色状态背景
                 if (AEConfig.instance().isUseColoredCraftingStatus() && (isActive || scheduled)) {
                     final int bgColor = (isActive ? AEColor.GREEN.blackVariant : AEColor.YELLOW.blackVariant)
                             | BACKGROUND_ALPHA;
@@ -358,10 +305,9 @@ public class MUICraftingCPUPanel extends AEBasePanel
                 final int negY = ((lines - 1) * 5) / 2;
                 int downY = 0;
 
-                // 已存储
-                if (stored != null && stored.getStackSize() > 0) {
+                if (stored > 0) {
                     final String str = GuiText.Stored.getLocal() + ": "
-                            + converter.toWideReadableForm(stored.getStackSize());
+                            + converter.toWideReadableForm(stored);
                     final int w = 4 + this.fontRenderer.getStringWidth(str);
                     this.fontRenderer.drawString(str,
                             (int) ((x * (1 + SECTION_LENGTH) + ITEMSTACK_LEFT_OFFSET + SECTION_LENGTH - 19 - (w * 0.5))
@@ -369,43 +315,39 @@ public class MUICraftingCPUPanel extends AEBasePanel
                             (y * offY + ITEMSTACK_TOP_OFFSET + 6 - negY + downY) * 2, TEXT_COLOR);
 
                     if (this.tooltip == z - viewStart) {
-                        lineList.add(GuiText.Stored.getLocal() + ": " + stored.getStackSize());
+                        lineList.add(GuiText.Stored.getLocal() + ": " + stored);
                     }
 
                     downY += 5;
                 }
 
-                // 正在合成
-                if (activeStack != null && activeStack.getStackSize() > 0) {
+                if (activeAmt > 0) {
                     final String str = GuiText.Crafting.getLocal() + ": "
-                            + converter.toWideReadableForm(activeStack.getStackSize());
+                            + converter.toWideReadableForm(activeAmt);
                     final int w = 4 + this.fontRenderer.getStringWidth(str);
-
                     this.fontRenderer.drawString(str,
                             (int) ((x * (1 + SECTION_LENGTH) + ITEMSTACK_LEFT_OFFSET + SECTION_LENGTH - 19 - (w * 0.5))
                                     * 2),
                             (y * offY + ITEMSTACK_TOP_OFFSET + 6 - negY + downY) * 2, TEXT_COLOR);
 
                     if (this.tooltip == z - viewStart) {
-                        lineList.add(GuiText.Crafting.getLocal() + ": " + activeStack.getStackSize());
+                        lineList.add(GuiText.Crafting.getLocal() + ": " + activeAmt);
                     }
 
                     downY += 5;
                 }
 
-                // 待处理
-                if (pendingStack != null && pendingStack.getStackSize() > 0) {
+                if (pendingAmt > 0) {
                     final String str = GuiText.Scheduled.getLocal() + ": "
-                            + converter.toWideReadableForm(pendingStack.getStackSize());
+                            + converter.toWideReadableForm(pendingAmt);
                     final int w = 4 + this.fontRenderer.getStringWidth(str);
-
                     this.fontRenderer.drawString(str,
                             (int) ((x * (1 + SECTION_LENGTH) + ITEMSTACK_LEFT_OFFSET + SECTION_LENGTH - 19 - (w * 0.5))
                                     * 2),
                             (y * offY + ITEMSTACK_TOP_OFFSET + 6 - negY + downY) * 2, TEXT_COLOR);
 
                     if (this.tooltip == z - viewStart) {
-                        lineList.add(GuiText.Scheduled.getLocal() + ": " + pendingStack.getStackSize());
+                        lineList.add(GuiText.Scheduled.getLocal() + ": " + pendingAmt);
                     }
                 }
 
@@ -413,10 +355,10 @@ public class MUICraftingCPUPanel extends AEBasePanel
                 final int posX = x * (1 + SECTION_LENGTH) + ITEMSTACK_LEFT_OFFSET + SECTION_LENGTH - 19;
                 final int posY = y * offY + ITEMSTACK_TOP_OFFSET;
 
-                final ItemStack is = refStack.asItemStackRepresentation();
+                final ItemStack is = key.asItemStackRepresentation();
 
                 if (this.tooltip == z - viewStart) {
-                    dspToolTip = Platform.getItemDisplayName(refStack);
+                    dspToolTip = key.getDisplayName();
 
                     if (lineList.size() > 0) {
                         dspToolTip = dspToolTip + '\n' + Joiner.on("\n").join(lineList);
@@ -429,7 +371,6 @@ public class MUICraftingCPUPanel extends AEBasePanel
                 this.drawItem(posX, posY, is);
 
                 x++;
-
                 if (x > 2) {
                     y++;
                     x = 0;
@@ -448,72 +389,36 @@ public class MUICraftingCPUPanel extends AEBasePanel
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
     }
 
-    // ========== 数据处理 ==========
+    // ========== Data processing ==========
 
-    private void handleInput(final IMixedStackList s, final IAEStack<?> l) {
-        IAEStack<?> a = s.findPrecise(l);
-
-        if (l.getStackSize() <= 0) {
-            if (a != null) {
-                a.reset();
-            }
+    private void handleInput(final Map<AEKey, Long> counter, final AEKey key, final long amount) {
+        if (amount <= 0) {
+            counter.remove(key);
         } else {
-            if (a == null) {
-                s.add(l.copy());
-                a = s.findPrecise(l);
-            }
-
-            if (a != null) {
-                a.setStackSize(l.getStackSize());
-            }
+            counter.put(key, amount);
         }
     }
 
-    private long getTotal(final IAEStack<?> is) {
-        final IAEStack<?> a = this.storage.findPrecise(is);
-        final IAEStack<?> b = this.active.findPrecise(is);
-        final IAEStack<?> c = this.pending.findPrecise(is);
-
+    private long getTotal(final AEKey key) {
         long total = 0;
-
-        if (a != null) {
-            total += a.getStackSize();
-        }
-
-        if (b != null) {
-            total += b.getStackSize();
-        }
-
-        if (c != null) {
-            total += c.getStackSize();
-        }
-
+        total += this.storage.getOrDefault(key, 0L);
+        total += this.active.getOrDefault(key, 0L);
+        total += this.pending.getOrDefault(key, 0L);
         return total;
     }
 
-    private void deleteVisualStack(final IAEStack<?> l) {
-        final Iterator<IAEStack<?>> i = this.visual.iterator();
-
-        while (i.hasNext()) {
-            final IAEStack<?> o = i.next();
-            if (o.equals(l)) {
-                i.remove();
-                return;
-            }
-        }
+    private void deleteVisualStack(final AEKey key) {
+        this.visual.removeIf(k -> k.equals(key));
     }
 
-    private IAEStack<?> findVisualStack(final IAEStack<?> l) {
-        for (final IAEStack<?> o : this.visual) {
-            if (o.equals(l)) {
-                return o;
+    private int findVisualIndex(final AEKey key) {
+        for (int i = 0; i < this.visual.size(); i++) {
+            if (this.visual.get(i).equals(key)) {
+                return i;
             }
         }
-
-        final IAEStack<?> stack = l.copy();
-        this.visual.add(stack);
-
-        return stack;
+        this.visual.add(key);
+        return this.visual.size() - 1;
     }
 
     // ========== ISortSource ==========
@@ -533,12 +438,14 @@ public class MUICraftingCPUPanel extends AEBasePanel
         return ViewItems.ALL;
     }
 
-    // ========== 公共访问器 ==========
+    // ========== Public accessors ==========
 
-    public List<IAEStack<?>> getVisual() {
+    @Override
+    public List<AEKey> getVisual() {
         return visual;
     }
 
+    @Override
     public int getDisplayedRows() {
         return DISPLAYED_ROWS;
     }

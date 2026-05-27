@@ -28,9 +28,9 @@ import appeng.integration.Integrations;
 import appeng.tile.storage.TileSkyChest;
 
 /**
- * MUI 版陨石箱 GUI 面板。
+ * MUI sky chest GUI panel.
  *
- * 纯展示型面板，包含背景贴图、标题文字，以及 InvTweaks 兼容的空格键处理。
+ * Pure display panel, contains background texture, title text, and InvTweaks-compatible space key handling.
  */
 public class MUISkyChestPanel extends AEBasePanel {
 
@@ -43,14 +43,14 @@ public class MUISkyChestPanel extends AEBasePanel {
         this.ySize = 195;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // 无需额外控件
+        // No additional controls needed
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -64,7 +64,7 @@ public class MUISkyChestPanel extends AEBasePanel {
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
     }
 
-    // ========== InvTweaks 兼容 ==========
+    // ========== InvTweaks compatibility ==========
 
     @Override
     protected boolean enableSpaceClicking() {

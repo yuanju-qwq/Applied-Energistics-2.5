@@ -54,7 +54,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
     // ========== Number input field ==========
     private GuiNumberBox level;
 
-    // ========== ±增减按钮 ==========
+    // ========== +/- increment buttons ==========
     private GuiButton plus1;
     private GuiButton plus10;
     private GuiButton plus100;
@@ -68,7 +68,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
     private MUIButtonWidget levelMode;
     private MUIButtonWidget craftingMode;
 
-    // ========== 虚拟配置槽位 ==========
+    // ========== Virtual config slot ==========
     private VirtualMEPhantomSlot configSlot;
 
     public MUILevelEmitterPanel(final ContainerLevelEmitter container) {
@@ -94,7 +94,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
         this.initVirtualSlots();
     }
 
-    // ========== 按钮管理 ==========
+    // ========== Button management ==========
 
     @Override
     protected void addButtons() {
@@ -130,7 +130,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
         this.buttonList.add(this.minus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 59, 38, 20, "-" + d));
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
@@ -197,7 +197,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
         }
     }
 
-    // ========== 数字输入处理 ==========
+    // ========== Number input handling ==========
 
     private void addQty(final long i) {
         try {
@@ -265,7 +265,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
         }
     }
 
-    // ========== Virtual slot管理 ==========
+    // ========== Virtual slot management ==========
 
     private void initVirtualSlots() {
         this.guiSlots.clear();

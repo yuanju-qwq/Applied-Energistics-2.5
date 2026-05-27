@@ -19,12 +19,10 @@
 package appeng.client.mui.screen;
 
 /**
- * MUI 安全站面板的标记接口。
+ * Marker interface for MUI security station panels.
  * <p>
- * 用于 {@link MUIMEMonitorablePanel} 中的 {@code instanceof} 检查，
- * 以决定是否绘制 ViewCell 区域背景。
- * <p>
- * 将在后续安全站移植任务中由具体实现类使用。
+ * Used by {@link MUIMEMonitorablePanel} via {@code instanceof} checks
+ * to decide whether to draw the ViewCell area background.
  */
 public interface MUISecurityStationPanel {
 }

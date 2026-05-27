@@ -62,7 +62,7 @@ public class MUIPatternProviderPanel extends MUIUpgradeablePanel {
         this.addLabel();
     }
 
-    // ========== 按钮管理 ==========
+    // ========== Button management ==========
 
     @Override
     protected void addButtons() {
@@ -98,7 +98,7 @@ public class MUIPatternProviderPanel extends MUIUpgradeablePanel {
         this.labelList.add(this.lockReason);
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {

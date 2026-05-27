@@ -46,22 +46,22 @@ import appeng.tile.inventory.IAEStackInventory;
 import appeng.tile.misc.TileCellWorkbench;
 
 /**
- * MUI 版单元工作台 GUI 面板。
+ * MUI version of the Cell Workbench GUI panel.
  *
- * 继承 {@link MUIUpgradeablePanel}，包含清除/分区/复制模式/模糊模式按钮，
- * 以及支持最多 24 个升级槽的多列升级区域绘制。
+ * Extends {@link MUIUpgradeablePanel}, includes Clear/Partition/Copy Mode/Fuzzy Mode buttons,
+ * and supports multi-column upgrade area rendering for up to 24 upgrade slots.
  */
 public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
 
     private final ContainerCellWorkbench workbench;
 
-    // ========== 按钮 ==========
+    // ========== Buttons ==========
     private GuiImgButton clear;
     private GuiImgButton partition;
     private GuiToggleButton copyMode;
     private GuiImgButton fuzzyBtn;
 
-    // ========== Virtual slot ==========
+    // ========== Virtual slots ==========
     private VirtualMEPhantomSlot[] configSlots;
 
     public MUICellWorkbenchPanel(final ContainerCellWorkbench container) {
@@ -78,7 +78,7 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
         this.initVirtualSlots();
     }
 
-    // ========== 按钮管理 ==========
+    // ========== Button management ==========
 
     @Override
     protected void addButtons() {
@@ -95,7 +95,7 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
         this.buttonList.add(this.copyMode);
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -104,17 +104,17 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
         this.bindTexture(this.getBackground());
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, 211 - 34, this.ySize);
         if (this.drawUpgrades()) {
-            // 根据可用升级槽数量绘制多列升级区域
+            // Draw multi-column upgrade area based on available upgrade slot count
             if (this.workbench.availableUpgrades() <= 8) {
                 this.drawTexturedModalRect(offsetX + 177, offsetY, 177, 0, 35,
                         7 + this.workbench.availableUpgrades() * 18);
                 this.drawTexturedModalRect(offsetX + 177, offsetY + (7 + (this.workbench.availableUpgrades()) * 18),
                         177, 151, 35, 7);
             } else if (this.workbench.availableUpgrades() <= 16) {
-                // 第一列（8个）
+                // First column (8 slots)
                 this.drawTexturedModalRect(offsetX + 177, offsetY, 177, 0, 35, 7 + 8 * 18);
                 this.drawTexturedModalRect(offsetX + 177, offsetY + (7 + (8) * 18), 177, 151, 35, 7);
-                // 第二列（剩余）
+                // Second column (remaining)
                 final int dx = this.workbench.availableUpgrades() - 8;
                 this.drawTexturedModalRect(offsetX + 177 + 27, offsetY, 186, 0, 35 - 8, 7 + dx * 18);
                 if (dx == 8) {
@@ -124,13 +124,13 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
                             7);
                 }
             } else {
-                // 第一列（8个）
+                // First column (8 slots)
                 this.drawTexturedModalRect(offsetX + 177, offsetY, 177, 0, 35, 7 + 8 * 18);
                 this.drawTexturedModalRect(offsetX + 177, offsetY + (7 + (8) * 18), 177, 151, 35, 7);
-                // 第二列（8个）
+                // Second column (8 slots)
                 this.drawTexturedModalRect(offsetX + 177 + 27, offsetY, 186, 0, 35 - 8, 7 + 8 * 18);
                 this.drawTexturedModalRect(offsetX + 177 + 27, offsetY + (7 + (8) * 18), 186, 151, 35 - 8, 7);
-                // 第三列（剩余）
+                // Third column (remaining)
                 final int dx = this.workbench.availableUpgrades() - 16;
                 this.drawTexturedModalRect(offsetX + 177 + 27 + 18, offsetY, 186, 0, 35 - 8, 7 + dx * 18);
                 if (dx == 8) {
@@ -178,7 +178,7 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
         return GuiText.CellWorkbench;
     }
 
-    // ========== 按钮事件 ==========
+    // ========== Button events ==========
 
     @Override
     protected void actionPerformed(final GuiButton btn) {
@@ -203,10 +203,10 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
         }
     }
 
-    // ========== Virtual slot管理 ==========
+    // ========== Virtual slot management ==========
 
     private void initVirtualSlots() {
-        this.guiSlots.clear();
+        this.guiSlots.removeIf(s -> s instanceof VirtualMEPhantomSlot);
         this.configSlots = new VirtualMEPhantomSlot[63];
         final IAEStackInventory inputInv = this.workbench.getConfig();
         final int xo = 8;
@@ -229,7 +229,7 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
     }
 
     /**
-     * 根据当前单元物品的栈类型决定是否接受某种类型的栈。
+     * Determines whether to accept a given stack type based on the current cell item's stack type.
      */
     private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
         final ICellWorkbenchItem cell = this.workbench.getCell();

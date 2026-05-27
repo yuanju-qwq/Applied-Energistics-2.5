@@ -31,10 +31,10 @@ import appeng.fluids.util.AEFluidStackType;
 import appeng.tile.inventory.IAEStackInventory;
 
 /**
- * MUI 版流体成型面板 GUI 面板。
+ * MUI fluid formation plane GUI panel.
  *
- * 63 个 VirtualMEPhantomSlot 流体过滤槽（7 行 × 9 列，前 2 行始终可见，后 5 行根据 CAPACITY 升级解锁），
- * 以及优先级按钮。
+ * 63 VirtualMEPhantomSlot fluid filter slots (7 rows x 9 columns, first 2 rows always visible, last 5 rows unlocked by CAPACITY upgrade),
+ * and a priority button.
  */
 public class MUIFluidFormationPlanePanel extends MUIUpgradeablePanel {
 
@@ -60,7 +60,7 @@ public class MUIFluidFormationPlanePanel extends MUIUpgradeablePanel {
         this.initVirtualSlots();
     }
 
-    // ========== Virtual slot管理 ==========
+    // ========== Virtual slot management ==========
 
     private void initVirtualSlots() {
         this.guiSlots.clear();
@@ -97,7 +97,7 @@ public class MUIFluidFormationPlanePanel extends MUIUpgradeablePanel {
         return type == AEFluidStackType.INSTANCE;
     }
 
-    // ========== 按钮管理 ==========
+    // ========== Button management ==========
 
     @Override
     protected void addButtons() {

@@ -60,16 +60,16 @@ import appeng.util.item.AEItemStack;
  *
  * Serves as the MUI port foundation for all upgradeable config GUIs.
  *
- * 子类通过覆写 {@link #getBackground()}, {@link #getName()},
+ * Subclasses override {@link #getBackground()}, {@link #getName()},
  * {@link #addButtons()}, {@link #handleButtonVisibility()}, {@link #drawUpgrades()}
  * to customize specific GUI behavior.
  */
 public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredients {
 
-    // ========== JEI Ghost 拖放支持 ==========
+    // ========== JEI Ghost drag-and-drop support ==========
     protected final Map<Target<?>, Object> mapTargetSlot = new HashMap<>();
 
-    // ========== Container 引用 ==========
+    // ========== Container reference ==========
     protected final ContainerUpgradeable cvb;
     protected final IUpgradeableHost bc;
 
@@ -104,7 +104,7 @@ public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredi
         this.addButtons();
     }
 
-    // ========== 按钮管理 ==========
+    // ========== Button management ==========
 
     /**
      * Add common buttons (redstone, fuzzy, craft, scheduling).
@@ -161,7 +161,7 @@ public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredi
         }
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawBG(int offsetX, int offsetY, int mouseX, int mouseY) {
@@ -196,7 +196,7 @@ public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredi
         }
     }
 
-    // ========== 子类可覆写的模板方法 ==========
+    // ========== Template methods overridable by subclasses ==========
 
     /**
      * Returns the background texture path. Subclasses override to use a different texture.
@@ -254,7 +254,7 @@ public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredi
         return exclusionArea;
     }
 
-    // ========== JEI Ghost 拖放 ==========
+    // ========== JEI Ghost drag-and-drop ==========
 
     @Override
     public List<Target<?>> getPhantomTargets(Object ingredient) {

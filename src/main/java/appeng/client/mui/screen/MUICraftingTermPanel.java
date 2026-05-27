@@ -40,9 +40,9 @@ import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.helpers.InventoryAction;
 
 /**
- * MUI 版合成终端面板
+ * MUI version of the Crafting Terminal panel
  * <p>
- * 继承 {@link MUIMEMonitorablePanel}，3×3 合成网格 + 清除按钮
+ * Extends {@link MUIMEMonitorablePanel}, 3x3 crafting grid + clear button
  */
 @SideOnly(Side.CLIENT)
 public class MUICraftingTermPanel extends MUIMEMonitorablePanel {

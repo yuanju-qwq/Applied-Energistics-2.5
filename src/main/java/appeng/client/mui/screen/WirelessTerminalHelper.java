@@ -30,15 +30,15 @@ import appeng.client.gui.widgets.UniversalTerminalButtons;
 import appeng.core.AppEng;
 
 /**
- * 无线终端 GUI 共通功能帮助类。
+ * Wireless terminal GUI common functionality helper class.
  * <p>
- * 封装所有无线终端 MUI 面板共有的：
+ * Encapsulates common functionality for all wireless terminal MUI panels:
  * <ul>
- *   <li>无线升级图标绘制（右上角 32×32 的 wirelessupgrades.png）</li>
- *   <li>{@link UniversalTerminalButtons} 终端模式切换按钮管理</li>
+ *   <li>Wireless upgrade icon drawing (32x32 wirelessupgrades.png in top right corner)</li>
+ *   <li>{@link UniversalTerminalButtons} Terminal mode switch button management</li>
  * </ul>
  * <p>
- * 由各 {@link MUIWirelessTermPanel} 实现类组合使用（组合优于继承）。
+ * Used by composition in each {@link MUIWirelessTermPanel} implementation class (composition over inheritance).
  */
 final class WirelessTerminalHelper {
 
@@ -51,7 +51,7 @@ final class WirelessTerminalHelper {
     }
 
     /**
-     * 在 initGui() 中调用，初始化终端模式切换按钮。
+     * Called in initGui(), initializes terminal mode switch buttons.
      */
     void initButtons(InventoryPlayer ip, int guiLeft, int guiTop,
             List<GuiButton> buttonList, int nextButtonId, RenderItem itemRender) {
@@ -60,21 +60,21 @@ final class WirelessTerminalHelper {
     }
 
     /**
-     * 在 actionPerformed() 中调用，优先处理终端切换按钮。
+     * Called in actionPerformed(), handles terminal switch buttons first.
      *
-     * @return true 如果按钮已被处理
+     * @return true if the button has been handled
      */
     boolean handleButtonClick(GuiButton btn) {
         return this.universalButtons != null && this.universalButtons.handleButtonClick(btn);
     }
 
     /**
-     * 在 drawBG() 中调用，绘制无线升级图标。
+     * Called in drawBG(), draws wireless upgrade icon.
      *
-     * @param offsetX GUI 绝对 X
-     * @param offsetY GUI 绝对 Y
-     * @param iconX   图标相对于 offsetX 的偏移（物品终端默认 198，流体终端默认 175）
-     * @param iconY   图标相对于 offsetY 的偏移（默认 127，流体终端为 131）
+     * @param offsetX GUI absolute X
+     * @param offsetY GUI absolute Y
+     * @param iconX   Icon offset relative to offsetX (198 for item terminal, 175 for fluid terminal)
+     * @param iconY   Icon offset relative to offsetY (default 127, 131 for fluid terminal)
      */
     void drawWirelessIcon(int offsetX, int offsetY, int iconX, int iconY) {
         net.minecraft.client.Minecraft.getMinecraft().getTextureManager().bindTexture(WIRELESS_ICON_TEX);

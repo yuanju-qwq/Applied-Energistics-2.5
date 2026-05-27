@@ -19,12 +19,13 @@
 package appeng.client.mui.screen;
 
 /**
- * MUI 无线终端面板的标记接口。
+ * Marker interface for MUI wireless terminal panels.
  * <p>
- * 用于 {@link MUIMEMonitorablePanel} 中的 {@code instanceof} 检查，
- * 以决定是否显示Crafting status按钮、视图模式按钮和终端样式按钮。
+ * Used for {@code instanceof} checks in {@link MUIMEMonitorablePanel}
+ * to decide whether to show the Crafting status button, view mode button,
+ * and terminal style button.
  * <p>
- * 将在后续无线终端移植任务中由具体实现类使用。
+ * Will be implemented by concrete classes in a future wireless terminal porting task.
  */
 public interface MUIWirelessTermPanel {
 }

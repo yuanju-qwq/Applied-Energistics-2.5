@@ -45,11 +45,11 @@ import appeng.helpers.IPriorityHost;
  */
 public class MUIPriorityPanel extends AEBasePanel {
 
-    // ========== 控件 ==========
+    // ========== Controls ==========
     private GuiNumberBox priority;
     private MUITabContainer originalGuiBtn;
 
-    // ========== 加减按钮 ==========
+    // ========== Plus/minus buttons ==========
     private GuiButton plus1;
     private GuiButton plus10;
     private GuiButton plus100;
@@ -120,7 +120,7 @@ public class MUIPriorityPanel extends AEBasePanel {
         ((ContainerPriority) this.inventorySlots).setTextField(this.priority);
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -134,7 +134,7 @@ public class MUIPriorityPanel extends AEBasePanel {
         this.priority.drawTextBox();
     }
 
-    // ========== 按钮事件 ==========
+    // ========== Button events ==========
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
@@ -182,7 +182,7 @@ public class MUIPriorityPanel extends AEBasePanel {
         }
     }
 
-    // ========== 键盘输入 ==========
+    // ========== Keyboard input ==========
 
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {

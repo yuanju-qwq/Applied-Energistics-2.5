@@ -62,7 +62,7 @@ import appeng.tile.inventory.IAEStackInventory;
  * (items use Container-layer SlotOversized, fluids use VirtualSlot synced from server for display).
  * <h3>Layout</h3>
  *
- * <h3>布局</h3>
+ * <h3>Layout</h3>
  * <pre>
  * Config row 1 (y=70):  [VirtualMEPhantomSlot x 9]
  * Storage row 1 (y=88): [SlotOversized / FluidStorageVirtualSlot x 9]
@@ -72,18 +72,18 @@ import appeng.tile.inventory.IAEStackInventory;
  */
 public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhostIngredients {
 
-    // ========== JEI Ghost 拖放支持 ==========
+    // ========== JEI Ghost drag-and-drop support ==========
     protected final Map<Target<?>, Object> mapTargetSlot = new HashMap<>();
 
     private final ContainerMEInterface container;
 
-    // ========== Config Virtual slot ==========
+    // ========== Config virtual slots ==========
     private VirtualMEPhantomSlot[] configSlots;
 
-    // ========== 流体 Storage Virtual slot（只读，可控可见性）==========
+    // ========== Fluid Storage virtual slots (read-only, controllable visibility) ==========
     private FluidStorageVirtualSlot[] fluidStorageSlots;
 
-    // ========== Item Storage slot references and original xPos (for hide/restore) ==========
+    // ========== Item storage slot references and original xPos (for hide/restore) ==========
     private AppEngSlot[] itemStorageSlots;
     private int[] itemStorageOrigX;
 
@@ -107,7 +107,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         this.updateStorageSlotVisibility();
     }
 
-    // ========== 按钮管理 ==========
+    // ========== Button management ==========
 
     @Override
     protected void addButtons() {
@@ -120,7 +120,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         this.addWidget(this.interfaceMode);
     }
 
-    // ========== Config Virtual slot initialization ==========
+    // ========== Config virtual slot initialization ==========
 
     private void initConfigSlots() {
         this.guiSlots.removeIf(slot -> slot instanceof VirtualMEPhantomSlot);
@@ -140,7 +140,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         }
     }
 
-    // ========== Fluid Storage slot initialization ==========
+    // ========== Fluid storage slot initialization ==========
 
     private void initFluidStorageSlots() {
         this.guiSlots.removeIf(slot -> slot instanceof FluidStorageVirtualSlot);
@@ -161,7 +161,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         }
     }
 
-    // ========== 物品 Storage slot 位置记录 ==========
+    // ========== Item storage slot position recording ==========
 
     private void saveItemStorageSlotPositions() {
         this.itemStorageSlots = new AppEngSlot[InterfaceLogic.NUMBER_OF_CONFIG_SLOTS];
@@ -205,13 +205,13 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         }
     }
 
-    // ========== Config 槽位类型接受判断 ==========
+    // ========== Config slot type acceptance check ==========
 
     private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
         return true;
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
@@ -294,7 +294,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         return mapTargetSlot;
     }
 
-    // ========== 只读流体 Storage Virtual slot ==========
+    // ========== Read-only fluid storage virtual slot ==========
 
     /**
      * Read-only VirtualMESlot that displays fluid storage data synced from server

@@ -51,7 +51,7 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
     // ========== Number input field ==========
     private GuiNumberBox level;
 
-    // ========== ±增减按钮 ==========
+    // ========== +/- increment buttons ==========
     private GuiButton plus1;
     private GuiButton plus10;
     private GuiButton plus100;
@@ -92,7 +92,7 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
         return type == AEFluidStackType.INSTANCE;
     }
 
-    // ========== 按钮管理 ==========
+    // ========== Button management ==========
 
     @Override
     protected void addButtons() {
@@ -116,7 +116,7 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
         this.buttonList.add(this.minus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 59, 38, 20, "-" + d));
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawBG(int offsetX, int offsetY, int mouseX, int mouseY) {
@@ -152,7 +152,7 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
     protected void handleButtonVisibility() {
     }
 
-    // ========== 按钮事件 ==========
+    // ========== Button events ==========
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
@@ -167,7 +167,7 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
         }
     }
 
-    // ========== 数字输入处理 ==========
+    // ========== Number input handling ==========
 
     private void addQty(final long i) {
         try {

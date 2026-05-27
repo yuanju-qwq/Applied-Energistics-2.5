@@ -844,6 +844,13 @@
 
 - 可以对旧页面和旧 API 消费者进行排序，作为下一阶段迁移输入
 
+PatternTerminal 系列 → 提取 PatternEncodingModule
+MEMonitorablePanel → postUpdate 迁移
+CraftConfirm + CraftingCPU → IAEStackList → KeyCounter
+InterfaceTerminal 系列 → InterfaceListModule 抽取
+零散面板清理 IAEStackType
+基础设施桥接方法清理（最后）
+
 #### 任务 9.2：优先迁标准化页面
 
 优先对象：

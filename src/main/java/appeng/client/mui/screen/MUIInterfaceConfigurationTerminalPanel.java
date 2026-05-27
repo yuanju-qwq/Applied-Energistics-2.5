@@ -18,36 +18,29 @@
 
 package appeng.client.mui.screen;
 
-import static appeng.helpers.ItemStackHelper.stackFromNBT;
+import com.google.common.collect.HashMultimap;
 
 import java.awt.*;
 import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
-import com.google.common.collect.HashMultimap;
-
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTUtil;
-import net.minecraft.util.math.BlockPos;
 
 import mezz.jei.api.gui.IGhostIngredientHandler;
 
-import appeng.api.config.ActionItems;
-import appeng.api.config.Settings;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.IMUIWidget;
+import appeng.client.mui.module.InterfaceListModule;
 import appeng.client.mui.module.HighlightModule;
-import appeng.client.mui.module.SearchBarModule;
-import appeng.client.mui.widgets.MUIButtonPool;
-import appeng.client.mui.widgets.MUIButtonWidget;
-import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.implementations.ContainerInterfaceConfigurationTerminal;
 import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
 import appeng.container.interfaces.IJEIGhostIngredients;
@@ -58,45 +51,32 @@ import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.helpers.InterfaceLogic;
 import appeng.helpers.InventoryAction;
 import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
 
 /**
  * MUI interface Config configuration terminal panel.
- * Displays the Config list of all legacy item interfaces in the ME network. Supports search filtering (item name/interface name), scrollable list, block highlight positioning. SlotDisconnected Config operations, JEI ghost drag-and-drop. */
+ * Displays the Config list of all legacy item interfaces in the ME network.
+ * Supports search filtering (item name/interface name), scrollable list,
+ * block highlight positioning, SlotDisconnected Config operations,
+ * JEI ghost drag-and-drop.
+ *
+ * <p>Delegates all data management to {@link InterfaceListModule} in SINGLE_INPUTS_NAMES mode.
+ * Retains its own rendering customizations (dim overlay on non-matching interfaces,
+ * different texture coordinates, JEI ghost drag support).
+ */
 public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
-        implements IInterfaceTerminalGuiCallback, IJEIGhostIngredients {
+        implements IInterfaceTerminalGuiCallback, IJEIGhostIngredients,
+        InterfaceListModule.Host {
 
     private static final int LINES_ON_PAGE = 6;
     private static final int OFFSET_X = 21;
-    private static final int SEARCH_FIELD_X = Math.max(32, OFFSET_X);
-    private static final int SEARCH_FIELD_Y = 17;
-    private static final int SEARCH_FIELD_WIDTH = 65;
-    private static final int SEARCH_FIELD_HEIGHT = 12;
     private static final int SCROLL_BAR_LEFT = 189;
     private static final int SCROLL_BAR_TOP = 31;
     private static final int SCROLL_BAR_HEIGHT = 106;
 
-    private final HashMap<Long, ClientDCInternalInv> byId = new HashMap<>();
-    private final HashMultimap<String, ClientDCInternalInv> byName = HashMultimap.create();
-    private final Map<ClientDCInternalInv, Integer> numUpgradesMap = new HashMap<>();
-    private final ArrayList<String> names = new ArrayList<>();
-    private final ArrayList<Object> lines = new ArrayList<>();
-    private final Set<Object> matchedStacks = new HashSet<>();
-    private final Set<ClientDCInternalInv> matchedInterfaces = new HashSet<>();
-    private final Map<String, Set<Object>> cachedSearches = new WeakHashMap<>();
     public Map<IGhostIngredientHandler.Target<?>, Object> mapTargetSlot = new HashMap<>();
 
-    private boolean refreshList = false;
-    private MUITextFieldWidget searchFieldInputs;
-
-    // Search bar module (manages single search field lifecycle)
-    private SearchBarModule searchBarModule;
-
-    /** Highlight module (block position highlighting, cross-dimension detection) */
-    private HighlightModule highlightModule;
-
-    /** Dynamic highlight button pool (replaces per-frame GuiImgButton creation) */
-    private MUIButtonPool highlightButtonPool;
+    /** Interface list module (data management in SINGLE_INPUTS_NAMES mode). */
+    private InterfaceListModule module;
 
     public MUIInterfaceConfigurationTerminalPanel(final ContainerInterfaceConfigurationTerminal container) {
         super(container);
@@ -105,36 +85,23 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         this.setScrollBar(scrollbar);
         this.xSize = 208;
         this.ySize = 235;
+
+        this.module = new InterfaceListModule(this,
+                InterfaceListModule.SearchMode.SINGLE_INPUTS_NAMES,
+                InterfaceLogic.NUMBER_OF_CONFIG_SLOTS, 512);
     }
 
     // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // Initialize search bar module (SINGLE mode)
-        this.searchBarModule = new SearchBarModule(new SearchBarHost(), SearchBarModule.SearchMode.SINGLE);
-
-        this.searchFieldInputs = this.searchBarModule.initSingleField(
-                SearchBarModule.SearchFieldSpec.builder(
-                        SEARCH_FIELD_X,
-                        SEARCH_FIELD_Y,
-                        SEARCH_FIELD_WIDTH)
-                        .height(SEARCH_FIELD_HEIGHT)
-                        .tooltip("Inputs OR names")
-                        .onTextChange(text -> this.refreshList())
-                        .build());
-
-        // Highlight module
-        this.highlightModule = new HighlightModule(new HighlightModuleHost());
-
-        // Dynamic highlight button pool (wired through HighlightModule)
-        this.highlightButtonPool = new MUIButtonPool();
-        this.highlightModule.wirePoolClickHandler(this.highlightButtonPool);
-        this.addWidget(this.highlightButtonPool);
+        // All widget initialization is handled by InterfaceListModule.initSearchFieldsAndButtons()
     }
 
     @Override
     public void initGui() {
+        this.module.initSearchFieldsAndButtons();
+
         super.initGui();
 
         this.getScrollBar().setLeft(SCROLL_BAR_LEFT);
@@ -154,19 +121,22 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
 
     @Override
     public void drawScreen(final int mouseX, final int mouseY, final float partialTicks) {
-        this.highlightButtonPool.reset();
+        this.module.getHighlightButtonPool().reset();
         this.inventorySlots.inventorySlots.removeIf(slot -> slot instanceof SlotDisconnected);
 
         final int currentScroll = this.getScrollBar().getCurrentScroll();
+        final HighlightModule highlightModule = this.module.getHighlightModule();
+        final Map<ClientDCInternalInv, Integer> numUpgradesMap = this.module.getNumUpgradesMap();
 
         int offset = 30;
         int linesDraw = 0;
-        for (int x = 0; x < LINES_ON_PAGE && linesDraw < LINES_ON_PAGE && currentScroll + x < this.lines.size(); x++) {
-            final Object lineObj = this.lines.get(currentScroll + x);
+        for (int x = 0; x < LINES_ON_PAGE && linesDraw < LINES_ON_PAGE
+                && currentScroll + x < this.module.getLines().size(); x++) {
+            final Object lineObj = this.module.getLines().get(currentScroll + x);
             if (lineObj instanceof ClientDCInternalInv inv) {
 
-                this.highlightModule.createHighlightButton(
-                        this.highlightButtonPool, 4, offset, inv);
+                highlightModule.createHighlightButton(
+                        this.module.getHighlightButtonPool(), 4, offset, inv);
 
                 int extraLines = numUpgradesMap.get(inv);
 
@@ -194,17 +164,22 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         this.fontRenderer.drawString(GuiText.inventory.getLocal(), OFFSET_X + 2, this.ySize - 96 + 3, AEMUITheme.COLOR_TITLE);
 
         final int currentScroll = this.getScrollBar().getCurrentScroll();
+        final ArrayList<Object> lines = this.module.getLines();
+        final Map<ClientDCInternalInv, Integer> numUpgradesMap = this.module.getNumUpgradesMap();
+        final Set<Object> matchedStacks = this.module.getMatchedStacks();
+        final Set<ClientDCInternalInv> matchedInterfaces = this.module.getMatchedInterfaces();
+        final HashMultimap<String, ClientDCInternalInv> byName = this.module.getByName();
 
         int offset = 30;
         int linesDraw = 0;
-        for (int x = 0; x < LINES_ON_PAGE && linesDraw < LINES_ON_PAGE && currentScroll + x < this.lines.size(); x++) {
-            final Object lineObj = this.lines.get(currentScroll + x);
+        for (int x = 0; x < LINES_ON_PAGE && linesDraw < LINES_ON_PAGE && currentScroll + x < lines.size(); x++) {
+            final Object lineObj = lines.get(currentScroll + x);
             if (lineObj instanceof ClientDCInternalInv inv) {
                 int extraLines = numUpgradesMap.get(inv);
 
                 for (int row = 0; row < 1 + extraLines && linesDraw < LINES_ON_PAGE; ++row) {
                     for (int z = 0; z < 9; z++) {
-                        if (this.matchedStacks.contains(inv.getInventory().getStackInSlot(z + (row * 9)))) {
+                        if (matchedStacks.contains(inv.getInventory().getStackInSlot(z + (row * 9)))) {
                             drawRect(z * 18 + 22, offset, z * 18 + 22 + 16, offset + 16, 0x8A00FF00);
                         } else if (!matchedInterfaces.contains(inv)) {
                             drawRect(z * 18 + 22, offset, z * 18 + 22 + 16, offset + 16, 0x6A000000);
@@ -214,7 +189,7 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
                     offset += 18;
                 }
             } else if (lineObj instanceof String name) {
-                final int rows = this.byName.get(name).size();
+                final int rows = byName.get(name).size();
                 if (rows > 1) {
                     name = name + " (" + rows + ')';
                 }
@@ -236,8 +211,10 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         int offset = 29;
         final int ex = this.getScrollBar().getCurrentScroll();
         int linesDraw = 0;
-        for (int x = 0; x < LINES_ON_PAGE && linesDraw < LINES_ON_PAGE && ex + x < this.lines.size(); x++) {
-            final Object lineObj = this.lines.get(ex + x);
+        final ArrayList<Object> lines = this.module.getLines();
+        final Map<ClientDCInternalInv, Integer> numUpgradesMap = this.module.getNumUpgradesMap();
+        for (int x = 0; x < LINES_ON_PAGE && linesDraw < LINES_ON_PAGE && ex + x < lines.size(); x++) {
+            final Object lineObj = lines.get(ex + x);
             if (lineObj instanceof ClientDCInternalInv) {
                 GlStateManager.color(1, 1, 1, 1);
                 final int width = 9 * 18;
@@ -255,178 +232,37 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         }
     }
 
-    // ========== 输入处理 ==========
+    // ========== Input handling ==========
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
-        if (this.searchBarModule != null) {
-            this.searchBarModule.handleMouseClicked(xCoord, yCoord, btn);
+        if (this.module != null) {
+            this.module.mouseClicked(xCoord, yCoord, btn);
         }
         super.mouseClicked(xCoord, yCoord, btn);
     }
 
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
-        if (!this.checkHotbarKeys(key)) {
-            // Suppress leading space in empty search field
-            if (character == ' ' && this.searchFieldInputs != null
-                    && this.searchFieldInputs.getText().isEmpty() && this.searchFieldInputs.isFocused()) {
-                return;
-            }
+        if (this.module != null && this.module.keyTyped(character, key)) {
+            return;
+        }
 
-            if (this.searchFieldInputs == null || !this.searchFieldInputs.textboxKeyTyped(character, key)) {
-                super.keyTyped(character, key);
-            }
+        if (!this.checkHotbarKeys(key)) {
+            super.keyTyped(character, key);
         }
     }
 
-    // ========== 数据更新 ==========
+    // ========== Data update ==========
 
     @Override
     public void postUpdate(final NBTTagCompound in) {
-        if (in.getBoolean("clear")) {
-            this.byId.clear();
-            this.refreshList = true;
-        }
-
-        for (final Object oKey : in.getKeySet()) {
-            final String key = (String) oKey;
-            if (key.startsWith("=")) {
-                try {
-                    final long id = Long.parseLong(key.substring(1), Character.MAX_RADIX);
-                    final NBTTagCompound invData = in.getCompoundTag(key);
-                    final ClientDCInternalInv current = this.getById(id, invData.getLong("sortBy"),
-                            invData.getString("un"));
-                    highlightModule.updatePosition(current,
-                            NBTUtil.getPosFromTag(invData.getCompoundTag("pos")),
-                            invData.getInteger("dim"));
-                    numUpgradesMap.put(current, invData.getInteger("numUpgrades"));
-
-                    for (int x = 0; x < current.getInventory().getSlots(); x++) {
-                        final String which = Integer.toString(x);
-                        if (invData.hasKey(which)) {
-                            current.getInventory().setStackInSlot(x, stackFromNBT(invData.getCompoundTag(which)));
-                        }
-                    }
-                } catch (final NumberFormatException ignored) {
-                }
-            }
-        }
-
-        if (this.refreshList) {
-            this.refreshList = false;
-            this.cachedSearches.clear();
-            this.refreshList();
+        if (this.module != null) {
+            this.module.postUpdate(in);
         }
     }
 
-    // ========== 列表管理 ==========
-
-    private void refreshList() {
-        this.byName.clear();
-        this.matchedStacks.clear();
-        this.matchedInterfaces.clear();
-
-        final String searchTerm = this.searchFieldInputs == null ? "" : this.searchFieldInputs.getText().toLowerCase();
-        final Set<Object> cachedSearch = this.getCacheForSearchTerm(searchTerm);
-        final boolean rebuild = cachedSearch.isEmpty();
-
-        for (final ClientDCInternalInv entry : this.byId.values()) {
-            if (!rebuild && !cachedSearch.contains(entry)) {
-                continue;
-            }
-
-            boolean found = searchTerm.isEmpty();
-
-            if (!found) {
-                int slot = 0;
-                for (final ItemStack itemStack : entry.getInventory()) {
-                    if (slot > 8 + numUpgradesMap.get(entry) * 9) {
-                        break;
-                    }
-                    if (this.itemStackMatchesSearchTerm(itemStack, searchTerm)) {
-                        found = true;
-                        matchedStacks.add(itemStack);
-                    }
-                    slot++;
-                }
-            }
-            if (searchTerm.isEmpty() || entry.getName().toLowerCase().contains(searchTerm)) {
-                this.matchedInterfaces.add(entry);
-                found = true;
-            }
-            if (found) {
-                this.byName.put(entry.getName(), entry);
-                cachedSearch.add(entry);
-            } else {
-                cachedSearch.remove(entry);
-            }
-        }
-
-        this.names.clear();
-        this.names.addAll(this.byName.keySet());
-        Collections.sort(this.names);
-
-        this.lines.clear();
-        this.lines.ensureCapacity(this.names.size() + this.byId.size());
-
-        for (final String n : this.names) {
-            this.lines.add(n);
-            final ArrayList<ClientDCInternalInv> clientInventories = new ArrayList<>(this.byName.get(n));
-            Collections.sort(clientInventories);
-            this.lines.addAll(clientInventories);
-        }
-
-        this.getScrollBar().setRange(0, this.lines.size() - 1, 1);
-    }
-
-    private boolean itemStackMatchesSearchTerm(final ItemStack itemStack, final String searchTerm) {
-        if (itemStack.isEmpty()) {
-            return false;
-        }
-
-        boolean foundMatchingItemStack = false;
-        final String displayName = appeng.util.Platform
-                .getItemDisplayName(AEItemStackType.INSTANCE.createStack(itemStack)).toLowerCase();
-
-        for (String term : searchTerm.split(" ")) {
-            if (term.length() > 1 && (term.startsWith("-") || term.startsWith("!"))) {
-                term = term.substring(1);
-                if (displayName.contains(term)) {
-                    return false;
-                }
-            } else if (displayName.contains(term)) {
-                foundMatchingItemStack = true;
-            } else {
-                return false;
-            }
-        }
-        return foundMatchingItemStack;
-    }
-
-    private Set<Object> getCacheForSearchTerm(final String searchTerm) {
-        if (!this.cachedSearches.containsKey(searchTerm)) {
-            this.cachedSearches.put(searchTerm, new HashSet<>());
-        }
-        final Set<Object> cache = this.cachedSearches.get(searchTerm);
-        if (cache.isEmpty() && searchTerm.length() > 1) {
-            cache.addAll(this.getCacheForSearchTerm(searchTerm.substring(0, searchTerm.length() - 1)));
-            return cache;
-        }
-        return cache;
-    }
-
-    private ClientDCInternalInv getById(final long id, final long sortBy, final String string) {
-        ClientDCInternalInv o = this.byId.get(id);
-        if (o == null) {
-            this.byId.put(id,
-                    o = new ClientDCInternalInv(InterfaceLogic.NUMBER_OF_CONFIG_SLOTS, id, sortBy, string, 512));
-            this.refreshList = true;
-        }
-        return o;
-    }
-
-    // ========== JEI Ghost 拖放 ==========
+    // ========== JEI Ghost drag and drop ==========
 
     @Override
     public List<IGhostIngredientHandler.Target<?>> getPhantomTargets(Object ingredient) {
@@ -467,42 +303,56 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
         return mapTargetSlot;
     }
 
-    // ========== SearchBarModule.Host implementation ==========
+    // ========== InterfaceListModule.Host implementation ==========
 
-    private final class SearchBarHost implements SearchBarModule.Host {
-        @Override
-        public AEBasePanel getPanel() {
-            return MUIInterfaceConfigurationTerminalPanel.this;
-        }
-
-        @Override
-        public int getGuiLeft() {
-            return guiLeft;
-        }
-
-        @Override
-        public int getGuiTop() {
-            return guiTop;
-        }
-
-        @Override
-        public void requestReinitialize() {
-            buttonList.clear();
-            initGui();
-        }
+    @Override
+    public int getScreenWidth() {
+        return this.width;
     }
 
-    // ========== HighlightModule.Host implementation ==========
+    @Override
+    public int getScreenHeight() {
+        return this.height;
+    }
 
-    private final class HighlightModuleHost implements HighlightModule.Host {
-        @Override
-        public net.minecraft.entity.player.EntityPlayer getPlayer() {
-            return mc.player;
-        }
+    @Override
+    public FontRenderer getFontRenderer() {
+        return this.fontRenderer;
+    }
 
-        @Override
-        public void closeScreen() {
-            mc.player.closeScreen();
-        }
+    @Override
+    public MUIScrollBar getInterfaceScrollBar() {
+        return this.getScrollBar();
+    }
+
+    @Override
+    public <T extends IMUIWidget> T addModuleWidget(T widget) {
+        return this.addWidget(widget);
+    }
+
+    @Override
+    public AEBasePanel getPanel() {
+        return this;
+    }
+
+    @Override
+    public void requestReinitialize() {
+        this.buttonList.clear();
+        this.initGui();
+    }
+
+    @Override
+    public void bindTexture(String file) {
+        super.bindTexture(file);
+    }
+
+    @Override
+    public void drawTexturedModalRect(int x, int y, int textureX, int textureY, int w, int h) {
+        super.drawTexturedModalRect(x, y, textureX, textureY, w, h);
+    }
+
+    @Override
+    public int getJeiOffset() {
+        return 0;
     }
 }

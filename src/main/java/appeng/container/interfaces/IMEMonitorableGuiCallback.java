@@ -40,24 +40,25 @@ public interface IMEMonitorableGuiCallback extends IConfigManagerHost {
      *
      * @param entries the updated entries
      */
-    default void postRepoEntryUpdate(List<ItemRepo.RepoEntry> entries) {
-        // Default: fall back to legacy IAEStack path
-        java.util.ArrayList<IAEStack<?>> legacyList = new java.util.ArrayList<>(entries.size());
-        for (ItemRepo.RepoEntry entry : entries) {
-            IAEStack<?> stack = entry.toIAEStack();
-            if (stack != null) {
-                legacyList.add(stack);
-            }
-        }
-        postUpdate(legacyList);
-    }
+    void postRepoEntryUpdate(List<ItemRepo.RepoEntry> entries);
 
     /**
      * @deprecated Use {@link #postRepoEntryUpdate(List)} instead.
      * Receive item/fluid list updates from the ME network.
+     * <p>
+     * Default implementation converts to RepoEntry and delegates.
      *
      * @param list the updated stack list
      */
     @Deprecated
-    void postUpdate(List<IAEStack<?>> list);
+    default void postUpdate(List<IAEStack<?>> list) {
+        java.util.ArrayList<ItemRepo.RepoEntry> entries = new java.util.ArrayList<>(list.size());
+        for (IAEStack<?> stack : list) {
+            var key = stack.toAEKey();
+            if (key != null) {
+                entries.add(new ItemRepo.RepoEntry(key, stack.getStackSize(), stack.isCraftable()));
+            }
+        }
+        postRepoEntryUpdate(entries);
+    }
 }

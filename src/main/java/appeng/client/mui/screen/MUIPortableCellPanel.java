@@ -19,12 +19,12 @@
 package appeng.client.mui.screen;
 
 /**
- * MUI 便携单元面板的标记接口。
+ * Marker interface for MUI portable cell panels.
  * <p>
- * 用于 {@link MUIMEMonitorablePanel} 中的 {@code instanceof} 检查，
- * 以决定是否显示终端样式按钮（便携单元不显示）。
+ * Used for {@code instanceof} checks in {@link MUIMEMonitorablePanel}
+ * to decide whether to show the terminal style button (portable cells do not show it).
  * <p>
- * 将在后续便携单元移植任务中由具体实现类使用。
+ * Will be implemented by concrete classes in a future portable cell porting task.
  */
 public interface MUIPortableCellPanel {
 }

@@ -36,9 +36,9 @@ import appeng.core.sync.packets.PacketValueConfig;
 import appeng.helpers.ICustomNameObject;
 
 /**
- * MUI 版重命名器 GUI 面板。
- * 提供文本输入框和确认按钮，用于重命名方块/物品。
- * ESC/Enter 键关闭面板并发送重命名数据包。
+ * MUI renamer GUI panel.
+ * Provides text input field and confirm button for renaming blocks/items.
+ * ESC/Enter keys close the panel and send rename packet.
  */
 public class MUIRenamerPanel extends AEBasePanel {
 
@@ -47,7 +47,7 @@ public class MUIRenamerPanel extends AEBasePanel {
     private static final int TEXT_FIELD_WIDTH = 229;
     private static final int TEXT_FIELD_HEIGHT = 12;
 
-    // ========== 控件 ==========
+    // ========== Controls ==========
     private MUITextFieldWidget textField;
     private GuiButton confirmButton;
 
@@ -60,7 +60,7 @@ public class MUIRenamerPanel extends AEBasePanel {
         this.xSize = 256;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
@@ -89,7 +89,7 @@ public class MUIRenamerPanel extends AEBasePanel {
                 "\u2192"));
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -102,7 +102,7 @@ public class MUIRenamerPanel extends AEBasePanel {
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
     }
 
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {

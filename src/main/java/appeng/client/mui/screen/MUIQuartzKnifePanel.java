@@ -33,13 +33,13 @@ import appeng.core.sync.packets.PacketValueConfig;
 import appeng.items.contents.QuartzKnifeObj;
 
 /**
- * MUI 版石英切割刀 GUI 面板。
+ * MUI quartz cutting knife GUI panel.
  *
- * 提供物品命名文本输入框，用于给处理器/存储组件命名。
+ * Provides item naming text input field for naming processors/storage components.
  */
 public class MUIQuartzKnifePanel extends AEBasePanel {
 
-    // ========== 文本框 ==========
+    // ========== Text field ==========
     private GuiTextField name;
 
     public MUIQuartzKnifePanel(final InventoryPlayer ip, final QuartzKnifeObj te) {
@@ -51,11 +51,11 @@ public class MUIQuartzKnifePanel extends AEBasePanel {
         this.ySize = 184;
     }
 
-    // ========== 初始化 ==========
+    // ========== Initialization ==========
 
     @Override
     protected void setupWidgets() {
-        // initGui 处理初始化
+        // initGui handles initialization
     }
 
     @Override
@@ -71,7 +71,7 @@ public class MUIQuartzKnifePanel extends AEBasePanel {
         this.name.setFocused(true);
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -86,7 +86,7 @@ public class MUIQuartzKnifePanel extends AEBasePanel {
         this.name.drawTextBox();
     }
 
-    // ========== 输入事件 ==========
+    // ========== Input events ==========
 
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {

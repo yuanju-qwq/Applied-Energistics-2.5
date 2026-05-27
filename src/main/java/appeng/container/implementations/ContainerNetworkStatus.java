@@ -64,23 +64,23 @@ public class ContainerNetworkStatus extends AEBaseContainer {
         /**
          * Receive updates using RepoEntry list (preferred path).
          */
-        default void postRepoEntryUpdate(List<appeng.client.me.ItemRepo.RepoEntry> entries) {
-            // Default: convert to legacy path
-            java.util.ArrayList<IAEStack<?>> legacyList = new java.util.ArrayList<>(entries.size());
-            for (appeng.client.me.ItemRepo.RepoEntry entry : entries) {
-                IAEStack<?> stack = entry.toIAEStack();
-                if (stack != null) {
-                    legacyList.add(stack);
-                }
-            }
-            postUpdate(legacyList);
-        }
+        void postRepoEntryUpdate(List<appeng.client.me.ItemRepo.RepoEntry> entries);
 
         /**
          * @deprecated Use {@link #postRepoEntryUpdate(List)} instead.
+         * Default implementation converts to RepoEntry and delegates.
          */
         @Deprecated
-        void postUpdate(List<IAEStack<?>> list);
+        default void postUpdate(List<IAEStack<?>> list) {
+            java.util.ArrayList<appeng.client.me.ItemRepo.RepoEntry> entries = new java.util.ArrayList<>(list.size());
+            for (IAEStack<?> stack : list) {
+                var key = stack.toAEKey();
+                if (key != null) {
+                    entries.add(new appeng.client.me.ItemRepo.RepoEntry(key, stack.getStackSize(), stack.isCraftable()));
+                }
+            }
+            postRepoEntryUpdate(entries);
+        }
     }
 
     private INetworkStatusGuiCallback guiNetworkStatus;

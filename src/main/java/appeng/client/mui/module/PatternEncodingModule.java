@@ -63,24 +63,24 @@ import appeng.tile.inventory.IAEStackInventory;
  * <p>Responsible for:
  * <ul>
  *   <li>Creation, layout, and visibility management of pattern encoding buttons</li>
- *   <li>绘制 pattern.png / pattern3.png 面板背景</li>
+ *   <li>Drawing pattern.png / pattern3.png panel background</li>
  *   <li>Button click events sent via PacketValueConfig</li>
  *   <li>repositionSlots: dynamic slot positioning based on crafting/processing mode</li>
  *   <li>Processing mode input/output Scrollbar management</li>
- *   <li>PlacePattern 自动放入功能</li>
- *   <li>面板拖拽支持</li>
+ *   <li>PlacePattern auto-insert functionality</li>
+ *   <li>Panel drag support</li>
  * </ul>
  */
 public class PatternEncodingModule {
 
-    // ========== 纹理 ==========
+    // ========== Textures ==========
 
     private static final ResourceLocation PATTERN_TEXTURE = new ResourceLocation("appliedenergistics2",
             "textures/gui/widget/pattern.png");
     private static final ResourceLocation PATTERN3_TEXTURE = new ResourceLocation("appliedenergistics2",
             "textures/gui/widget/pattern3.png");
 
-    // ========== 布局常量 ==========
+    // ========== Layout constants ==========
 
     private static final int CRAFTING_INPUT_SLOTS = CRAFTING_GRID_DIMENSION * CRAFTING_GRID_DIMENSION;
 
@@ -114,7 +114,7 @@ public class PatternEncodingModule {
     private static final int PATTERN_OUT_OFFSET_X = 11;
     private static final int PATTERN_OUT_OFFSET_Y = PATTERN_PANEL_UPPER_HEIGHT + 49;
 
-    // ========== 宿主接口 ==========
+    // ========== Host interface ==========
 
     /**
      * The host GUI must implement this interface to provide the context needed by the module.
@@ -145,11 +145,11 @@ public class PatternEncodingModule {
         InterfaceListModule getInterfaceListModule();
     }
 
-    // ========== 数据 ==========
+    // ========== Data ==========
 
     private final Host host;
 
-    // 按钮
+    // Buttons
     private GuiTabButton tabCraftButton;
     private GuiTabButton tabProcessButton;
     private GuiImgButton substitutionsEnabledBtn;
@@ -162,7 +162,7 @@ public class PatternEncodingModule {
     private GuiImgButton encodeBtn;
     private GuiImgButton clearBtn;
 
-    // 数量调节按钮
+    // Quantity adjustment buttons
     private GuiImgButton x2Btn;
     private GuiImgButton x3Btn;
     private GuiImgButton plusOneBtn;
@@ -183,7 +183,7 @@ public class PatternEncodingModule {
     // PlacePattern
     private boolean pendingPlacePattern = false;
 
-    // 面板拖拽
+    // Panel drag
     private PanelDragState dragState;
 
     // ========== Constructor ==========
@@ -247,18 +247,18 @@ public class PatternEncodingModule {
         final int panelScreenY = host.getGuiTop() + getPanelY();
         final List<GuiButton> buttonList = host.getButtonList();
 
-        // 编码按钮
+        // Encode button
         this.encodeBtn = new GuiImgButton(panelScreenX + 11, panelScreenY + 118,
                 Settings.ACTIONS, ActionItems.ENCODE);
         buttonList.add(this.encodeBtn);
 
-        // 清除按钮
+        // Clear button
         this.clearBtn = new GuiImgButton(panelScreenX + 87, panelScreenY + 10,
                 Settings.ACTIONS, ActionItems.CLOSE);
         this.clearBtn.setHalfSize(true);
         buttonList.add(this.clearBtn);
 
-        // 制作/加工模式切换按钮
+        // Crafting/Processing mode toggle buttons
         this.tabCraftButton = new GuiTabButton(panelScreenX + 39, panelScreenY + 93,
                 new ItemStack(Blocks.CRAFTING_TABLE),
                 GuiText.CraftingPattern.getLocal(), host.getItemRenderer());
@@ -280,7 +280,7 @@ public class PatternEncodingModule {
         this.substitutionsDisabledBtn.setHalfSize(true);
         buttonList.add(this.substitutionsDisabledBtn);
 
-        // beSubstitute 按钮
+        // beSubstitute buttons
         this.beSubstitutionsEnabledBtn = new GuiImgButton(panelScreenX + 87, panelScreenY + 20,
                 Settings.ACTIONS, ItemSubstitution.ENABLED);
         this.beSubstitutionsEnabledBtn.setHalfSize(true);
@@ -291,13 +291,13 @@ public class PatternEncodingModule {
         this.beSubstitutionsDisabledBtn.setHalfSize(true);
         buttonList.add(this.beSubstitutionsDisabledBtn);
 
-        // 反转按钮
+        // Invert button
         this.invertBtn = new GuiImgButton(panelScreenX + 97, panelScreenY + 20,
                 Settings.ACTIONS, ActionItems.CLOSE);
         this.invertBtn.setHalfSize(true);
         buttonList.add(this.invertBtn);
 
-        // 合并按钮
+        // Combine buttons
         this.combineEnabledBtn = new GuiImgButton(panelScreenX + 87, panelScreenY + 30,
                 Settings.ACTIONS, CombineMode.ENABLED);
         this.combineEnabledBtn.setHalfSize(true);
@@ -308,7 +308,7 @@ public class PatternEncodingModule {
         this.combineDisabledBtn.setHalfSize(true);
         buttonList.add(this.combineDisabledBtn);
 
-        // 数量调节按钮
+        // Quantity adjustment buttons
         final int adjBtnX1 = panelScreenX + PROCESSING_OUTPUT_OFFSET_X + 38;
         final int adjBtnX2 = panelScreenX + PROCESSING_OUTPUT_OFFSET_X + 28;
 
@@ -347,7 +347,7 @@ public class PatternEncodingModule {
         this.doubleBtn.setHalfSize(true);
         buttonList.add(this.doubleBtn);
 
-        // 初始化Scrollbar
+        // Initialize scrollbars
         this.updateProcessingScrollbar();
         this.updateProcessingInputScrollbar();
     }
@@ -391,7 +391,7 @@ public class PatternEncodingModule {
         final int panelY = getPanelY();
         final ContainerWirelessDualInterfaceTerminal ct = host.getDualContainer();
 
-        // 定位 crafting Virtual slot
+        // Position crafting Virtual slots
         if (this.craftingVirtualSlots != null) {
             for (int craftIdx = 0; craftIdx < this.craftingVirtualSlots.length; craftIdx++) {
                 final VirtualMEPatternSlot slot = this.craftingVirtualSlots[craftIdx];
@@ -428,7 +428,7 @@ public class PatternEncodingModule {
             }
         }
 
-        // 定位 output Virtual slot
+        // Position output Virtual slots
         if (this.outputVirtualSlots != null) {
             for (int outIdx = 0; outIdx < this.outputVirtualSlots.length; outIdx++) {
                 final VirtualMEPatternSlot slot = this.outputVirtualSlots[outIdx];
@@ -447,7 +447,7 @@ public class PatternEncodingModule {
             }
         }
 
-        // 定位 Container 中注册的 Slot（craftSlot/patternIN/patternOUT/玩家物品栏）
+        // Position Container-registered slots (craftSlot/patternIN/patternOUT/player inventory)
         for (final Object obj : host.getPanel().inventorySlots.inventorySlots) {
             if (obj instanceof AppEngSlot slot) {
                 if (slot instanceof SlotPatternTerm) {
@@ -473,7 +473,7 @@ public class PatternEncodingModule {
                         slot.xPos = slot.getX() + 14;
                     }
                 } else {
-                    // 其他常规槽位
+                    // Other normal slots
                     slot.yPos = host.getYSize() + slot.getY() - 78 - 7;
                     slot.xPos = slot.getX() + 14;
                 }
@@ -481,7 +481,7 @@ public class PatternEncodingModule {
         }
     }
 
-    // ========== 渲染: drawBG ==========
+    // ========== Rendering: drawBG ==========
 
     /**
      * Draws the pattern encoding panel background.
@@ -509,7 +509,7 @@ public class PatternEncodingModule {
                     PATTERN_PANEL_WIDTH, PATTERN_PANEL_UPPER_HEIGHT);
         }
 
-        // 下半部分：IN/OUT 槽位背景
+        // Lower section: IN/OUT slot backgrounds
         panel.mc.getTextureManager().bindTexture(PATTERN_TEXTURE);
         panel.drawTexturedModalRect(panelX, panelY + PATTERN_PANEL_UPPER_HEIGHT,
                 133, 0, PATTERN_PANEL_LOWER_WIDTH, PATTERN_PANEL_LOWER_HEIGHT);
@@ -530,7 +530,7 @@ public class PatternEncodingModule {
         GlStateManager.popMatrix();
     }
 
-    // ========== 渲染: drawFG ==========
+    // ========== Rendering: drawFG ==========
 
     /**
      * Draws the pattern encoding panel foreground (title text and button visibility management).
@@ -587,7 +587,7 @@ public class PatternEncodingModule {
         }
     }
 
-    // ========== drawScreen: 按钮重建 ==========
+    // ========== drawScreen: button rebuild ==========
 
     /**
      * Called during drawScreen, updates button positions and adds to buttonList.
@@ -624,7 +624,7 @@ public class PatternEncodingModule {
         }
     }
 
-    // ========== 按钮位置更新 ==========
+    // ========== Button position update ==========
 
     private void updatePatternControlPositions() {
         final int panelScreenX = host.getGuiLeft() + getPanelX();
@@ -672,7 +672,7 @@ public class PatternEncodingModule {
         }
     }
 
-    // ========== 输入处理: actionPerformed ==========
+    // ========== Input handling: actionPerformed ==========
 
     /**
      * Handles button clicks.
@@ -755,7 +755,7 @@ public class PatternEncodingModule {
         return true;
     }
 
-    // ========== 输入处理: mouseWheel ==========
+    // ========== Input handling: mouseWheel ==========
 
     /**
      * Handles mouse wheel (processing mode input/output area).

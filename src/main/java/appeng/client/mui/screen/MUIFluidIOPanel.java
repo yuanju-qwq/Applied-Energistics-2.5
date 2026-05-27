@@ -28,9 +28,9 @@ import appeng.fluids.util.AEFluidStackType;
 import appeng.tile.inventory.IAEStackInventory;
 
 /**
- * MUI 版 GuiFluidIO。
+ * MUI GuiFluidIO.
  *
- * 流体 IO 总线配置面板：中心 1 + 十字 4 + 对角 4 = 9 个 VirtualMEPhantomSlot 配置槽（fluid-only）。
+ * Fluid IO bus configuration panel: center 1 + cross 4 + diagonal 4 = 9 VirtualMEPhantomSlot config slots (fluid-only).
  */
 public class MUIFluidIOPanel extends MUIUpgradeablePanel {
 
@@ -46,7 +46,7 @@ public class MUIFluidIOPanel extends MUIUpgradeablePanel {
         this.initVirtualSlots();
     }
 
-    // ========== Virtual slot管理 ==========
+    // ========== Virtual slot management ==========
 
     private void initVirtualSlots() {
         this.guiSlots.clear();
@@ -94,7 +94,7 @@ public class MUIFluidIOPanel extends MUIUpgradeablePanel {
         return type == AEFluidStackType.INSTANCE;
     }
 
-    // ========== 渲染 ==========
+    // ========== Rendering ==========
 
     @Override
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
