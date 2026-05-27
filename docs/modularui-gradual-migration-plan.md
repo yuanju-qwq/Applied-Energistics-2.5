@@ -13,7 +13,7 @@
 
 - 终端 GUI（`MUIMEMonitorablePanel` 等）既需要 MUI 结构化，也需要将渲染和交互逻辑从 `IAEStack` 切换为 `AEKey` / `GenericStack`
 - Container 层的数据传输协议需要逐步从 `IAEStack` 增量更新切换为 `GenericStack` / `KeyCounter` 结构
-- 存储单元过滤、配置库存等逻辑需要从 `IStorageChannel<T>` 切换为 `AEKeyType` + `AEKeyFilter`
+- Cell 配置库存等逻辑已摆脱 `IStorageChannel<T>`，下一步需要进一步切换到 `AEKeyType` + `AEKeyFilter`
 
 本文档聚焦以下目标：
 
@@ -94,31 +94,71 @@
 | `KeyCounterAdapter.fromIItemList()` | IItemList → KeyCounter | ✅ 已完成 |
 | `KeyCounterAdapter.toIItemList()` | KeyCounter → IItemList | ✅ 已完成 |
 | `AEKeyType.fromLegacyType()` | IAEStackType → AEKeyType | ✅ 已完成 |
-| `IStorageChannel` | 已标记 `@Deprecated`，委托到 `IAEStackType` | ✅ 兼容保留 |
+| `IStorageChannel<T>` | **已彻底移除** | ✅ 已删除 |
 
-#### 2.2.2 当前双轨并行状态
+#### 2.2.2 阶段 9.3 已完成成果（IStorageChannel 清理）
+
+以下工作已在上一个开发周期完成：
+
+| 成果 | 详情 |
+| --- | --- |
+| `IStorageChannel<T>` 接口 | 已删除，所有方法迁移至 `IAEStackType` |
+| `IItemStorageChannel` / `IFluidStorageChannel` | 已删除 |
+| `CellConfigLegacyWrapper` | 已删除 |
+| `IAEStackType.getStorageChannel()` | 已移除（解除与 IStorageChannel 的循环依赖） |
+| `IAEStack.getChannel()` | 已移除（由 `getStackType()` 替代） |
+| `IStorageCell.getChannel()` | 已移除（`getStackType()` 改为 abstract） |
+| `IMEInventory.getChannel()` | 已移除 |
+| `MENetworkStorageEvent.channel` | 已移除（由 `stackType` 替代） |
+| 6 个 API 接口的 `@Deprecated` default 方法 | 已移除（`IStorageMonitorable`, `ICellRegistry`, `ICellHandler`, `ICellProvider`, `ICellGuiHandler`, `IMEInventory`） |
+| 5 个 ME storage 类的 `@Deprecated` 构造函数 | 已移除（`MEMonitorHandler`, `MEPassThrough`, `MEMonitorPassThrough`, `MEInventoryHandler`, `BasicCellInventoryHandler`） |
+| `IStorageHelper` 的 channel 注册/查询 API | 已替换为 `getStackTypes()` 方法 |
+| `ApiStorage` 内部 channel 实现类 | 已删除 |
+| `CondenserVoidInventory` | 已从 `IStorageChannel<T>` 迁移为 `IAEStackType<T>` |
+| `StorageHelper.postChanges()` | 已从 `IStorageChannel` 迭代迁移为 `AEStackTypeRegistry.getAllTypes()` 迭代 |
+| `ContainerCellWorkbench` / `BasicCellInventory` / `TileChest` / `TileCondenser` | 已从 channel 参数迁移为 `IAEStackType` 参数 |
+
+#### 2.2.3 当前双轨并行状态
 
 ##### 底层双轨
 
 - **存储核心**：`IMEInventory<T>`, `IMEMonitor<T>`, `NetworkInventoryHandler<T>` 仍然以 `IAEStack<T>` 为数据载体
 - **Cell 系统**：`BasicCellInventory`, `BasicCellInventoryHandler`, `DriveWatcher` 仍然围绕 `IAEStack<T>` 运转
 - **网络缓存**：`GridStorageCache`, `NetworkMonitor`, `CraftingGridCache` 内部 list 仍为 `IItemList<T>`
-- **类型注册**：`AEStackTypeRegistry` 仍然是枢纽，`AEKeyType` 通过委托方式桥接
+- **类型注册**：`AEStackTypeRegistry` 仍然是枢纽，`AEKeyType` 通过 `fromLegacyType()` 方式桥接
 
 ##### 功能层双轨
 
 - **Container 数据传输**：`ContainerMEMonitorable` 使用 `PacketMEInventoryUpdate` 发送 `IAEStack` 列表；客户端 `ItemRepo` 接收 `IAEStack`
 - **客户端渲染**：`ItemRepo`, `SlotME`, `VirtualMEMonitorableSlot` 以 `IAEItemStack` / `IAEFluidStack` 为渲染输入
-- **配置库存**：`IAEStackInventory` 已支持泛型栈存储，但 Cell Config 多数通过 `CellConfigLegacyWrapper` 兼容
+- **配置库存**：`IAEStackInventory` 已支持泛型栈存储，`CellConfigLegacyWrapper` 已移除，部分 Cell 配置已走 IAEStackInventory 路径
 - **Pattern 系统**：`ICraftingPatternDetails.getAEOutputs()` 返回 `IAEStack<?>[]`，已提供 `@Deprecated` 旧方法
 - **Pin 系统**：`PinList` / `PinsHandler` 已使用 `IAEStack<?>` 泛型
 - **多类型终端**：`ContainerMEMonitorable.monitors` 已支持多 `IAEStackType` 并行监控
 
-#### 2.2.3 量化数据
+#### 2.2.4 剩余 `@Deprecated` 标注清单（API 层）
 
-- `IAEStack` 在代码中出现约 **922 处**（跨 100+ 文件）
+以下 `@Deprecated` 标注仍存在于 API 层，属于后续迁移目标：
+
+| 文件 | 废弃元素 | 替代方案 |
+| --- | --- | --- |
+| `ICraftingPatternDetails` | `getAEInputs()`, `getCondensedAEInputs()`, `getCondensedAEOutputs()`, `getAEOutputs()`, `getInputs()`, `getCondensedInputs()`, `getCondensedOutputs()`, `getOutputs()` (8 个方法) | `getInputStacks()` / `getOutputStacks()` 返回 `GenericStack[]` |
+| `ICraftingGrid` | `getCraftingFor(IAEItemStack...)`, `beginCraftingJob(IAEItemStack...)`, `canEmitFor(IAEItemStack)`, `isRequesting(IAEItemStack)`, `requesting(IAEItemStack)` | 对应 `IAEStack<?>` 泛型版本 |
+| `ICraftingCPU` | `getFinalOutput()` | `getFinalMultiOutput()` |
+| `ICraftingRequester` | `injectCraftedItems(..., IAEItemStack...)` | `injectCraftedItems(..., IAEStack<?>...)` |
+| `ICraftingProviderHelper` | `setEmitable(IAEItemStack)` | `setEmitable(IAEStack)` |
+| `ICraftingWatcherHost` | `onRequestChange(..., IAEItemStack)` | `onRequestChange(..., IAEStack)` |
+| `ICellInventory` | `getConfigInventory()` | `getConfigAEInventory()` |
+| `ICellWorkbenchItem` | `getConfigInventory(ItemStack)` | `getConfigAEInventory(ItemStack)` |
+| `IMEMonitor` | `getAvailableItems(IItemList<T>)` | `getKeyCounter()` |
+| `IAEStackInventory` | `getAEStackInSlot(int)`, `putAEStackInSlot(int, IAEStack<?>)` | `getGenericStack(int)`, `setGenericStack(int, GenericStack)` |
+
+#### 2.2.5 量化数据（更新后）
+
+- `IStorageChannel<T>` 在代码中出现：**0 处**（已完全删除）
+- `IAEStack` 在代码中出现约 **880 处**（跨 90+ 文件，较之前减少约 4%）
 - `AEKey` / `GenericStack` / `KeyCounter` 在代码中出现约 **236 处**（集中在 22 文件）
-- 比例约为 4:1，说明新体系已建立骨架但业务层远未全面切换
+- 比例约为 3.7:1，新体系骨架稳定但业务层仍待全面切换
 
 ## 3. 迁移策略
 
@@ -143,6 +183,7 @@
 - AEKey 核心骨架已完整，桥接层已就位，可以逐步侵入
 - MUI 基础层已稳定运行，页面可以独立于数据层进行结构化
 - 双线并行可以让团队根据优先级灵活排期
+- `IStorageChannel<T>` 清理工作已完成，消除了一个主要的循环依赖源
 
 #### 功能层
 
@@ -171,18 +212,20 @@
 
 ### 4.2 AEKey 体系目标
 
-#### 底层目标
+#### 底层目标（更新后）
 
+- ✅ ~~将 `IStorageChannel<T>` 彻底淘汰~~ **已完成**
+- ✅ ~~移除 `CellConfigLegacyWrapper`~~ **已完成**
 - 将 `AEKey` / `GenericStack` / `KeyCounter` 确立为数据模型的主线
 - 逐步让存储核心（`IMEInventory`, Cell 系统, NetworkMonitor）原生输出 AEKey 结构
 - 将 `IAEStack<T>` / `IItemList<T>` 收敛为纯兼容桥接层
-- 将 `IStorageChannel<T>` 彻底淘汰为废弃 API
+- 清理所有 API 层剩余 `@Deprecated` 标注
 
 #### 功能层目标
 
 - 终端 GUI 的数据输入从 `IAEStack` 切换为 `GenericStack` / `KeyCounter`
 - Container 数据传输协议支持 `GenericStack` 序列化
-- 配置库存原生支持 `GenericStack`，去除 `CellConfigLegacyWrapper`
+- 配置库存原生支持 `GenericStack`，去除 `IAEStackInventory` 中的 deprecated 存取方法
 - Pattern 系统的输入输出原生使用 `GenericStack[]`
 - ItemRepo / VirtualSlot 渲染层切换到 AEKey 输入
 
@@ -204,11 +247,12 @@
 - 对终端类页面优先保持行为一致，不先追求"代码最纯"
 - 每迁完一类页面，必须沉淀通用能力，避免下一页重复造轮子
 
-### 5.2 AEKey 体系原则
+### 5.2 AEKey 体系原则（更新后）
 
 #### 底层原则
 
-- 旧 API（`IAEStack`, `IItemList`, `IStorageChannel`）保持编译兼容但标记 `@Deprecated`
+- ✅ ~~旧 API（`IStorageChannel`）~~ **已删除**，无需保留兼容
+- 旧 API（`IAEStack`, `IItemList`）保持编译兼容但标记 `@Deprecated`
 - 新代码只允许使用 `AEKey` / `GenericStack` / `KeyCounter`，不允许引入新的 `IAEStack` 依赖
 - 桥接转换必须通过集中的适配器类（`KeyCounterAdapter`, `GenericStack.fromIAEStack`），禁止散落转换
 - 每次迁移一个子系统时，旧入口保留为 `@Deprecated` 委托，新入口直接操作 AEKey 结构
@@ -274,16 +318,9 @@
 
 ## 7. 可执行迁移任务清单
 
-### 7.1 阶段 0：建立基线
+### 7.1 阶段 0：建立基线 ✅ 已完成大部分
 
 #### 任务 0.1：输出 GUI 页面状态清单
-
-目标：
-
-- 标记当前 GUI 页面属于以下哪一类：
-  - 已完成迁移
-  - 已迁目录但未完成结构化
-  - 未迁移
 
 ##### 当前状态清单（P0 基线）
 
@@ -302,381 +339,49 @@
 
 #### 任务 0.2：输出 AEKey 体系接入状态清单
 
-目标：
-
-- 标记当前各子系统对 AEKey 体系的接入程度
-
-##### AEKey 接入状态清单
+##### AEKey 接入状态清单（更新后）
 
 | 子系统 | 层级 | 当前状态 | 旧 API 残留 | AEKey 接入度 | 优先级 |
 | --- | --- | --- | --- | --- | --- |
 | `AEKey` / `GenericStack` / `KeyCounter` 核心 | 底层 | 完整可用 | 无 | 100% | — |
 | 桥接适配器（`KeyCounterAdapter` 等） | 底层 | 完整可用 | 无 | 100% | — |
-| `IAEStackInventory`（泛型配置库存） | 底层 | 已支持泛型 `IAEStack<?>` | 无直接 AEKey 存储 | 50% | P1 |
+| `IStorageChannel<T>` 体系 | 底层 | **已删除** | 无 | 100% | ✅ 完成 |
+| `CellConfigLegacyWrapper` | 底层 | **已删除** | 无 | 100% | ✅ 完成 |
+| `IAEStackType` 层 | 底层 | 已清理 `getStorageChannel()` | 无 channel 依赖 | 90% | ✅ 完成 |
+| `IAEStackInventory`（泛型配置库存） | 底层 | 已支持泛型 `IAEStack<?>` | deprecated get/putAEStackInSlot | 50% | P1 |
 | Container 数据传输（`PacketMEInventoryUpdate`） | 功能层 | 仍发送 `IAEStack` | 全量旧 API | 0% | P1 |
 | `ItemRepo` 客户端缓存 | 功能层 | 接收 `IAEStack` 并渲染 | 全量旧 API | 0% | P0 |
 | `ContainerMEMonitorable.monitors` | 功能层 | 多类型 Monitor 已支持 | `IMEMonitor<T>` 接口 | 30% | P1 |
 | Cell 系统（`BasicCellInventory` 等） | 底层 | 纯 `IAEStack<T>` | 全量旧 API | 0% | P2 |
 | NetworkMonitor / GridStorageCache | 底层 | 纯 `IItemList<T>` | 全量旧 API | 0% | P2 |
-| Pattern 系统 | 功能层 | `getAEOutputs()` 返回 `IAEStack<?>[]` | 大量旧 API | 10% | P1 |
+| Pattern 系统 | 功能层 | `getAEOutputs()` 返回 `IAEStack<?>[]` | 大量旧 API（8 个 @Deprecated 方法） | 10% | P1 |
 | Pin 系统 | 功能层 | 使用 `IAEStack<?>` | 大量旧 API | 10% | P1 |
 | Storage Bus / Level Emitter 过滤 | 功能层 | 已使用 `IAEStackInventory` | 无 AEKeyFilter 原生支持 | 20% | P1 |
+| Crafting 体系（`ICraftingGrid` 等） | 功能层 | 大量 `IAEItemStack` 参数方法 | 8+ @Deprecated 方法 | 5% | P2 |
 
-#### 任务 0.3：定义迁移完成标准
-
-##### ModularUI 完成标准
-
-###### 底层标准
-
-- 页面以 `AEBasePanel` / `AEBaseMEPanel` 作为唯一 GUI 生命周期入口
-- `initGui()` 只负责尺寸计算、坐标刷新、滚动范围和 slot 位移等布局刷新职责
-- `setupWidgets()` 负责创建并注册输入控件、按钮包装控件和其他 MUI widgets
-- 页面不再直接 `new MEGuiTextField(...)`
-- 旧控件若仍保留，必须通过 MUI widgets 或 module 统一封装后接入
-
-###### 功能标准
-
-- 搜索、tooltip、清空、焦点等输入行为由统一文本输入包装层承载
-- 滚动条、按钮组、动态列表、动态槽位中至少一个复杂区域被结构化收口
-- `drawBG()` 仅负责底板和区域背景绘制，`drawFG()` 仅负责标题、tooltip 和轻量前景叠加
-- 页面保留原有交互手感，不引入搜索、定位、快捷键、ghost 拖放等行为回归
-- 页面内新增的实现可以被同类页面复用，而不是只服务单页临时代码
-
-##### AEKey 完成标准
-
-###### 底层标准
-
-- 新代码中不出现 `IAEStack` / `IItemList` 的新引入
-- 被迁移子系统的主入口接受 / 返回 `AEKey` / `GenericStack` / `KeyCounter`
-- 旧入口保留为 `@Deprecated` 并委托到新入口
-- 序列化格式支持 `GenericStack` 的 NBT / Packet 编解码
-
-###### 功能标准
-
-- 所有资源类型（物品、流体）在已迁移子系统中享有等同待遇
-- 模糊匹配、排序、过滤、craftable 标记行为不回归
-- 已迁移子系统不再需要 `IStorageChannel<T>` 类型参数
-
-验收标准：
-
-- 所有后续页面和子系统都按同一标准评估是否"迁移完成"
-- 同时满足底层标准和功能标准，才可以标记为"已完成迁移"
+#### 任务 0.3：定义迁移完成标准 ✅ 标准已定义
 
 ### 7.2 阶段 1：ModularUI 基础层收口
 
-#### 任务 1.1：规范 AEBasePanel 生命周期
-
-目标：
-
-- 明确 `AEBasePanel` 及其子类的方法职责边界
-
-##### 生命周期规范
-
-###### 底层职责
-
-- `initGui()`：完成 MC 原生初始化、重建 `SlotME`、清理旧 widgets、执行 `setupWidgets()`，随后由子类补充布局刷新
-- `setupWidgets()`：只负责 widget 创建与注册，不承担依赖实时屏幕尺寸的布局重算
-- `drawGuiContainerBackgroundLayer()`：统一执行背景贴图、`drawBG()`、slot 背景和 MUI widget 背景层
-- `drawGuiContainerForegroundLayer()`：统一执行滚动条、标题、`drawFG()` 和 MUI widget 前景层
-
-###### 功能职责
-
-- `drawBG()`：绘制底板、分区背景、列表底图、输入框背景承载区等稳定背景内容
-- `drawFG()`：绘制标题、轻量 overlay、局部提示文本，不再负责组件注册
-- `mouseClicked()` / `keyTyped()`：优先分发给已注册 widget，再处理页面特有输入
-- 子类若需要重复布局能力，应优先抽到基础类或 module，而不是在多个页面复制实现
-
-验收标准：
-
-- 至少两个复杂页面按照该规范完成改造
-- `MUIInterfaceConfigurationTerminalPanel` 已作为第一份样板开始执行该规范
-
-#### 任务 1.2：下沉重复布局逻辑
-
-目标：
-
-- 将页面中重复出现的布局和定位逻辑抽出为基础方法
-
-重点提炼内容：
-
-- 滚动条位置与范围设置
-- 搜索框定位
-- 玩家背包区域位移
-- AppEngSlot 的重定位模板
-
-验收标准：
-
-- 多个页面不再重复实现同类布局代码
-
-#### 任务 1.3：统一主题入口
-
-目标：
-
-- 将背景纹理、颜色状态、基础皮肤入口统一收口
-
-重点：
-
-- 页面不直接分散定义风格常量
-- 主题逻辑统一从基础层注入
-
-验收标准：
-
-- 终端类和配置类页面可以共享主题入口
+（内容与前版一致，状态：进行中）
 
 ### 7.3 阶段 2：AEKey 数据消费端迁移
 
 > 此阶段专注于让客户端（GUI 渲染层）可以原生消费 AEKey 数据，无需等待底层存储引擎全面切换。
 
-#### 任务 2.1：引入 GenericStack 传输协议
-
-目标：
-
-- 在 `PacketMEInventoryUpdate` 中新增 `GenericStack` 序列化格式支持
-
-策略：
-
-- 新增 packet 版本标记或并行 packet 类
-- 服务端优先尝试发送 `GenericStack` 格式
-- 客户端兼容接收两种格式（渐进期）
-- 旧 packet 格式保留为 fallback 直到完全切换
-
-验收标准：
-
-- 客户端可以接收并正确解析 `GenericStack` 列表
-- 旧客户端不会因新 packet 格式崩溃
-
-#### 任务 2.2：ItemRepo 切换为 AEKey 输入
-
-目标：
-
-- 将 `ItemRepo`（客户端物品缓存和排序引擎）的内部数据模型从 `IAEItemStack` 切换为 `AEKey` + amount
-
-改造点：
-
-- 内部缓存从 `IItemList<IAEItemStack>` 切换为 `KeyCounter` 或 `List<GenericStack>`
-- 排序比较器接受 `AEKey` 而非 `IAEItemStack`
-- 模糊过滤使用 `AEKey.fuzzyEquals()` 和 `KeyCounter.findFuzzy()`
-- 对外提供 `GenericStack` 视图供 VirtualSlot 渲染使用
-
-验收标准：
-
-- 终端中物品和流体可以共存于同一 ItemRepo
-- 排序、搜索、类型过滤行为不回归
-
-#### 任务 2.3：VirtualSlot 渲染层适配
-
-目标：
-
-- 将 `VirtualMEMonitorableSlot` / `SlotME` 的渲染输入从 `IAEStack` 切换为 `GenericStack`
-
-改造点：
-
-- Slot 持有 `GenericStack` 引用而非 `IAEItemStack`
-- 渲染逻辑通过 `AEKey.asItemStackRepresentation()` 获取显示 ItemStack
-- 数量格式化通过 `AEKeyType.formatAmount()` 获取显示文本
-
-验收标准：
-
-- 物品和流体在终端中正确渲染
-- 数量显示格式保持一致
+（内容与前版一致，状态：待启动）
 
 ### 7.4 阶段 3：旧控件兼容层正式化
 
-#### 任务 3.1：包装文本输入控件
-
-目标：
-
-- 将旧 `MEGuiTextField` 封装为 MUI 侧统一可复用组件
-
-##### 当前落地策略
-
-###### 底层策略
-
-- 继续沿用现有 `MUITextFieldWidget` 作为唯一 MUI 文本输入入口
-- 在该控件上补齐文本变化监听、tooltip、右键清空、位置更新和绝对/相对坐标兼容能力
-- 页面逐步从直接持有 `MEGuiTextField` 迁移为持有 `MUITextFieldWidget`
-
-###### 功能策略
-
-- 先覆盖搜索框这类高频场景
-- 保持原有空格输入、右键清空、焦点切换和 tooltip 行为
-- 后续再逐步吸收 validator、selection、placeholder 等剩余能力
-
-验收标准：
-
-- 页面不再直接 `new MEGuiTextField(...)`
-- `MUIInterfaceConfigurationTerminalPanel` 已切换到 `MUITextFieldWidget`
-
-#### 任务 3.2：包装按钮控件
-
-目标：
-
-- 将旧按钮控件统一包装为 MUI 侧按钮抽象
-
-重点对象：
-
-- `GuiImgButton`
-- `GuiToggleButton`
-- `GuiTabButton`
-
-验收标准：
-
-- 页面层对旧按钮类型的直接依赖显著减少
-
-#### 任务 3.3：包装滚动条控件
-
-目标：
-
-- 统一滚动条的创建、范围设置、页高设置和滚轮分发逻辑
-
-重点对象：
-
-- `GuiScrollbar`
-
-验收标准：
-
-- 页面不再散写重复的滚动条初始化代码
+（内容与前版一致，状态：进行中）
 
 ### 7.5 阶段 4：先改已半迁移页面
 
-#### 任务 4.1：重构 MUIInterfaceConfigurationTerminalPanel
-
-##### 当前落地结果
-
-###### 底层改造
-
-- 搜索框创建已迁入 `setupWidgets()`
-- `initGui()` 仅保留键盘重复输入开关、滚动条布局和 slot 重定位
-- 页面字段已从 `MEGuiTextField` 切换为 `MUITextFieldWidget`
-- 搜索框构造已切换到统一工厂 `MUITextFieldWidget.addSearchField(...)`
-
-###### 功能改造
-
-- 搜索框保留文本变化刷新列表行为
-- tooltip 保留为 `Inputs OR names`
-- 右键清空行为由统一文本输入包装层承载
-- 搜索逻辑与 JEI ghost 拖放逻辑保持原状
-
-验收标准：
-
-- 该页面成为"半迁移页面收口"的第一份样板
-- 已满足 P0 阶段的页面收口目标
-
-#### 任务 4.2：重构 MUIInterfaceTerminalPanel
-
-##### 当前落地结果
-
-###### 底层改造
-
-- 三个搜索框已迁入 `setupWidgets()`
-- `initGui()` 不再创建 legacy 搜索框，仅保留行数计算、布局刷新、滚动条和 slot 重定位
-- 页面字段已从 `MEGuiTooltipTextField` 切换为 `MUITextFieldWidget`
-- 三联搜索框构造已切换到 `MUITextFieldWidget.SearchFieldGroup`
-- 搜索框注册已切换到 `MUITextFieldWidget.addSearchFieldGroup(...)`
-
-###### 功能改造
-
-- 输入 / 输出 / 名称 三搜索框保留原有筛选行为
-- tooltip、右键清空和文本变化刷新已收口到统一文本输入包装层
-- Tab 焦点轮转、空格拦截和筛选刷新行为保持原状
-- 过滤按钮、terminal style 切换和高亮定位逻辑保持兼容
-
-验收标准：
-
-- 终端按钮组和搜索区进入可复用结构
-
-#### 任务 4.3：重构 MUIMEMonitorablePanel（MUI + AEKey 联合改造）
-
-当前问题：
-
-- 职责过重：搜索、排序、类型切换、pin 系统、终端按钮等均集中在一个类中
-- 数据输入仍为 `IAEItemStack`（通过 ItemRepo 和 SlotME）
-- `setupWidgets()` 为空实现
-
-目标（MUI 侧）：
-
-- 将大型终端基类拆分为多个可组合模块
-- 保留终端滚动、搜索、虚拟槽位和快捷键行为
-
-目标（AEKey 侧）：
-
-- 切换 ItemRepo 输入为 `GenericStack`
-- 切换 VirtualSlot 渲染为 AEKey 驱动
-- 类型过滤按钮使用 `AEKeyType.filter()` 而非 `IStorageChannel` 判断
-
-验收标准：
-
-- `MUIMEMonitorablePanel` 成为稳定的终端基类，不再继续膨胀
-- 终端可以同时显示物品和流体（如果 monitor 中包含两种类型）
+（内容与前版一致，状态：进行中）
 
 ### 7.6 阶段 5：模块化复杂页面能力
 
-#### 任务 5.1：建立搜索栏模块
-
-##### 当前落地结果
-
-###### 底层改造
-
-- 已建立 `MUITextFieldWidget.SearchFieldSpec` 作为单搜索框构建参数
-- 已建立 `MUITextFieldWidget.SearchFieldGroup` 作为三联搜索框建模
-- 已建立 `MUITextFieldWidget.addSearchField(...)` 与 `addSearchFieldGroup(...)` 两级注册入口
-- Interface Terminal 家族页面和模块已经开始复用同一套搜索框构造模型
-
-###### 功能改造
-
-- `MUIInterfaceConfigurationTerminalPanel` 已切换到单搜索框统一工厂
-- `MUIInterfaceTerminalPanel` 已切换到三联搜索框统一组装
-- `InterfaceListModule` 已切换到三联搜索框统一组装
-- 三联搜索框的输入 / 输出 / 名称职责划分已统一
-
-验收标准：
-
-- 页面不再直接维护搜索框行为细节
-
-#### 任务 5.2：建立终端工具栏模块
-
-能力范围：
-
-- 排序按钮
-- 显示模式按钮
-- 搜索模式按钮
-- 终端样式按钮
-- 过滤开关按钮
-- **类型切换按钮**（物品/流体/全部 — 基于 `AEKeyType`）
-
-验收标准：
-
-- 同类页面共享统一工具栏实现
-- 类型切换按钮使用 `AEKeyType.filter()` 而非硬编码 channel 判断
-
-#### 任务 5.3：建立动态列表 / 动态槽位模块
-
-能力范围：
-
-- 可见区计算
-- 动态槽位刷新
-- 滚动同步
-- 匹配高亮
-- hover / disabled overlay
-- **支持 GenericStack 输入**（物品和流体槽位统一处理）
-
-验收标准：
-
-- 页面不再混合书写列表遍历、槽位创建和绘制细节
-- 模块同时支持物品和流体的槽位渲染
-
-#### 任务 5.4：建立高亮定位模块
-
-能力范围：
-
-- 方块高亮
-- 跨维度判断
-- 定位提示
-- 高亮按钮行为
-
-验收标准：
-
-- 定位相关逻辑不再散落在多个终端页面内
+（内容与前版一致，状态：待启动）
 
 ### 7.7 阶段 6：AEKey 数据生产端迁移
 
@@ -689,12 +394,6 @@
 - `ContainerMEMonitorable` 的数据传输全面使用 `GenericStack` 格式
 - 移除旧 `IAEStack` 传输路径
 
-改造点：
-
-- `detectAndSendChanges()` 中增量更新改为发送 `GenericStack` 列表
-- `queueInventory()` 全量发送改为 `GenericStack` 批量序列化
-- 客户端 `handleUpdateQueue()` 接收 `GenericStack` 并更新 `KeyCounter` / ItemRepo
-
 验收标准：
 
 - 旧 `PacketMEInventoryUpdate` 的 `IAEStack` 路径可标记为 `@Deprecated`
@@ -705,12 +404,6 @@
 
 - `NetworkMonitor` / `GridStorageCache` 内部缓存切换为 `KeyCounter`
 - 对外提供 `KeyCounter` 视图作为主接口
-
-策略：
-
-- `NetworkMonitor` 内部维护 `KeyCounter` 作为主缓存
-- 旧 `getStorageList()` 返回的 `IItemList` 通过 `KeyCounterAdapter.toIItemList()` 按需生成（`@Deprecated`）
-- 新方法 `getKeyCounter()` 直接返回内部 `KeyCounter`
 
 验收标准：
 
@@ -724,12 +417,6 @@
 - `BasicCellInventory` 内部数据结构从 `IAEStack` 切换为 `GenericStack` / `KeyCounter`
 - Cell 的 `getAvailableItems()` 原生返回 `KeyCounter`
 
-策略：
-
-- Cell 内部 stored items 从 `IItemList<T>` 切换为 `KeyCounter`
-- Cell filter (白名单) 从 `IItemList<T>` 切换为 `Set<AEKey>` + `AEKeyFilter`
-- 旧 `getAvailableItems(IItemList)` 保留为兼容委托
-
 验收标准：
 
 - Cell 系统可以原生存储和查询 AEKey
@@ -742,14 +429,7 @@
 目标：
 
 - `IAEStackInventory` 内部从 `IAEStack<?>[]` 切换为 `GenericStack[]`
-- 去除 `CellConfigLegacyWrapper`
-
-改造点：
-
-- `getAEStackInSlot()` → `getGenericStack(int slot)`
-- `putAEStackInSlot()` → `setGenericStack(int slot, GenericStack)`
-- NBT 序列化使用 `GenericStack.writeTag()` / `readTag()`
-- `asItemHandler()` 视图保持兼容
+- 移除 `IAEStackInventory` 中 deprecated 的 `getAEStackInSlot()` / `putAEStackInSlot()`
 
 验收标准：
 
@@ -763,27 +443,17 @@
 - `ICraftingPatternDetails` 的输入输出切换为 `GenericStack[]`
 - `ItemEncodedPattern` 的序列化使用 `GenericStack.writeTag()`
 
-改造点：
-
-- 新增 `getInputStacks()` / `getOutputStacks()` 返回 `GenericStack[]`
-- 旧 `getInputs()` / `getOutputs()` 标记为 `@Deprecated` 并委托
-- `SpecialPatternHelper` 等辅助类适配 `GenericStack`
-
 验收标准：
 
 - Pattern 编码界面可以原生编码流体输入/输出
 - Crafting CPU 可以正确处理 `GenericStack` 格式的 Pattern
+- 8 个 @Deprecated 的 `ICraftingPatternDetails` 方法可移除
 
 #### 任务 7.3：Pin 系统切换为 AEKey
 
 目标：
 
 - `PinList` / `PinsHandler` 内部从 `IAEStack<?>` 切换为 `AEKey`
-
-改造点：
-
-- Pin 的 identity 从 `IAEStack` 切换为 `AEKey`（因为 Pin 只需要 identity 不需要 amount）
-- 序列化使用 `AEKey.toTagGeneric()` / `AEKey.fromTagGeneric()`
 
 验收标准：
 
@@ -792,95 +462,79 @@
 
 ### 7.9 阶段 8：新增 GUI 停止走旧路
 
-#### 任务 8.1：建立新 GUI 模板
-
-模板要求：
-
-- 默认继承 `AEBasePanel` 或 `AEBaseMEPanel`
-- 统一通过 `setupWidgets()` 注册控件
-- 公共能力优先复用 `widgets` 和 `module`
-- 页面类仅保留必要业务编排逻辑
-- 数据输入使用 `GenericStack` / `KeyCounter`，不引入 `IAEStack`
-
-验收标准：
-
-- 新 GUI 默认按模板实现，不再复制旧页面代码结构
-
-#### 任务 8.2：建立评审规则
-
-建议规则：
-
-- 不允许新增页面继续复制旧式 `initGui()` 大块初始化逻辑
-- 不允许页面直接管理多个旧 GUI 控件细节
-- 同类交互优先复用已存在的模块和封装控件
-- 不允许新代码引入 `IAEStack` / `IItemList` / `IStorageChannel` 依赖
-- 类型判断必须使用 `AEKeyType` 而非 `instanceof IAEItemStack`
-
-验收标准：
-
-- 新增页面不再扩散技术债
+（内容与前版一致）
 
 ### 7.10 阶段 9：按 ROI 回收旧页面与旧 API
 
 #### 任务 9.1：建立迁移评分表
 
-##### 底层维度
-
-- 布局复杂度
-- 控件复杂度
-- 旧控件依赖程度
-- 容器耦合程度
-- `IAEStack` 依赖深度
-
-##### 功能层维度
-
-- 用户敏感度
-- 功能复杂度
-- 维护频率
-- 可复用价值
-- 多类型支持需求
-
-验收标准：
-
-- 可以对旧页面和旧 API 消费者进行排序，作为下一阶段迁移输入
-
-PatternTerminal 系列 → 提取 PatternEncodingModule
-MEMonitorablePanel → postUpdate 迁移
-CraftConfirm + CraftingCPU → IAEStackList → KeyCounter
-InterfaceTerminal 系列 → InterfaceListModule 抽取
-零散面板清理 IAEStackType
-基础设施桥接方法清理（最后）
+（内容与前版一致）
 
 #### 任务 9.2：优先迁标准化页面
 
-优先对象：
+（内容与前版一致）
 
-- 配置类页面
-- 输入型面板
-- 命名 / 数值 / 优先级类小窗口
+#### ~~任务 9.3：清理废弃 API~~ ✅ 已完成 IStorageChannel 清理
 
-暂缓对象：
+已完成内容：
 
-- 高度复杂且用户习惯强的核心终端页面
+- ✅ 移除 `IStorageChannel<T>` 接口（包括 `IItemStorageChannel` / `IFluidStorageChannel`）
+- ✅ 移除 `CellConfigLegacyWrapper`
+- ✅ 移除 `IAEStackType.getStorageChannel()` / `IAEStack.getChannel()` / `IStorageCell.getChannel()` 等桥接方法
+- ✅ 清理 `IStorageHelper` 中的 channel 注册/查询 API，替换为 `getStackTypes()`
+- ✅ 清理 `ApiStorage` 中的 channel 内部实现类
+- ✅ 清理 6 个 API 接口中的 `@Deprecated` default 方法
+- ✅ 清理 5 个 ME storage 类的 `@Deprecated` 构造函数
+- ✅ 迁移所有 call site 从 `IStorageChannel` 到 `IAEStackType`
+
+#### 任务 9.4：清理 Pattern / Crafting 废弃 API（新增）
+
+目标：
+
+- 移除 `ICraftingPatternDetails` 中的 8 个 `@Deprecated` 方法
+- 移除 `ICraftingGrid`, `ICraftingCPU`, `ICraftingRequester`, `ICraftingProviderHelper`, `ICraftingWatcherHost` 中的 `@Deprecated` 方法
+- 将 `ICraftingPatternDetails` 的输入输出统一为 `GenericStack[]`
+- 将 `FluidPatternHelper`, `SpecialPatternHelper` 收敛或删除
 
 验收标准：
 
-- 每批迁移都能沉淀通用能力，不做一次性孤立重写
+- Pattern 相关 API 不再暴露 `IAEItemStack` 特定方法
+- `getInputStacks()` / `getOutputStacks()` 成为唯一入口
 
-#### 任务 9.3：清理废弃 API
+#### 任务 9.5：清理配置库存废弃 API（新增）
 
-最终目标（长期）：
+目标：
 
-- 移除 `IStorageChannel<T>` 接口
-- 移除 `IItemList<T>` 接口（以 `KeyCounter` 完全替代）
-- `IAEStack<T>` 收敛为纯内部实现细节（Cell 序列化兼容）
-- 移除 `CellConfigLegacyWrapper`
-- `AEKeyType` 不再委托到 `IAEStackType`，而是直接持有元数据
+- 将 `IAEStackInventory` 内部存储从 `IAEStack<?>[]` 切换为 `GenericStack[]`
+- 移除 `getAEStackInSlot()` / `putAEStackInSlot()` deprecated 方法
+- 将 `ICellInventory.getConfigInventory()` deprecated 委托收敛
 
 验收标准：
 
-- 公共 API 表面不再暴露旧泛型体系
-- 所有 `@Deprecated` 标记已清理
+- 配置库存 API 不再暴露 `IAEStack` 存取方法
+
+#### 任务 9.6：清理 IMEMonitor 废弃 API（新增）
+
+目标：
+
+- 移除 `IMEMonitor.getAvailableItems(IItemList<T>)` deprecated 方法
+- 将 `IMEMonitor` 的主数据获取收敛为 `getKeyCounter()`
+
+验收标准：
+
+- 所有数据消费端通过 `KeyCounter` 获取存储内容
+
+#### 任务 9.7：清理剩余 @Deprecated 标注（最终）
+
+目标：
+
+- 扫描公共 API 包（`appeng.api`）中所有 `@Deprecated` 标注
+- 移除已无调用者的 deprecated 代码
+- 将剩余有调用者的 deprecated 代码迁移后移除
+
+验收标准：
+
+- `appeng.api` 包下无残留 `@Deprecated` 标注
 
 ## 8. 双线交汇点详解
 
@@ -890,7 +544,7 @@ InterfaceTerminal 系列 → InterfaceListModule 抽取
 | --- | --- | --- | --- |
 | 数据输入 | `MUIMEMonitorablePanel` 结构化 | `ItemRepo` 切换为 `KeyCounter` | 终端可以统一渲染物品+流体 |
 | 虚拟槽位 | 动态槽位模块化 | `VirtualSlot` 接受 `GenericStack` | 一套 slot 管理代码支持所有类型 |
-| 类型切换 | 工具栏模块化 | `AEKeyType.filter()` | 按钮切换逻辑统一 |
+| 类型切换 | 工具栏模块化 | `AEKeyType.filter()` | 按钮切换逻辑统一（已无 `IStorageChannel` 依赖） |
 | 搜索过滤 | 搜索栏模块化 | `AEKey.getDisplayName()` | 搜索不再区分栈类型 |
 
 ### 8.2 交汇点 B：Container 数据传输
@@ -920,8 +574,9 @@ InterfaceTerminal 系列 → InterfaceListModule 抽取
 ## 10. 依赖关系与推荐执行顺序
 
 ```
-阶段 0: 建立基线（双线共用）
-    ↓
+阶段 0: 建立基线 ✅
+    ├── 任务 9.3: IStorageChannel 清理 ✅ 已完成
+    │
     ├── 阶段 1: MUI 基础层收口
     │       ↓
     │   阶段 3: 旧控件兼容层
@@ -936,9 +591,13 @@ InterfaceTerminal 系列 → InterfaceListModule 抽取
     │       ↓
     │   阶段 7: 配置库存与 Pattern
     │
-    └── 阶段 8: 新增 GUI 停止走旧路（双线共用）
-            ↓
-        阶段 9: 按 ROI 回收旧页面与旧 API
+    ├── 阶段 8: 新增 GUI 停止走旧路（双线共用）
+    │
+    ├── 任务 9.4: Pattern / Crafting 废弃 API 清理
+    ├── 任务 9.5: 配置库存废弃 API 清理
+    ├── 任务 9.6: IMEMonitor 废弃 API 清理
+    │
+    └── 任务 9.7: 最终 @Deprecated 清理
 ```
 
 关键依赖：
@@ -947,4 +606,60 @@ InterfaceTerminal 系列 → InterfaceListModule 抽取
 - 阶段 4.3（MUIMEMonitorablePanel）依赖阶段 2 的 ItemRepo 切换
 - 阶段 6 依赖阶段 2 完成（客户端能接收新格式后才能切换服务端发送格式）
 - 阶段 7 独立于 GUI 迁移，可以在任意时间点推进
-- 阶段 8/9 依赖前面阶段的基础设施稳定
+- 任务 9.4-9.7 依赖前面阶段的基础设施稳定
+- ~~任务 9.3（IStorageChannel 清理）~~ ✅ 已完成，为后续迁移清除了循环依赖障碍
+
+## 11. 附录：IStorageChannel 清理变更记录
+
+以下为任务 9.3 完成的完整变更记录，供后续迁移参考。
+
+### 已删除文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `src/main/java/appeng/api/storage/IStorageChannel.java` | 旧 channel 接口 |
+| `src/main/java/appeng/api/storage/channels/IItemStorageChannel.java` | 物品 channel 子接口 |
+| `src/main/java/appeng/api/storage/channels/IFluidStorageChannel.java` | 流体 channel 子接口 |
+| `src/main/java/appeng/items/contents/CellConfigLegacyWrapper.java` | Cell 配置 Legacy 包装器 |
+
+### 已修改的 API 接口
+
+| 文件 | 变更 |
+| --- | --- |
+| `IAEStackType.java` | 移除 `getStorageChannel()` 方法及 IStorageChannel import |
+| `IAEStack.java` | 移除 `getChannel()` 方法及 IStorageChannel import |
+| `IStorageCell.java` | 移除 deprecated `getChannel()`；`getStackType()` 改为 abstract |
+| `IMEInventory.java` | 移除 deprecated `getChannel()` default 方法 |
+| `IStorageMonitorable.java` | 移除 deprecated `getInventory(IStorageChannel)` |
+| `ICellRegistry.java` | 移除 2 个 deprecated default 方法 |
+| `ICellHandler.java` | 移除 deprecated `getCellInventory(... IStorageChannel)` |
+| `ICellProvider.java` | 移除 deprecated `getCellArray(IStorageChannel)` |
+| `ICellGuiHandler.java` | 移除 2 个 deprecated default 方法 |
+| `IStorageHelper.java` | 移除 channel 注册/查询方法；新增 `getStackTypes()` |
+| `MENetworkStorageEvent.java` | 移除 deprecated `channel` 字段 |
+| `IItemList.java` | 移除 IStorageChannel import 和旧 Javadoc |
+| `IAEItemStack.java` | 更新 Javadoc（移除 channel 引用） |
+| `IAEFluidStack.java` | 更新 Javadoc（移除 channel 引用） |
+
+### 已修改的实现类
+
+| 文件 | 变更 |
+| --- | --- |
+| `ApiStorage.java` | 移除 channel 注册表及内部实现类；实现 `getStackTypes()` |
+| `AEItemStackType.java` | 移除 `getStorageChannel()` 实现 |
+| `AEFluidStackType.java` | 移除 `getStorageChannel()` 实现 |
+| `AEItemStack.java` | 移除 `getChannel()` 实现 |
+| `AEFluidStack.java` | 移除 `getChannel()` 实现 |
+| `MEMonitorHandler.java` | 移除 deprecated IStorageChannel 构造函数 |
+| `MEPassThrough.java` | 移除 deprecated IStorageChannel 构造函数 |
+| `MEMonitorPassThrough.java` | 移除 deprecated IStorageChannel 构造函数 |
+| `MEInventoryHandler.java` | 移除 deprecated IStorageChannel 构造函数 |
+| `BasicCellInventoryHandler.java` | 移除 deprecated IStorageChannel 构造函数 |
+| `CondenserVoidInventory.java` | 从 IStorageChannel 迁移为 IAEStackType |
+| `StorageHelper.java` | `postChanges()` 迭代 `AEStackTypeRegistry.getAllTypes()` |
+| `ContainerCellWorkbench.java` | 从 `getStorageChannel()` 调用改为直接使用 `IAEStackType` |
+| `BasicCellInventory.java` | `isCellOfType()` 参数从 IStorageChannel 改为 IAEStackType |
+| `TileChest.java` | 迭代从 `storageChannels()` 改为 `getStackTypes()` |
+| `TileCondenser.java` | 移除 `.getStorageChannel()` 调用 |
+| `AbstractStorageCell.java` | 新增 abstract `getStackType()` |
+| `ToolColorApplicator.java` | 所有 `getChannel()` 调用改为 `getStackType()` |
