@@ -24,10 +24,10 @@ import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.Settings;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiProgressBar;
 import appeng.client.gui.widgets.GuiProgressBar.Direction;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUIProgressWidget;
 import appeng.container.implementations.ContainerCondenser;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
@@ -43,8 +43,10 @@ public class MUICondenserPanel extends AEBasePanel {
 
     private final ContainerCondenser cvc;
 
-    // ========== Buttons / Progress bar ==========
-    private GuiProgressBar pb;
+    private static final int PB_X = 120;
+    private static final int PB_Y = 25;
+
+    private MUIProgressWidget pb;
     private MUIButtonWidget mode;
 
     public MUICondenserPanel(final InventoryPlayer ip, final TileCondenser te) {
@@ -57,10 +59,11 @@ public class MUICondenserPanel extends AEBasePanel {
         this.ySize = 197;
     }
 
-    // ========== Initialization ==========
-
     @Override
     protected void setupWidgets() {
+        this.pb = this.addWidget(new MUIProgressWidget(this.cvc, "guis/condenser.png",
+                PB_X, PB_Y, 178, 25, 6, 18, Direction.VERTICAL, GuiText.StoredEnergy.getLocal()));
+
         this.mode = new MUIButtonWidget(128, 52, Settings.CONDENSER_OUTPUT, this.cvc.getOutput());
         this.mode.setOnClick(btn -> {
             final boolean backwards = Mouse.isButtonDown(1);
@@ -68,17 +71,6 @@ public class MUICondenserPanel extends AEBasePanel {
         });
         this.addWidget(this.mode);
     }
-
-    @Override
-    public void initGui() {
-        super.initGui();
-
-        this.pb = new GuiProgressBar(this.cvc, "guis/condenser.png", 120 + this.guiLeft, 25 + this.guiTop, 178, 25, 6,
-                18, Direction.VERTICAL, GuiText.StoredEnergy.getLocal());
-        this.buttonList.add(this.pb);
-    }
-
-    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {

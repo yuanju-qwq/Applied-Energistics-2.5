@@ -22,11 +22,11 @@ import java.io.IOException;
 
 import org.lwjgl.input.Keyboard;
 
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.implementations.ContainerRenamer;
 import appeng.core.AELog;
@@ -47,9 +47,8 @@ public class MUIRenamerPanel extends AEBasePanel {
     private static final int TEXT_FIELD_WIDTH = 229;
     private static final int TEXT_FIELD_HEIGHT = 12;
 
-    // ========== Controls ==========
     private MUITextFieldWidget textField;
-    private GuiButton confirmButton;
+    private MUIButtonWidget confirmButton;
 
     public MUIRenamerPanel(final InventoryPlayer ip, final ICustomNameObject te) {
         this(new ContainerRenamer(ip, te));
@@ -60,11 +59,8 @@ public class MUIRenamerPanel extends AEBasePanel {
         this.xSize = 256;
     }
 
-    // ========== Initialization ==========
-
     @Override
     protected void setupWidgets() {
-        // Text input widget initialization is centralized here to align with panel lifecycle rules.
         this.textField = this.addWidget(new MUITextFieldWidget(
                 TEXT_FIELD_X,
                 TEXT_FIELD_Y,
@@ -74,22 +70,13 @@ public class MUIRenamerPanel extends AEBasePanel {
                         .setMaxStringLength(32)
                         .setFocused(true)
                         .setClearOnRightClick(true));
+
+        this.confirmButton = new MUIButtonWidget(
+                TEXT_FIELD_X + TEXT_FIELD_WIDTH, TEXT_FIELD_Y, 12, 12);
+        this.confirmButton.setTooltip("\u2192");
+        this.confirmButton.setOnClick(btn -> this.sendRenameAndClose());
+        this.addWidget(this.confirmButton);
     }
-
-    @Override
-    public void initGui() {
-        super.initGui();
-
-        this.buttonList.add(this.confirmButton = new GuiButton(
-                0,
-                this.guiLeft + TEXT_FIELD_X + TEXT_FIELD_WIDTH,
-                this.guiTop + TEXT_FIELD_Y,
-                12,
-                12,
-                "\u2192"));
-    }
-
-    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -102,32 +89,13 @@ public class MUIRenamerPanel extends AEBasePanel {
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
     }
 
-    // ========== Input events ==========
-
-    @Override
-    protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
-        if (this.textField != null) {
-            this.textField.mouseClicked(xCoord - this.guiLeft, yCoord - this.guiTop, btn);
-        }
-        super.mouseClicked(xCoord, yCoord, btn);
-    }
-
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
         if (key == Keyboard.KEY_ESCAPE || key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) {
             this.sendRenameAndClose();
-        } else if (this.textField == null || !this.textField.textboxKeyTyped(character, key)) {
-            super.keyTyped(character, key);
+            return;
         }
-    }
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        if (btn == this.confirmButton) {
-            this.sendRenameAndClose();
-        }
+        super.keyTyped(character, key);
     }
 
     private void sendRenameAndClose() {

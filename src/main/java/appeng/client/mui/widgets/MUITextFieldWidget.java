@@ -732,6 +732,10 @@ public class MUITextFieldWidget implements IMUIWidget {
         return this.height;
     }
 
+    public GuiTextField getTextField() {
+        return this.delegate;
+    }
+
     private void notifyTextChanged() {
         if (this.textChangeListener != null) {
             this.textChangeListener.accept(this.delegate.getText());

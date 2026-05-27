@@ -22,9 +22,9 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiProgressBar;
 import appeng.client.gui.widgets.GuiProgressBar.Direction;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIProgressWidget;
 import appeng.container.implementations.ContainerVibrationChamber;
 import appeng.core.localization.GuiText;
 import appeng.tile.misc.TileVibrationChamber;
@@ -38,8 +38,10 @@ public class MUIVibrationChamberPanel extends AEBasePanel {
 
     private final ContainerVibrationChamber cvc;
 
-    // ========== Progress bar ==========
-    private GuiProgressBar pb;
+    private static final int PB_X = 99;
+    private static final int PB_Y = 36;
+
+    private MUIProgressWidget pb;
 
     public MUIVibrationChamberPanel(final InventoryPlayer ip, final TileVibrationChamber te) {
         this(new ContainerVibrationChamber(ip, te));
@@ -51,22 +53,11 @@ public class MUIVibrationChamberPanel extends AEBasePanel {
         this.ySize = 166;
     }
 
-    // ========== Initialization ==========
-
     @Override
     protected void setupWidgets() {
-        // initGui handles initialization
+        this.pb = this.addWidget(new MUIProgressWidget(this.cvc, "guis/vibchamber.png",
+                PB_X, PB_Y, 176, 14, 6, 18, Direction.VERTICAL));
     }
-
-    @Override
-    public void initGui() {
-        super.initGui();
-
-        this.pb = new GuiProgressBar(this.cvc, "guis/vibchamber.png", 99, 36, 176, 14, 6, 18, Direction.VERTICAL);
-        this.buttonList.add(this.pb);
-    }
-
-    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -76,7 +67,6 @@ public class MUIVibrationChamberPanel extends AEBasePanel {
         this.pb.setFullMsg(TileVibrationChamber.POWER_PER_TICK * this.cvc.getCurrentProgress()
                 / TileVibrationChamber.DILATION_SCALING + " AE/t");
 
-        // Burning flame animation
         if (this.cvc.getRemainingBurnTime() > 0) {
             final int i1 = this.cvc.getRemainingBurnTime() * 12 / 100;
             this.bindTexture("guis/vibchamber.png");
@@ -90,8 +80,6 @@ public class MUIVibrationChamberPanel extends AEBasePanel {
     @Override
     protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.bindTexture("guis/vibchamber.png");
-        this.pb.x = 99 + this.guiLeft;
-        this.pb.y = 36 + this.guiTop;
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
     }
 }

@@ -20,14 +20,14 @@ package appeng.client.mui.screen;
 
 import java.io.IOException;
 
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiNumberBox;
-import appeng.client.mui.widgets.MUITabContainer;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUINumberFieldWidget;
+import appeng.client.mui.widgets.MUITabContainer;
 import appeng.container.implementations.ContainerPriority;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
@@ -45,19 +45,18 @@ import appeng.helpers.IPriorityHost;
  */
 public class MUIPriorityPanel extends AEBasePanel {
 
-    // ========== Controls ==========
-    private GuiNumberBox priority;
-    private MUITabContainer originalGuiBtn;
+    private static final int FIELD_X = 62;
+    private static final int FIELD_Y = 57;
+    private static final int FIELD_WIDTH = 59;
+    private static final int ROW1_Y = 32;
+    private static final int ROW2_Y = 69;
+    private static final int COL1_X = 20;
+    private static final int COL2_X = 48;
+    private static final int COL3_X = 82;
+    private static final int COL4_X = 120;
 
-    // ========== Plus/minus buttons ==========
-    private GuiButton plus1;
-    private GuiButton plus10;
-    private GuiButton plus100;
-    private GuiButton plus1000;
-    private GuiButton minus1;
-    private GuiButton minus10;
-    private GuiButton minus100;
-    private GuiButton minus1000;
+    private MUINumberFieldWidget priority;
+    private MUITabContainer originalGuiBtn;
 
     private AEGuiKey originalGui;
 
@@ -69,31 +68,32 @@ public class MUIPriorityPanel extends AEBasePanel {
         super(container);
     }
 
-    // ========== Initialization ==========
-
     @Override
     protected void setupWidgets() {
-        // initGui handles initialization
-    }
-
-    @Override
-    public void initGui() {
-        super.initGui();
-
         final int a = AEConfig.instance().priorityByStacksAmounts(0);
         final int b = AEConfig.instance().priorityByStacksAmounts(1);
         final int c = AEConfig.instance().priorityByStacksAmounts(2);
         final int d = AEConfig.instance().priorityByStacksAmounts(3);
 
-        this.buttonList.add(this.plus1 = new GuiButton(0, this.guiLeft + 20, this.guiTop + 32, 22, 20, "+" + a));
-        this.buttonList.add(this.plus10 = new GuiButton(0, this.guiLeft + 48, this.guiTop + 32, 28, 20, "+" + b));
-        this.buttonList.add(this.plus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 32, 32, 20, "+" + c));
-        this.buttonList.add(this.plus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 32, 38, 20, "+" + d));
+        final ButtonSpec[] plusRow = {
+                new ButtonSpec(COL1_X, ROW1_Y, 22, 20, "+" + a, a),
+                new ButtonSpec(COL2_X, ROW1_Y, 28, 20, "+" + b, b),
+                new ButtonSpec(COL3_X, ROW1_Y, 32, 20, "+" + c, c),
+                new ButtonSpec(COL4_X, ROW1_Y, 38, 20, "+" + d, d),
+        };
+        final ButtonSpec[] minusRow = {
+                new ButtonSpec(COL1_X, ROW2_Y, 22, 20, "-" + a, -a),
+                new ButtonSpec(COL2_X, ROW2_Y, 28, 20, "-" + b, -b),
+                new ButtonSpec(COL3_X, ROW2_Y, 32, 20, "-" + c, -c),
+                new ButtonSpec(COL4_X, ROW2_Y, 38, 20, "-" + d, -d),
+        };
 
-        this.buttonList.add(this.minus1 = new GuiButton(0, this.guiLeft + 20, this.guiTop + 69, 22, 20, "-" + a));
-        this.buttonList.add(this.minus10 = new GuiButton(0, this.guiLeft + 48, this.guiTop + 69, 28, 20, "-" + b));
-        this.buttonList.add(this.minus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 69, 32, 20, "-" + c));
-        this.buttonList.add(this.minus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 69, 38, 20, "-" + d));
+        for (final ButtonSpec spec : plusRow) {
+            this.addButton(spec);
+        }
+        for (final ButtonSpec spec : minusRow) {
+            this.addButton(spec);
+        }
 
         final ContainerPriority con = (ContainerPriority) this.inventorySlots;
         final ItemStack myIcon = con.getPriorityHost().getItemStackRepresentation();
@@ -110,17 +110,23 @@ public class MUIPriorityPanel extends AEBasePanel {
             this.addWidget(this.originalGuiBtn);
         }
 
-        this.priority = new GuiNumberBox(this.fontRenderer, this.guiLeft + 62, this.guiTop + 57, 59,
-                this.fontRenderer.FONT_HEIGHT, Long.class);
-        this.priority.setEnableBackgroundDrawing(false);
+        this.priority = this.addWidget(new MUINumberFieldWidget(FIELD_X, FIELD_Y, FIELD_WIDTH,
+                this.fontRenderer.FONT_HEIGHT, MUINumberFieldWidget.NumberType.LONG));
+        this.priority.setEnableBackground(false);
         this.priority.setMaxStringLength(16);
         this.priority.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
         this.priority.setVisible(true);
         this.priority.setFocused(true);
-        ((ContainerPriority) this.inventorySlots).setTextField(this.priority);
+        ((ContainerPriority) this.inventorySlots).setTextField(this.priority.getTextField());
     }
 
-    // ========== Rendering ==========
+    private void addButton(ButtonSpec spec) {
+        final int delta = spec.delta;
+        final MUIButtonWidget btn = new MUIButtonWidget(spec.x, spec.y, spec.width, spec.height);
+        btn.setTooltip(spec.label);
+        btn.setOnClick(b -> this.addQty(delta));
+        this.addWidget(btn);
+    }
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -131,25 +137,7 @@ public class MUIPriorityPanel extends AEBasePanel {
     protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.bindTexture("guis/priority.png");
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
-        this.priority.drawTextBox();
     }
-
-    // ========== Button events ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        final boolean isPlus = btn == this.plus1 || btn == this.plus10 || btn == this.plus100 || btn == this.plus1000;
-        final boolean isMinus = btn == this.minus1 || btn == this.minus10 || btn == this.minus100
-                || btn == this.minus1000;
-
-        if (isPlus || isMinus) {
-            this.addQty(this.getQty(btn));
-        }
-    }
-
-    // ========== Value increment/decrement ==========
 
     private void addQty(final int i) {
         try {
@@ -182,14 +170,10 @@ public class MUIPriorityPanel extends AEBasePanel {
         }
     }
 
-    // ========== Keyboard input ==========
-
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
         if (!this.checkHotbarKeys(key)) {
-            if ((key == 211
-                    || key == 205 || key == 203 || key == 14 || character == '-' || Character.isDigit(character))
-                    && this.priority.textboxKeyTyped(character, key)) {
+            if (this.priority.textboxKeyTyped(character, key)) {
                 try {
                     String out = this.priority.getText();
 
@@ -214,6 +198,24 @@ public class MUIPriorityPanel extends AEBasePanel {
             } else {
                 super.keyTyped(character, key);
             }
+        }
+    }
+
+    private static final class ButtonSpec {
+        final int x;
+        final int y;
+        final int width;
+        final int height;
+        final String label;
+        final int delta;
+
+        ButtonSpec(int x, int y, int width, int height, String label, int delta) {
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+            this.label = label;
+            this.delta = delta;
         }
     }
 }

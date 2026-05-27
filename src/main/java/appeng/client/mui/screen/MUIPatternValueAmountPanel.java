@@ -22,8 +22,6 @@ import java.io.IOException;
 
 import org.lwjgl.input.Keyboard;
 
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
@@ -35,9 +33,10 @@ import appeng.api.definitions.IParts;
 import appeng.api.storage.ITerminalHost;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.MathExpressionParser;
-import appeng.client.gui.widgets.GuiTabButton;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.client.mui.widgets.MUITabContainer;
+import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerPatternValueAmount;
 import appeng.core.AEConfig;
@@ -55,22 +54,28 @@ import appeng.parts.reporting.PartPatternTerminal;
  * MUI pattern value amount panel.
  * <p>
  * Supports math expressions (e.g. "64*9").
- * Supports math expressions (e.g. "64*9").
  */
 @SideOnly(Side.CLIENT)
 public class MUIPatternValueAmountPanel extends AEBasePanel {
 
-    private GuiTextField amountBox;
+    private static final int FIELD_X = 62;
+    private static final int FIELD_Y = 57;
+    private static final int FIELD_WIDTH = 59;
+    private static final int ROW1_Y = 26;
+    private static final int ROW2_Y = 75;
+    private static final int COL1_X = 20;
+    private static final int COL2_X = 48;
+    private static final int COL3_X = 82;
+    private static final int COL4_X = 120;
+    private static final int SUBMIT_X = 128;
+    private static final int SUBMIT_Y = 51;
+    private static final int SUBMIT_W = 38;
+    private static final int SUBMIT_H = 20;
+
+    private MUITextFieldWidget amountBox;
     private MUITabContainer originalGuiBtn;
-    private GuiButton submit;
-    private GuiButton plus1;
-    private GuiButton plus10;
-    private GuiButton plus100;
-    private GuiButton plus1000;
-    private GuiButton minus1;
-    private GuiButton minus10;
-    private GuiButton minus100;
-    private GuiButton minus1000;
+    private MUIButtonWidget submit;
+
     private AEGuiKey originalGui;
 
     public MUIPatternValueAmountPanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
@@ -79,33 +84,28 @@ public class MUIPatternValueAmountPanel extends AEBasePanel {
 
     @Override
     protected void setupWidgets() {
-        // TODO: Migrate widget initialization here from initGui()
-    }
-
-    @Override
-    public void initGui() {
-        super.initGui();
-
         final int a = AEConfig.instance().craftItemsByStackAmounts(0);
         final int b = AEConfig.instance().craftItemsByStackAmounts(1);
         final int c = AEConfig.instance().craftItemsByStackAmounts(2);
         final int d = AEConfig.instance().craftItemsByStackAmounts(3);
 
-        this.buttonList.add(this.plus1 = new GuiButton(0, this.guiLeft + 20, this.guiTop + 26, 22, 20, "+" + a));
-        this.buttonList.add(this.plus10 = new GuiButton(0, this.guiLeft + 48, this.guiTop + 26, 28, 20, "+" + b));
-        this.buttonList.add(this.plus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 26, 32, 20, "+" + c));
-        this.buttonList.add(this.plus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 26, 38, 20, "+" + d));
+        this.addIncrementButton(COL1_X, ROW1_Y, 22, 20, "+" + a, a);
+        this.addIncrementButton(COL2_X, ROW1_Y, 28, 20, "+" + b, b);
+        this.addIncrementButton(COL3_X, ROW1_Y, 32, 20, "+" + c, c);
+        this.addIncrementButton(COL4_X, ROW1_Y, 38, 20, "+" + d, d);
 
-        this.buttonList.add(this.minus1 = new GuiButton(0, this.guiLeft + 20, this.guiTop + 75, 22, 20, "-" + a));
-        this.buttonList.add(this.minus10 = new GuiButton(0, this.guiLeft + 48, this.guiTop + 75, 28, 20, "-" + b));
-        this.buttonList.add(this.minus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 75, 32, 20, "-" + c));
-        this.buttonList.add(this.minus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 75, 38, 20, "-" + d));
+        this.addIncrementButton(COL1_X, ROW2_Y, 22, 20, "-" + a, -a);
+        this.addIncrementButton(COL2_X, ROW2_Y, 28, 20, "-" + b, -b);
+        this.addIncrementButton(COL3_X, ROW2_Y, 32, 20, "-" + c, -c);
+        this.addIncrementButton(COL4_X, ROW2_Y, 38, 20, "-" + d, -d);
 
-        this.buttonList.add(
-                this.submit = new GuiButton(0, this.guiLeft + 128, this.guiTop + 51, 38, 20,
-                        GuiText.SetAmount.getLocal()));
+        this.submit = new MUIButtonWidget(SUBMIT_X, SUBMIT_Y, SUBMIT_W, SUBMIT_H);
+        this.submit.setText(GuiText.SetAmount.getLocal());
+        this.submit.setOnClick(btn -> {
+            this.submitPatternValue();
+        });
+        this.addWidget(this.submit);
 
-        // Detect the original GUI type for correct return navigation
         ItemStack myIcon = ItemStack.EMPTY;
         final Object target = ((AEBaseContainer) this.inventorySlots).getTarget();
         final IDefinitions definitions = AEApi.instance().definitions();
@@ -143,23 +143,27 @@ public class MUIPatternValueAmountPanel extends AEBasePanel {
             this.addWidget(this.originalGuiBtn);
         }
 
-        this.amountBox = new GuiTextField(0, this.fontRenderer, this.guiLeft + 62, this.guiTop + 57, 59,
-                this.fontRenderer.FONT_HEIGHT);
-        this.amountBox.setEnableBackgroundDrawing(false);
+        this.amountBox = this.addWidget(new MUITextFieldWidget(FIELD_X, FIELD_Y, FIELD_WIDTH,
+                this.fontRenderer.FONT_HEIGHT));
+        this.amountBox.setEnableBackground(false);
         this.amountBox.setMaxStringLength(16);
         this.amountBox.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
         this.amountBox.setVisible(true);
         this.amountBox.setFocused(true);
 
-        // Get the current amount from the Container display slot as default value
         final ContainerPatternValueAmount cpv = (ContainerPatternValueAmount) this.inventorySlots;
         if (cpv.getPatternValue().getHasStack()) {
             this.amountBox.setText(String.valueOf(cpv.getPatternValue().getStack().getCount()));
-            this.amountBox.setSelectionPos(0);
         } else {
             this.amountBox.setText("1");
-            this.amountBox.setSelectionPos(0);
         }
+    }
+
+    private void addIncrementButton(int x, int y, int w, int h, String label, int delta) {
+        final MUIButtonWidget btn = new MUIButtonWidget(x, y, w, h);
+        btn.setText(label);
+        btn.setOnClick(b -> this.addQty(delta));
+        this.addWidget(btn);
     }
 
     @Override
@@ -181,53 +185,37 @@ public class MUIPatternValueAmountPanel extends AEBasePanel {
             } else {
                 amt = (int) MathExpressionParser.round(resultD, 0);
             }
-            this.submit.enabled = amt > 0;
+            this.submit.setEnabled(amt > 0);
         } catch (final NumberFormatException e) {
-            this.submit.enabled = false;
+            this.submit.setEnabled(false);
         }
-
-        this.amountBox.drawTextBox();
     }
 
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
         if (!this.checkHotbarKeys(key)) {
             if (key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) {
-                this.actionPerformed(this.submit);
+                this.submitPatternValue();
+                return;
             }
-            if (!this.amountBox.textboxKeyTyped(character, key)) {
-                super.keyTyped(character, key);
-            }
+            super.keyTyped(character, key);
         }
     }
 
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
+    private void submitPatternValue() {
         try {
-            if (btn == this.submit && btn.enabled) {
-                double resultD = MathExpressionParser.parse(this.amountBox.getText());
-                int result;
-                if (resultD <= 0 || Double.isNaN(resultD)) {
-                    result = 1;
-                } else {
-                    result = (int) MathExpressionParser.round(resultD, 0);
-                }
-                final ContainerPatternValueAmount cpv = (ContainerPatternValueAmount) this.inventorySlots;
-                NetworkHandler.instance().sendToServer(
-                        new PacketPatternValueSet(this.originalGui, result, cpv.getValueIndex()));
+            double resultD = MathExpressionParser.parse(this.amountBox.getText());
+            int result;
+            if (resultD <= 0 || Double.isNaN(resultD)) {
+                result = 1;
+            } else {
+                result = (int) MathExpressionParser.round(resultD, 0);
             }
+            final ContainerPatternValueAmount cpv = (ContainerPatternValueAmount) this.inventorySlots;
+            NetworkHandler.instance().sendToServer(
+                    new PacketPatternValueSet(this.originalGui, result, cpv.getValueIndex()));
         } catch (final NumberFormatException e) {
             this.amountBox.setText("1");
-        }
-
-        final boolean isPlus = btn == this.plus1 || btn == this.plus10 || btn == this.plus100 || btn == this.plus1000;
-        final boolean isMinus = btn == this.minus1 || btn == this.minus10 || btn == this.minus100
-                || btn == this.minus1000;
-
-        if (isPlus || isMinus) {
-            this.addQty(this.getQty(btn));
         }
     }
 
@@ -251,7 +239,6 @@ public class MUIPatternValueAmountPanel extends AEBasePanel {
             out = Integer.toString(result);
             this.amountBox.setText(out);
         } catch (final NumberFormatException e) {
-            // ignore
         }
     }
 }

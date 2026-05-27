@@ -18,22 +18,27 @@
 
 package appeng.client.mui.widgets;
 
+import javax.annotation.Nullable;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 
 import appeng.client.gui.widgets.GuiProgressBar.Direction;
+import appeng.client.gui.widgets.ITooltip;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 import appeng.container.interfaces.IProgressProvider;
+import appeng.core.localization.GuiText;
 
 /**
  * MUI 进度条控件。
  * <p>
  * 根据 {@link IProgressProvider} 提供的进度值，绘制水平或垂直的进度条。
+ * 支持 tooltip（通过 {@link ITooltip} 接口）。
  */
-public class MUIProgressWidget implements IMUIWidget {
+public class MUIProgressWidget implements IMUIWidget, ITooltip {
 
     private final IProgressProvider source;
     private final ResourceLocation texture;
@@ -44,6 +49,11 @@ public class MUIProgressWidget implements IMUIWidget {
     private final int fillU;
     private final int fillV;
     private final Direction direction;
+
+    @Nullable
+    private String title;
+    @Nullable
+    private String fullMsg;
 
     public MUIProgressWidget(IProgressProvider source, String texture,
             int x, int y, int u, int v, int width, int height, Direction direction) {
@@ -56,6 +66,12 @@ public class MUIProgressWidget implements IMUIWidget {
         this.fillU = u;
         this.fillV = v;
         this.direction = direction;
+    }
+
+    public MUIProgressWidget(IProgressProvider source, String texture,
+            int x, int y, int u, int v, int width, int height, Direction direction, @Nullable String title) {
+        this(source, texture, x, y, u, v, width, height, direction);
+        this.title = title;
     }
 
     @Override
@@ -87,6 +103,57 @@ public class MUIProgressWidget implements IMUIWidget {
             }
         }
     }
+
+    public void setFullMsg(@Nullable String msg) {
+        this.fullMsg = msg;
+    }
+
+    @Nullable
+    public String getFullMsg() {
+        return this.fullMsg;
+    }
+
+    // ========== ITooltip ==========
+
+    @Override
+    public String getMessage() {
+        if (this.fullMsg != null) {
+            return this.fullMsg;
+        }
+
+        if (this.title != null) {
+            return this.title + '\n' + this.source.getCurrentProgress() + ' '
+                    + GuiText.Of.getLocal() + ' ' + this.source.getMaxProgress();
+        }
+        return null;
+    }
+
+    @Override
+    public int xPos() {
+        return this.x - 2;
+    }
+
+    @Override
+    public int yPos() {
+        return this.y - 2;
+    }
+
+    @Override
+    public int getWidth() {
+        return this.width + 4;
+    }
+
+    @Override
+    public int getHeight() {
+        return this.height + 4;
+    }
+
+    @Override
+    public boolean isVisible() {
+        return true;
+    }
+
+    // ========== Position getters ==========
 
     public int getX() {
         return this.x;

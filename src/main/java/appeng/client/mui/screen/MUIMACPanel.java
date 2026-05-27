@@ -22,9 +22,9 @@ import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.RedstoneMode;
 import appeng.api.config.Settings;
-import appeng.client.gui.widgets.GuiProgressBar;
 import appeng.client.gui.widgets.GuiProgressBar.Direction;
 import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUIProgressWidget;
 import appeng.container.implementations.ContainerMAC;
 import appeng.core.localization.GuiText;
 import appeng.tile.crafting.TileMolecularAssembler;
@@ -38,8 +38,10 @@ public class MUIMACPanel extends MUIUpgradeablePanel {
 
     private final ContainerMAC container;
 
-    // ========== Progress bar ==========
-    private GuiProgressBar pb;
+    private static final int PB_X = 148;
+    private static final int PB_Y = 48;
+
+    private MUIProgressWidget pb;
 
     public MUIMACPanel(final InventoryPlayer ip, final TileMolecularAssembler te) {
         this(new ContainerMAC(ip, te));
@@ -51,17 +53,12 @@ public class MUIMACPanel extends MUIUpgradeablePanel {
         this.ySize = 197;
     }
 
-    // ========== Initialization ==========
-
     @Override
-    public void initGui() {
-        super.initGui();
-
-        this.pb = new GuiProgressBar(this.container, "guis/mac.png", 139, 36, 148, 201, 6, 18, Direction.VERTICAL);
-        this.buttonList.add(this.pb);
+    protected void setupWidgets() {
+        super.setupWidgets();
+        this.pb = this.addWidget(new MUIProgressWidget(this.container, "guis/mac.png",
+                PB_X, PB_Y, 148, 201, 6, 18, Direction.VERTICAL));
     }
-
-    // ========== Buttons ==========
 
     @Override
     protected void addButtons() {
@@ -70,19 +67,10 @@ public class MUIMACPanel extends MUIUpgradeablePanel {
         this.addWidget(this.redstoneMode);
     }
 
-    // ========== Rendering ==========
-
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.pb.setFullMsg(this.container.getCurrentProgress() + "%");
         super.drawFG(offsetX, offsetY, mouseX, mouseY);
-    }
-
-    @Override
-    protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
-        this.pb.x = 148 + this.guiLeft;
-        this.pb.y = 48 + this.guiTop;
-        super.drawBG(offsetX, offsetY, mouseX, mouseY);
     }
 
     @Override

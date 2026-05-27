@@ -22,8 +22,6 @@ import java.io.IOException;
 
 import org.lwjgl.input.Keyboard;
 
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
@@ -34,8 +32,10 @@ import appeng.api.definitions.IDefinitions;
 import appeng.api.definitions.IParts;
 import appeng.api.storage.ITerminalHost;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.mui.widgets.MUITabContainer;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUITabContainer;
+import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerPatternValueName;
 import appeng.core.localization.GuiText;
@@ -56,10 +56,23 @@ import appeng.parts.reporting.PartPatternTerminal;
 @SideOnly(Side.CLIENT)
 public class MUIPatternValueNamePanel extends AEBasePanel {
 
-    private GuiTextField nameBox;
+    private static final int FIELD_X = 62;
+    private static final int FIELD_Y = 57;
+    private static final int FIELD_WIDTH = 59;
+    private static final int SUBMIT_X = 128;
+    private static final int SUBMIT_Y = 51;
+    private static final int SUBMIT_W = 38;
+    private static final int SUBMIT_H = 20;
+    private static final int CLEAR_X = 20;
+    private static final int CLEAR_Y = 26;
+    private static final int CLEAR_W = 100;
+    private static final int CLEAR_H = 20;
+
+    private MUITextFieldWidget nameBox;
     private MUITabContainer originalGuiBtn;
-    private GuiButton submit;
-    private GuiButton clearName;
+    private MUIButtonWidget submit;
+    private MUIButtonWidget clearName;
+
     private AEGuiKey originalGui;
 
     public MUIPatternValueNamePanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
@@ -68,21 +81,25 @@ public class MUIPatternValueNamePanel extends AEBasePanel {
 
     @Override
     protected void setupWidgets() {
-        // TODO: Migrate widget initialization here from initGui()
-    }
+        this.submit = new MUIButtonWidget(SUBMIT_X, SUBMIT_Y, SUBMIT_W, SUBMIT_H);
+        this.submit.setText(GuiText.SetAmount.getLocal());
+        this.submit.setEnabled(false);
+        this.submit.setOnClick(btn -> {
+            if (btn.isEnabled()) {
+                final ContainerPatternValueName cpn = (ContainerPatternValueName) this.inventorySlots;
+                NetworkHandler.instance().sendToServer(
+                        new PacketPatternNameSet(this.originalGui, this.nameBox.getText(), cpn.getValueIndex()));
+            }
+        });
+        this.addWidget(this.submit);
 
-    @Override
-    public void initGui() {
-        super.initGui();
+        this.clearName = new MUIButtonWidget(CLEAR_X, CLEAR_Y, CLEAR_W, CLEAR_H);
+        this.clearName.setText(GuiText.Cancel.getLocal());
+        this.clearName.setOnClick(btn -> {
+            this.nameBox.setText("");
+        });
+        this.addWidget(this.clearName);
 
-        this.buttonList.add(
-                this.submit = new GuiButton(0, this.guiLeft + 128, this.guiTop + 51, 38, 20,
-                        GuiText.SetAmount.getLocal()));
-        this.buttonList.add(
-                this.clearName = new GuiButton(1, this.guiLeft + 20, this.guiTop + 26, 100, 20,
-                        GuiText.Cancel.getLocal()));
-
-        // Detect the original GUI type
         ItemStack myIcon = ItemStack.EMPTY;
         final Object target = ((AEBaseContainer) this.inventorySlots).getTarget();
         final IDefinitions definitions = AEApi.instance().definitions();
@@ -120,21 +137,19 @@ public class MUIPatternValueNamePanel extends AEBasePanel {
             this.addWidget(this.originalGuiBtn);
         }
 
-        this.nameBox = new GuiTextField(0, this.fontRenderer, this.guiLeft + 62, this.guiTop + 57, 59,
-                this.fontRenderer.FONT_HEIGHT);
-        this.nameBox.setEnableBackgroundDrawing(false);
+        this.nameBox = this.addWidget(new MUITextFieldWidget(FIELD_X, FIELD_Y, FIELD_WIDTH,
+                this.fontRenderer.FONT_HEIGHT));
+        this.nameBox.setEnableBackground(false);
         this.nameBox.setMaxStringLength(32);
         this.nameBox.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
         this.nameBox.setVisible(true);
         this.nameBox.setFocused(true);
 
-        // Get the current name from the Container display slot as default value
         final ContainerPatternValueName cpn = (ContainerPatternValueName) this.inventorySlots;
         if (cpn.getPatternValue().getHasStack()) {
             final ItemStack stack = cpn.getPatternValue().getStack();
             if (stack.hasDisplayName()) {
                 this.nameBox.setText(stack.getDisplayName());
-                this.nameBox.setSelectionPos(0);
             }
         }
     }
@@ -148,33 +163,18 @@ public class MUIPatternValueNamePanel extends AEBasePanel {
     public void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.bindTexture("guis/craft_amt.png");
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, this.xSize, this.ySize);
-        this.nameBox.drawTextBox();
     }
 
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
         if (!this.checkHotbarKeys(key)) {
             if (key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) {
-                this.actionPerformed(this.submit);
+                final ContainerPatternValueName cpn = (ContainerPatternValueName) this.inventorySlots;
+                NetworkHandler.instance().sendToServer(
+                        new PacketPatternNameSet(this.originalGui, this.nameBox.getText(), cpn.getValueIndex()));
+                return;
             }
-            if (!this.nameBox.textboxKeyTyped(character, key)) {
-                super.keyTyped(character, key);
-            }
-        }
-    }
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        if (btn == this.clearName) {
-            this.nameBox.setText("");
-        }
-
-        if (btn == this.submit && btn.enabled) {
-            final ContainerPatternValueName cpn = (ContainerPatternValueName) this.inventorySlots;
-            NetworkHandler.instance().sendToServer(
-                    new PacketPatternNameSet(this.originalGui, this.nameBox.getText(), cpn.getValueIndex()));
+            super.keyTyped(character, key);
         }
     }
 }

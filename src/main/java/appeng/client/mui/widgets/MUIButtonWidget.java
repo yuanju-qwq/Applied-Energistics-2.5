@@ -392,6 +392,9 @@ public class MUIButtonWidget implements IMUIWidget, ITooltip {
     private Consumer<MUIButtonWidget> onClick;
     @Nullable
     private String tooltip;
+    @Nullable
+    private String text;
+    private int textColor = 0xFFFFFF;
 
     // Settings mode fields
     @Nullable
@@ -462,6 +465,7 @@ public class MUIButtonWidget implements IMUIWidget, ITooltip {
         this.buttonSetting = setting;
         this.currentValue = val;
         this.iconRenderer = null;
+        this.text = null;
     }
 
     /**
@@ -481,6 +485,7 @@ public class MUIButtonWidget implements IMUIWidget, ITooltip {
         this.buttonSetting = null;
         this.currentValue = null;
         this.iconRenderer = null;
+        this.text = null;
     }
 
     // ========== Drawing ==========
@@ -517,11 +522,13 @@ public class MUIButtonWidget implements IMUIWidget, ITooltip {
             Gui.drawModalRectWithCustomSizedTexture(0, 0, 256 - this.width, 256 - this.height,
                     this.width, this.height, 256, 256);
 
-            if (this.buttonSetting != null) {
-                drawSettingsIcon(mc, 0, 0);
-            } else if (this.iconRenderer != null) {
-                this.iconRenderer.render(mc, 0, 0, this.width, this.height, this.hovered);
-            }
+        if (this.buttonSetting != null) {
+            drawSettingsIcon(mc, 0, 0);
+        } else if (this.iconRenderer != null) {
+            this.iconRenderer.render(mc, 0, 0, this.width, this.height, this.hovered);
+        } else if (this.text != null) {
+            drawText(mc, 0, 0, this.width, this.height);
+        }
 
             GlStateManager.popMatrix();
         } else {
@@ -529,11 +536,13 @@ public class MUIButtonWidget implements IMUIWidget, ITooltip {
             Gui.drawModalRectWithCustomSizedTexture(screenX, screenY,
                     256 - this.width, 256 - this.height, this.width, this.height, 256, 256);
 
-            if (this.buttonSetting != null) {
-                drawSettingsIcon(mc, screenX, screenY);
-            } else if (this.iconRenderer != null) {
-                this.iconRenderer.render(mc, screenX, screenY, this.width, this.height, this.hovered);
-            }
+        if (this.buttonSetting != null) {
+            drawSettingsIcon(mc, screenX, screenY);
+        } else if (this.iconRenderer != null) {
+            this.iconRenderer.render(mc, screenX, screenY, this.width, this.height, this.hovered);
+        } else if (this.text != null) {
+            drawText(mc, screenX, screenY, this.width, this.height);
+        }
         }
 
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
@@ -549,6 +558,16 @@ public class MUIButtonWidget implements IMUIWidget, ITooltip {
 
         mc.getTextureManager().bindTexture(STATES_TEXTURE);
         Gui.drawModalRectWithCustomSizedTexture(drawX, drawY, uvX * 16, uvY * 16, 16, 16, 256, 256);
+    }
+
+    private void drawText(Minecraft mc, int drawX, int drawY, int drawWidth, int drawHeight) {
+        if (this.text == null || this.text.isEmpty()) {
+            return;
+        }
+        final int textW = mc.fontRenderer.getStringWidth(this.text);
+        final int textX = drawX + (drawWidth - textW) / 2;
+        final int textY = drawY + (drawHeight - 8) / 2;
+        mc.fontRenderer.drawString(this.text, textX, textY, this.textColor);
     }
 
     /**
@@ -728,6 +747,21 @@ public class MUIButtonWidget implements IMUIWidget, ITooltip {
 
     public MUIButtonWidget setHalfSize(boolean halfSize) {
         this.halfSize = halfSize;
+        return this;
+    }
+
+    public MUIButtonWidget setText(@Nullable String text) {
+        this.text = text;
+        return this;
+    }
+
+    @Nullable
+    public String getText() {
+        return this.text;
+    }
+
+    public MUIButtonWidget setTextColor(int color) {
+        this.textColor = color;
         return this;
     }
 

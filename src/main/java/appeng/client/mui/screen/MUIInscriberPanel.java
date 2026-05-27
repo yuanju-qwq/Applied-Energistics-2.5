@@ -21,9 +21,9 @@ package appeng.client.mui.screen;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiProgressBar;
 import appeng.client.gui.widgets.GuiProgressBar.Direction;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.MUIProgressWidget;
 import appeng.container.implementations.ContainerInscriber;
 import appeng.container.implementations.ContainerUpgradeable;
 import appeng.core.localization.GuiText;
@@ -38,8 +38,10 @@ public class MUIInscriberPanel extends AEBasePanel {
 
     private final ContainerInscriber cvc;
 
-    // ========== Progress bar ==========
-    private GuiProgressBar pb;
+    private static final int PB_X = 135;
+    private static final int PB_Y = 39;
+
+    private MUIProgressWidget pb;
 
     public MUIInscriberPanel(final InventoryPlayer ip, final TileInscriber te) {
         this(new ContainerInscriber(ip, te));
@@ -56,22 +58,11 @@ public class MUIInscriberPanel extends AEBasePanel {
         return ((ContainerUpgradeable) this.inventorySlots).hasToolbox();
     }
 
-    // ========== Initialization ==========
-
     @Override
     protected void setupWidgets() {
-        // initGui handles initialization
+        this.pb = this.addWidget(new MUIProgressWidget(this.cvc, "guis/inscriber.png",
+                PB_X, PB_Y, 135, 177, 6, 18, Direction.VERTICAL));
     }
-
-    @Override
-    public void initGui() {
-        super.initGui();
-
-        this.pb = new GuiProgressBar(this.cvc, "guis/inscriber.png", 135, 39, 135, 177, 6, 18, Direction.VERTICAL);
-        this.buttonList.add(this.pb);
-    }
-
-    // ========== Rendering ==========
 
     @Override
     protected void drawFG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
@@ -84,9 +75,6 @@ public class MUIInscriberPanel extends AEBasePanel {
     @Override
     protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         this.bindTexture("guis/inscriber.png");
-        this.pb.x = 135 + this.guiLeft;
-        this.pb.y = 39 + this.guiTop;
-
         this.drawTexturedModalRect(offsetX, offsetY, 0, 0, 211 - 34, this.ySize);
 
         if (this.drawUpgrades()) {
