@@ -12,8 +12,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import mezz.jei.api.gui.IGhostIngredientHandler.Target;
 
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.ITerminalHost;
-import appeng.api.storage.data.IAEStackType;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.module.PatternTerminalModule;
@@ -27,7 +27,6 @@ import appeng.container.slot.AppEngSlot;
 import appeng.core.localization.GuiText;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.tile.inventory.IAEStackInventory;
-import appeng.util.item.AEItemStackType;
 
 /**
  * MUI pattern terminal with crafting/processing dual mode.
@@ -205,8 +204,8 @@ public class MUIPatternTermPanel extends MUIMEMonitorablePanel implements IJEIGh
         this.lastCraftingMode = this.container.isCraftingMode();
     }
 
-    protected boolean acceptType(final VirtualMEPhantomSlot slot, final IAEStackType<?> type, final int mouseButton) {
-        if (type == AEItemStackType.INSTANCE) {
+    protected boolean acceptType(final VirtualMEPhantomSlot slot, final AEKeyType type, final int mouseButton) {
+        if (type == AEKeyType.items()) {
             return true;
         }
         return !this.container.isCraftingMode();

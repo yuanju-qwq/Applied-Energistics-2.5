@@ -55,7 +55,6 @@ import appeng.api.parts.*;
 import appeng.api.storage.StorageName;
 import appeng.api.util.*;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.fluids.parts.PartFluidLevelEmitter;
 import appeng.helpers.ICustomNameObject;
 import appeng.helpers.IPriorityHost;

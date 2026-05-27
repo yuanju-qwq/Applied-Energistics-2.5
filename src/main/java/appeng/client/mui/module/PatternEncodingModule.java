@@ -366,7 +366,7 @@ public class PatternEncodingModule {
         this.craftingVirtualSlots = new VirtualMEPatternSlot[craftingInv.getSizeInventory()];
         for (int i = 0; i < craftingInv.getSizeInventory(); i++) {
             VirtualMEPatternSlot slot = new VirtualMEPatternSlot(i, -9000, -9000, craftingInv, i,
-                    (s, type, btn) -> true);
+                    (VirtualMEPatternSlot.KeyTypeAcceptPredicate) (s, type, btn) -> true);
             this.craftingVirtualSlots[i] = slot;
             host.getPanel().getGuiSlots().add(slot);
         }
@@ -374,7 +374,7 @@ public class PatternEncodingModule {
         this.outputVirtualSlots = new VirtualMEPatternSlot[outputInv.getSizeInventory()];
         for (int i = 0; i < outputInv.getSizeInventory(); i++) {
             VirtualMEPatternSlot slot = new VirtualMEPatternSlot(i, -9000, -9000, outputInv, i,
-                    (s, type, btn) -> true);
+                    (VirtualMEPatternSlot.KeyTypeAcceptPredicate) (s, type, btn) -> true);
             this.outputVirtualSlots[i] = slot;
             host.getPanel().getGuiSlots().add(slot);
         }

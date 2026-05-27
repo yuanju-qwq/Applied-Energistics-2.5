@@ -38,7 +38,6 @@ import appeng.container.interfaces.IInventorySlotAware;
 import appeng.core.AELog;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.INetworkInfo;
 import appeng.util.Platform;
 

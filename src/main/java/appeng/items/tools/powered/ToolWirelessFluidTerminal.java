@@ -24,7 +24,6 @@ import net.minecraftforge.fml.common.network.IGuiHandler;
 import appeng.api.AEApi;
 import appeng.api.features.IWirelessTermHandler;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 
 public class ToolWirelessFluidTerminal extends ToolWirelessTerminal implements IWirelessTermHandler {
 

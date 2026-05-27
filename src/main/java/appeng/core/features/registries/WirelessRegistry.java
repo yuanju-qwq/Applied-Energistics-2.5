@@ -30,6 +30,7 @@ import appeng.api.features.ILocatable;
 import appeng.api.features.IWirelessTermHandler;
 import appeng.api.features.IWirelessTermRegistry;
 import appeng.core.localization.PlayerMessages;
+import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.GuiBridge;
 import appeng.util.Platform;
 
@@ -94,7 +95,12 @@ public final class WirelessRegistry implements IWirelessTermRegistry {
         }
 
         if (handler.hasPower(player, 0.5, item)) {
-            Platform.openGUI(player, null, null, (GuiBridge) handler.getGuiHandler(item));
+            Object guiObj = handler.getGuiHandler(item);
+            if (guiObj instanceof AEGuiKey guiKey) {
+                Platform.openGUI(player, null, null, guiKey);
+            } else if (guiObj instanceof GuiBridge guiBridge) {
+                Platform.openGUI(player, null, null, guiBridge);
+            }
         } else {
             player.sendMessage(PlayerMessages.DeviceNotPowered.get());
         }

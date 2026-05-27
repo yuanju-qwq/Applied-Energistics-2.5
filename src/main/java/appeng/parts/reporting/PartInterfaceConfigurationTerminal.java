@@ -27,7 +27,6 @@ import net.minecraft.util.math.Vec3d;
 import appeng.api.parts.IPartModel;
 import appeng.core.AppEng;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.items.parts.PartModels;
 import appeng.parts.PartModel;
 import appeng.util.Platform;

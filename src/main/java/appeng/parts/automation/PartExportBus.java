@@ -47,7 +47,6 @@ import appeng.core.AELog;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.helpers.MultiCraftingTracker;
 import appeng.helpers.Reflected;
 import appeng.items.parts.PartModels;

@@ -88,10 +88,7 @@ public class PacketTerminalUse extends AppEngPacket {
         if (handler.hasPower(player, 0.5, itemStack)) {
             Object guiObj = handler.getGuiHandler(itemStack);
             if (guiObj instanceof AEGuiKey aeGuiKey) {
-                GuiBridge legacy = aeGuiKey.getLegacyBridge();
-                if (legacy != null) {
-                    Platform.openGUI(player, slotIdx, legacy, isBauble);
-                }
+                Platform.openGUI(player, slotIdx, aeGuiKey, isBauble);
             } else if (guiObj instanceof GuiBridge guiBridge) {
                 Platform.openGUI(player, slotIdx, guiBridge, isBauble);
             }

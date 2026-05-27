@@ -56,7 +56,6 @@ import appeng.api.util.AEPartLocation;
 import appeng.api.util.IOrientable;
 import appeng.block.networking.BlockCableBus;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.helpers.ICustomCollision;
 import appeng.items.tools.quartz.ToolQuartzCuttingKnife;
 import appeng.tile.AEBaseInvTile;

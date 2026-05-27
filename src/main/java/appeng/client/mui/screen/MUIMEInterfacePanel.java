@@ -38,8 +38,8 @@ import mezz.jei.api.gui.IGhostIngredientHandler.Target;
 
 import appeng.api.config.Settings;
 import appeng.api.config.YesNo;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.slots.VirtualMESlot;
@@ -207,7 +207,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
 
     // ========== Config slot type acceptance check ==========
 
-    private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
+    private boolean acceptType(VirtualMEPhantomSlot slot, AEKeyType type, int mouseButton) {
         return true;
     }
 

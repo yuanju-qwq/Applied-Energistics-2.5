@@ -12,7 +12,6 @@ import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEPartLocation;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
 

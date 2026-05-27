@@ -43,7 +43,6 @@ import appeng.container.implementations.*;
 import appeng.container.interfaces.ICraftingCPUGuiCallback;
 import appeng.container.interfaces.IOreDictStorageBusGuiCallback;
 import appeng.core.sync.AppEngPacket;
-import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.INetworkInfo;
 import appeng.fluids.container.ContainerFluidLevelEmitter;
 import appeng.helpers.IMouseWheelItem;

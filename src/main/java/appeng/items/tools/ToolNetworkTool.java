@@ -49,7 +49,6 @@ import appeng.api.util.INetworkToolAgent;
 import appeng.container.AEBaseContainer;
 import appeng.core.AppEng;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketClick;
 import appeng.items.AEBaseItem;

@@ -31,7 +31,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.stacks.AEKeyType;
-import appeng.api.storage.data.IAEStackType;
 import appeng.client.me.ItemRepo;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
@@ -108,23 +107,6 @@ public class MUITypeFilter implements IMUIWidget {
         for (int i = 0; i < types.length; i++) {
             int x = this.baseX + i * this.spacing;
             this.buttons.add(new TypeButton(types[i], true, x, this.baseY));
-        }
-        syncToRepo();
-        return this;
-    }
-
-    /**
-     * @deprecated Use {@link #buildFromKeyTypes(AEKeyType...)} instead.
-     */
-    @Deprecated
-    public MUITypeFilter buildFromTypes(IAEStackType<?>... types) {
-        this.buttons.clear();
-        for (int i = 0; i < types.length; i++) {
-            AEKeyType keyType = AEKeyType.fromLegacyType(types[i]);
-            if (keyType != null) {
-                int x = this.baseX + i * this.spacing;
-                this.buttons.add(new TypeButton(keyType, true, x, this.baseY));
-            }
         }
         syncToRepo();
         return this;
@@ -214,16 +196,6 @@ public class MUITypeFilter implements IMUIWidget {
     }
 
     /**
-     * @deprecated Use {@link #isTypeEnabled(AEKeyType)} instead.
-     * 判断指定类型是否启用。
-     */
-    @Deprecated
-    public boolean isTypeEnabled(IAEStackType<?> type) {
-        AEKeyType keyType = AEKeyType.fromLegacyType(type);
-        return keyType != null && isTypeEnabled(keyType);
-    }
-
-    /**
      * Set enable state for an AEKeyType.
      */
     public MUITypeFilter setTypeEnabled(AEKeyType type, boolean enabled) {
@@ -234,19 +206,6 @@ public class MUITypeFilter implements IMUIWidget {
             }
         }
         syncToRepo();
-        return this;
-    }
-
-    /**
-     * @deprecated Use {@link #setTypeEnabled(AEKeyType, boolean)} instead.
-     * 设置指定类型的启用状态。
-     */
-    @Deprecated
-    public MUITypeFilter setTypeEnabled(IAEStackType<?> type, boolean enabled) {
-        AEKeyType keyType = AEKeyType.fromLegacyType(type);
-        if (keyType != null) {
-            setTypeEnabled(keyType, enabled);
-        }
         return this;
     }
 }

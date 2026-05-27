@@ -37,7 +37,6 @@ import appeng.api.util.AEPartLocation;
 import appeng.block.AEBaseTileBlock;
 import appeng.core.localization.PlayerMessages;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.tile.storage.TileChest;
 import appeng.util.Platform;
 

@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.item.ItemStack;
 
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStack;
@@ -54,6 +55,12 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
         boolean test(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton);
     }
 
+    @FunctionalInterface
+    public interface KeyTypeAcceptPredicate {
+
+        boolean test(VirtualMEPhantomSlot slot, AEKeyType type, int mouseButton);
+    }
+
     private final IAEStackInventory inventory;
     private final TypeAcceptPredicate acceptType;
     private boolean hidden = false;
@@ -64,6 +71,17 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
         this.inventory = inventory;
         this.showAmount = false;
         this.acceptType = acceptType;
+    }
+
+    public VirtualMEPhantomSlot(int id, int x, int y, IAEStackInventory inventory, int slotIndex,
+            KeyTypeAcceptPredicate acceptType) {
+        super(id, x, y, slotIndex);
+        this.inventory = inventory;
+        this.showAmount = false;
+        this.acceptType = (slot, legacyType, mouseButton) -> {
+            AEKeyType keyType = AEKeyType.fromLegacyType(legacyType);
+            return keyType != null && acceptType.test(slot, keyType, mouseButton);
+        };
     }
 
     @Nullable

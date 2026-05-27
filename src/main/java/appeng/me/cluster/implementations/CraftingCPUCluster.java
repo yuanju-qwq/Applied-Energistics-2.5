@@ -45,6 +45,8 @@ import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.events.MENetworkCraftingCpuChange;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.KeyCounter;
+import appeng.api.stacks.KeyCounterAdapter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
@@ -581,9 +583,9 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             this.myLastLink.cancel();
         }
 
-        final IAEStackList list = new IAEStackList();
-        this.getGenericListOfItem(list, CraftingItemList.ALL);
-        for (final IAEStack<?> is : list.typedView()) {
+        final IAEStackList bridgeCancel = new IAEStackList();
+        this.getGenericListOfItem(bridgeCancel, CraftingItemList.ALL);
+        for (final IAEStack<?> is : bridgeCancel.typedView()) {
             this.postChange(is, this.machineSrc);
         }
 
@@ -1447,14 +1449,15 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         this.lastTime = System.nanoTime();
         this.elapsedTime = 0;
 
-        final IAEStackList list = new IAEStackList();
+        final IAEStackList bridge = new IAEStackList();
 
-        this.getGenericListOfItem(list, CraftingItemList.ACTIVE);
-        this.getGenericListOfItem(list, CraftingItemList.PENDING);
+        this.getGenericListOfItem(bridge, CraftingItemList.ACTIVE);
+        this.getGenericListOfItem(bridge, CraftingItemList.PENDING);
 
         long itemCount = 0;
-        for (final IAEStack<?> ge : list.typedView()) {
-            itemCount += ge.getStackSize();
+        final KeyCounter list = KeyCounterAdapter.fromIItemList(bridge);
+        for (final var entry : list) {
+            itemCount += entry.getLongValue();
         }
 
         this.startItemCount = itemCount;

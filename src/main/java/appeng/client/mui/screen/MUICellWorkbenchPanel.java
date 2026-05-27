@@ -33,8 +33,8 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.config.Settings;
 import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IUpgradeModule;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.ICellWorkbenchItem;
-import appeng.api.storage.data.IAEStackType;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.client.gui.widgets.GuiToggleButton;
@@ -231,10 +231,10 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
     /**
      * Determines whether to accept a given stack type based on the current cell item's stack type.
      */
-    private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
+    private boolean acceptType(VirtualMEPhantomSlot slot, AEKeyType type, int mouseButton) {
         final ICellWorkbenchItem cell = this.workbench.getCell();
         if (cell != null) {
-            return type == cell.getStackType();
+            return type == AEKeyType.fromLegacyType(cell.getStackType());
         }
         return false;
     }

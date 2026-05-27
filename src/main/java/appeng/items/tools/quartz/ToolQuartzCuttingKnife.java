@@ -32,7 +32,6 @@ import appeng.api.implementations.guiobjects.IGuiItemObject;
 import appeng.api.util.AEPartLocation;
 import appeng.core.features.AEFeature;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 import appeng.items.AEBaseItem;
 import appeng.items.contents.QuartzKnifeObj;
 import appeng.util.Platform;

@@ -19,7 +19,7 @@
 package appeng.client.mui.screen;
 
 import appeng.api.config.Upgrades;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.mui.widgets.MUITabContainer;
 import appeng.core.localization.GuiText;
@@ -27,7 +27,6 @@ import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketSwitchGuis;
 import appeng.fluids.container.ContainerFluidFormationPlane;
-import appeng.fluids.util.AEFluidStackType;
 import appeng.tile.inventory.IAEStackInventory;
 
 /**
@@ -93,8 +92,8 @@ public class MUIFluidFormationPlanePanel extends MUIUpgradeablePanel {
         }
     }
 
-    private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
-        return type == AEFluidStackType.INSTANCE;
+    private boolean acceptType(VirtualMEPhantomSlot slot, AEKeyType type, int mouseButton) {
+        return type == AEKeyType.fluids();
     }
 
     // ========== Button management ==========

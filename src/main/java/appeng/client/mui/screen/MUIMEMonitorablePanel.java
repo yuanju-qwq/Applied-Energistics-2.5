@@ -43,7 +43,6 @@ import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.client.ActionKey;
@@ -827,11 +826,6 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     public void setCustomSortOrder(final boolean customSortOrder) {
         this.customSortOrder = customSortOrder;
-    }
-
-    public boolean isTypeEnabled(IAEStackType<?> type) {
-        AEKeyType keyType = AEKeyType.fromLegacyType(type);
-        return keyType != null && getRepo().isTypeEnabled(keyType);
     }
 
     public boolean isTypeEnabled(AEKeyType type) {

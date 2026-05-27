@@ -25,7 +25,7 @@ import org.lwjgl.input.Mouse;
 import net.minecraft.client.gui.GuiButton;
 
 import appeng.api.config.*;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiNumberBox;
 import appeng.client.mui.AEMUITheme;
@@ -38,7 +38,6 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketConfigButton;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.tile.inventory.IAEStackInventory;
-import appeng.util.item.AEItemStackType;
 
 /**
  * Contains a number input field (threshold setting), +/- increment buttons, level mode,
@@ -280,7 +279,7 @@ public class MUILevelEmitterPanel extends MUIUpgradeablePanel {
         this.guiSlots.add(this.configSlot);
     }
 
-    private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
-        return type == AEItemStackType.INSTANCE;
+    private boolean acceptType(VirtualMEPhantomSlot slot, AEKeyType type, int mouseButton) {
+        return type == AEKeyType.items();
     }
 }

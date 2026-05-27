@@ -13,8 +13,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import mezz.jei.api.gui.IGhostIngredientHandler.Target;
 
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.ITerminalHost;
-import appeng.api.storage.data.IAEStackType;
 import appeng.client.gui.slots.VirtualMEPatternSlot;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.mui.AEBasePanel;
@@ -213,7 +213,7 @@ public class MUIExpandedProcessingPatternTermPanel extends MUIMEMonitorablePanel
         }
     }
 
-    private boolean acceptType(final VirtualMEPhantomSlot slot, final IAEStackType<?> type, final int mouseButton) {
+    private boolean acceptType(final VirtualMEPhantomSlot slot, final AEKeyType type, final int mouseButton) {
         return true;
     }
 

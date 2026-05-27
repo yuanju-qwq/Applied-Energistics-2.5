@@ -24,7 +24,7 @@ import net.minecraft.client.gui.GuiButton;
 
 import appeng.api.config.RedstoneMode;
 import appeng.api.config.Settings;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
 import appeng.client.gui.widgets.GuiNumberBox;
 import appeng.client.mui.AEMUITheme;
@@ -35,7 +35,6 @@ import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.fluids.container.ContainerFluidLevelEmitter;
-import appeng.fluids.util.AEFluidStackType;
 import appeng.tile.inventory.IAEStackInventory;
 
 /**
@@ -88,8 +87,8 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
         this.guiSlots.add(new VirtualMEPhantomSlot(0, x, y, configInv, 0, this::acceptType));
     }
 
-    private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
-        return type == AEFluidStackType.INSTANCE;
+    private boolean acceptType(VirtualMEPhantomSlot slot, AEKeyType type, int mouseButton) {
+        return type == AEKeyType.fluids();
     }
 
     // ========== Button management ==========

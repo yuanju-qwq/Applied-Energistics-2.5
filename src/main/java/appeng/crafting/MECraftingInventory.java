@@ -32,6 +32,7 @@ import net.minecraft.nbt.NBTTagList;
 import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageMonitorable;
@@ -46,7 +47,6 @@ import appeng.core.sync.packets.PacketInformPlayer;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
 import appeng.util.item.IAEStackList;
-import appeng.util.item.IMixedStackList;
 
 /**
  * 合成模拟库存 — 多类型泛型版本。
@@ -67,13 +67,13 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     private final Map<IAEStackType<?>, IItemList<?>> inventoryMap = new IdentityHashMap<>();
 
     private final boolean logExtracted;
-    private final IMixedStackList extractedCache;
+    private final KeyCounter extractedCache;
 
     private final boolean logInjections;
-    private final IMixedStackList injectedCache;
+    private final KeyCounter injectedCache;
 
     private final boolean logMissing;
-    private final IMixedStackList missingCache;
+    private final KeyCounter missingCache;
 
     // ========== 构造函数 ==========
 
@@ -95,8 +95,8 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         this.par = null;
     }
 
-    private static IMixedStackList newMixedList() {
-        return new IAEStackList();
+    private static KeyCounter newMixedList() {
+        return new KeyCounter();
     }
 
     /**
@@ -356,7 +356,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         if (input != null && mode == Actionable.MODULATE) {
             addToTypedList(this.getList(input.getStackType()), input);
             if (this.logInjections) {
-                this.injectedCache.add(input);
+                this.injectedCache.add(input.toAEKey(), input.getStackSize());
             }
         }
     }
@@ -371,7 +371,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             if (mode == Actionable.MODULATE) {
                 stack.decStackSize(request.getStackSize());
                 if (this.logExtracted) {
-                    this.extractedCache.add(request);
+                    this.extractedCache.add(request.toAEKey(), request.getStackSize());
                 }
             }
             return request;
@@ -383,7 +383,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         if (mode == Actionable.MODULATE) {
             stack.reset();
             if (this.logExtracted) {
-                this.extractedCache.add(ret);
+                this.extractedCache.add(ret.toAEKey(), ret.getStackSize());
             }
         }
 
@@ -528,9 +528,9 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
      * 从 NBT 读取库存。
      */
     public void readInventory(NBTTagList tag) {
-        IMixedStackList tempList = newMixedList();
-        appeng.util.AEStackSerialization.readAEStackListNBT(tempList, tag);
-        for (IAEStack<?> stack : tempList.typedView()) {
+        final IAEStackList bridge = new IAEStackList();
+        appeng.util.AEStackSerialization.readAEStackListNBT((appeng.util.item.IMixedStackList) bridge, tag);
+        for (IAEStack<?> stack : bridge.typedView()) {
             injectItems(stack, Actionable.MODULATE);
         }
     }
@@ -546,7 +546,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         if (mode == Actionable.MODULATE) {
             this.getItemListInternal().add(input);
             if (this.logInjections) {
-                this.injectedCache.add(input);
+                this.injectedCache.add(input.toAEKey(), input.getStackSize());
             }
         }
 
@@ -568,7 +568,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             if (mode == Actionable.MODULATE) {
                 list.decStackSize(request.getStackSize());
                 if (this.logExtracted) {
-                    this.extractedCache.add(request);
+                    this.extractedCache.add(request.toAEKey(), request.getStackSize());
                 }
             }
 
@@ -581,7 +581,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         if (mode == Actionable.MODULATE) {
             list.reset();
             if (this.logExtracted) {
-                this.extractedCache.add(ret);
+                this.extractedCache.add(ret.toAEKey(), ret.getStackSize());
             }
         }
 
@@ -620,15 +620,17 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
      * 对于 IMEInventory&lt;IAEItemStack&gt; 来源，只处理物品类型。
      */
     public boolean commit(final IActionSource src) {
-        final IMixedStackList added = newMixedList();
-        final IMixedStackList pulled = newMixedList();
+        final KeyCounter added = newMixedList();
+        final KeyCounter pulled = newMixedList();
         boolean failed = false;
 
-        // 注入阶段
         if (this.logInjections) {
-            for (final IAEStack<?> inject : this.injectedCache.typedView()) {
+            for (final var entry : this.injectedCache) {
+                final IAEStack<?> inject = entry.getKey().toIAEStack(entry.getLongValue());
                 IAEStack<?> result = doInject(inject, Actionable.MODULATE, src);
-                added.add(result);
+                if (result != null) {
+                    added.add(result.toAEKey(), result.getStackSize());
+                }
 
                 if (result != null) {
                     failed = true;
@@ -638,19 +640,21 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         }
 
         if (failed) {
-            for (final IAEStack<?> is : added.typedView()) {
-                doExtract(is, Actionable.MODULATE, src);
+            for (final var entry : added) {
+                doExtract(entry.getKey().toIAEStack(entry.getLongValue()), Actionable.MODULATE, src);
             }
             return false;
         }
 
         if (this.logExtracted) {
-            for (final IAEStack<?> extra : this.extractedCache.typedView()) {
+            for (final var entry : this.extractedCache) {
+                final IAEStack<?> extra = entry.getKey().toIAEStack(entry.getLongValue());
                 IAEStack<?> result = doExtract(extra, Actionable.MODULATE, src);
-                pulled.add(result);
+                if (result != null) {
+                    pulled.add(result.toAEKey(), result.getStackSize());
+                }
 
                 if (result == null || result.getStackSize() != extra.getStackSize()) {
-                    // 只对物品类型发送通知包（流体类型暂不支持通知）
                     if (src.player().isPresent() && extra instanceof IAEItemStack) {
                         try {
                             if (result == null) {
@@ -675,20 +679,20 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         }
 
         if (failed) {
-            for (final IAEStack<?> is : added.typedView()) {
-                doExtract(is, Actionable.MODULATE, src);
+            for (final var entry : added) {
+                doExtract(entry.getKey().toIAEStack(entry.getLongValue()), Actionable.MODULATE, src);
             }
 
-            for (final IAEStack<?> is : pulled.typedView()) {
-                doInject(is, Actionable.MODULATE, src);
+            for (final var entry : pulled) {
+                doInject(entry.getKey().toIAEStack(entry.getLongValue()), Actionable.MODULATE, src);
             }
 
             return false;
         }
 
         if (this.logMissing && this.par != null) {
-            for (final IAEStack<?> extra : this.missingCache.typedView()) {
-                this.par.addMissing(extra);
+            for (final var entry : this.missingCache) {
+                this.par.addMissing(entry.getKey().toIAEStack(entry.getLongValue()));
             }
         }
 
@@ -738,7 +742,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     }
 
     private void addMissing(final IAEStack<?> extra) {
-        this.missingCache.add(extra);
+        this.missingCache.add(extra.toAEKey(), extra.getStackSize());
     }
 
     /**

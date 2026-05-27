@@ -32,6 +32,7 @@ import appeng.api.networking.crafting.ICraftingCPU;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -54,7 +55,7 @@ import appeng.util.Platform;
 public class ContainerCraftingCPU extends AEBaseContainer
         implements IMEMonitorHandlerReceiver<IAEStackBase>, ICustomNameObject {
 
-    private final IAEStackList list = new IAEStackList();
+    private final KeyCounter changed = new KeyCounter();
     private IGrid network;
     private CraftingCPUCluster monitor = null;
     private String cpuName = null;
@@ -103,8 +104,9 @@ public class ContainerCraftingCPU extends AEBaseContainer
         if (c instanceof CraftingCPUCluster) {
             this.cpuName = c.getName();
             this.setMonitor((CraftingCPUCluster) c);
-            this.list.resetStatus();
-            this.getMonitor().getGenericListOfItem(this.list, CraftingItemList.ALL);
+            final IAEStackList bridge = new IAEStackList();
+            this.getMonitor().getGenericListOfItem(bridge, CraftingItemList.ALL);
+            this.changed.clear();
             this.getMonitor().addListener(this, null);
             this.setEstimatedTime(0);
         } else {
@@ -160,19 +162,23 @@ public class ContainerCraftingCPU extends AEBaseContainer
                 final long eta = (long) (elapsedTime / Math.max(1d, (startItems - remainingItems)) * remainingItems);
                 this.setEstimatedTime(eta);
             }
-            if (!this.list.isEmpty()) {
+            if (!this.changed.isEmpty()) {
                 try {
                     final PacketMEInventoryUpdate a = new PacketMEInventoryUpdate((byte) 0);
                     final PacketMEInventoryUpdate b = new PacketMEInventoryUpdate((byte) 1);
                     final PacketMEInventoryUpdate c = new PacketMEInventoryUpdate((byte) 2);
 
-                    for (final IAEStack<?> stack : this.list.typedView()) {
-                        a.appendStack(this.getMonitor().getItemStack(stack, CraftingItemList.STORAGE));
-                        b.appendStack(this.getMonitor().getItemStack(stack, CraftingItemList.ACTIVE));
-                        c.appendStack(this.getMonitor().getItemStack(stack, CraftingItemList.PENDING));
+                    for (final var entry : this.changed) {
+                        if (entry.getLongValue() <= 0) {
+                            continue;
+                        }
+                        final IAEStack<?> key = entry.getKey().toIAEStack(1);
+                        a.appendStack(this.getMonitor().getItemStack(key, CraftingItemList.STORAGE));
+                        b.appendStack(this.getMonitor().getItemStack(key, CraftingItemList.ACTIVE));
+                        c.appendStack(this.getMonitor().getItemStack(key, CraftingItemList.PENDING));
                     }
 
-                    this.list.resetStatus();
+                    this.changed.reset();
 
                     for (final Object g : this.listeners) {
                         if (g instanceof EntityPlayer) {
@@ -206,9 +212,12 @@ public class ContainerCraftingCPU extends AEBaseContainer
     public void postChange(final IBaseMonitor<IAEStackBase> monitor, final Iterable<IAEStackBase> change,
             final IActionSource actionSource) {
         for (IAEStackBase is : change) {
-            is = is.copy();
-            is.setStackSize(1);
-            this.list.add(is);
+            if (is instanceof IAEStack<?> aeStack) {
+                var key = aeStack.toAEKey();
+                if (key != null) {
+                    this.changed.add(key, 1);
+                }
+            }
         }
     }
 

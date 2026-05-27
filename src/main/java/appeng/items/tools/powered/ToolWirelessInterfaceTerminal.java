@@ -5,7 +5,6 @@ import net.minecraftforge.fml.common.network.IGuiHandler;
 
 import appeng.api.AEApi;
 import appeng.core.sync.AEGuiKeys;
-import appeng.core.sync.GuiBridge;
 
 public class ToolWirelessInterfaceTerminal extends ToolWirelessTerminal {
     @Override

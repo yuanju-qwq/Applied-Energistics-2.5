@@ -22,18 +22,19 @@ import javax.annotation.Nullable;
 
 import net.minecraft.item.ItemStack;
 
+import appeng.api.stacks.AEKeyType;
 import appeng.tile.inventory.IAEStackInventory;
 
-/**
- * 样板终端使用的虚拟 ME 幽灵槽位，与 {@link VirtualMEPhantomSlot} 的区别在于默认显示数量。
- * <p>
- * 用于样板终端的合成输入/输出槽位，允许用户设置带数量的泛型栈。
- * </p>
- */
 public class VirtualMEPatternSlot extends VirtualMEPhantomSlot {
 
     public VirtualMEPatternSlot(int id, int x, int y, IAEStackInventory inventory, int slotIndex,
             TypeAcceptPredicate acceptType) {
+        super(id, x, y, inventory, slotIndex, acceptType);
+        this.showAmount = true;
+    }
+
+    public VirtualMEPatternSlot(int id, int x, int y, IAEStackInventory inventory, int slotIndex,
+            KeyTypeAcceptPredicate acceptType) {
         super(id, x, y, inventory, slotIndex, acceptType);
         this.showAmount = true;
     }
