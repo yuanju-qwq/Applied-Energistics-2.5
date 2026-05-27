@@ -26,6 +26,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
@@ -123,6 +125,28 @@ public final class AEStackSerialization {
             }
             if (stack != null) {
                 list.add(stack);
+            }
+        }
+    }
+
+    public static NBTTagList writeKeyCounterNBT(final KeyCounter counter) {
+        final NBTTagList out = new NBTTagList();
+        for (final var entry : counter) {
+            final NBTTagCompound tag = new NBTTagCompound();
+            tag.setTag("key", entry.getKey().toTagGeneric());
+            tag.setLong("amt", entry.getLongValue());
+            out.appendTag(tag);
+        }
+        return out;
+    }
+
+    public static void readKeyCounterNBT(final KeyCounter counter, final NBTTagList tagList) {
+        for (int i = 0; i < tagList.tagCount(); i++) {
+            final NBTTagCompound tag = tagList.getCompoundTagAt(i);
+            final NBTTagCompound keyTag = tag.getCompoundTag("key");
+            final AEKey key = AEKey.fromTagGeneric(keyTag);
+            if (key != null) {
+                counter.add(key, tag.getLong("amt"));
             }
         }
     }

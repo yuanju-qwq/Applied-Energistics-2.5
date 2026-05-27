@@ -34,11 +34,9 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IItemList;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
 import appeng.container.interfaces.ICraftingCPUGuiCallback;
@@ -46,7 +44,6 @@ import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.core.sync.packets.PacketValueConfig;
-import appeng.util.item.IAEStackList;
 import appeng.helpers.ICustomNameObject;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.tile.crafting.TileCraftingTile;
@@ -104,8 +101,6 @@ public class ContainerCraftingCPU extends AEBaseContainer
         if (c instanceof CraftingCPUCluster) {
             this.cpuName = c.getName();
             this.setMonitor((CraftingCPUCluster) c);
-            final IAEStackList bridge = new IAEStackList();
-            this.getMonitor().getGenericListOfItem(bridge, CraftingItemList.ALL);
             this.changed.clear();
             this.getMonitor().addListener(this, null);
             this.setEstimatedTime(0);
