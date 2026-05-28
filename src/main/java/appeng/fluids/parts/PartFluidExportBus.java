@@ -92,7 +92,8 @@ public class PartFluidExportBus extends PartSharedFluidBus {
                 if (fh != null) {
                     for (int i = 0; i < this.getConfig().getSizeInventory(); i++) {
                         final GenericStack raw = this.getConfig().getGenericStack(i);
-                        if (raw instanceof IAEFluidStack fluid) {
+                        final IAEStack<?> stack = raw != null ? raw.toIAEStack() : null;
+                        if (stack instanceof IAEFluidStack fluid) {
                             final IAEFluidStack toExtract = fluid.copy();
 
                             toExtract.setStackSize(this.calculateFluidAmountToSend());

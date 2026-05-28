@@ -105,7 +105,8 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
         final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
         for (int x = 0; x < this.Config.getSizeInventory() && x < slotsToUse; x++) {
             final GenericStack raw = this.Config.getGenericStack(x);
-            if (raw instanceof IAEItemStack is) {
+            final IAEStack<?> stack = raw != null ? raw.toIAEStack() : null;
+            if (stack instanceof IAEItemStack is) {
                 priorityList.add(is);
             }
         }

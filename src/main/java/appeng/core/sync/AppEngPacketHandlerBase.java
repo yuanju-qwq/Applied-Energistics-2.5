@@ -122,9 +122,11 @@ public class AppEngPacketHandlerBase {
             }
 
             this.packetConstructor = x;
-            REVERSE_LOOKUP.put(this.packetClass, this);
+            if (this.packetClass != null) {
+                REVERSE_LOOKUP.put(this.packetClass, this);
+            }
 
-            if (this.packetConstructor == null) {
+            if (this.packetClass != null && this.packetConstructor == null) {
                 throw new IllegalStateException(
                         "Invalid Packet Class " + c + ", must be constructable on DataInputStream");
             }
@@ -140,6 +142,9 @@ public class AppEngPacketHandlerBase {
 
         public AppEngPacket parsePacket(final ByteBuf in) throws InstantiationException, IllegalAccessException,
                 IllegalArgumentException, InvocationTargetException {
+            if (this.packetConstructor == null) {
+                throw new IllegalArgumentException("Packet type " + this.name() + " is reserved and cannot be parsed");
+            }
             return this.packetConstructor.newInstance(in);
         }
     }

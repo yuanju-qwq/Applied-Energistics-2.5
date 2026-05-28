@@ -21,6 +21,7 @@ package appeng.container.implementations;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.*;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;

@@ -83,7 +83,8 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
         final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
         for (int x = 0; x < this.config.size() && x < slotsToUse; x++) {
             final GenericStack is = this.config.getGenericStack(x);
-            if (is instanceof IAEFluidStack fluidStack) {
+            final IAEStack<?> stack = is != null ? is.toIAEStack() : null;
+            if (stack instanceof IAEFluidStack fluidStack) {
                 priorityList.add(fluidStack);
             }
         }

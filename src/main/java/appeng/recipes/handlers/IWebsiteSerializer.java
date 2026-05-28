@@ -22,11 +22,10 @@ import net.minecraft.item.ItemStack;
 
 import appeng.api.exceptions.MissingIngredientException;
 import appeng.api.exceptions.RegistrationException;
-import appeng.recipes.RecipeHandler;
 
 public interface IWebsiteSerializer {
 
-    String getPattern(RecipeHandler han);
+    String getPattern(Object handler);
 
     boolean canCraft(ItemStack output) throws RegistrationException, MissingIngredientException;
 }

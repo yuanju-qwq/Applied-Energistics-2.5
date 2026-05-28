@@ -490,10 +490,11 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         return null;
     }
 
-    private boolean canCraft(final ICraftingPatternDetails details, final IAEStack<?>[] condensedInputs) {
+    private boolean canCraft(final ICraftingPatternDetails details, final GenericStack[] condensedInputs) {
         if (!details.isCraftable()) {
             // 加工模式：使用泛型提取检查所有类型（物品+流体等）
-            for (IAEStack<?> input : condensedInputs) {
+            for (GenericStack condensedInput : condensedInputs) {
+                final IAEStack<?> input = condensedInput != null ? condensedInput.toIAEStack() : null;
                 if (input == null) continue;
                 final IAEStack<?> ais = this.inventory.extractAny(input.copy(), Actionable.SIMULATE);
 
@@ -545,8 +546,9 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         } else {
             // When no substitutions can occur, we can simply check that all items are accounted since
             // each type of item should only occur once
-            for (IAEStack<?> condensedInput : condensedInputs) {
-                if (!(condensedInput instanceof IAEItemStack g)) {
+            for (GenericStack condensedInput : condensedInputs) {
+                final IAEStack<?> genericInput = condensedInput != null ? condensedInput.toIAEStack() : null;
+                if (!(genericInput instanceof IAEItemStack g)) {
                     return false;
                 }
                 boolean found = false;
@@ -955,7 +957,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         for (int x = 0; x < input.length; x++) {
             if (input[x] != null) {
                 // 使用 MEInventoryCrafting 的泛型槽位，直接放入 IAEStack
-                ic.setInventorySlotContents(x, input[x]);
+                ic.setInventorySlotContents(x, input[x].toIAEStack());
             }
         }
 

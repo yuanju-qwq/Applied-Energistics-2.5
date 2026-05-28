@@ -288,6 +288,9 @@ public enum PartType {
             PartFluidTerminal.class),
     INTERFACE_CONFIGURATION_TERMINAL(521, "interface_configuration_terminal", EnumSet.of(AEFeature.INTERFACE_TERMINAL),
             EnumSet.noneOf(IntegrationType.class), PartInterfaceConfigurationTerminal.class),
+    FLUID_INTERFACE_CONFIGURATION_TERMINAL(522, "fluid_interface_configuration_terminal",
+            EnumSet.of(AEFeature.INTERFACE_TERMINAL), EnumSet.noneOf(IntegrationType.class),
+            PartFluidInterfaceConfigurationTerminal.class),
 
     RATE_MONITOR(540, "rate_monitor", EnumSet.of(AEFeature.PART_RATE_MONITOR),
             EnumSet.noneOf(IntegrationType.class), PartRateMonitor.class);

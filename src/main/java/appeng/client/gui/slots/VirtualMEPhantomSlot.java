@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import net.minecraft.item.ItemStack;
 
 import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStack;

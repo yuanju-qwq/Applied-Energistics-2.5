@@ -26,6 +26,7 @@ package appeng.api.storage;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 
@@ -55,7 +56,11 @@ public interface IMEMonitor<T extends IAEStackBase> extends IMEInventoryHandler<
         final KeyCounter result = new KeyCounter();
         final IItemList<T> list = getStorageList();
         for (final T stack : list) {
-            final AEKey key = stack.toAEKey();
+            if (!(stack instanceof IAEStack<?> aeStack)) {
+                continue;
+            }
+
+            final AEKey key = aeStack.toAEKey();
             if (key != null) {
                 result.set(key, stack.getStackSize());
             }

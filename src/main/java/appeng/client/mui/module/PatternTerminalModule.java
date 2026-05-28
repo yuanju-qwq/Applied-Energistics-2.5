@@ -19,6 +19,7 @@ import mezz.jei.api.gui.IGhostIngredientHandler.Target;
 import appeng.api.config.ActionItems;
 import appeng.api.config.ItemSubstitution;
 import appeng.api.config.Settings;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.gui.slots.VirtualMEPatternSlot;

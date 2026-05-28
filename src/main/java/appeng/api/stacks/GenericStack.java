@@ -149,6 +149,13 @@ public record GenericStack(AEKey what, long amount) {
         return new GenericStack(left.what, left.amount + right.amount);
     }
 
+    /**
+     * Compatibility helper for older stack-oriented call sites.
+     */
+    public GenericStack copy() {
+        return this;
+    }
+
     // ==================== Legacy bridge ====================
 
     /**

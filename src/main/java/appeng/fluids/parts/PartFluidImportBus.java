@@ -34,6 +34,7 @@ import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEFluidStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
 import appeng.fluids.util.AEFluidStack;

@@ -19,7 +19,10 @@ public class TileEntityComponent implements IPreInitComponent {
     }
 
     public void addTileEntity(TileEntityDefinition tileEntityDefinition) {
-        if (!this.tileEntityDefinitions.contains(tileEntityDefinition)) {
+        final boolean alreadyQueued = this.tileEntityDefinitions.stream()
+                .anyMatch(existing -> existing.getTileEntityClass() == tileEntityDefinition.getTileEntityClass());
+
+        if (!alreadyQueued) {
             this.tileEntityDefinitions.add(tileEntityDefinition);
         }
     }
