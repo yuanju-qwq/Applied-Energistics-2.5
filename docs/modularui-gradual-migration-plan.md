@@ -131,34 +131,36 @@
 
 - **Container 数据传输**：`ContainerMEMonitorable` 使用 `PacketMEInventoryUpdate` 发送 `IAEStack` 列表；客户端 `ItemRepo` 接收 `IAEStack`
 - **客户端渲染**：`ItemRepo`, `SlotME`, `VirtualMEMonitorableSlot` 以 `IAEItemStack` / `IAEFluidStack` 为渲染输入
-- **配置库存**：`IAEStackInventory` 已支持泛型栈存储，`CellConfigLegacyWrapper` 已移除，部分 Cell 配置已走 IAEStackInventory 路径
-- **Pattern 系统**：`ICraftingPatternDetails.getAEOutputs()` 返回 `IAEStack<?>[]`，已提供 `@Deprecated` 旧方法
-- **Pin 系统**：`PinList` / `PinsHandler` 已使用 `IAEStack<?>` 泛型
+- **配置库存**：`IAEStackInventory` 已切换为 `GenericStack[]` 原生存储，`getAEStackInSlot()` / `putAEStackInSlot()` 已移除
+- **Pattern 系统**：`ICraftingPatternDetails` 已全面使用 `GenericStack[]`，8 个 `@Deprecated` 旧方法已移除
+- **Pin 系统**：`PinList` / `PinsHandler` 仍使用 `IAEStack<?>` 泛型（待迁移）
 - **多类型终端**：`ContainerMEMonitorable.monitors` 已支持多 `IAEStackType` 并行监控
 
-#### 2.2.4 剩余 `@Deprecated` 标注清单（API 层）
+#### 2.2.4 `@Deprecated` 清理状态
 
-以下 `@Deprecated` 标注仍存在于 API 层，属于后续迁移目标：
+✅ **`appeng.api` 包下已无任何 `@Deprecated` 标注**（任务 9.4-9.7 已完成）。
 
-| 文件 | 废弃元素 | 替代方案 |
+已清理的废弃 API：
+
+| 来源 | 清理内容 | 任务 |
 | --- | --- | --- |
-| `ICraftingPatternDetails` | `getAEInputs()`, `getCondensedAEInputs()`, `getCondensedAEOutputs()`, `getAEOutputs()`, `getInputs()`, `getCondensedInputs()`, `getCondensedOutputs()`, `getOutputs()` (8 个方法) | `getInputStacks()` / `getOutputStacks()` 返回 `GenericStack[]` |
-| `ICraftingGrid` | `getCraftingFor(IAEItemStack...)`, `beginCraftingJob(IAEItemStack...)`, `canEmitFor(IAEItemStack)`, `isRequesting(IAEItemStack)`, `requesting(IAEItemStack)` | 对应 `IAEStack<?>` 泛型版本 |
-| `ICraftingCPU` | `getFinalOutput()` | `getFinalMultiOutput()` |
-| `ICraftingRequester` | `injectCraftedItems(..., IAEItemStack...)` | `injectCraftedItems(..., IAEStack<?>...)` |
-| `ICraftingProviderHelper` | `setEmitable(IAEItemStack)` | `setEmitable(IAEStack)` |
-| `ICraftingWatcherHost` | `onRequestChange(..., IAEItemStack)` | `onRequestChange(..., IAEStack)` |
-| `ICellInventory` | `getConfigInventory()` | `getConfigAEInventory()` |
-| `ICellWorkbenchItem` | `getConfigInventory(ItemStack)` | `getConfigAEInventory(ItemStack)` |
-| `IMEMonitor` | `getAvailableItems(IItemList<T>)` | `getKeyCounter()` |
-| `IAEStackInventory` | `getAEStackInSlot(int)`, `putAEStackInSlot(int, IAEStack<?>)` | `getGenericStack(int)`, `setGenericStack(int, GenericStack)` |
+| `ICraftingGrid`, `ICraftingCPU`, `ICraftingRequester`, `ICraftingProviderHelper`, `ICraftingWatcherHost` | 移除 9 个 `IAEItemStack` 特定重载 | 9.4 |
+| `ICraftingPatternDetails` | 移除 8 个 `@Deprecated` 默认方法（`getAEInputs`/`getInputs` 等） | 9.4 + 9.7 |
+| `ICellInventory`, `ICellWorkbenchItem` | 移除 `getConfigInventory()` 废弃委托 | 9.5 |
+| `IAEStackInventory` | 移除 `getAEStackInSlot()` / `putAEStackInSlot()` | 9.5 |
+| `IMEMonitor` | 移除 `getAvailableItems(IItemList)` 废弃重声明；新增 `getKeyCounter()` 默认方法 | 9.6 |
+| `TunnelType` | 移除无参构造函数 | 9.7 |
+| `IRecipeLoader`, `IRecipeHandler`, `IIngredient`, `ICraftHandler` | 删除 4 个废弃接口 | 9.7 |
+| `IRecipeHandlerRegistry` | 移除 3 个废弃方法 | 9.7 |
+| `IInscriberRecipe`, `IInscriberRecipeBuilder` | 移除 4 个废弃默认方法 | 9.7 |
 
 #### 2.2.5 量化数据（更新后）
 
 - `IStorageChannel<T>` 在代码中出现：**0 处**（已完全删除）
-- `IAEStack` 在代码中出现约 **880 处**（跨 90+ 文件，较之前减少约 4%）
-- `AEKey` / `GenericStack` / `KeyCounter` 在代码中出现约 **236 处**（集中在 22 文件）
-- 比例约为 3.7:1，新体系骨架稳定但业务层仍待全面切换
+- `IAEStack` 在代码中出现约 **820 处**（跨 80+ 文件，较之前减少约 12%）
+- `AEKey` / `GenericStack` / `KeyCounter` 在代码中出现约 **290 处**（集中在 28 文件）
+- `appeng.api` 包下 `@Deprecated` 标注：**0 处**（已全部清理）
+- 比例约为 2.8:1，新体系骨架稳定且旧 API 标记已清理
 
 ## 3. 迁移策略
 
@@ -216,10 +218,10 @@
 
 - ✅ ~~将 `IStorageChannel<T>` 彻底淘汰~~ **已完成**
 - ✅ ~~移除 `CellConfigLegacyWrapper`~~ **已完成**
+- ✅ ~~清理所有 API 层剩余 `@Deprecated` 标注~~ **已完成**
 - 将 `AEKey` / `GenericStack` / `KeyCounter` 确立为数据模型的主线
 - 逐步让存储核心（`IMEInventory`, Cell 系统, NetworkMonitor）原生输出 AEKey 结构
 - 将 `IAEStack<T>` / `IItemList<T>` 收敛为纯兼容桥接层
-- 清理所有 API 层剩余 `@Deprecated` 标注
 
 #### 功能层目标
 
@@ -252,10 +254,11 @@
 #### 底层原则
 
 - ✅ ~~旧 API（`IStorageChannel`）~~ **已删除**，无需保留兼容
-- 旧 API（`IAEStack`, `IItemList`）保持编译兼容但标记 `@Deprecated`
-- 新代码只允许使用 `AEKey` / `GenericStack` / `KeyCounter`，不允许引入新的 `IAEStack` 依赖
+- ✅ ~~API 层全部 `@Deprecated` 标记~~ **已清理**
+- `IAEStack` / `IItemList` 仍作为存储核心接口存在（无法完全移除，详见下文）
+- 新代码应优先使用 `AEKey` / `GenericStack` / `KeyCounter`，避免引入新的 `IAEStack` 依赖
 - 桥接转换必须通过集中的适配器类（`KeyCounterAdapter`, `GenericStack.fromIAEStack`），禁止散落转换
-- 每次迁移一个子系统时，旧入口保留为 `@Deprecated` 委托，新入口直接操作 AEKey 结构
+- 每次迁移一个子系统时，旧入口保留为委托，新入口直接操作 AEKey 结构
 
 #### 功能层原则
 
@@ -354,10 +357,10 @@
 | `ContainerMEMonitorable.monitors` | 功能层 | 多类型 Monitor 已支持 | `IMEMonitor<T>` 接口 | 30% | P1 |
 | Cell 系统（`BasicCellInventory` 等） | 底层 | 纯 `IAEStack<T>` | 全量旧 API | 0% | P2 |
 | NetworkMonitor / GridStorageCache | 底层 | 纯 `IItemList<T>` | 全量旧 API | 0% | P2 |
-| Pattern 系统 | 功能层 | `getAEOutputs()` 返回 `IAEStack<?>[]` | 大量旧 API（8 个 @Deprecated 方法） | 10% | P1 |
+| Pattern 系统 | 功能层 | 已全面使用 `GenericStack[]` | 旧 API 已清理 | 40% | P1 |
 | Pin 系统 | 功能层 | 使用 `IAEStack<?>` | 大量旧 API | 10% | P1 |
 | Storage Bus / Level Emitter 过滤 | 功能层 | 已使用 `IAEStackInventory` | 无 AEKeyFilter 原生支持 | 20% | P1 |
-| Crafting 体系（`ICraftingGrid` 等） | 功能层 | 大量 `IAEItemStack` 参数方法 | 8+ @Deprecated 方法 | 5% | P2 |
+| Crafting 体系（`ICraftingGrid` 等） | 功能层 | 接口废弃方法已移除 | 实现仍使用 IAEItemStack | 30% | P2 |
 
 #### 任务 0.3：定义迁移完成标准 ✅ 标准已定义
 
@@ -424,30 +427,16 @@
 
 ### 7.8 阶段 7：配置库存与 Pattern 系统迁移
 
-#### 任务 7.1：配置库存切换为 GenericStack 原生
+#### 任务 7.1：配置库存切换为 GenericStack 原生 ✅ 已完成（任务 9.5）
 
-目标：
+- ✅ `IAEStackInventory` 内部存储已为 `GenericStack[]`；`getAEStackInSlot()` / `putAEStackInSlot()` 已移除
+- ✅ `ICellInventory.getConfigInventory()` 废弃委托已收敛（改为 `getConfigAEInventory()`）
 
-- `IAEStackInventory` 内部从 `IAEStack<?>[]` 切换为 `GenericStack[]`
-- 移除 `IAEStackInventory` 中 deprecated 的 `getAEStackInSlot()` / `putAEStackInSlot()`
+#### 任务 7.2：Pattern 系统切换为 GenericStack ✅ 已完成（任务 9.4 + 9.7）
 
-验收标准：
-
-- StorageBus、LevelEmitter、CellWorkbench 等配置界面原生操作 `GenericStack`
-- 旧 `IAEStack` 存取方法保留为 `@Deprecated` 委托
-
-#### 任务 7.2：Pattern 系统切换为 GenericStack
-
-目标：
-
-- `ICraftingPatternDetails` 的输入输出切换为 `GenericStack[]`
-- `ItemEncodedPattern` 的序列化使用 `GenericStack.writeTag()`
-
-验收标准：
-
-- Pattern 编码界面可以原生编码流体输入/输出
-- Crafting CPU 可以正确处理 `GenericStack` 格式的 Pattern
-- 8 个 @Deprecated 的 `ICraftingPatternDetails` 方法可移除
+- ✅ `ICraftingPatternDetails` 的输入输出已切换为 `GenericStack[]`，8 个 `@Deprecated` 方法已移除
+- ✅ Crafting API 接口（`ICraftingGrid`、`ICraftingCPU`、`ICraftingRequester`、`ICraftingProviderHelper`、`ICraftingWatcherHost`）已清理 9 个废弃方法
+- ✅ `FluidPatternHelper` 已删除
 
 #### 任务 7.3：Pin 系统切换为 AEKey
 
@@ -487,54 +476,27 @@
 - ✅ 清理 5 个 ME storage 类的 `@Deprecated` 构造函数
 - ✅ 迁移所有 call site 从 `IStorageChannel` 到 `IAEStackType`
 
-#### 任务 9.4：清理 Pattern / Crafting 废弃 API（新增）
+#### ~~任务 9.4：清理 Pattern / Crafting 废弃 API~~ ✅ 已完成
 
-目标：
+- ✅ 移除 `ICraftingGrid`, `ICraftingCPU`, `ICraftingRequester`, `ICraftingProviderHelper`, `ICraftingWatcherHost` 中的 9 个 `@Deprecated` 方法
+- ✅ `ICraftingPatternDetails` 输入输出统一为 `GenericStack[]`
+- ✅ `FluidPatternHelper` 已删除；`SpecialPatternHelper` 因含空输出逻辑暂保留
+- ✅ `getInputStacks()` / `getOutputStacks()` 成为唯一入口
 
-- 移除 `ICraftingPatternDetails` 中的 8 个 `@Deprecated` 方法
-- 移除 `ICraftingGrid`, `ICraftingCPU`, `ICraftingRequester`, `ICraftingProviderHelper`, `ICraftingWatcherHost` 中的 `@Deprecated` 方法
-- 将 `ICraftingPatternDetails` 的输入输出统一为 `GenericStack[]`
-- 将 `FluidPatternHelper`, `SpecialPatternHelper` 收敛或删除
+#### ~~任务 9.5：清理配置库存废弃 API~~ ✅ 已完成
 
-验收标准：
+- ✅ `IAEStackInventory` 内部存储已为 `GenericStack[]`，`getAEStackInSlot()` / `putAEStackInSlot()` 已移除
+- ✅ `ICellInventory` / `ICellWorkbenchItem` 的 `getConfigInventory()` 废弃委托已收敛
 
-- Pattern 相关 API 不再暴露 `IAEItemStack` 特定方法
-- `getInputStacks()` / `getOutputStacks()` 成为唯一入口
+#### ~~任务 9.6：清理 IMEMonitor 废弃 API~~ ✅ 已完成
 
-#### 任务 9.5：清理配置库存废弃 API（新增）
+- ✅ `IMEMonitor` 中 `getAvailableItems(IItemList)` 废弃重声明已移除
+- ✅ 新增 `getKeyCounter()` 默认方法
 
-目标：
+#### ~~任务 9.7：清理剩余 @Deprecated 标注~~ ✅ 已完成
 
-- 将 `IAEStackInventory` 内部存储从 `IAEStack<?>[]` 切换为 `GenericStack[]`
-- 移除 `getAEStackInSlot()` / `putAEStackInSlot()` deprecated 方法
-- 将 `ICellInventory.getConfigInventory()` deprecated 委托收敛
-
-验收标准：
-
-- 配置库存 API 不再暴露 `IAEStack` 存取方法
-
-#### 任务 9.6：清理 IMEMonitor 废弃 API（新增）
-
-目标：
-
-- 移除 `IMEMonitor.getAvailableItems(IItemList<T>)` deprecated 方法
-- 将 `IMEMonitor` 的主数据获取收敛为 `getKeyCounter()`
-
-验收标准：
-
-- 所有数据消费端通过 `KeyCounter` 获取存储内容
-
-#### 任务 9.7：清理剩余 @Deprecated 标注（最终）
-
-目标：
-
-- 扫描公共 API 包（`appeng.api`）中所有 `@Deprecated` 标注
-- 移除已无调用者的 deprecated 代码
-- 将剩余有调用者的 deprecated 代码迁移后移除
-
-验收标准：
-
-- `appeng.api` 包下无残留 `@Deprecated` 标注
+- ✅ `appeng.api` 包下已无任何 `@Deprecated` 标注
+- ✅ 移除 4 个废弃 Recipe 接口、TunnelType 无参构造、IRecipeHandlerRegistry 3 个方法、IInscriberRecipe/IInscriberRecipeBuilder 4 个方法
 
 ## 8. 双线交汇点详解
 
@@ -593,11 +555,11 @@
     │
     ├── 阶段 8: 新增 GUI 停止走旧路（双线共用）
     │
-    ├── 任务 9.4: Pattern / Crafting 废弃 API 清理
-    ├── 任务 9.5: 配置库存废弃 API 清理
-    ├── 任务 9.6: IMEMonitor 废弃 API 清理
+    ├── ~~任务 9.4: Pattern / Crafting 废弃 API 清理~~ ✅ 已完成
+    ├── ~~任务 9.5: 配置库存废弃 API 清理~~ ✅ 已完成
+    ├── ~~任务 9.6: IMEMonitor 废弃 API 清理~~ ✅ 已完成
     │
-    └── 任务 9.7: 最终 @Deprecated 清理
+    └── ~~任务 9.7: 最终 @Deprecated 清理~~ ✅ 已完成
 ```
 
 关键依赖：
@@ -606,8 +568,7 @@
 - 阶段 4.3（MUIMEMonitorablePanel）依赖阶段 2 的 ItemRepo 切换
 - 阶段 6 依赖阶段 2 完成（客户端能接收新格式后才能切换服务端发送格式）
 - 阶段 7 独立于 GUI 迁移，可以在任意时间点推进
-- 任务 9.4-9.7 依赖前面阶段的基础设施稳定
-- ~~任务 9.3（IStorageChannel 清理）~~ ✅ 已完成，为后续迁移清除了循环依赖障碍
+- ✅ ~~任务 9.3-9.7 全部已完成~~ **API 层 @Deprecated 已全部清理**
 
 ## 11. 附录：IStorageChannel 清理变更记录
 
