@@ -187,7 +187,7 @@ public class TileChest extends AENetworkPowerTile
                     double power = 1.0;
 
                     for (IAEStackType<?> stackType : AEApi.instance().storage().getStackTypes()) {
-                        final ICellInventoryHandler<IAEItemStack> newCell = cellHandler.getCellInventory(is, this,
+                        final ICellInventoryHandler<?> newCell = cellHandler.getCellInventory(is, this,
                                 stackType);
                         if (newCell != null) {
                             power += cellHandler.cellIdleDrain(is, newCell);
