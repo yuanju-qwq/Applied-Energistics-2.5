@@ -65,8 +65,9 @@ import appeng.core.features.AEFeature;
 import appeng.core.features.IStackSrc;
 import appeng.core.features.MaterialStackSrc;
 import appeng.items.AEBaseItem;
-import appeng.items.contents.CellConfig;
+import appeng.items.contents.CellAEConfig;
 import appeng.items.contents.CellUpgrades;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.InventoryAdaptor;
 import appeng.util.Platform;
 import appeng.util.inv.AdaptorItemHandler;
@@ -349,8 +350,8 @@ public final class ItemMaterial extends AEBaseItem implements IStorageComponent,
     }
 
     @Override
-    public IItemHandler getConfigInventory(final ItemStack is) {
-        return new CellConfig(is);
+    public IAEStackInventory getConfigAEInventory(final ItemStack is) {
+        return new CellAEConfig(is);
     }
 
     @Override

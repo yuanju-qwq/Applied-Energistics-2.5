@@ -19,7 +19,6 @@
 package appeng.api.features;
 
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
@@ -56,30 +55,8 @@ public interface IInscriberRecipe {
     @Nonnull
     List<ItemStack> getTopInputs();
 
-    /**
-     * gets the top optional
-     *
-     * @return item which is used top
-     */
-    @Deprecated
-    @Nonnull
-    default Optional<ItemStack> getTopOptional() {
-        return getTopInputs().isEmpty() ? Optional.empty() : Optional.of(getTopInputs().get(0));
-    }
-
     @Nonnull
     List<ItemStack> getBottomInputs();
-
-    /**
-     * gets the bottom optional
-     *
-     * @return item which is used bottom
-     */
-    @Deprecated
-    @Nonnull
-    default Optional<ItemStack> getBottomOptional() {
-        return getBottomInputs().isEmpty() ? Optional.empty() : Optional.of(getBottomInputs().get(0));
-    }
 
     /**
      * type of inscriber process

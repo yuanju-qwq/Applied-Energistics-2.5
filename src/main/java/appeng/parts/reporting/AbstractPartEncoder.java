@@ -11,9 +11,9 @@ import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
+import appeng.api.stacks.GenericStack;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
@@ -81,19 +81,19 @@ public abstract class AbstractPartEncoder extends AbstractPartTerminal implement
                     this.setCraftingRecipe(details.isCraftable());
                     this.setSubstitution(details.canSubstitute());
 
-                    for (int x = 0; x < this.craftingAE.getSizeInventory() && x < details.getInputs().length; x++) {
-                        final IAEItemStack item = details.getInputs()[x];
-                        this.craftingAE.putAEStackInSlot(x, item);
+                    for (int x = 0; x < this.craftingAE.getSizeInventory() && x < details.getInputStacks().length; x++) {
+                        final GenericStack item = details.getInputStacks()[x];
+                        this.craftingAE.setGenericStack(x, item);
                     }
 
                     for (int x = 0; x < this.outputAE.getSizeInventory(); x++) {
-                        final IAEItemStack item;
-                        if (x < details.getOutputs().length) {
-                            item = details.getOutputs()[x];
+                        final GenericStack item;
+                        if (x < details.getOutputStacks().length) {
+                            item = details.getOutputStacks()[x];
                         } else {
                             item = null;
                         }
-                        this.outputAE.putAEStackInSlot(x, item);
+                        this.outputAE.setGenericStack(x, item);
                     }
                 }
             }
@@ -105,7 +105,8 @@ public abstract class AbstractPartEncoder extends AbstractPartTerminal implement
     private void fixCraftingRecipes() {
         if (this.isCraftingRecipe()) {
             for (int x = 0; x < this.craftingAE.getSizeInventory(); x++) {
-                final IAEStack<?> is = this.craftingAE.getAEStackInSlot(x);
+                final GenericStack gs = this.craftingAE.getGenericStack(x);
+                final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
                 if (is != null) {
                     is.setStackSize(1);
                 }

@@ -27,6 +27,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.*;
+import appeng.api.stacks.GenericStack;
 import appeng.api.implementations.IUpgradeableHost;
 import appeng.api.implementations.guiobjects.IGuiItem;
 import appeng.api.parts.IPart;
@@ -318,7 +319,7 @@ public class ContainerUpgradeable extends AEBaseContainer
         final IAEStackInventory cfg = this.getHostConfig();
         if (cfg != null) {
             for (var entry : slotStacks.int2ObjectEntrySet()) {
-                cfg.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+                cfg.setGenericStack(entry.getIntKey(), GenericStack.fromIAEStack(entry.getValue()));
             }
         }
     }
@@ -329,7 +330,7 @@ public class ContainerUpgradeable extends AEBaseContainer
     public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
         final IAEStackInventory cfg = this.getHostConfig();
         if (cfg != null && slotId >= 0 && slotId < cfg.getSizeInventory()) {
-            cfg.putAEStackInSlot(slotId, aes);
+            cfg.setGenericStack(slotId, GenericStack.fromIAEStack(aes));
         }
     }
 

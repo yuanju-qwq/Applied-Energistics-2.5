@@ -1437,7 +1437,8 @@ public abstract class AEBaseContainer extends Container {
         final boolean needsFull = fullSyncPending.remove(invName);
         var list = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<IAEStack<?>>();
         for (int i = 0; i < inventory.getSizeInventory(); ++i) {
-            IAEStack<?> aes = inventory.getAEStackInSlot(i);
+            GenericStack gs = inventory.getGenericStack(i);
+            IAEStack<?> aes = gs != null ? gs.toIAEStack() : null;
             IAEStack<?> aesClient = clientSlotsStacks[i];
 
             if (needsFull || !appeng.util.AEStackSerialization.isStacksIdentical(aes, aesClient)) {

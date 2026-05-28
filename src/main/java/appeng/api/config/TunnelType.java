@@ -82,12 +82,6 @@ public enum TunnelType {
     private ItemStack partItemStack;
     private Supplier<ItemStack> partItemStackSupplier;
 
-    @Deprecated
-    TunnelType() {
-        this.partItemStack = ItemStack.EMPTY;
-        this.partItemStackSupplier = null;
-    }
-
     // Public facing.
     TunnelType(ItemStack partItemStack) {
         this.partItemStack = partItemStack;

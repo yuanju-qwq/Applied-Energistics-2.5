@@ -462,7 +462,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             return;
         }
         for (var entry : slotStacks.int2ObjectEntrySet()) {
-            inv.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+            inv.setGenericStack(entry.getIntKey(), GenericStack.fromIAEStack(entry.getValue()));
         }
     }
 
@@ -479,7 +479,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             return;
         }
         if (slotId >= 0 && slotId < inv.getSizeInventory()) {
-            inv.putAEStackInSlot(slotId, aes);
+            inv.setGenericStack(slotId, GenericStack.fromIAEStack(aes));
         }
     }
 
@@ -642,7 +642,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private void fixCraftingRecipes() {
         if (this.isCraftingMode()) {
             for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
-                final IAEStack<?> is = this.crafting.getAEStackInSlot(x);
+                final GenericStack gs = this.crafting.getGenericStack(x);
+                final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
                 if (is != null) {
                     is.setStackSize(1);
                 }
@@ -781,26 +782,30 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         boolean canMultiplyOutputs = true;
 
         for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
-            IAEStack<?> stack = this.crafting.getAEStackInSlot(x);
+            GenericStack gs = this.crafting.getGenericStack(x);
+            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
             if (stack != null && stack.getStackSize() * multiple < 1) {
                 canMultiplyInputs = false;
             }
         }
         for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
-            IAEStack<?> stack = this.patternOutput.getAEStackInSlot(x);
+            GenericStack gs = this.patternOutput.getGenericStack(x);
+            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
             if (stack != null && stack.getStackSize() * multiple < 1) {
                 canMultiplyOutputs = false;
             }
         }
         if (canMultiplyInputs && canMultiplyOutputs) {
             for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
-                IAEStack<?> stack = this.crafting.getAEStackInSlot(x);
+                GenericStack gs = this.crafting.getGenericStack(x);
+                IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
                 if (stack != null) {
                     stack.setStackSize(stack.getStackSize() * multiple);
                 }
             }
             for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
-                IAEStack<?> stack = this.patternOutput.getAEStackInSlot(x);
+                GenericStack gs = this.patternOutput.getGenericStack(x);
+                IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
                 if (stack != null) {
                     stack.setStackSize(stack.getStackSize() * multiple);
                 }
@@ -816,26 +821,30 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         boolean canDivideOutputs = true;
 
         for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
-            IAEStack<?> stack = this.crafting.getAEStackInSlot(x);
+            GenericStack gs = this.crafting.getGenericStack(x);
+            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
             if (stack != null && stack.getStackSize() % divide != 0) {
                 canDivideInputs = false;
             }
         }
         for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
-            IAEStack<?> stack = this.patternOutput.getAEStackInSlot(x);
+            GenericStack gs = this.patternOutput.getGenericStack(x);
+            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
             if (stack != null && stack.getStackSize() % divide != 0) {
                 canDivideOutputs = false;
             }
         }
         if (canDivideInputs && canDivideOutputs) {
             for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
-                IAEStack<?> stack = this.crafting.getAEStackInSlot(x);
+                GenericStack gs = this.crafting.getGenericStack(x);
+                IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
                 if (stack != null) {
                     stack.setStackSize(stack.getStackSize() / divide);
                 }
             }
             for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
-                IAEStack<?> stack = this.patternOutput.getAEStackInSlot(x);
+                GenericStack gs = this.patternOutput.getGenericStack(x);
+                IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
                 if (stack != null) {
                     stack.setStackSize(stack.getStackSize() / divide);
                 }
@@ -851,26 +860,30 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         boolean canIncreaseOutputs = true;
 
         for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
-            IAEStack<?> stack = this.crafting.getAEStackInSlot(x);
+            GenericStack gs = this.crafting.getGenericStack(x);
+            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
             if (stack != null && stack.getStackSize() + increase < 1) {
                 canIncreaseInputs = false;
             }
         }
         for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
-            IAEStack<?> stack = this.patternOutput.getAEStackInSlot(x);
+            GenericStack gs = this.patternOutput.getGenericStack(x);
+            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
             if (stack != null && stack.getStackSize() + increase < 1) {
                 canIncreaseOutputs = false;
             }
         }
         if (canIncreaseInputs && canIncreaseOutputs) {
             for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
-                IAEStack<?> stack = this.crafting.getAEStackInSlot(x);
+                GenericStack gs = this.crafting.getGenericStack(x);
+                IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
                 if (stack != null) {
                     stack.setStackSize(stack.getStackSize() + increase);
                 }
             }
             for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
-                IAEStack<?> stack = this.patternOutput.getAEStackInSlot(x);
+                GenericStack gs = this.patternOutput.getGenericStack(x);
+                IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
                 if (stack != null) {
                     stack.setStackSize(stack.getStackSize() + increase);
                 }
@@ -971,7 +984,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     private boolean canMultiplyAEInv(IAEStackInventory inv, int multi) {
         for (int i = 0; i < inv.getSizeInventory(); i++) {
-            IAEStack<?> stack = inv.getAEStackInSlot(i);
+            GenericStack gs = inv.getGenericStack(i);
+            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
             if (stack != null && stack.getStackSize() * multi > Integer.MAX_VALUE) {
                 return false;
             }
@@ -981,7 +995,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     private boolean canDivideAEInv(IAEStackInventory inv, int multi) {
         for (int i = 0; i < inv.getSizeInventory(); i++) {
-            IAEStack<?> stack = inv.getAEStackInSlot(i);
+            GenericStack gs = inv.getGenericStack(i);
+            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
             if (stack != null && stack.getStackSize() / multi <= 0) {
                 return false;
             }
@@ -991,7 +1006,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     private void multiplyAEInv(IAEStackInventory inv, int multi) {
         for (int i = 0; i < inv.getSizeInventory(); i++) {
-            IAEStack<?> stack = inv.getAEStackInSlot(i);
+            GenericStack gs = inv.getGenericStack(i);
+            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
             if (stack != null) {
                 stack.setStackSize(stack.getStackSize() * multi);
             }
@@ -1000,7 +1016,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     private void divideAEInv(IAEStackInventory inv, int multi) {
         for (int i = 0; i < inv.getSizeInventory(); i++) {
-            IAEStack<?> stack = inv.getAEStackInSlot(i);
+            GenericStack gs = inv.getGenericStack(i);
+            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
             if (stack != null) {
                 stack.setStackSize(stack.getStackSize() / multi);
             }
@@ -1213,7 +1230,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         final ItemStack[] input = new ItemStack[slotCount];
         boolean hasValue = false;
         for (int x = 0; x < slotCount; x++) {
-            final IAEStack<?> aeStack = this.crafting.getAEStackInSlot(x);
+            final GenericStack gs = this.crafting.getGenericStack(x);
+            final IAEStack<?> aeStack = gs != null ? gs.toIAEStack() : null;
             input[x] = aeStack != null ? this.toPatternTerminalStack(aeStack) : ItemStack.EMPTY;
             if (!input[x].isEmpty()) {
                 hasValue = true;
@@ -1226,7 +1244,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         final ItemStack[] result = new ItemStack[this.patternOutput.getSizeInventory()];
         boolean hasValue = false;
         for (int i = 0; i < this.patternOutput.getSizeInventory(); i++) {
-            final IAEStack<?> aeStack = this.patternOutput.getAEStackInSlot(i);
+            final GenericStack gs = this.patternOutput.getGenericStack(i);
+            final IAEStack<?> aeStack = gs != null ? gs.toIAEStack() : null;
             if (aeStack != null && aeStack.getStackSize() > 0) {
                 result[i] = this.toPatternTerminalStack(aeStack);
                 hasValue = true;
@@ -1267,7 +1286,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         final InventoryCrafting ic = new InventoryCrafting(new ContainerNull(), 3, 3);
 
         for (int x = 0; x < ic.getSizeInventory(); x++) {
-            final IAEStack<?> aeStack = this.crafting.getAEStackInSlot(x);
+            final GenericStack gs = this.crafting.getGenericStack(x);
+            final IAEStack<?> aeStack = gs != null ? gs.toIAEStack() : null;
             ic.setInventorySlotContents(x, aeStack != null ? this.toPatternTerminalStack(aeStack) : ItemStack.EMPTY);
         }
 
@@ -1496,22 +1516,22 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             this.setBeSubstitute(details.canBeSubstitute());
 
             // 还原输入
-            final IAEStack<?>[] inputs = (IAEStack<?>[]) details.getInputs();
+            final GenericStack[] inputs = details.getInputStacks();
             for (int i = 0; i < this.crafting.getSizeInventory(); i++) {
                 if (inputs != null && i < inputs.length && inputs[i] != null) {
-                    this.crafting.putAEStackInSlot(i, inputs[i].copy());
+                    this.crafting.setGenericStack(i, inputs[i].copy());
                 } else {
-                    this.crafting.putAEStackInSlot(i, null);
+                    this.crafting.setGenericStack(i, null);
                 }
             }
 
             // 还原输出
-            final IAEStack<?>[] outputs = (IAEStack<?>[]) details.getOutputs();
+            final GenericStack[] outputs = details.getOutputStacks();
             for (int i = 0; i < this.patternOutput.getSizeInventory(); i++) {
                 if (outputs != null && i < outputs.length && outputs[i] != null) {
-                    this.patternOutput.putAEStackInSlot(i, outputs[i].copy());
+                    this.patternOutput.setGenericStack(i, outputs[i].copy());
                 } else {
-                    this.patternOutput.putAEStackInSlot(i, null);
+                    this.patternOutput.setGenericStack(i, null);
                 }
             }
 
@@ -1526,10 +1546,10 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
      */
     private void clearPatternContents() {
         for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
-            this.crafting.putAEStackInSlot(x, null);
+            this.crafting.setGenericStack(x, null);
         }
         for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
-            this.patternOutput.putAEStackInSlot(x, null);
+            this.patternOutput.setGenericStack(x, null);
         }
     }
 

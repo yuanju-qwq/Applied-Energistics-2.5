@@ -48,6 +48,7 @@ import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.StorageName;
@@ -164,7 +165,8 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
 
         if (this.getInstalledUpgrades(Upgrades.CRAFTING) > 0) {
             try {
-                return this.getProxy().getCrafting().isRequesting(this.config.getAEStackInSlot(0));
+                final GenericStack gs = this.config.getGenericStack(0);
+                return this.getProxy().getCrafting().isRequesting(gs != null ? gs.toIAEStack() : null);
             } catch (final GridAccessException e) {
                 // :P
             }
@@ -213,7 +215,8 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
 
     // update the system...
     private void configureWatchers() {
-        final IAEStack<?> myStack = this.config.getAEStackInSlot(0);
+        final GenericStack gs = this.config.getGenericStack(0);
+        final IAEStack<?> myStack = gs != null ? gs.toIAEStack() : null;
 
         if (this.myWatcher != null) {
             this.myWatcher.reset();
@@ -321,7 +324,8 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
 
     @SuppressWarnings("unchecked")
     private void updateReportingValue(final IMEMonitor<?> monitor) {
-        final IAEStack<?> myStack = this.config.getAEStackInSlot(0);
+        final GenericStack gs = this.config.getGenericStack(0);
+        final IAEStack<?> myStack = gs != null ? gs.toIAEStack() : null;
 
         if (myStack == null) {
             // No configured stack — report total count of all items in this monitor
@@ -355,7 +359,8 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     @Override
     public void onStackChange(final IItemList<?> o, final IAEStack<?> fullStack, final IAEStack<?> diffStack,
             final IActionSource src, final IAEStackType<?> type) {
-        if (fullStack.equals(this.config.getAEStackInSlot(0))
+        final GenericStack gs = this.config.getGenericStack(0);
+        if (fullStack.equals(gs != null ? gs.toIAEStack() : null)
                 && this.getInstalledUpgrades(Upgrades.FUZZY) == 0) {
             this.lastReportedValue = fullStack.getStackSize();
             this.updateState();
@@ -525,7 +530,8 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     public void provideCrafting(final ICraftingProviderHelper craftingTracker) {
         if (this.getInstalledUpgrades(Upgrades.CRAFTING) > 0) {
             if (this.getConfigManager().getSetting(Settings.CRAFT_VIA_REDSTONE) == YesNo.YES) {
-                final IAEStack<?> what = this.config.getAEStackInSlot(0);
+                final GenericStack gs = this.config.getGenericStack(0);
+                final IAEStack<?> what = gs != null ? gs.toIAEStack() : null;
                 if (what != null) {
                     craftingTracker.setEmitable(what);
                 }

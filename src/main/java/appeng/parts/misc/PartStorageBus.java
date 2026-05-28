@@ -40,6 +40,7 @@ import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.IStorageMonitorableAccessor;
 import appeng.api.storage.StorageName;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
@@ -182,7 +183,8 @@ public class PartStorageBus extends AbstractPartStorageBus<IAEItemStack>
     protected IItemList<IAEItemStack> buildPriorityList(int slotsToUse) {
         final IItemList<IAEItemStack> priorityList = AEItemStackType.INSTANCE.createList();
         for (int x = 0; x < this.Config.getSizeInventory() && x < slotsToUse; x++) {
-            final IAEStack<?> stack = this.Config.getAEStackInSlot(x);
+            final GenericStack gs = this.Config.getGenericStack(x);
+            final IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
             if (stack instanceof IAEItemStack) {
                 priorityList.add((IAEItemStack) stack);
             }

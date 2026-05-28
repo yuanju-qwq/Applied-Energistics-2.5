@@ -46,8 +46,9 @@ import appeng.api.util.AEPartLocation;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;
-import appeng.items.contents.CellConfig;
+import appeng.items.contents.CellAEConfig;
 import appeng.items.contents.CellUpgrades;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.items.contents.PortableCellViewer;
 import appeng.items.tools.powered.powersink.AEBasePoweredItem;
 import appeng.util.Platform;
@@ -141,8 +142,8 @@ public class ToolPortableCell extends AEBasePoweredItem implements IStorageCell<
     }
 
     @Override
-    public IItemHandler getConfigInventory(final ItemStack is) {
-        return new CellConfig(is);
+    public IAEStackInventory getConfigAEInventory(final ItemStack is) {
+        return new CellAEConfig(is);
     }
 
     @Override

@@ -97,13 +97,4 @@ public interface IInscriberRecipeBuilder {
     @Nonnull
     IInscriberRecipe build();
 
-    @Deprecated
-    default IInscriberRecipeBuilder withTopOptional(@Nonnull ItemStack topOptional) {
-        return withTopOptional(Collections.singleton(topOptional));
-    }
-
-    @Deprecated
-    default IInscriberRecipeBuilder withBottomOptional(@Nonnull ItemStack bottomOptional) {
-        return withBottomOptional(Collections.singleton(bottomOptional));
-    }
 }

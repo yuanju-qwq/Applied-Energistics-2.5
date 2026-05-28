@@ -20,7 +20,8 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 import appeng.api.AEApi;
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
-import appeng.api.storage.data.IAEItemStack;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.core.localization.GuiText;
 import appeng.helpers.PatternHelper;
 import appeng.helpers.SpecialPatternHelper;
@@ -86,10 +87,10 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
         // Display inputs
         lines.add(GuiText.With.getLocal() + ":");
         boolean first = true;
-        for (IAEItemStack in : details.getCondensedInputs()) {
+        for (GenericStack in : details.getCondensedInputStacks()) {
             if (in != null) {
                 lines.add((first ? "  " : "  " + GuiText.And.getLocal() + " ")
-                        + in.getStackSize() + " " + Platform.getItemDisplayName(in));
+                        + in.amount() + " " + in.what().getDisplayName());
                 first = false;
             }
         }
@@ -139,9 +140,9 @@ public class ItemSpecialEncodedPattern extends AEBaseItem implements ICraftingPa
         ICraftingPatternDetails details = getPatternForItem(item, w);
         ItemStack output = ItemStack.EMPTY;
         if (details != null) {
-            final IAEItemStack[] outputs = details.getOutputs();
+            final GenericStack[] outputs = details.getOutputStacks();
             if (outputs.length > 0 && outputs[0] != null) {
-                output = outputs[0].createItemStack();
+                output = ((AEItemKey) outputs[0].what()).toStack((int) outputs[0].amount());
             }
         }
 

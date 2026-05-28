@@ -24,30 +24,42 @@
 package appeng.api.storage;
 
 import appeng.api.networking.storage.IBaseMonitor;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
-import appeng.api.stacks.KeyCounter;
 
 /**
- * Legacy monitor view over typed ME storage.
+ * Monitor view over typed ME storage.
  * <p>
  * New aggregation and result transport code should prefer {@link KeyCounter} and other AEKey-native
- * structures, while this monitor interface remains part of the compatibility surface.
+ * structures.
  */
 public interface IMEMonitor<T extends IAEStackBase> extends IMEInventoryHandler<T>, IBaseMonitor<T> {
 
     /**
-     * This method is discouraged when accessing data via a IMEMonitor
-     */
-    @Override
-    @Deprecated
-    IItemList<T> getAvailableItems(IItemList<T> out);
-
-    /**
-     * Get access to the full item list of the network, preferred over {@link IMEInventory} .getAvailableItems(...)
+     * Get access to the full item list of the network.
      *
      * @return full storage list.
      */
     IItemList<T> getStorageList();
+
+    /**
+     * Get the AEKey-based content of this monitor.
+     * <p>
+     * Default implementation adapts from {@link #getStorageList()}.
+     *
+     * @return key counter with all available items (amount per key)
+     */
+    default KeyCounter getKeyCounter() {
+        final KeyCounter result = new KeyCounter();
+        final IItemList<T> list = getStorageList();
+        for (final T stack : list) {
+            final AEKey key = stack.toAEKey();
+            if (key != null) {
+                result.set(key, stack.getStackSize());
+            }
+        }
+        return result;
+    }
 }

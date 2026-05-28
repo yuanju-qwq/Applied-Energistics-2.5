@@ -176,7 +176,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
     public void clear() {
         final IAEStackInventory inv = this.workBench.getAEInventoryByName(StorageName.CONFIG);
         for (int x = 0; x < inv.getSizeInventory(); x++) {
-            inv.putAEStackInSlot(x, null);
+            inv.setGenericStack(x, null);
         }
         this.workBench.syncConfigToCell();
         this.detectAndSendChanges();
@@ -212,9 +212,9 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
                 final IAEStack<?> next = i.next();
                 final IAEStack<?> copy = next.copy();
                 copy.setStackSize(1);
-                inv.putAEStackInSlot(x, copy);
+                inv.setGenericStack(x, copy != null ? GenericStack.fromIAEStack(copy) : null);
             } else {
-                inv.putAEStackInSlot(x, null);
+                inv.setGenericStack(x, null);
             }
         }
 
@@ -236,7 +236,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
     public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
         final IAEStackInventory config = this.workBench.getAEInventoryByName(StorageName.CONFIG);
         for (var entry : slotStacks.int2ObjectEntrySet()) {
-            config.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+            config.setGenericStack(entry.getIntKey(), GenericStack.fromIAEStack(entry.getValue()));
         }
     }
 
@@ -246,7 +246,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
     public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
         final IAEStackInventory config = this.workBench.getAEInventoryByName(StorageName.CONFIG);
         if (config != null && slotId >= 0 && slotId < config.getSizeInventory()) {
-            config.putAEStackInSlot(slotId, aes);
+            config.setGenericStack(slotId, GenericStack.fromIAEStack(aes));
             this.workBench.syncConfigToCell();
         }
     }

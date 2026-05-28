@@ -56,8 +56,10 @@ import appeng.api.util.IConfigManager;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;
-import appeng.items.contents.CellConfig;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.items.contents.CellUpgrades;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.items.materials.ItemMaterial;
 import appeng.items.tools.powered.powersink.AEBasePoweredItem;
 import appeng.util.ConfigManager;
@@ -201,7 +203,7 @@ public class ToolWirelessTerminal extends AEBasePoweredItem implements IWireless
                             return;
                         }
                         ItemMaterial im = (ItemMaterial) is.getItem();
-                        CellConfig c = (CellConfig) im.getConfigInventory(is);
+                        IAEStackInventory config = im.getConfigAEInventory(is);
                         CellUpgrades u = (CellUpgrades) im.getUpgradesInventory(is);
                         FuzzyMode fz = null;
                         boolean isFuzzy = u.getInstalledUpgrades(Upgrades.FUZZY) == 1;
@@ -231,8 +233,11 @@ public class ToolWirelessTerminal extends AEBasePoweredItem implements IWireless
                             }
 
                             boolean matched = false;
-                            for (int ss = 0; ss < c.getSlots(); ss++) {
-                                ItemStack filter = c.getStackInSlot(ss);
+                            for (int ss = 0; ss < config.getSizeInventory(); ss++) {
+                                GenericStack gs = config.getGenericStack(ss);
+                                if (!(gs != null && gs.what() instanceof AEItemKey itemKey))
+                                    continue;
+                                ItemStack filter = itemKey.toStack();
                                 if (filter.isEmpty())
                                     continue;
                                 emptyFilter = false;

@@ -28,9 +28,9 @@ import java.util.Set;
 import appeng.api.config.FuzzyMode;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.stacks.AEKey;
-import appeng.api.stacks.AEItemKey;
-import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.api.storage.AEKeyFilter;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ISaveProvider;
@@ -115,24 +115,17 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
      * @return unmodifiable set of keys from the config, or empty set if none configured
      */
     public Set<AEKey> getFilterKeys() {
-        final IItemHandler config = this.cellType.getConfigInventory(this.i);
-        if (config == null || config.getSlots() == 0) {
+        final IAEStackInventory config = this.cellType.getConfigAEInventory(this.i);
+        if (config == null || config.getSizeInventory() == 0) {
             return Collections.emptySet();
         }
         final java.util.HashSet<AEKey> keys = new java.util.HashSet<>();
-        for (int slot = 0; slot < config.getSlots(); slot++) {
-            final net.minecraft.item.ItemStack is = config.getStackInSlot(slot);
-            if (is.isEmpty()) {
+        for (int slot = 0; slot < config.getSizeInventory(); slot++) {
+            final GenericStack gs = config.getGenericStack(slot);
+            if (gs == null) {
                 continue;
             }
-            // Try item key first, then fluid key
-            AEKey key = AEItemKey.of(is);
-            if (key == null) {
-                key = AEFluidKey.of(net.minecraftforge.fluids.FluidUtil.getFluidContained(is));
-            }
-            if (key != null) {
-                keys.add(key);
-            }
+            keys.add(gs.what());
         }
         return Collections.unmodifiableSet(keys);
     }
@@ -355,11 +348,6 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
     @Override
     public FuzzyMode getFuzzyMode() {
         return this.cellType.getFuzzyMode(this.i);
-    }
-
-    @Override
-    public IItemHandler getConfigInventory() {
-        return this.cellType.getConfigInventory(this.i);
     }
 
     @Override

@@ -59,8 +59,8 @@ public class ContainerFluidFormationPlane extends ContainerUpgradeable {
                 final int upgrades = this.getUpgradeable().getInstalledUpgrades(Upgrades.CAPACITY);
                 final int maxSlots = 18 + (9 * upgrades);
                 for (int i = maxSlots; i < cfg.getSizeInventory(); i++) {
-                    if (cfg.getAEStackInSlot(i) != null) {
-                        cfg.putAEStackInSlot(i, null);
+                    if (cfg.getGenericStack(i) != null) {
+                        cfg.setGenericStack(i, null);
                     }
                 }
             }

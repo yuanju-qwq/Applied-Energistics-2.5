@@ -87,7 +87,8 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
     @Nullable
     @Override
     public IAEStack<?> getAEStack() {
-        return this.inventory.getAEStackInSlot(this.getSlotIndex());
+        GenericStack gs = this.inventory.getGenericStack(this.getSlotIndex());
+        return gs != null ? gs.toIAEStack() : null;
     }
 
     public StorageName getStorageName() {
@@ -213,7 +214,7 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
         }
 
         // 在客户端立即设置，避免慢网络时的延迟
-        inventory.putAEStackInSlot(this.getSlotIndex(), currentStack);
+        inventory.setGenericStack(this.getSlotIndex(), GenericStack.fromIAEStack(currentStack));
 
         // 发送到服务端
         NetworkHandler.instance()

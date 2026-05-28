@@ -27,7 +27,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.FuzzyMode;
-import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.tile.inventory.IAEStackInventory;
 
@@ -49,55 +48,12 @@ public interface ICellInventory<T extends IAEStack<T>> extends IMEInventory<T> {
     FuzzyMode getFuzzyMode();
 
     /**
-     * @return access configured list
-     * @deprecated 请使用 {@link #getConfigAEInventory()} 代替。
-     */
-    @Deprecated
-    IItemHandler getConfigInventory();
-
-    /**
      * 获取泛型版本的配置库存。
-     * 默认实现通过内联适配器包装旧版 {@link #getConfigInventory()}。
      *
-     * @return 泛型配置库存
+     * @return 泛型配置库存，若未配置则返回 {@code null}
      */
     default IAEStackInventory getConfigAEInventory() {
-        var legacy = this.getConfigInventory();
-        if (legacy instanceof IAEStackInventory) {
-            return (IAEStackInventory) legacy;
-        }
-        return new IAEStackInventory(null, legacy.getSlots()) {
-            @Override
-            public net.minecraftforge.items.IItemHandler asItemHandler() {
-                return legacy;
-            }
-
-            @java.lang.Override
-            public boolean isEmpty() {
-                for (int i = 0; i < legacy.getSlots(); i++) {
-                    if (!legacy.getStackInSlot(i).isEmpty()) return false;
-                }
-                return true;
-            }
-
-            @java.lang.Override
-            public GenericStack getGenericStack(int slot) {
-                var stack = legacy.getStackInSlot(slot);
-                return stack.isEmpty() ? null : GenericStack.fromItemStack(stack);
-            }
-
-            @java.lang.Override
-            public void setGenericStack(int slot, GenericStack stack) {
-                if (legacy instanceof net.minecraftforge.items.IItemHandlerModifiable mod) {
-                    if (stack != null && stack.what() instanceof appeng.api.stacks.AEItemKey itemKey) {
-                        mod.setStackInSlot(slot, itemKey.toStack((int) Math.min(stack.amount(), Integer.MAX_VALUE)));
-                    } else {
-                        mod.setStackInSlot(slot, net.minecraft.item.ItemStack.EMPTY);
-                    }
-                }
-                this.markDirty();
-            }
-        };
+        return null;
     }
 
     /**

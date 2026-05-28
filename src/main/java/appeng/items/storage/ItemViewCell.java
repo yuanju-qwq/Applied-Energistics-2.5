@@ -24,12 +24,15 @@ import net.minecraftforge.items.IItemHandler;
 import appeng.api.config.FuzzyMode;
 import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IUpgradeModule;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.ICellWorkbenchItem;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
 import appeng.items.AEBaseItem;
-import appeng.items.contents.CellConfig;
+import appeng.items.contents.CellAEConfig;
 import appeng.items.contents.CellUpgrades;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 import appeng.util.prioritylist.FuzzyPriorityList;
@@ -64,7 +67,7 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
 
                 final ICellWorkbenchItem vc = (ICellWorkbenchItem) currentViewCell.getItem();
                 final IItemHandler upgrades = vc.getUpgradesInventory(currentViewCell);
-                final IItemHandler config = vc.getConfigInventory(currentViewCell);
+                final IAEStackInventory config = vc.getConfigAEInventory(currentViewCell);
                 final FuzzyMode fzMode = vc.getFuzzyMode(currentViewCell);
 
                 boolean hasInverter = false;
@@ -88,10 +91,10 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
                     }
                 }
 
-                for (int x = 0; x < config.getSlots(); x++) {
-                    final ItemStack is = config.getStackInSlot(x);
-                    if (!is.isEmpty()) {
-                        priorityList.add(AEItemStack.fromItemStack(is));
+                for (int x = 0; x < config.getSizeInventory(); x++) {
+                    final GenericStack gs = config.getGenericStack(x);
+                    if (gs != null && gs.what() instanceof AEItemKey itemKey) {
+                        priorityList.add(AEItemStack.fromItemStack(itemKey.toStack()));
                     }
                 }
 
@@ -121,8 +124,8 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
     }
 
     @Override
-    public IItemHandler getConfigInventory(final ItemStack is) {
-        return new CellConfig(is);
+    public IAEStackInventory getConfigAEInventory(final ItemStack is) {
+        return new CellAEConfig(is);
     }
 
     @Override

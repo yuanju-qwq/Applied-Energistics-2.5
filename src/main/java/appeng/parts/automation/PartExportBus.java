@@ -38,6 +38,7 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
@@ -128,8 +129,8 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
                 for (x = 0; x < this.availableSlots() && this.itemToSend > 0; x++) {
                     final int slotToExport = this.getStartingSlot(schedulingMode, x);
 
-                    final IAEStack<?> raw = this.getConfig().getAEStackInSlot(slotToExport);
-                    final IAEItemStack ais = raw instanceof IAEItemStack ? (IAEItemStack) raw : null;
+                    final GenericStack raw = this.getConfig().getGenericStack(slotToExport);
+                    final IAEItemStack ais = raw != null ? (IAEItemStack) raw.toIAEStack() : null;
 
                     if (ais == null || this.itemToSend <= 0) {
                         continue;

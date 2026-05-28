@@ -47,6 +47,8 @@ import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
 import appeng.util.item.OreListMultiMap;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.AEItemKey;
 
 /**
  * Context bag for crafting operations: ME grid, action source, inventory models, etc.
@@ -194,10 +196,10 @@ public final class CraftingContext {
                 for (final ImmutableList<ICraftingPatternDetails> patternSet : availablePatterns.values()) {
                     for (final ICraftingPatternDetails pattern : patternSet) {
                         if (pattern.canBeSubstitute()) {
-                            for (final IAEStack<?> output : pattern.getAEOutputs()) {
+                            for (final GenericStack output : pattern.getOutputStacks()) {
                                 // Only item outputs participate in fuzzy matching (damage-based)
-                                if (output instanceof IAEItemStack) {
-                                    fuzzyPatternCache.put(((IAEItemStack) output).copy(), pattern);
+                                if (output.what() instanceof AEItemKey) {
+                                    fuzzyPatternCache.put((IAEItemStack) output.toIAEStack(), pattern);
                                 }
                             }
                         }
@@ -231,12 +233,12 @@ public final class CraftingContext {
             return cached;
         }
 
-        final IAEStack<?>[] inputs = pattern.getAEInputs();
+        final GenericStack[] inputs = pattern.getInputStacks();
         // MC limitation: only item-type crafting table patterns can have complex behavior
         // (container items). If any input is non-item, the pattern cannot be complex.
         boolean allItems = true;
-        for (IAEStack<?> s : inputs) {
-            if (s != null && !(s instanceof IAEItemStack)) {
+        for (GenericStack s : inputs) {
+            if (s != null && !(s.what() instanceof AEItemKey)) {
                 allItems = false;
                 break;
             }
@@ -248,7 +250,7 @@ public final class CraftingContext {
 
         final IAEItemStack[] itemInputs = new IAEItemStack[inputs.length];
         for (int i = 0; i < inputs.length; i++) {
-            itemInputs[i] = (IAEItemStack) inputs[i];
+            itemInputs[i] = (IAEItemStack) inputs[i].toIAEStack();
         }
         final IAEItemStack[] mcOutputs = simulateComplexCrafting(itemInputs, pattern);
 

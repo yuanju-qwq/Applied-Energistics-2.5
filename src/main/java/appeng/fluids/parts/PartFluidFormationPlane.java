@@ -19,6 +19,7 @@ import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 
 import appeng.api.AEApi;
+import appeng.api.stacks.GenericStack;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.config.IncludeExclude;
@@ -81,7 +82,7 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
 
         final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
         for (int x = 0; x < this.config.size() && x < slotsToUse; x++) {
-            final IAEStack<?> is = this.config.getAEStackInSlot(x);
+            final GenericStack is = this.config.getGenericStack(x);
             if (is instanceof IAEFluidStack fluidStack) {
                 priorityList.add(fluidStack);
             }

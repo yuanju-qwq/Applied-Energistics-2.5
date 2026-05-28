@@ -50,8 +50,9 @@ import appeng.core.AEConfig;
 import appeng.core.features.AEFeature;
 import appeng.core.localization.GuiText;
 import appeng.items.AEBaseItem;
-import appeng.items.contents.CellConfig;
+import appeng.items.contents.CellAEConfig;
 import appeng.items.contents.CellUpgrades;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.items.materials.MaterialType;
 import appeng.util.InventoryAdaptor;
 import appeng.util.Platform;
@@ -126,8 +127,8 @@ public abstract class AbstractStorageCell<T extends IAEStack<T>> extends AEBaseI
     }
 
     @Override
-    public IItemHandler getConfigInventory(final ItemStack is) {
-        return new CellConfig(is);
+    public IAEStackInventory getConfigAEInventory(final ItemStack is) {
+        return new CellAEConfig(is);
     }
 
     @Override

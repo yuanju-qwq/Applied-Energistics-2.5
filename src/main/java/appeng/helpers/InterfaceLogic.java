@@ -52,6 +52,7 @@ import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.*;
 import appeng.api.storage.data.*;
 import appeng.api.util.AECableType;
@@ -291,7 +292,8 @@ public class InterfaceLogic
             }
             // Capacity upgrade change: recalculate plans for types that depend on capacity
             for (int x = 0; x < NUMBER_OF_CONFIG_SLOTS; x++) {
-                IAEStack<?> cfg = this.config.getAEStackInSlot(x);
+                GenericStack gs = this.config.getGenericStack(x);
+                IAEStack<?> cfg = gs != null ? gs.toIAEStack() : null;
                 if (cfg != null && InterfaceSlotHandlerRegistry.hasHandler(cfg.getStackTypeBase())) {
                     this.updatePlan(x);
                 }
@@ -354,7 +356,8 @@ public class InterfaceLogic
         this.configuredTypes.clear();
 
         for (int i = 0; i < NUMBER_OF_CONFIG_SLOTS; i++) {
-            IAEStack<?> cfg = this.config.getAEStackInSlot(i);
+            GenericStack gs = this.config.getGenericStack(i);
+            IAEStack<?> cfg = gs != null ? gs.toIAEStack() : null;
             if (cfg != null) {
                 IAEStackType<?> type = cfg.getStackTypeBase();
                 this.configuredTypes.add(type);
@@ -389,7 +392,8 @@ public class InterfaceLogic
 
     @SuppressWarnings("unchecked")
     private void updatePlan(final int slot) {
-        final IAEStack<?> cfg = this.config.getAEStackInSlot(slot);
+        GenericStack gs = this.config.getGenericStack(slot);
+        final IAEStack<?> cfg = gs != null ? gs.toIAEStack() : null;
 
         if (cfg != null) {
             // Dispatch to the registered handler for this type

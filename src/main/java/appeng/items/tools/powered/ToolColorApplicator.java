@@ -67,8 +67,9 @@ import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
 import appeng.helpers.IMouseWheelItem;
 import appeng.hooks.IBlockTool;
-import appeng.items.contents.CellConfig;
+import appeng.items.contents.CellAEConfig;
 import appeng.items.contents.CellUpgrades;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.items.misc.ItemPaintBall;
 import appeng.items.tools.powered.powersink.AEBasePoweredItem;
 import appeng.me.helpers.BaseActionSource;
@@ -509,8 +510,8 @@ public class ToolColorApplicator extends AEBasePoweredItem
     }
 
     @Override
-    public IItemHandler getConfigInventory(final ItemStack is) {
-        return new CellConfig(is);
+    public IAEStackInventory getConfigAEInventory(final ItemStack is) {
+        return new CellAEConfig(is);
     }
 
     @Override

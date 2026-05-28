@@ -357,7 +357,7 @@ public class PatternTerminalModule {
                                 ? host.getEncoder().getOutputAEInv()
                                 : host.getEncoder().getCraftingAEInv();
                         if (targetInv != null) {
-                            targetInv.putAEStackInSlot(slot.getSlotIndex(), aeIngredient.copy());
+                            targetInv.setGenericStack(slot.getSlotIndex(), GenericStack.fromIAEStack(aeIngredient.copy()));
                         }
                         NetworkHandler.instance().sendToServer(
                                 new PacketVirtualSlot(slot.getStorageName(), slot.getSlotIndex(), aeIngredient));

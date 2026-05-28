@@ -18,16 +18,16 @@
 
 package appeng.core.features.registries;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Locale;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
 import appeng.api.features.IRecipeHandlerRegistry;
-import appeng.api.recipes.ICraftHandler;
-import appeng.api.recipes.IRecipeHandler;
 import appeng.api.recipes.ISubItemResolver;
 import appeng.core.AELog;
-import appeng.recipes.RecipeHandler;
 
 /**
  * @author AlgorithmX2
@@ -36,41 +36,11 @@ import appeng.recipes.RecipeHandler;
  * @since rv0
  */
 public class RecipeHandlerRegistry implements IRecipeHandlerRegistry {
-    private final Map<String, Class<? extends ICraftHandler>> handlers = new HashMap<>(20);
     private final Collection<ISubItemResolver> resolvers = new ArrayList<>();
-
-    @Override
-    public void addNewCraftHandler(final String name, final Class<? extends ICraftHandler> handler) {
-        this.handlers.put(name.toLowerCase(Locale.ENGLISH), handler);
-    }
 
     @Override
     public void addNewSubItemResolver(final ISubItemResolver sir) {
         this.resolvers.add(sir);
-    }
-
-    @Nullable
-    @Override
-    public ICraftHandler getCraftHandlerFor(final String name) {
-        final Class<? extends ICraftHandler> clz = this.handlers.get(name);
-        if (clz == null) {
-            return null;
-        }
-        try {
-            return clz.newInstance();
-        } catch (final Throwable e) {
-            AELog.error("Error Caused when trying to construct " + clz.getName());
-            AELog.debug(e);
-
-            this.handlers.put(name, null); // clear it..
-
-            return null;
-        }
-    }
-
-    @Override
-    public IRecipeHandler createNewRecipehandler() {
-        return new RecipeHandler();
     }
 
     @Nullable

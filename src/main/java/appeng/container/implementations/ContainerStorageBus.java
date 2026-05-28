@@ -24,6 +24,7 @@ import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.*;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
@@ -122,8 +123,8 @@ public class ContainerStorageBus extends ContainerUpgradeable implements IStorag
                 final int upgrades = this.getUpgradeable().getInstalledUpgrades(Upgrades.CAPACITY);
                 final int maxSlots = 18 + (9 * upgrades);
                 for (int i = maxSlots; i < cfg.getSizeInventory(); i++) {
-                    if (cfg.getAEStackInSlot(i) != null) {
-                        cfg.putAEStackInSlot(i, null);
+                    if (cfg.getGenericStack(i) != null) {
+                        cfg.setGenericStack(i, null);
                     }
                 }
             }
@@ -144,7 +145,7 @@ public class ContainerStorageBus extends ContainerUpgradeable implements IStorag
         final IAEStackInventory inv = this.getConfig();
         if (inv != null) {
             for (int x = 0; x < inv.getSizeInventory(); x++) {
-                inv.putAEStackInSlot(x, null);
+                inv.setGenericStack(x, null);
             }
         }
         this.detectAndSendChanges();
@@ -173,9 +174,9 @@ public class ContainerStorageBus extends ContainerUpgradeable implements IStorag
                 final IAEStack<?> next = i.next();
                 final IAEStack<?> copy = next.copy();
                 copy.setStackSize(1);
-                inv.putAEStackInSlot(x, copy);
+                inv.setGenericStack(x, GenericStack.fromIAEStack(copy));
             } else {
-                inv.putAEStackInSlot(x, null);
+                inv.setGenericStack(x, null);
             }
         }
 

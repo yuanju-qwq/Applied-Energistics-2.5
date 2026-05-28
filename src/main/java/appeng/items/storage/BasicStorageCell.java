@@ -20,12 +20,12 @@ package appeng.items.storage;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.AEApi;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.items.materials.MaterialType;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.InventoryAdaptor;
 
 /**
@@ -65,8 +65,8 @@ public final class BasicStorageCell<T extends IAEStack<T>> extends AbstractStora
     }
 
     @Override
-    public IItemHandler getConfigInventory(final ItemStack is) {
-        return this.spec.getConfigInventoryFactory().apply(is);
+    public IAEStackInventory getConfigAEInventory(final ItemStack is) {
+        return this.spec.getConfigAEInventoryFactory().apply(is);
     }
 
     @Override

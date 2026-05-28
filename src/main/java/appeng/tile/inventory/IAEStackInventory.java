@@ -29,7 +29,6 @@ import net.minecraftforge.items.IItemHandler;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEStack;
 import appeng.core.AELog;
 import appeng.util.Platform;
 
@@ -101,26 +100,6 @@ public class IAEStackInventory {
     public void setGenericStack(final int slot, @Nullable GenericStack stack) {
         this.inv[slot] = stack;
         this.markDirty();
-    }
-
-    // ---- Legacy IAEStack API (deprecated) ----
-
-    /**
-     * @deprecated Use {@link #getGenericStack(int)} instead.
-     */
-    @Nullable
-    @Deprecated
-    public IAEStack<?> getAEStackInSlot(final int slot) {
-        GenericStack gs = getGenericStack(slot);
-        return gs != null ? gs.toIAEStack() : null;
-    }
-
-    /**
-     * @deprecated Use {@link #setGenericStack(int, GenericStack)} instead.
-     */
-    @Deprecated
-    public void putAEStackInSlot(final int slot, @Nullable IAEStack<?> stack) {
-        setGenericStack(slot, GenericStack.fromIAEStack(stack));
     }
 
     // ---- NBT serialization/deserialization ----

@@ -78,6 +78,7 @@ import appeng.api.storage.IStorageMonitorableAccessor;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.GenericStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.IConfigManager;
 import appeng.capabilities.Capabilities;
@@ -945,7 +946,7 @@ public class PatternProviderLogic
             }
             case LOCK_UNTIL_RESULT -> {
                 unlockEvent = UnlockCraftingEvent.RESULT;
-                unlockStack = pattern.getAEOutputs()[0].copy();
+                unlockStack = pattern.getOutputStacks()[0].toIAEStack();
                 saveChanges();
             }
         }

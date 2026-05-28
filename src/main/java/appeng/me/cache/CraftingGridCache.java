@@ -51,6 +51,7 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.ICellProvider;
 import appeng.api.storage.IMEInventoryHandler;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -230,10 +231,11 @@ public class CraftingGridCache
 
         // new craftables!
         for (final ICraftingPatternDetails details : this.craftingMethods.keySet()) {
-            for (IAEStack<?> out : details.getAEOutputs()) {
-                if (out == null) {
+            for (GenericStack genericOut : details.getOutputStacks()) {
+                if (genericOut == null) {
                     continue;
                 }
+                IAEStack<?> out = genericOut.toIAEStack();
                 out = out.copy();
                 out.reset();
                 out.setCraftable(true);

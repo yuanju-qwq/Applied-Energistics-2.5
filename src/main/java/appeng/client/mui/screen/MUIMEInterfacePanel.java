@@ -38,7 +38,9 @@ import mezz.jei.api.gui.IGhostIngredientHandler.Target;
 
 import appeng.api.config.Settings;
 import appeng.api.config.YesNo;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.gui.slots.VirtualMEPhantomSlot;
@@ -188,12 +190,12 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         final IAEStackInventory config = this.container.getConfig();
 
         for (int i = 0; i < InterfaceLogic.NUMBER_OF_CONFIG_SLOTS; i++) {
-            final IAEStack<?> configStack = config.getAEStackInSlot(i);
+            final GenericStack configStack = config.getGenericStack(i);
             // Non-item types (fluids, etc.) use FluidStorageVirtualSlot;
             // items and null use the regular item slot.
             // This is a Minecraft Slot system limitation: Slot only holds ItemStack,
             // so non-item types must use virtual slots.
-            final boolean isNonItem = configStack != null && !configStack.isItem();
+            final boolean isNonItem = configStack != null && !(configStack.what() instanceof AEItemKey);
 
             if (this.itemStorageSlots != null && this.itemStorageSlots[i] != null) {
                 this.itemStorageSlots[i].xPos = isNonItem ? -9999 : this.itemStorageOrigX[i];
@@ -316,7 +318,8 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         @Override
         @Nullable
         public IAEStack<?> getAEStack() {
-            return this.inventory.getAEStackInSlot(this.inventorySlot);
+            GenericStack gs = this.inventory.getGenericStack(this.inventorySlot);
+            return gs != null ? gs.toIAEStack() : null;
         }
 
         @Override

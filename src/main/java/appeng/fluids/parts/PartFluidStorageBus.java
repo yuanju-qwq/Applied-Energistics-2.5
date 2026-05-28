@@ -35,6 +35,7 @@ import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.IStorageMonitorableAccessor;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
@@ -163,7 +164,8 @@ public class PartFluidStorageBus extends AbstractPartStorageBus<IAEFluidStack>
     protected IItemList<IAEFluidStack> buildPriorityList(int slotsToUse) {
         final IItemList<IAEFluidStack> priorityList = AEFluidStackType.INSTANCE.createList();
         for (int x = 0; x < this.config.size() && x < slotsToUse; x++) {
-            final IAEStack<?> is = this.config.getAEStackInSlot(x);
+            final GenericStack gs = this.config.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is instanceof IAEFluidStack fluidStack) {
                 priorityList.add(fluidStack);
             }

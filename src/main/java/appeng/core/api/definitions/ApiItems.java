@@ -41,13 +41,12 @@ import appeng.entity.EntityGrowingCrystal;
 import appeng.entity.EntityIds;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.fluids.helper.FluidCellConfig;
 import appeng.fluids.items.FluidDummyItem;
 import appeng.fluids.items.FluidDummyItemRendering;
 import appeng.fluids.util.AEFluidStackType;
 import appeng.hooks.DispenserBlockTool;
 import appeng.hooks.DispenserMatterCannon;
-import appeng.items.contents.CellConfig;
+import appeng.items.contents.CellAEConfig;
 import appeng.items.materials.MaterialType;
 import appeng.items.misc.*;
 import appeng.items.parts.FacadeRendering;
@@ -256,10 +255,10 @@ public final class ApiItems implements IItems {
         FeatureFactory storageCells = registry.features(AEFeature.STORAGE_CELLS);
 
         // Item storage cell specs
-        final CellSpec<IAEItemStack> itemSpec1k = new CellSpec<>(AEItemStackType.INSTANCE, 8, 0.5, 63, CellConfig::new);
-        final CellSpec<IAEItemStack> itemSpec4k = new CellSpec<>(AEItemStackType.INSTANCE, 32, 1.0, 63, CellConfig::new);
-        final CellSpec<IAEItemStack> itemSpec16k = new CellSpec<>(AEItemStackType.INSTANCE, 128, 1.5, 63, CellConfig::new);
-        final CellSpec<IAEItemStack> itemSpec64k = new CellSpec<>(AEItemStackType.INSTANCE, 512, 2.0, 63, CellConfig::new);
+        final CellSpec<IAEItemStack> itemSpec1k = new CellSpec<>(AEItemStackType.INSTANCE, 8, 0.5, 63, CellAEConfig::new);
+        final CellSpec<IAEItemStack> itemSpec4k = new CellSpec<>(AEItemStackType.INSTANCE, 32, 1.0, 63, CellAEConfig::new);
+        final CellSpec<IAEItemStack> itemSpec16k = new CellSpec<>(AEItemStackType.INSTANCE, 128, 1.5, 63, CellAEConfig::new);
+        final CellSpec<IAEItemStack> itemSpec64k = new CellSpec<>(AEItemStackType.INSTANCE, 512, 2.0, 63, CellAEConfig::new);
 
         this.cell1k = storageCells
                 .item("storage_cell_1k", () -> new BasicStorageCell<>(MaterialType.CELL1K_PART, 1, itemSpec1k))
@@ -275,10 +274,10 @@ public final class ApiItems implements IItems {
                 .build();
 
         // Fluid storage cell specs
-        final CellSpec<IAEFluidStack> fluidSpec1k = new CellSpec<>(AEFluidStackType.INSTANCE, 8, 0.5, 5, FluidCellConfig::new);
-        final CellSpec<IAEFluidStack> fluidSpec4k = new CellSpec<>(AEFluidStackType.INSTANCE, 32, 1.0, 5, FluidCellConfig::new);
-        final CellSpec<IAEFluidStack> fluidSpec16k = new CellSpec<>(AEFluidStackType.INSTANCE, 128, 1.5, 5, FluidCellConfig::new);
-        final CellSpec<IAEFluidStack> fluidSpec64k = new CellSpec<>(AEFluidStackType.INSTANCE, 512, 2.0, 5, FluidCellConfig::new);
+        final CellSpec<IAEFluidStack> fluidSpec1k = new CellSpec<>(AEFluidStackType.INSTANCE, 8, 0.5, 5, CellAEConfig::new);
+        final CellSpec<IAEFluidStack> fluidSpec4k = new CellSpec<>(AEFluidStackType.INSTANCE, 32, 1.0, 5, CellAEConfig::new);
+        final CellSpec<IAEFluidStack> fluidSpec16k = new CellSpec<>(AEFluidStackType.INSTANCE, 128, 1.5, 5, CellAEConfig::new);
+        final CellSpec<IAEFluidStack> fluidSpec64k = new CellSpec<>(AEFluidStackType.INSTANCE, 512, 2.0, 5, CellAEConfig::new);
 
         this.fluidCell1k = storageCells
                 .item("fluid_storage_cell_1k", () -> new BasicStorageCell<>(MaterialType.FLUID_CELL1K_PART, 1, fluidSpec1k))

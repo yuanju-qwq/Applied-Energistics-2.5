@@ -28,6 +28,7 @@ import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 
 import appeng.api.config.*;
+import appeng.api.stacks.GenericStack;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.parts.IPartModel;
@@ -122,7 +123,9 @@ public class PartFluidImportBus extends PartSharedFluidBus {
 
     private boolean isInFilter(FluidStack fluid) {
         for (int i = 0; i < this.getConfig().getSizeInventory(); i++) {
-            final IAEFluidStack stack = this.getConfig().getAEStackInSlot(i) instanceof IAEFluidStack f ? f : null;
+            final GenericStack gs = this.getConfig().getGenericStack(i);
+            final IAEStack<?> s = gs != null ? gs.toIAEStack() : null;
+            final IAEFluidStack stack = s instanceof IAEFluidStack f ? f : null;
             if (stack != null && stack.equals(fluid)) {
                 return true;
             }
@@ -132,7 +135,7 @@ public class PartFluidImportBus extends PartSharedFluidBus {
 
     private boolean filterEnabled() {
         for (int i = 0; i < this.getConfig().getSizeInventory(); i++) {
-            if (this.getConfig().getAEStackInSlot(i) != null) {
+            if (this.getConfig().getGenericStack(i) != null) {
                 return true;
             }
         }

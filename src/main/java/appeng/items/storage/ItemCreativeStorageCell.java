@@ -33,7 +33,9 @@ import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.ICellWorkbenchItem;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.items.AEBaseItem;
+import appeng.items.contents.CellAEConfig;
 import appeng.items.contents.CellConfig;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStackType;
 
 public class ItemCreativeStorageCell extends AEBaseItem implements ICellWorkbenchItem {
@@ -53,8 +55,8 @@ public class ItemCreativeStorageCell extends AEBaseItem implements ICellWorkbenc
     }
 
     @Override
-    public IItemHandler getConfigInventory(final ItemStack is) {
-        return new CellConfig(is);
+    public IAEStackInventory getConfigAEInventory(final ItemStack is) {
+        return new CellAEConfig(is);
     }
 
     @Override

@@ -21,10 +21,10 @@ package appeng.items.storage;
 import java.util.function.Function;
 
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
+import appeng.tile.inventory.IAEStackInventory;
 
 /**
  * Data-driven specification for storage cells.
@@ -40,19 +40,19 @@ public class CellSpec<T extends IAEStack<T>> {
     private final int bytesPerType;
     private final double idleDrain;
     private final int totalTypes;
-    private final Function<ItemStack, IItemHandler> configInventoryFactory;
+    private final Function<ItemStack, IAEStackInventory> configAEInventoryFactory;
 
     public CellSpec(
             final IAEStackType<T> stackType,
             final int bytesPerType,
             final double idleDrain,
             final int totalTypes,
-            final Function<ItemStack, IItemHandler> configInventoryFactory) {
+            final Function<ItemStack, IAEStackInventory> configAEInventoryFactory) {
         this.stackType = stackType;
         this.bytesPerType = bytesPerType;
         this.idleDrain = idleDrain;
         this.totalTypes = totalTypes;
-        this.configInventoryFactory = configInventoryFactory;
+        this.configAEInventoryFactory = configAEInventoryFactory;
     }
 
     public IAEStackType<T> getStackType() {
@@ -71,7 +71,7 @@ public class CellSpec<T extends IAEStack<T>> {
         return this.totalTypes;
     }
 
-    public Function<ItemStack, IItemHandler> getConfigInventoryFactory() {
-        return this.configInventoryFactory;
+    public Function<ItemStack, IAEStackInventory> getConfigAEInventoryFactory() {
+        return this.configAEInventoryFactory;
     }
 }

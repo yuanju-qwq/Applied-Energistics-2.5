@@ -32,7 +32,7 @@ import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.implementations.IUpgradeableCellContainer;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.GenericStack;
 import appeng.container.helper.WirelessContainerHelper;
 import appeng.container.interfaces.IInventorySlotAware;
 import appeng.container.slot.SlotPatternTerm;
@@ -229,18 +229,18 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
         this.setCraftingMode(details.isCraftable());
         this.setSubstitute(details.canSubstitute());
 
-        final IAEStack<?>[] inputs = details.getAEInputs();
+        final GenericStack[] inputs = details.getInputStacks();
         for (int i = 0; i < this.craftingInv.getSizeInventory(); i++) {
-            final IAEStack<?> input = inputs != null && i < inputs.length && inputs[i] != null ? inputs[i].copy() : null;
-            this.craftingInv.putAEStackInSlot(i, input);
+            final GenericStack input = inputs != null && i < inputs.length && inputs[i] != null ? inputs[i].copy() : null;
+            this.craftingInv.setGenericStack(i, input);
         }
 
-        final IAEStack<?>[] outputs = details.getAEOutputs();
+        final GenericStack[] outputs = details.getOutputStacks();
         for (int i = 0; i < this.outputInv.getSizeInventory(); i++) {
-            final IAEStack<?> output = outputs != null && i < outputs.length && outputs[i] != null
+            final GenericStack output = outputs != null && i < outputs.length && outputs[i] != null
                     ? outputs[i].copy()
                     : null;
-            this.outputInv.putAEStackInSlot(i, output);
+            this.outputInv.setGenericStack(i, output);
         }
 
         this.getAndUpdateOutput();
@@ -249,10 +249,10 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
 
     private void clearPatternContents() {
         for (int i = 0; i < this.craftingInv.getSizeInventory(); i++) {
-            this.craftingInv.putAEStackInSlot(i, null);
+            this.craftingInv.setGenericStack(i, null);
         }
         for (int i = 0; i < this.outputInv.getSizeInventory(); i++) {
-            this.outputInv.putAEStackInSlot(i, null);
+            this.outputInv.setGenericStack(i, null);
         }
     }
 

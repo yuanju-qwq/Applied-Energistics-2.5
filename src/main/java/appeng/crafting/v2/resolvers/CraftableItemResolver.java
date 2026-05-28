@@ -31,6 +31,7 @@ import appeng.crafting.v2.ITreeSerializable;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
+import appeng.api.stacks.GenericStack;
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -104,8 +105,10 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             this.allowSimulation = allowSimulation;
             this.isComplex = isComplex;
 
-            IAEStack<?>[] pInputs = pattern.getCondensedAEInputs();
-            IAEStack<?>[] pOutputs = pattern.getCondensedAEOutputs();
+            GenericStack[] gsInputs = pattern.getCondensedInputStacks();
+            GenericStack[] gsOutputs = pattern.getCondensedOutputStacks();
+            IAEStack<?>[] pInputs = Arrays.stream(gsInputs).map(GenericStack::toIAEStack).toArray(IAEStack<?>[]::new);
+            IAEStack<?>[] pOutputs = Arrays.stream(gsOutputs).map(GenericStack::toIAEStack).toArray(IAEStack<?>[]::new);
 
             if (!hasRecursiveInputs(pInputs, pOutputs)) {
                 this.patternInputs = pInputs;
@@ -143,8 +146,10 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             this.craftingMachine = serializer.readItemStack();
             this.totalCraftsDone = buffer.readLong();
 
-            IAEStack<?>[] pInputs = pattern.getCondensedAEInputs();
-            IAEStack<?>[] pOutputs = pattern.getCondensedAEOutputs();
+            GenericStack[] gsInputs = pattern.getCondensedInputStacks();
+            GenericStack[] gsOutputs = pattern.getCondensedOutputStacks();
+            IAEStack<?>[] pInputs = Arrays.stream(gsInputs).map(GenericStack::toIAEStack).toArray(IAEStack<?>[]::new);
+            IAEStack<?>[] pOutputs = Arrays.stream(gsOutputs).map(GenericStack::toIAEStack).toArray(IAEStack<?>[]::new);
             if (!hasRecursiveInputs(pInputs, pOutputs)) {
                 this.patternInputs = pInputs;
                 this.patternOutputs = pOutputs;
@@ -465,9 +470,9 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                                 return this.isValidSubstitute(inputRef, stack, context.world, -1);
                             });
                 } else {
-                    req = new CraftingRequest(
-                            request, input.copy().setStackSize(amount),
-                            childMode, allowSimulation, request.craftingMode, x -> true);
+                req = new CraftingRequest(
+                        request, input.copy().setStackSize(amount),
+                        childMode, allowSimulation, request.craftingMode, x -> true);
                 }
                 req.patternParents.addAll(request.patternParents);
                 newChildren.add(req);
@@ -477,22 +482,23 @@ public class CraftableItemResolver implements CraftingRequestResolver {
 
         private void requestComplexInputs(CraftingContext context, SubstitutionMode childMode, long toCraft,
                 ArrayList<CraftingRequest> newChildren) {
-            final IAEStack<?>[] slotInputs = pattern.getAEInputs();
+            final GenericStack[] slotInputs = pattern.getInputStacks();
             for (int slot = 0; slot < slotInputs.length; slot++) {
-                final IAEStack<?> input = slotInputs[slot];
+                final GenericStack input = slotInputs[slot];
                 if (input == null) {
                     complexRequestPerSlot.add(null);
                     continue;
                 }
-                final long amount = Math.multiplyExact(input.getStackSize(), toCraft);
+                final long amount = Math.multiplyExact(input.amount(), toCraft);
                 final int finalSlot = slot;
+                IAEStack<?> inputStack = input.toIAEStack();
                 CraftingRequest req = new CraftingRequest(
-                        request, input.copy().setStackSize(amount),
+                        request, new GenericStack(input.what(), amount).toIAEStack(),
                         childMode, allowSimulation, request.craftingMode,
-                        stack -> this.isValidSubstitute(input, stack, context.world, finalSlot));
+                        stack -> this.isValidSubstitute(inputStack, stack, context.world, finalSlot));
                 complexRequestPerSlot.add(req);
                 newChildren.add(req);
-                childRequests.add(new RequestAndPerCraftAmount(req, input.getStackSize()));
+                childRequests.add(new RequestAndPerCraftAmount(req, input.amount()));
             }
         }
 

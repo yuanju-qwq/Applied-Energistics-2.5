@@ -41,6 +41,7 @@ import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.AEApi;
+import appeng.api.stacks.GenericStack;
 import appeng.api.config.*;
 import appeng.api.networking.events.MENetworkCellArrayUpdate;
 import appeng.api.networking.events.MENetworkChannelsChanged;
@@ -103,7 +104,7 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
 
         final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
         for (int x = 0; x < this.Config.getSizeInventory() && x < slotsToUse; x++) {
-            final IAEStack<?> raw = this.Config.getAEStackInSlot(x);
+            final GenericStack raw = this.Config.getGenericStack(x);
             if (raw instanceof IAEItemStack is) {
                 priorityList.add(is);
             }

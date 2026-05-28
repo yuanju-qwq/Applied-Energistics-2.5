@@ -16,6 +16,7 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 
 import appeng.api.config.RedstoneMode;
 import appeng.api.config.Settings;
+import appeng.api.stacks.GenericStack;
 import appeng.api.networking.events.MENetworkChannelsChanged;
 import appeng.api.networking.events.MENetworkEventSubscribe;
 import appeng.api.networking.events.MENetworkPowerStatusChange;
@@ -114,8 +115,9 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     @Override
     public void onStackChange(IItemList<?> o, IAEStack<?> fullStack, IAEStack<?> diffStack, IActionSource src,
             IAEStackType<?> type) {
+        final GenericStack gs = this.config.getGenericStack(0);
         if (type == AEFluidStackType.INSTANCE
-                && fullStack.equals(this.config.getAEStackInSlot(0))) {
+                && fullStack.equals(gs != null ? gs.toIAEStack() : null)) {
             this.lastReportedValue = fullStack.getStackSize();
             this.updateState();
         }
@@ -211,7 +213,8 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
         if (this.stackWatcher != null) {
             this.stackWatcher.reset();
 
-            final IAEStack<?> myStack = this.config.getAEStackInSlot(0);
+            final GenericStack gs = this.config.getGenericStack(0);
+            final IAEStack<?> myStack = gs != null ? gs.toIAEStack() : null;
 
             try {
                 if (myStack != null) {
@@ -234,7 +237,8 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     }
 
     private void updateReportingValue(final IMEMonitor<IAEFluidStack> monitor) {
-        final IAEStack<?> myStack = this.config.getAEStackInSlot(0);
+        final GenericStack gs = this.config.getGenericStack(0);
+        final IAEStack<?> myStack = gs != null ? gs.toIAEStack() : null;
 
         if (myStack == null) {
             if (monitor instanceof NetworkMonitor) {

@@ -181,7 +181,8 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             final IAEStackInventory inv = this.getCraftingAEInv();
             if (inv == null) return;
             for (int x = 0; x < inv.getSizeInventory(); x++) {
-                final IAEStack<?> is = inv.getAEStackInSlot(x);
+                final GenericStack gs = inv.getGenericStack(x);
+                final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
                 if (is != null) {
                     is.setStackSize(1);
                 }
@@ -380,20 +381,24 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         if (craftInv == null || outInv == null) return;
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            final GenericStack gs = craftInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null && is.getStackSize() * multiple < 1) return;
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            final GenericStack gs = outInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null && is.getStackSize() * multiple < 1) return;
         }
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            final GenericStack gs = craftInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null) is.setStackSize(is.getStackSize() * multiple);
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            final GenericStack gs = outInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null) is.setStackSize(is.getStackSize() * multiple);
         }
     }
@@ -404,20 +409,24 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         if (craftInv == null || outInv == null) return;
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            final GenericStack gs = craftInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null && is.getStackSize() % divide != 0) return;
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            final GenericStack gs = outInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null && is.getStackSize() % divide != 0) return;
         }
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            final GenericStack gs = craftInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null) is.setStackSize(is.getStackSize() / divide);
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            final GenericStack gs = outInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null) is.setStackSize(is.getStackSize() / divide);
         }
     }
@@ -428,20 +437,24 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         if (craftInv == null || outInv == null) return;
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            final GenericStack gs = craftInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null && is.getStackSize() + increase < 1) return;
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            final GenericStack gs = outInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null && is.getStackSize() + increase < 1) return;
         }
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            final GenericStack gs = craftInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null) is.setStackSize(is.getStackSize() + increase);
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            final GenericStack gs = outInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null) is.setStackSize(is.getStackSize() + increase);
         }
     }
@@ -452,20 +465,24 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         if (craftInv == null || outInv == null) return;
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            final GenericStack gs = craftInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null && is.getStackSize() - decrease < 1) return;
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            final GenericStack gs = outInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null && is.getStackSize() - decrease < 1) return;
         }
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            final GenericStack gs = craftInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null) is.setStackSize(is.getStackSize() - decrease);
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            final GenericStack gs = outInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null) is.setStackSize(is.getStackSize() - decrease);
         }
     }
@@ -477,14 +494,16 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
         long maxCount = Long.MAX_VALUE;
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            final GenericStack gs = craftInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null && is instanceof IAEItemStack) {
                 long maxPerStack = ((IAEItemStack) is).getDefinition().getMaxStackSize();
                 maxCount = Math.min(maxCount, maxPerStack);
             }
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            final GenericStack gs = outInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null && is instanceof IAEItemStack) {
                 long maxPerStack = ((IAEItemStack) is).getDefinition().getMaxStackSize();
                 maxCount = Math.min(maxCount, maxPerStack);
@@ -493,11 +512,13 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         if (maxCount == Long.MAX_VALUE || maxCount < 1) return;
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = craftInv.getAEStackInSlot(x);
+            final GenericStack gs = craftInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null) is.setStackSize(maxCount);
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
-            final IAEStack<?> is = outInv.getAEStackInSlot(x);
+            final GenericStack gs = outInv.getGenericStack(x);
+            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
             if (is != null) is.setStackSize(maxCount);
         }
     }
@@ -511,7 +532,8 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         boolean hasValue = false;
 
         for (int x = 0; x < inputSize; x++) {
-            final IAEStack<?> stack = inv.getAEStackInSlot(x);
+            final GenericStack gs = inv.getGenericStack(x);
+            final IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
             if (stack != null) {
                 final ItemStack repr = stack.asItemStackRepresentation();
                 if (repr != null && !repr.isEmpty()) {
@@ -547,7 +569,8 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             boolean hasValue = false;
 
             for (int x = 0; x < inv.getSizeInventory(); x++) {
-                final IAEStack<?> stack = inv.getAEStackInSlot(x);
+                final GenericStack gs = inv.getGenericStack(x);
+                final IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
                 if (stack != null) {
                     final ItemStack repr = stack.asItemStackRepresentation();
                     if (repr != null && !repr.isEmpty()) {
@@ -577,7 +600,8 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         final IAEStackInventory inv = this.getCraftingAEInv();
         for (int x = 0; x < ic.getSizeInventory(); x++) {
             if (inv != null) {
-                final IAEStack<?> stack = inv.getAEStackInSlot(x);
+                final GenericStack gs = inv.getGenericStack(x);
+                final IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
                 if (stack instanceof IAEItemStack) {
                     final ItemStack itemStack = ((IAEItemStack) stack).createItemStack();
                     ic.setInventorySlotContents(x, itemStack);
@@ -869,12 +893,12 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         final IAEStackInventory outInv = this.getOutputAEInv();
         if (craftInv != null) {
             for (int x = 0; x < craftInv.getSizeInventory(); x++) {
-                craftInv.putAEStackInSlot(x, null);
+                craftInv.setGenericStack(x, null);
             }
         }
         if (outInv != null) {
             for (int x = 0; x < outInv.getSizeInventory(); x++) {
-                outInv.putAEStackInSlot(x, null);
+                outInv.setGenericStack(x, null);
             }
         }
 
@@ -995,7 +1019,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         }
         if (inv != null) {
             for (var entry : slotStacks.int2ObjectEntrySet()) {
-                inv.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+                inv.setGenericStack(entry.getIntKey(), GenericStack.fromIAEStack(entry.getValue()));
             }
             this.refreshPatternPreview();
         }
@@ -1012,7 +1036,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             inv = this.getOutputAEInv();
         }
         if (inv != null && slotId >= 0 && slotId < inv.getSizeInventory()) {
-            inv.putAEStackInSlot(slotId, aes);
+            inv.setGenericStack(slotId, GenericStack.fromIAEStack(aes));
             this.refreshPatternPreview();
 
             if (Platform.isServer()) {

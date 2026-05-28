@@ -29,12 +29,15 @@ import appeng.api.config.IncludeExclude;
 import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IUpgradeModule;
 import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.prioritylist.FuzzyPriorityList;
 import appeng.util.prioritylist.PrecisePriorityList;
@@ -56,7 +59,7 @@ public class BasicCellInventoryHandler<T extends IAEStack<T>> extends MEInventor
             final IItemList<T> priorityList = type.createList();
 
             final IItemHandler upgrades = ci.getUpgradesInventory();
-            final IItemHandler config = ci.getConfigInventory();
+            final IAEStackInventory config = ci.getConfigAEInventory();
             final FuzzyMode fzMode = ci.getFuzzyMode();
 
             boolean hasInverter = false;
@@ -96,11 +99,11 @@ public class BasicCellInventoryHandler<T extends IAEStack<T>> extends MEInventor
                     }
                 }
             } else {
-                // Legacy path: read from IItemHandler config
-                for (int x = 0; x < config.getSlots(); x++) {
-                    final ItemStack is = config.getStackInSlot(x);
-                    if (!is.isEmpty()) {
-                        final T configItem = type.createStack(is);
+                // Legacy path: read from IAEStackInventory config
+                for (int x = 0; x < config.getSizeInventory(); x++) {
+                    final GenericStack gs = config.getGenericStack(x);
+                    if (gs != null && gs.what() instanceof AEItemKey itemKey) {
+                        final T configItem = type.createStack(itemKey.toStack());
                         if (configItem != null) {
                             priorityList.add(configItem);
                         }

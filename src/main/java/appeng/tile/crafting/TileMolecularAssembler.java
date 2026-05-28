@@ -261,7 +261,7 @@ public class TileMolecularAssembler extends AENetworkInvTile
             }
         }
 
-        return this.myPlan.getOutputs().length > 0;
+        return this.myPlan.getOutputStacks().length > 0;
     }
 
     @Override

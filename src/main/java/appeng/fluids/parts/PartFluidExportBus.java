@@ -27,6 +27,7 @@ import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 
 import appeng.api.config.*;
+import appeng.api.stacks.GenericStack;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.parts.IPartCollisionHelper;
@@ -90,7 +91,7 @@ public class PartFluidExportBus extends PartSharedFluidBus {
 
                 if (fh != null) {
                     for (int i = 0; i < this.getConfig().getSizeInventory(); i++) {
-                        final IAEStack<?> raw = this.getConfig().getAEStackInSlot(i);
+                        final GenericStack raw = this.getConfig().getGenericStack(i);
                         if (raw instanceof IAEFluidStack fluid) {
                             final IAEFluidStack toExtract = fluid.copy();
 

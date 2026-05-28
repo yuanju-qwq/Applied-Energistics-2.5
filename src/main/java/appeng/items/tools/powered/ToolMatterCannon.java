@@ -62,8 +62,9 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMatterCannon;
 import appeng.hooks.TickHandler;
 import appeng.hooks.TickHandler.PlayerColor;
-import appeng.items.contents.CellConfig;
+import appeng.items.contents.CellAEConfig;
 import appeng.items.contents.CellUpgrades;
+import appeng.tile.inventory.IAEStackInventory;
 import appeng.items.misc.ItemPaintBall;
 import appeng.items.tools.powered.powersink.AEBasePoweredItem;
 import appeng.me.helpers.PlayerSource;
@@ -375,8 +376,8 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
     }
 
     @Override
-    public IItemHandler getConfigInventory(final ItemStack is) {
-        return new CellConfig(is);
+    public IAEStackInventory getConfigAEInventory(final ItemStack is) {
+        return new CellAEConfig(is);
     }
 
     @Override

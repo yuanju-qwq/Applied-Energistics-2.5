@@ -32,7 +32,7 @@ import appeng.api.config.Upgrades;
 import appeng.api.implementations.IUpgradeableHost;
 import appeng.api.storage.ICellWorkbenchItem;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.GenericStack;
 import appeng.api.util.IConfigManager;
 import appeng.tile.AEBaseTile;
 import appeng.tile.inventory.AppEngInternalInventory;
@@ -153,7 +153,7 @@ public class TileCellWorkbench extends AEBaseTile
             if (configInventory != null) {
                 boolean cellHasConfig = false;
                 for (int x = 0; x < configInventory.getSizeInventory(); x++) {
-                    if (configInventory.getAEStackInSlot(x) != null) {
+                    if (configInventory.getGenericStack(x) != null) {
                         cellHasConfig = true;
                         break;
                     }
@@ -163,18 +163,18 @@ public class TileCellWorkbench extends AEBaseTile
                     // Cell has config → copy to workbench
                     for (int x = 0; x < this.config.getSizeInventory(); x++) {
                         if (x < configInventory.getSizeInventory()) {
-                            this.config.putAEStackInSlot(x, configInventory.getAEStackInSlot(x));
+                            this.config.setGenericStack(x, configInventory.getGenericStack(x));
                         } else {
-                            this.config.putAEStackInSlot(x, null);
+                            this.config.setGenericStack(x, null);
                         }
                     }
                 } else {
                     // Cell has no config → copy workbench to cell
                     copyAEInv(this.config, configInventory);
                 }
-            } else if (this.manager.getSetting(Settings.COPY_MODE) == CopyMode.CLEAR_ON_REMOVE) {
+                } else if (this.manager.getSetting(Settings.COPY_MODE) == CopyMode.CLEAR_ON_REMOVE) {
                 for (int x = 0; x < this.config.getSizeInventory(); x++) {
-                    this.config.putAEStackInSlot(x, null);
+                    this.config.setGenericStack(x, null);
                 }
 
                 this.saveChanges();
@@ -229,8 +229,8 @@ public class TileCellWorkbench extends AEBaseTile
     private static void copyAEInv(IAEStackInventory src, IAEStackInventory dst) {
         final int size = Math.min(src.getSizeInventory(), dst.getSizeInventory());
         for (int x = 0; x < size; x++) {
-            final IAEStack<?> stack = src.getAEStackInSlot(x);
-            dst.putAEStackInSlot(x, stack != null ? stack.copy() : null);
+            final GenericStack stack = src.getGenericStack(x);
+            dst.setGenericStack(x, stack);
         }
     }
 

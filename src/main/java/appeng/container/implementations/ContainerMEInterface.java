@@ -149,7 +149,7 @@ public class ContainerMEInterface extends ContainerUpgradeable
         final IAEFluidTank tanks = this.logic.getFluidTanks();
         for (int i = 0; i < InterfaceLogic.NUMBER_OF_CONFIG_SLOTS; i++) {
             final IAEFluidStack fs = tanks.getFluidInSlot(i);
-            this.fluidStorageServerMirror.putAEStackInSlot(i, fs);
+            this.fluidStorageServerMirror.setGenericStack(i, GenericStack.fromIAEStack(fs));
         }
     }
 
@@ -165,11 +165,11 @@ public class ContainerMEInterface extends ContainerUpgradeable
         if (invName == StorageName.CONFIG) {
             final IAEStackInventory config = this.logic.getConfig();
             for (var entry : slotStacks.int2ObjectEntrySet()) {
-                config.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+                config.setGenericStack(entry.getIntKey(), GenericStack.fromIAEStack(entry.getValue()));
             }
         } else if (invName == StorageName.STORAGE) {
             for (var entry : slotStacks.int2ObjectEntrySet()) {
-                this.fluidStorageClientInv.putAEStackInSlot(entry.getIntKey(), entry.getValue());
+                this.fluidStorageClientInv.setGenericStack(entry.getIntKey(), GenericStack.fromIAEStack(entry.getValue()));
             }
         }
     }
@@ -182,7 +182,7 @@ public class ContainerMEInterface extends ContainerUpgradeable
         if (invName == StorageName.CONFIG) {
             final IAEStackInventory config = this.logic.getConfig();
             if (config != null && slotId >= 0 && slotId < config.getSizeInventory()) {
-                config.putAEStackInSlot(slotId, aes);
+                config.setGenericStack(slotId, GenericStack.fromIAEStack(aes));
             }
         }
         // STORAGE is read-only from client, ignore
