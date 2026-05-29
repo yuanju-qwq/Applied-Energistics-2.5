@@ -1406,22 +1406,21 @@ public class PatternProviderLogic
             try {
                 final IStorageGrid storage = gridProxy.getStorage();
                 final appeng.api.networking.energy.IEnergySource src = gridProxy.getEnergy();
-                final IAEItemStack aeStack = AEItemStack.fromItemStack(stack);
+                final GenericStack aeStack = GenericStack.fromItemStack(stack);
 
                 final GenericStack remaining = appeng.util.StorageHelper.poweredInsert(
-                        src, storage.getInventory(AEItemStackType.INSTANCE), new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()),
+                        src, storage.getInventory(AEItemStackType.INSTANCE), aeStack,
                         mySource, simulate ? Actionable.SIMULATE : Actionable.MODULATE);
 
                 if (remaining == null) {
                     if (!simulate) {
-                        iHost.onStackReturnNetwork(new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()));
+                        iHost.onStackReturnNetwork(aeStack);
                     }
                     return ItemStack.EMPTY;
                 }
                 if (!simulate && remaining.amount() != stack.getCount()) {
-                    IAEItemStack inserted = aeStack.copy();
-                    inserted.setStackSize(aeStack.getStackSize() - remaining.amount());
-                    iHost.onStackReturnNetwork(new GenericStack(inserted.toAEKey(), inserted.getStackSize()));
+                    GenericStack inserted = new GenericStack(aeStack.what(), aeStack.amount() - remaining.amount());
+                    iHost.onStackReturnNetwork(inserted);
                 }
                 return ((AEItemKey) remaining.what()).toStack((int) remaining.amount());
             } catch (GridAccessException e) {
@@ -1460,10 +1459,10 @@ public class PatternProviderLogic
             try {
                 final IStorageGrid storage = gridProxy.getStorage();
                 final appeng.api.networking.energy.IEnergySource src = gridProxy.getEnergy();
-                final IAEFluidStack aeStack = AEFluidStack.fromFluidStack(resource);
+                final GenericStack aeStack = GenericStack.fromFluidStack(resource);
 
                 final GenericStack remaining = appeng.util.StorageHelper.poweredInsert(
-                        src, storage.getInventory(AEFluidStackType.INSTANCE), new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()),
+                        src, storage.getInventory(AEFluidStackType.INSTANCE), aeStack,
                         mySource, doFill ? Actionable.MODULATE : Actionable.SIMULATE);
 
                 final long inserted;
@@ -1474,7 +1473,7 @@ public class PatternProviderLogic
                 }
 
                 if (doFill && inserted > 0) {
-                    iHost.onStackReturnNetwork(new GenericStack(aeStack.toAEKey(), inserted));
+                    iHost.onStackReturnNetwork(new GenericStack(aeStack.what(), inserted));
                 }
                 return (int) inserted;
             } catch (GridAccessException e) {

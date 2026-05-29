@@ -1425,10 +1425,7 @@ public abstract class AEBaseContainer extends Container {
         }
         FluidStack fluid = FluidUtil.getFluidContained(hand);
         if (fluid != null && fluid.amount > 0) {
-            AEFluidStack aeFluid = AEFluidStack.fromFluidStack(fluid);
-            if (aeFluid != null) {
-                return aeFluid.asItemStackRepresentation();
-            }
+            return GenericStack.fromFluidStack(fluid).what().asItemStackRepresentation();
         }
         return hand.copy();
     }

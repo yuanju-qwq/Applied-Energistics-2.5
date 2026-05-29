@@ -118,54 +118,6 @@ public abstract class InventoryAdaptor implements Iterable<ItemSlot> {
     public abstract boolean hasSlots();
 
     /**
-     * Add a generic AE stack (item, fluid, or future types) to the target inventory.
-     * Items are handled natively; unknown types fall back to asItemStackRepresentation().
-     * Subclasses may override to support additional types (e.g., fluids).
-     *
-     * @return the remainder that could not be inserted, or null if fully inserted
-     */
-    @Nullable
-    public IAEStack<?> addStack(IAEStack<?> toBeAdded) {
-        if (toBeAdded instanceof IAEItemStack itemStack) {
-            ItemStack result = this.addItems(itemStack.createItemStack());
-            return AEItemStack.fromItemStack(result);
-        }
-        // Fallback: convert to item representation and try to insert
-        ItemStack repr = toBeAdded.asItemStackRepresentation();
-        if (!repr.isEmpty()) {
-            ItemStack result = this.addItems(repr);
-            if (result.isEmpty()) {
-                return null;
-            }
-        }
-        return toBeAdded;
-    }
-
-    /**
-     * Simulate adding a generic AE stack to the target inventory.
-     * Items are handled natively; unknown types fall back to asItemStackRepresentation().
-     * Subclasses may override to support additional types (e.g., fluids).
-     *
-     * @return the simulated remainder, or null if fully insertable
-     */
-    @Nullable
-    public IAEStack<?> simulateAddStack(IAEStack<?> toBeSimulated) {
-        if (toBeSimulated instanceof IAEItemStack itemStack) {
-            ItemStack result = this.simulateAdd(itemStack.createItemStack());
-            return AEItemStack.fromItemStack(result);
-        }
-        // Fallback: convert to item representation and try to simulate
-        ItemStack repr = toBeSimulated.asItemStackRepresentation();
-        if (!repr.isEmpty()) {
-            ItemStack result = this.simulateAdd(repr);
-            if (result.isEmpty()) {
-                return null;
-            }
-        }
-        return toBeSimulated;
-    }
-
-    /**
      * GenericStack variant of {@link #addStack(IAEStack)}.
      */
     @Nullable
