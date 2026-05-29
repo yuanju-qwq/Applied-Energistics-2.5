@@ -48,6 +48,7 @@ import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageMonitorable;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AECableType;
@@ -253,7 +254,7 @@ public class PartMEInterface extends PartBasicState implements IGridTickable, IS
     }
 
     @Override
-    public void onStackReturnNetwork(IAEStack<?> stack) {
+    public void onStackReturnNetwork(GenericStack stack) {
         // ME interface does not need to handle pattern locking
     }
 

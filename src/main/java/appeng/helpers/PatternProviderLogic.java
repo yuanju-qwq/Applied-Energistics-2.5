@@ -982,15 +982,15 @@ public class PatternProviderLogic
         return unlockStack;
     }
 
-    public void onStackReturnedToNetwork(IAEStack<?> stack) {
+    public void onStackReturnedToNetwork(GenericStack stack) {
         if (unlockEvent != UnlockCraftingEvent.RESULT) {
             return;
         }
         if (unlockStack == null) {
             AELog.error("PatternProvider was waiting for RESULT, but no result was set");
             unlockEvent = null;
-        } else if (unlockStack.isSameType(stack)) {
-            var remainingAmount = unlockStack.getStackSize() - stack.getStackSize();
+        } else if (unlockStack.isSameType(stack.toIAEStack())) {
+            var remainingAmount = unlockStack.getStackSize() - stack.amount();
             if (remainingAmount <= 0) {
                 unlockEvent = null;
                 unlockStack = null;
@@ -1411,14 +1411,14 @@ public class PatternProviderLogic
 
                 if (remaining == null) {
                     if (!simulate) {
-                        iHost.onStackReturnNetwork(aeStack);
+                        iHost.onStackReturnNetwork(new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()));
                     }
                     return ItemStack.EMPTY;
                 }
                 if (!simulate && remaining.amount() != stack.getCount()) {
                     IAEItemStack inserted = aeStack.copy();
                     inserted.setStackSize(aeStack.getStackSize() - remaining.amount());
-                    iHost.onStackReturnNetwork(inserted);
+                    iHost.onStackReturnNetwork(new GenericStack(inserted.toAEKey(), inserted.getStackSize()));
                 }
                 return ((AEItemKey) remaining.what()).toStack((int) remaining.amount());
             } catch (GridAccessException e) {
@@ -1471,9 +1471,7 @@ public class PatternProviderLogic
                 }
 
                 if (doFill && inserted > 0) {
-                    IAEFluidStack insertedStack = aeStack.copy();
-                    insertedStack.setStackSize(inserted);
-                    iHost.onStackReturnNetwork(insertedStack);
+                    iHost.onStackReturnNetwork(new GenericStack(aeStack.toAEKey(), inserted));
                 }
                 return (int) inserted;
             } catch (GridAccessException e) {

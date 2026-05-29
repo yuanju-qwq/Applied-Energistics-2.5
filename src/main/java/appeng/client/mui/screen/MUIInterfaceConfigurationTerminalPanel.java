@@ -284,7 +284,7 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
                         try {
                             final PacketInventoryAction p = new PacketInventoryAction(
                                     InventoryAction.PLACE_JEI_GHOST_ITEM, (SlotDisconnected) slot,
-                                    AEItemStack.fromItemStack(itemStack));
+                                    GenericStack.fromItemStack(itemStack));
                             NetworkHandler.instance().sendToServer(p);
                         } catch (IOException e) {
                             e.printStackTrace();

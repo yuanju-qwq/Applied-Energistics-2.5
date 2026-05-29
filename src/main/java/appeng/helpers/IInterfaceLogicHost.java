@@ -26,7 +26,7 @@ import net.minecraft.util.EnumFacing;
 import appeng.api.implementations.IUpgradeableHost;
 import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.security.IActionHost;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.GenericStack;
 import appeng.me.helpers.IGridProxyable;
 
 /**
@@ -54,6 +54,6 @@ public interface IInterfaceLogicHost
      * 当物品/流体从 Storage 被返回到网络时触发的回调。
      * 用于通知样板供应器锁定系统。
      */
-    default void onStackReturnNetwork(IAEStack<?> stack) {
+    default void onStackReturnNetwork(GenericStack stack) {
     }
 }

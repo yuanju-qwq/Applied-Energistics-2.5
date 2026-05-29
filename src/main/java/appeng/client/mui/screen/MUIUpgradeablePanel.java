@@ -39,6 +39,7 @@ import mezz.jei.api.gui.IGhostIngredientHandler.Target;
 
 import appeng.api.config.*;
 import appeng.api.implementations.IUpgradeableHost;
+import appeng.api.stacks.GenericStack;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.widgets.MUIButtonWidget;
@@ -305,10 +306,10 @@ public class MUIUpgradeablePanel extends AEBasePanel implements IJEIGhostIngredi
                         if (slot instanceof SlotFake slotFake && slotFake.isSlotEnabled()) {
                             if (finalItemStack.isEmpty() && finalFluidStack != null) {
                                 p = new PacketInventoryAction(InventoryAction.PLACE_JEI_GHOST_ITEM, slot,
-                                        AEItemStack.fromItemStack(FluidUtil.getFilledBucket(finalFluidStack)));
+                                        GenericStack.fromItemStack(FluidUtil.getFilledBucket(finalFluidStack)));
                             } else if (!finalItemStack.isEmpty()) {
                                 p = new PacketInventoryAction(InventoryAction.PLACE_JEI_GHOST_ITEM, slot,
-                                        AEItemStack.fromItemStack(finalItemStack));
+                                        GenericStack.fromItemStack(finalItemStack));
                             }
                         }
                         if (p != null) {

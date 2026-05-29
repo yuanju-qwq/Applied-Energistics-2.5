@@ -26,7 +26,7 @@ import net.minecraft.util.EnumFacing;
 import appeng.api.implementations.IUpgradeableHost;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.crafting.ICraftingRequester;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.GenericStack;
 
 /**
  * 样板供应器的宿主接口。
@@ -51,7 +51,7 @@ public interface IPatternProviderHost extends ICraftingProvider, IUpgradeableHos
      * 当 returnBuffer 中的物品/流体被推回 ME 网络时回调。
      * 宿主可以利用此回调来处理合成锁定解锁等逻辑。
      */
-    default void onStackReturnNetwork(IAEStack<?> stack) {
+    default void onStackReturnNetwork(GenericStack stack) {
         getPatternProviderLogic().onStackReturnedToNetwork(stack);
     }
 }

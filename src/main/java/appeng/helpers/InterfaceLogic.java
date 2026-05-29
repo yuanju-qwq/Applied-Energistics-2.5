@@ -268,7 +268,7 @@ public class InterfaceLogic
             final ItemStack removed, final ItemStack added) {
         if (inv == this.itemStorage && slot >= 0 && this.isWorkingSlot != slot) {
             if (!added.isEmpty()) {
-                iHost.onStackReturnNetwork(AEItemStack.fromItemStack(added));
+                iHost.onStackReturnNetwork(GenericStack.fromItemStack(added));
             }
             final boolean had = this.hasWorkToDo();
             this.updatePlan(slot);
@@ -312,7 +312,7 @@ public class InterfaceLogic
     public void onFluidInventoryChanged(final IAEFluidTank inventory, FluidStack added, FluidStack removed) {
         if (inventory == this.fluidTanks) {
             if (added != null) {
-                iHost.onStackReturnNetwork(AEFluidStack.fromFluidStack(added));
+                iHost.onStackReturnNetwork(GenericStack.fromFluidStack(added));
             }
             this.saveChanges();
         }
@@ -327,7 +327,7 @@ public class InterfaceLogic
 
         if (inventory == this.fluidTanks) {
             if (added != null) {
-                iHost.onStackReturnNetwork(AEFluidStack.fromFluidStack(added));
+                iHost.onStackReturnNetwork(GenericStack.fromFluidStack(added));
             }
             this.saveChanges();
 

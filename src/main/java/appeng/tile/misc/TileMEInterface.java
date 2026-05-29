@@ -47,6 +47,7 @@ import appeng.api.networking.events.MENetworkPowerStatusChange;
 import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
@@ -254,7 +255,7 @@ public class TileMEInterface extends AENetworkInvTile
     }
 
     @Override
-    public void onStackReturnNetwork(IAEStack<?> stack) {
+    public void onStackReturnNetwork(GenericStack stack) {
         // ME interface does not need to handle pattern locking
     }
 

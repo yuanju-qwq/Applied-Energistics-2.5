@@ -27,12 +27,13 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.items.IItemHandler;
 
-import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEItemStack;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.GenericStack;
 import appeng.client.me.SlotDisconnected;
 import appeng.container.AEBaseContainer;
 import appeng.container.ContainerOpenContext;
@@ -50,36 +51,34 @@ import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.network.INetworkInfo;
 import appeng.core.sync.network.NetworkHandler;
-import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.InventoryAction;
 import appeng.util.Platform;
 import appeng.util.helpers.ItemHandlerUtil;
 import appeng.util.inv.WrapperRangeItemHandler;
-import appeng.util.item.AEItemStack;
 
 public class PacketInventoryAction extends AppEngPacket {
 
     private final InventoryAction action;
     private final int slot;
     private final long id;
-    private final IAEItemStack slotItem;
+    private final GenericStack slotItem;
 
     // automatic.
-    public PacketInventoryAction(final ByteBuf stream) throws IOException {
+    public PacketInventoryAction(final PacketBuffer stream) throws IOException {
         this.action = InventoryAction.values()[stream.readInt()];
         this.slot = stream.readInt();
         this.id = stream.readLong();
         final boolean hasItem = stream.readBoolean();
 
         if (hasItem) {
-            this.slotItem = AEItemStack.fromPacket(stream);
+            this.slotItem = GenericStack.readBuffer(stream);
         } else {
             this.slotItem = null;
         }
     }
 
     // api
-    public PacketInventoryAction(final InventoryAction action, final int slot, final IAEItemStack slotItem)
+    public PacketInventoryAction(final InventoryAction action, final int slot, final GenericStack slotItem)
             throws IOException {
         if (Platform.isClient()) {
             throw new IllegalStateException("invalid packet, client cannot post inv actions with stacks.");
@@ -90,7 +89,7 @@ public class PacketInventoryAction extends AppEngPacket {
         this.id = 0;
         this.slotItem = slotItem;
 
-        final ByteBuf data = Unpooled.buffer();
+        final PacketBuffer data = new PacketBuffer(Unpooled.buffer());
 
         data.writeInt(this.getPacketID());
         data.writeInt(action.ordinal());
@@ -101,13 +100,13 @@ public class PacketInventoryAction extends AppEngPacket {
             data.writeBoolean(false);
         } else {
             data.writeBoolean(true);
-            slotItem.writeToPacket(data);
+            GenericStack.writeBuffer(slotItem, data);
         }
 
         this.configureWrite(data);
     }
 
-    public PacketInventoryAction(final InventoryAction action, final IJEITargetSlot slot, final IAEItemStack slotItem)
+    public PacketInventoryAction(final InventoryAction action, final IJEITargetSlot slot, final GenericStack slotItem)
             throws IOException {
 
         this.action = action;
@@ -123,7 +122,7 @@ public class PacketInventoryAction extends AppEngPacket {
         }
         this.slotItem = slotItem;
 
-        final ByteBuf data = Unpooled.buffer();
+        final PacketBuffer data = new PacketBuffer(Unpooled.buffer());
 
         data.writeInt(this.getPacketID());
         data.writeInt(action.ordinal());
@@ -134,7 +133,7 @@ public class PacketInventoryAction extends AppEngPacket {
             data.writeBoolean(false);
         } else {
             data.writeBoolean(true);
-            slotItem.writeToPacket(data);
+            GenericStack.writeBuffer(slotItem, data);
         }
 
         this.configureWrite(data);
@@ -242,27 +241,24 @@ public class PacketInventoryAction extends AppEngPacket {
                             .getSlotByID(this.id);
                     final IItemHandler theSlot = new WrapperRangeItemHandler(inv.getServer(), 0, slot + 1);
 
-                    ItemHandlerUtil.setStackInSlot(theSlot, this.slot, this.slotItem.createItemStack());
+                    ItemHandlerUtil.setStackInSlot(theSlot, this.slot,
+                            ((AEItemKey) this.slotItem.what()).toStack((int) this.slotItem.amount()));
 
                 } else if (this.slot < sender.openContainer.inventorySlots.size()) {
                     Slot senderSlot = sender.openContainer.inventorySlots.get(this.slot);
                     if (senderSlot instanceof SlotFake) {
                         if (this.slotItem != null) {
-                            senderSlot.putStack(this.slotItem.createItemStack());
-                            if (senderSlot.getStack().isEmpty()) {
-                                IAEFluidStack aefs = AEFluidStack
-                                        .fromNBT(this.slotItem.getDefinition().getTagCompound());
-                                if (aefs != null) {
-                                    FluidStack fluid = aefs.getFluidStack();
-                                    senderSlot.putStack(AEFluidStack.fromFluidStack(fluid).asItemStackRepresentation());
-                                }
+                            if (this.slotItem.what() instanceof AEItemKey itemKey) {
+                                senderSlot.putStack(itemKey.toStack((int) this.slotItem.amount()));
+                            } else if (this.slotItem.what() instanceof AEFluidKey fluidKey) {
+                                senderSlot.putStack(fluidKey.asItemStackRepresentation());
                             }
                         } else {
                             senderSlot.putStack(ItemStack.EMPTY);
                         }
                         try {
                             NetworkHandler.instance().sendTo(new PacketInventoryAction(InventoryAction.UPDATE_HAND, 0,
-                                    AEItemStack.fromItemStack(ItemStack.EMPTY)), sender);
+                                    GenericStack.fromItemStack(ItemStack.EMPTY)), sender);
                         } catch (final IOException e) {
                             AELog.debug(e);
                         }
@@ -280,8 +276,9 @@ public class PacketInventoryAction extends AppEngPacket {
             if (this.slotItem == null) {
                 AppEng.proxy.getPlayers().get(0).inventory.setItemStack(ItemStack.EMPTY);
             } else {
-                AppEng.proxy.getPlayers().get(0).inventory.setItemStack(this.slotItem.createItemStack());
-            }
-        }
+                AppEng.proxy.getPlayers().get(0).inventory
+                        .setItemStack(((AEItemKey) this.slotItem.what()).toStack((int) this.slotItem.amount()));
+    }
+}
     }
 }
