@@ -278,8 +278,8 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
     }
 
     @Override
-    public List<IAEItemStack> getSubstituteInputs(int slot) {
-        return Collections.emptyList(); // No substitute items
+    public List<GenericStack> getSubstituteInputs(int slot) {
+        return Collections.emptyList();
     }
 
     @Override

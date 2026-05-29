@@ -238,7 +238,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
     }
 
     @Override
-    public List<IAEItemStack> getSubstituteInputs(int slot) {
+    public List<GenericStack> getSubstituteInputs(int slot) {
         return Collections.emptyList();
     }
 

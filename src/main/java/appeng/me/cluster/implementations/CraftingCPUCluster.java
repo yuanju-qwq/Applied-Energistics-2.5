@@ -507,14 +507,14 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             GenericStack[] inputs = details.getInputStacks();
             Map<IAEItemStack, Integer> consumedCount = new HashMap<>();
             for (int i = 0; i < inputs.length; i++) {
-                List<IAEItemStack> substitutes = details.getSubstituteInputs(i);
+                List<GenericStack> substitutes = details.getSubstituteInputs(i);
                 if (substitutes.isEmpty()) {
                     continue;
                 }
 
                 boolean found = false;
-                for (IAEItemStack substitute : substitutes) {
-                    for (IAEItemStack fuzz : this.inventory.findFuzzyItems(substitute, FuzzyMode.IGNORE_ALL)) {
+                for (GenericStack substitute : substitutes) {
+                    for (IAEItemStack fuzz : this.inventory.findFuzzyItems((IAEItemStack) substitute.toIAEStack(), FuzzyMode.IGNORE_ALL)) {
                         int alreadyConsumed = consumedCount.getOrDefault(fuzz, 0);
                         if (fuzz.getStackSize() - alreadyConsumed <= 0) {
                             continue; // Already fully consumed by a previous slot of this recipe
@@ -743,12 +743,12 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                             final Collection<IAEItemStack> itemList;
 
                                             if (details.canSubstitute()) {
-                                                final List<IAEItemStack> substitutes = details.getSubstituteInputs(x);
+                                                final List<GenericStack> substitutes = details.getSubstituteInputs(x);
                                                 itemList = new ArrayList<>(substitutes.size());
 
-                                                for (IAEItemStack stack : substitutes) {
+                                                for (GenericStack stack : substitutes) {
                                                     itemList.addAll(
-                                                            this.inventory.findFuzzyItems(stack, FuzzyMode.IGNORE_ALL));
+                                                            this.inventory.findFuzzyItems((IAEItemStack) stack.toIAEStack(), FuzzyMode.IGNORE_ALL));
                                                 }
                                             } else {
                                                 itemList = new ArrayList<>(1);

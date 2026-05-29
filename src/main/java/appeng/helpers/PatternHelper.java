@@ -68,7 +68,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     private final IAEItemStack[] condensedOutputs;
     private final IAEItemStack[] inputs;
     private final IAEItemStack[] outputs;
-    private final Map<Integer, List<IAEItemStack>> substituteInputs;
+    private final Map<Integer, List<GenericStack>> substituteInputs;
     private final boolean isCrafting;
     private final boolean canSubstitute;
     private final Set<TestLookup> failCache = new HashSet<>();
@@ -322,21 +322,21 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     }
 
     @Override
-    public List<IAEItemStack> getSubstituteInputs(int slot) {
+    public List<GenericStack> getSubstituteInputs(int slot) {
         if (this.inputs[slot] == null) {
             return Collections.emptyList();
         }
 
         return this.substituteInputs.computeIfAbsent(slot, value -> {
             ItemStack[] matchingStacks = getRecipeIngredient(slot).getMatchingStacks();
-            List<IAEItemStack> itemList = new ArrayList<>(matchingStacks.length + 1);
+            List<GenericStack> itemList = new ArrayList<>(matchingStacks.length + 1);
             for (ItemStack matchingStack : matchingStacks) {
-                itemList.add(AEItemStack.fromItemStack(matchingStack));
+                itemList.add(GenericStack.fromItemStack(matchingStack));
             }
 
             // Ensure that the specific item put in by the user is at the beginning,
             // so that it takes precedence over substitutions
-            itemList.add(0, this.inputs[slot]);
+            itemList.add(0, this.inputStacks[slot]);
             return itemList;
         });
     }

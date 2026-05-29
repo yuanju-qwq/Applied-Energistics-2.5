@@ -31,7 +31,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.data.IAEItemStack;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 
 
@@ -106,7 +106,7 @@ public interface ICraftingPatternDetails {
     /**
      * Get the list of allowed substitute inputs for the specified slot.
      */
-    List<IAEItemStack> getSubstituteInputs(int slot);
+    List<GenericStack> getSubstituteInputs(int slot);
 
     /**
      * Get the output result of a crafting table recipe.
