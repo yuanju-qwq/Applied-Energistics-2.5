@@ -34,6 +34,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import mezz.jei.api.gui.IGhostIngredientHandler;
 
 import appeng.client.mui.AEMUITheme;
+import appeng.api.stacks.GenericStack;
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.me.ClientDCInternalInv;
 import appeng.client.me.SlotDisconnected;

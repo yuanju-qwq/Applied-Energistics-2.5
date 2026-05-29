@@ -253,7 +253,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
     }
 
     @Override
-    public boolean isValidItemForSlot(final int slotIndex, final IAEStack<?> i, final World w) {
+    public boolean isValidItemForSlot(final int slotIndex, final GenericStack i, final World w) {
         throw new IllegalStateException("Only crafting recipes supported.");
     }
 

@@ -100,8 +100,8 @@ public class ContainerMEMonitorable extends AEBaseContainer
     public final IItemList<IAEItemStack> items = AEItemStackType.INSTANCE.createList();
 
     /**
-     * 多类�?Monitor 映射：每种已注册�?IAEStackType 对应一�?IMEMonitor�?
-     * 物品和流体（以及未来扩展的其他类型）都在同一个终端中监控�?
+     * Multi-type Monitor mapping: each registered IAEStackType corresponds to one IMEMonitor.
+     * Items and fluids (and other types extended in the future) are all monitored in the same terminal.
      */
     private final Map<IAEStackType<?>, IMEMonitor<?>> monitors = new IdentityHashMap<>();
 
@@ -122,8 +122,8 @@ public class ContainerMEMonitorable extends AEBaseContainer
     private final ITerminalHost host;
 
     /**
-     * 获取终端宿主实例�?
-     * 用于 MUI 面板子类在不需要显式传�?host 的情况下获取 host 引用�?
+     * Get the terminal host instance.
+     * Used by MUI panel subclasses to obtain the host reference without explicitly passing it.
      */
     public ITerminalHost getHost() {
         return this.host;
@@ -138,13 +138,13 @@ public class ContainerMEMonitorable extends AEBaseContainer
     protected int jeiOffset = Platform.isModLoaded("jei") ? 24 : 0;
 
     /**
-     * �?onListUpdate 触发时标记为 true，下�?detectAndSendChanges 时发送全量�?
+     * Set to true when onListUpdate is triggered; a full resync is sent on the next detectAndSendChanges.
      */
     private boolean needListUpdate = false;
 
-    // 服务�?Pins 处理�?
+    // Server-side Pins handler
     private PinsHandler serverPinsHandler;
-    // 标记是否需要在下次 detectAndSendChanges 时发送初�?Pins 数据
+    // Whether initial Pins data needs to be sent on the next detectAndSendChanges
     private boolean needsInitialPinsSync = true;
 
     public ContainerMEMonitorable(final InventoryPlayer ip, final ITerminalHost monitorable) {
@@ -258,7 +258,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
             return ItemStack.EMPTY;
         }
 
-        // Shift-click fluid container (bucket) �?auto-empty into network
+        // Shift-click fluid container (bucket) to auto-empty into network
         if (p instanceof EntityPlayerMP playerMP) {
             final Slot clickedSlot = this.inventorySlots.get(idx);
             if (clickedSlot != null && clickedSlot.getHasStack()) {
@@ -781,7 +781,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
 
     // endregion
 
-    // ========== 流体桶交互逻辑 ==========
+    // ========== Fluid bucket interaction logic ==========
 
     @Override
     public void doAction(final EntityPlayerMP player, final InventoryAction action, final int slot,
@@ -794,10 +794,10 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * 处理流体桶的�?取操作�?
+     * Handle fluid bucket fill/empty operations.
      * <p>
-     * FILL_ITEM：从网络提取流体，装入玩家手持的�?容器�?
-     * EMPTY_ITEM：从玩家手持的桶/容器中提取流体，注入网络�?
+     * FILL_ITEM: Extract fluid from the network and fill it into the player's held container.
+     * EMPTY_ITEM: Drain fluid from the player's held bucket/container and inject it into the network.
      */
     private void doFluidBucketAction(final EntityPlayerMP player, final InventoryAction action,
             final int slot, final long id) {

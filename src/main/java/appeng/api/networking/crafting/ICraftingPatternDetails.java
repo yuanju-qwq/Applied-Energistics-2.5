@@ -30,7 +30,7 @@ import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
-import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 
@@ -57,9 +57,9 @@ public interface ICraftingPatternDetails {
      * Generic version: check whether the stack (item/fluid etc.) in the specified slot can be used as a valid input.
      * Defaults to delegating to the ItemStack version.
      */
-    default boolean isValidItemForSlot(int slotIndex, IAEStack<?> aes, World world) {
-        if (aes instanceof IAEItemStack) {
-            return isValidItemForSlot(slotIndex, ((IAEItemStack) aes).getItemStack(), world);
+    default boolean isValidItemForSlot(int slotIndex, GenericStack aes, World world) {
+        if (aes.what() instanceof AEItemKey itemKey) {
+            return isValidItemForSlot(slotIndex, itemKey.toStack(), world);
         }
         return false;
     }
