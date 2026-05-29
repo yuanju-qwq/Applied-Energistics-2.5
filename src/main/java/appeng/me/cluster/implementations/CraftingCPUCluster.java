@@ -379,6 +379,11 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         }
     }
 
+    private void postChange(final GenericStack stack, final IActionSource src) {
+        if (stack == null) return;
+        postChange(stack.toIAEStack(), src);
+    }
+
     private void markDirty() {
         this.getCore().saveChanges();
     }
@@ -399,6 +404,11 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                 }
             }
         }
+    }
+
+    private void postCraftingStatusChange(final GenericStack stack) {
+        if (stack == null) return;
+        postCraftingStatusChange(stack.toIAEStack());
     }
 
     private void completeJob() {
@@ -513,7 +523,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
                 boolean found = false;
                 for (GenericStack substitute : substitutes) {
-                    for (IAEItemStack fuzz : this.inventory.findFuzzyItems((IAEItemStack) substitute.toIAEStack(), FuzzyMode.IGNORE_ALL)) {
+                    for (IAEItemStack fuzz : this.inventory.findFuzzyItems(substitute, FuzzyMode.IGNORE_ALL)) {
                         int alreadyConsumed = consumedCount.getOrDefault(fuzz, 0);
                         if (fuzz.getStackSize() - alreadyConsumed <= 0) {
                             continue; // Already fully consumed by a previous slot of this recipe
@@ -546,24 +556,22 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             // When no substitutions can occur, we can simply check that all items are accounted since
             // each type of item should only occur once
             for (GenericStack condensedInput : condensedInputs) {
-                final IAEStack<?> genericInput = condensedInput != null ? condensedInput.toIAEStack() : null;
-                if (!(genericInput instanceof IAEItemStack g)) {
+                if (condensedInput == null || !(condensedInput.what() instanceof AEItemKey)) {
                     return false;
                 }
+                long needed = condensedInput.amount();
                 boolean found = false;
 
-                for (IAEItemStack fuzz : this.inventory.findFuzzyItems(g, FuzzyMode.IGNORE_ALL)) {
+                for (IAEItemStack fuzz : this.inventory.findFuzzyItems(condensedInput, FuzzyMode.IGNORE_ALL)) {
                     fuzz = fuzz.copy();
-                    fuzz.setStackSize(g.getStackSize());
+                    fuzz.setStackSize(needed);
                     final GenericStack extracted = this.inventory.extractItems(new GenericStack(fuzz.toAEKey(), fuzz.getStackSize()), Actionable.SIMULATE, this.machineSrc);
-                    final IAEItemStack ais = extracted != null ? (IAEItemStack) extracted.toIAEStack() : null;
 
-                    if (ais != null && ais.getStackSize() >= g.getStackSize()) {
+                    if (extracted != null && extracted.amount() >= needed) {
                         found = true;
                         break;
-                    } else if (ais != null) {
-                        g = g.copy();
-                        g.decStackSize(ais.getStackSize());
+                    } else if (extracted != null) {
+                        needed -= extracted.amount();
                     }
                 }
 
@@ -747,19 +755,19 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
                                                 for (GenericStack stack : substitutes) {
                                                     itemList.addAll(
-                                                            this.inventory.findFuzzyItems((IAEItemStack) stack.toIAEStack(), FuzzyMode.IGNORE_ALL));
+                                                            this.inventory.findFuzzyItems(stack, FuzzyMode.IGNORE_ALL));
                                                 }
                                             } else {
                                                 itemList = new ArrayList<>(1);
 
                                                 final IAEItemStack item = this.inventory
-                                                        .findPreciseItem((IAEItemStack) input[x].toIAEStack());
+                                                        .findPreciseItem(input[x]);
                                                 if (item != null) {
                                                     itemList.add(item);
                                                 } else if (((AEItemKey) input[x].what()).toStack().getItem().isDamageable() || Platform
                                                             .isGTDamageableItem(((AEItemKey) input[x].what()).toStack().getItem())) {
                                                     itemList.addAll(this.inventory.findFuzzyItems(
-                                                            (IAEItemStack) input[x].toIAEStack(), FuzzyMode.IGNORE_ALL));
+                                                            input[x], FuzzyMode.IGNORE_ALL));
                                                 }
                                             }
 
@@ -771,9 +779,9 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                                         this.getWorld())) {
                                                     final GenericStack extracted = this.inventory.extractItems(new GenericStack(fuzz.toAEKey(), fuzz.getStackSize()),
                                                             Actionable.MODULATE, this.machineSrc);
-                                                    final IAEItemStack ais = extracted != null ? (IAEItemStack) extracted.toIAEStack() : null;
-                                                    final ItemStack is = ais == null ? ItemStack.EMPTY
-                                                            : ais.createItemStack();
+
+                                                    if (extracted != null && extracted.amount() > 0 && extracted.what() instanceof AEItemKey itemKey) {
+                                                        final ItemStack is = itemKey.toStack((int) Math.min(extracted.amount(), Integer.MAX_VALUE));
 
                                                     if (!is.isEmpty()) {
                                                         this.postChange(AEItemStack.fromItemStack(is), this.machineSrc);

@@ -467,6 +467,13 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         return this.getItemListInternal().findPrecise(item);
     }
 
+    public IAEItemStack findPreciseItem(final GenericStack item) {
+        if (item == null || !(item.what() instanceof appeng.api.stacks.AEItemKey)) {
+            return null;
+        }
+        return findPreciseItem((IAEItemStack) item.toIAEStack());
+    }
+
     /**
      * 获取指定栈的模糊匹配。
      */
@@ -480,6 +487,13 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             return Collections.emptyList();
         }
         return this.getItemListInternal().findFuzzy(filter, fuzzy);
+    }
+
+    public Collection<IAEItemStack> findFuzzyItems(final GenericStack filter, final FuzzyMode fuzzy) {
+        if (filter == null || !(filter.what() instanceof appeng.api.stacks.AEItemKey)) {
+            return Collections.emptyList();
+        }
+        return findFuzzyItems((IAEItemStack) filter.toIAEStack(), fuzzy);
     }
 
     @SuppressWarnings("unchecked")
