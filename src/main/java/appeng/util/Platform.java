@@ -910,30 +910,34 @@ public class Platform {
      * @return deserialized generic stack, or null if tag is empty
      */
     @Nullable
-    public static IAEStack<?> readStackNBT(@Nullable final NBTTagCompound tag, final boolean convert) {
+    public static GenericStack readStackNBT(@Nullable final NBTTagCompound tag, final boolean convert) {
         if (tag == null || tag.isEmpty()) {
             return null;
         }
 
-        // New format: StackType as string
-        String stackType = tag.getString("StackType");
-        if (!stackType.isEmpty()) {
-            return IAEStack.fromNBTGeneric(tag);
+        // New format: generic GenericStack serialization
+        GenericStack result = GenericStack.readTag(tag);
+        if (result != null) {
+            return result;
         }
 
-        // Legacy format: no StackType key; try item stack first, then fluid
+        // Legacy format: try item stack first, then fluid
         IAEItemStack itemStack = AEItemStack.fromNBT(tag);
         if (itemStack != null) {
             if (convert) {
-                return convertLegacyStack(itemStack);
+                IAEStack<?> converted = convertLegacyStack(itemStack);
+                if (converted != null) {
+                    return new GenericStack(converted.toAEKey(), converted.getStackSize());
+                }
+                return null;
             }
-            return itemStack;
+            return new GenericStack(itemStack.toAEKey(), itemStack.getStackSize());
         }
 
         // Try legacy AEFluidStack NBT format (with Amt / FluidName keys)
         IAEFluidStack fluidStack = AEFluidStack.fromNBT(tag);
         if (fluidStack != null) {
-            return fluidStack;
+            return new GenericStack(fluidStack.toAEKey(), fluidStack.getStackSize());
         }
 
         return null;
@@ -943,27 +947,8 @@ public class Platform {
      * Simplified version: no legacy format conversion.
      */
     @Nullable
-    public static IAEStack<?> readStackNBT(@Nullable final NBTTagCompound tag) {
+    public static GenericStack readStackNBT(@Nullable final NBTTagCompound tag) {
         return readStackNBT(tag, false);
-    }
-
-    /**
-     * Read a GenericStack from NBT.
-     * Handles both new generic format and legacy IAEItemStack/IAEFluidStack formats.
-     */
-    @Nullable
-    public static GenericStack readStackFromNBT(@Nullable final NBTTagCompound tag, final boolean convert) {
-        IAEStack<?> result = readStackNBT(tag, convert);
-        if (result == null) return null;
-        return new GenericStack(result.toAEKey(), result.getStackSize());
-    }
-
-    /**
-     * Simplified version: no legacy format conversion.
-     */
-    @Nullable
-    public static GenericStack readStackFromNBT(@Nullable final NBTTagCompound tag) {
-        return readStackFromNBT(tag, false);
     }
 
     /**
@@ -1013,45 +998,24 @@ public class Platform {
      * @param convert whether to convert legacy FluidDummyItem items automatically
      * @return generic stack list
      */
-    public static IItemList<IAEStack<?>> readAEStackListNBT(@Nullable final NBTTagList tags, boolean convert) {
-        @SuppressWarnings("unchecked")
-        final IItemList<IAEStack<?>> out = (IItemList<IAEStack<?>>) (Object) new IAEStackList();
+    public static List<GenericStack> readAEStackListNBT(@Nullable final NBTTagList tags, boolean convert) {
+        final List<GenericStack> out = new ArrayList<>();
 
         if (tags != null) {
             for (int x = 0; x < tags.tagCount(); x++) {
-                final IAEStack<?> ais = readStackNBT(tags.getCompoundTagAt(x), convert);
+                final GenericStack ais = readStackNBT(tags.getCompoundTagAt(x), convert);
                 if (ais != null) {
-                    out.addGeneric(ais);
+                    out.add(ais);
                 }
             }
         }
         return out;
     }
 
-    /**
-     * Simplified version: no legacy format conversion.
-     */
-    public static IItemList<IAEStack<?>> readAEStackListNBT(@Nullable final NBTTagList tags) {
+    public static List<GenericStack> readAEStackListNBT(@Nullable final NBTTagList tags) {
         return readAEStackListNBT(tags, false);
     }
 
-    /**
-     * Write generic stack list to {@link NBTTagList} (using new format).
-     *
-     * @param myList stack list
-     * @return the resulting NBTTagList
-     */
-    public static NBTTagList writeAEStackListNBT(final IItemList<?> myList) {
-        return writeAEStackListNBT(myList, new NBTTagList());
-    }
-
-    /**
-     * Append generic stack list to an existing {@link NBTTagList}.
-     *
-     * @param myList stack list
-     * @param out    existing NBTTagList
-     * @return the resulting NBTTagList
-     */
     @SuppressWarnings("unchecked")
     public static NBTTagList writeAEStackListNBT(final IItemList<?> myList, NBTTagList out) {
         for (final IAEStack<?> ais : (Iterable<IAEStack<?>>) (Object) myList) {

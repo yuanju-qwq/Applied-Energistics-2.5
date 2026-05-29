@@ -20,7 +20,6 @@ package appeng.helpers;
 
 import static appeng.helpers.PatternHelper.convertToCondensedAEList;
 import static appeng.helpers.PatternHelper.convertToCondensedList;
-import static appeng.util.Platform.readStackFromNBT;
 import static appeng.util.Platform.readStackNBT;
 import static appeng.util.Platform.stackConvert;
 
@@ -127,8 +126,8 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         // ========== Parse inputs ==========
         for (int x = 0; x < inTag.tagCount(); x++) {
             final NBTTagCompound tag = inTag.getCompoundTagAt(x);
-            // readStackFromNBT(tag, true): enable legacy FluidDummyItem auto-conversion
-            final GenericStack aeStack = readStackFromNBT(tag, true);
+            // readStackNBT(tag, true): enable legacy FluidDummyItem auto-conversion
+            final GenericStack aeStack = readStackNBT(tag, true);
 
             if (aeStack == null && !tag.isEmpty()) {
                 encodedValue.setBoolean("InvalidPattern", true);
@@ -145,7 +144,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         // ========== Parse outputs ==========
         for (int x = 0; x < outTag.tagCount(); x++) {
             final NBTTagCompound tag = outTag.getCompoundTagAt(x);
-            final GenericStack aeStack = readStackFromNBT(tag, true);
+            final GenericStack aeStack = readStackNBT(tag, true);
 
             if (aeStack == null && !tag.isEmpty()) {
                 encodedValue.setBoolean("InvalidPattern", true);
@@ -338,7 +337,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
                 continue;
             }
 
-            GenericStack gs = readStackFromNBT(tag, true);
+            GenericStack gs = readStackNBT(tag, true);
             if (gs == null && unknownItem != null && !unknownItem.isEmpty()) {
                 gs = GenericStack.fromItemStack(unknownItem);
             }
