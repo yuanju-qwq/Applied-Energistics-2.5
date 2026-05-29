@@ -492,13 +492,12 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
     private boolean canCraft(final ICraftingPatternDetails details, final GenericStack[] condensedInputs) {
         if (!details.isCraftable()) {
-            // 加工模式：使用泛型提取检查所有类型（物品+流体等）
+            // Processing mode: use generic extraction to check all types (items + fluids)
             for (GenericStack condensedInput : condensedInputs) {
-                final IAEStack<?> input = condensedInput != null ? condensedInput.toIAEStack() : null;
-                if (input == null) continue;
-                final IAEStack<?> ais = this.inventory.extractAny(input.copy(), Actionable.SIMULATE);
+                if (condensedInput == null) continue;
+                final GenericStack ais = this.inventory.extractAny(condensedInput, Actionable.SIMULATE);
 
-                if (ais == null || ais.getStackSize() < input.getStackSize()) {
+                if (ais == null || ais.amount() < condensedInput.amount()) {
                     return false;
                 }
             }

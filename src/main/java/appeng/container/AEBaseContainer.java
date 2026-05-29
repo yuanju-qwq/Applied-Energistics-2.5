@@ -1137,7 +1137,7 @@ public abstract class AEBaseContainer extends Container {
                 if (spill != null && spill.amount() > 0) {
                     // Attempt to put spilled fluid back into the container
                     AEFluidStackType.INSTANCE.fillToContainer(
-                            actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
+                            actualDrain.getResultContainer(), spill, false);
                 }
             }
 

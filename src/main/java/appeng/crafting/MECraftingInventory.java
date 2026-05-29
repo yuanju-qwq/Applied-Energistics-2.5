@@ -397,15 +397,21 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
 
         final IAEStack<?> ret = request.copy();
         ret.setStackSize(stack.getStackSize());
-
         if (mode == Actionable.MODULATE) {
             stack.reset();
             if (this.logExtracted) {
-                this.extractedCache.add(ret.toAEKey(), ret.getStackSize());
+                this.extractedCache.add(request.toAEKey(), ret.getStackSize());
             }
         }
-
         return ret;
+    }
+
+    public GenericStack extractAny(final GenericStack request, final Actionable mode) {
+        if (request == null) return null;
+        IAEStack<?> aeReq = request.toIAEStack();
+        if (aeReq == null) return null;
+        IAEStack<?> result = extractAny(aeReq, mode);
+        return result != null ? new GenericStack(result.toAEKey(), result.getStackSize()) : null;
     }
 
     /**
