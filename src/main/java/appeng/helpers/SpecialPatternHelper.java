@@ -226,19 +226,19 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
         // ========== GenericStack array initialization ==========
         this.inputStacks = new GenericStack[this.genericInputs.length];
         for (int i = 0; i < this.genericInputs.length; i++) {
-            this.inputStacks[i] = GenericStack.fromIAEStack(this.genericInputs[i]);
+            this.inputStacks[i] = new GenericStack(this.genericInputs[i].toAEKey(), this.genericInputs[i].getStackSize());
         }
         this.outputStacks = new GenericStack[this.genericOutputs.length];
         for (int i = 0; i < this.genericOutputs.length; i++) {
-            this.outputStacks[i] = GenericStack.fromIAEStack(this.genericOutputs[i]);
+            this.outputStacks[i] = new GenericStack(this.genericOutputs[i].toAEKey(), this.genericOutputs[i].getStackSize());
         }
         this.condensedInputStacks = new GenericStack[this.genericCondensedInputs.length];
         for (int i = 0; i < this.genericCondensedInputs.length; i++) {
-            this.condensedInputStacks[i] = GenericStack.fromIAEStack(this.genericCondensedInputs[i]);
+            this.condensedInputStacks[i] = new GenericStack(this.genericCondensedInputs[i].toAEKey(), this.genericCondensedInputs[i].getStackSize());
         }
         this.condensedOutputStacks = new GenericStack[this.genericCondensedOutputs.length];
         for (int i = 0; i < this.genericCondensedOutputs.length; i++) {
-            this.condensedOutputStacks[i] = GenericStack.fromIAEStack(this.genericCondensedOutputs[i]);
+            this.condensedOutputStacks[i] = new GenericStack(this.genericCondensedOutputs[i].toAEKey(), this.genericCondensedOutputs[i].getStackSize());
         }
     }
 

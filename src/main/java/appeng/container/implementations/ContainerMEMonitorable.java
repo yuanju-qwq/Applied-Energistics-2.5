@@ -100,8 +100,8 @@ public class ContainerMEMonitorable extends AEBaseContainer
     public final IItemList<IAEItemStack> items = AEItemStackType.INSTANCE.createList();
 
     /**
-     * 多类型 Monitor 映射：每种已注册的 IAEStackType 对应一个 IMEMonitor。
-     * 物品和流体（以及未来扩展的其他类型）都在同一个终端中监控。
+     * 多类�?Monitor 映射：每种已注册�?IAEStackType 对应一�?IMEMonitor�?
+     * 物品和流体（以及未来扩展的其他类型）都在同一个终端中监控�?
      */
     private final Map<IAEStackType<?>, IMEMonitor<?>> monitors = new IdentityHashMap<>();
 
@@ -122,8 +122,8 @@ public class ContainerMEMonitorable extends AEBaseContainer
     private final ITerminalHost host;
 
     /**
-     * 获取终端宿主实例。
-     * 用于 MUI 面板子类在不需要显式传入 host 的情况下获取 host 引用。
+     * 获取终端宿主实例�?
+     * 用于 MUI 面板子类在不需要显式传�?host 的情况下获取 host 引用�?
      */
     public ITerminalHost getHost() {
         return this.host;
@@ -138,13 +138,13 @@ public class ContainerMEMonitorable extends AEBaseContainer
     protected int jeiOffset = Platform.isModLoaded("jei") ? 24 : 0;
 
     /**
-     * 当 onListUpdate 触发时标记为 true，下次 detectAndSendChanges 时发送全量。
+     * �?onListUpdate 触发时标记为 true，下�?detectAndSendChanges 时发送全量�?
      */
     private boolean needListUpdate = false;
 
-    // 服务端 Pins 处理器
+    // 服务�?Pins 处理�?
     private PinsHandler serverPinsHandler;
-    // 标记是否需要在下次 detectAndSendChanges 时发送初始 Pins 数据
+    // 标记是否需要在下次 detectAndSendChanges 时发送初�?Pins 数据
     private boolean needsInitialPinsSync = true;
 
     public ContainerMEMonitorable(final InventoryPlayer ip, final ITerminalHost monitorable) {
@@ -258,7 +258,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
             return ItemStack.EMPTY;
         }
 
-        // Shift-click fluid container (bucket) → auto-empty into network
+        // Shift-click fluid container (bucket) �?auto-empty into network
         if (p instanceof EntityPlayerMP playerMP) {
             final Slot clickedSlot = this.inventorySlots.get(idx);
             if (clickedSlot != null && clickedSlot.getHasStack()) {
@@ -271,14 +271,14 @@ public class ContainerMEMonitorable extends AEBaseContainer
                             (IMEMonitor<IAEFluidStack>) this.monitors.get(AEFluidStackType.INSTANCE);
                     if (fluidMonitor != null) {
                         final IActionSource src = new PlayerSource(playerMP, (IActionHost) this.host);
-                        final IAEFluidStack notInserted = fluidMonitor.injectItems(
-                                drainResult.getTransferred(), Actionable.SIMULATE, src);
-                        if (notInserted == null || notInserted.getStackSize() == 0) {
+                        final GenericStack notInserted = fluidMonitor.injectItems(
+                                new GenericStack(drainResult.getTransferred().toAEKey(), drainResult.getTransferredAmount()), Actionable.SIMULATE, src);
+                        if (notInserted == null || notInserted.amount() == 0) {
                             final ContainerInteractionResult<IAEFluidStack> actualDrain =
                                     AEFluidStackType.INSTANCE.drainFromContainer(tis,
-                                            drainResult.getTransferred().getStackSize(), false);
+                                            drainResult.getTransferredAmount(), false);
                             if (actualDrain.isSuccess()) {
-                                fluidMonitor.injectItems(actualDrain.getTransferred(),
+                                fluidMonitor.injectItems(actualDrain.getTransferredGenericStack(),
                                         Actionable.MODULATE, src);
                                 clickedSlot.putStack(actualDrain.getResultContainer());
                                 this.detectAndSendChanges();
@@ -794,10 +794,10 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     /**
-     * 处理流体桶的装/取操作。
+     * 处理流体桶的�?取操作�?
      * <p>
-     * FILL_ITEM：从网络提取流体，装入玩家手持的桶/容器。
-     * EMPTY_ITEM：从玩家手持的桶/容器中提取流体，注入网络。
+     * FILL_ITEM：从网络提取流体，装入玩家手持的�?容器�?
+     * EMPTY_ITEM：从玩家手持的桶/容器中提取流体，注入网络�?
      */
     private void doFluidBucketAction(final EntityPlayerMP player, final InventoryAction action,
             final int slot, final long id) {
@@ -824,9 +824,9 @@ public class ContainerMEMonitorable extends AEBaseContainer
                     final ContainerInteractionResult<IAEFluidStack> fillResult =
                             AEFluidStackType.INSTANCE.fillToContainer(held, extracted, false);
                     if (fillResult.isSuccess()) {
-                        final IAEFluidStack toExtract = targetFluid.copy();
-                        toExtract.setStackSize(fillResult.getTransferred().getStackSize());
-                        fluidMonitor.extractItems(toExtract, Actionable.MODULATE, src);
+                        fluidMonitor.extractItems(
+                                new GenericStack(targetFluid.toAEKey(), fillResult.getTransferredAmount()),
+                                Actionable.MODULATE, src);
                         player.inventory.setItemStack(fillResult.getResultContainer());
                         this.updateHeld(player);
                     }
@@ -836,15 +836,15 @@ public class ContainerMEMonitorable extends AEBaseContainer
             final ContainerInteractionResult<IAEFluidStack> drainResult =
                     AEFluidStackType.INSTANCE.drainFromContainer(held, Integer.MAX_VALUE, true);
             if (drainResult.isSuccess()) {
-                final IAEFluidStack notInserted = fluidMonitor.injectItems(
-                        drainResult.getTransferred(), Actionable.SIMULATE, src);
-                if (notInserted == null || notInserted.getStackSize() == 0) {
+                final GenericStack notInserted = fluidMonitor.injectItems(
+                        new GenericStack(drainResult.getTransferred().toAEKey(), drainResult.getTransferredAmount()), Actionable.SIMULATE, src);
+                if (notInserted == null || notInserted.amount() == 0) {
                     // Actually drain and insert
                     final ContainerInteractionResult<IAEFluidStack> actualDrain =
                             AEFluidStackType.INSTANCE.drainFromContainer(held,
-                                    drainResult.getTransferred().getStackSize(), false);
+                                    drainResult.getTransferredAmount(), false);
                     if (actualDrain.isSuccess()) {
-                        fluidMonitor.injectItems(actualDrain.getTransferred(), Actionable.MODULATE, src);
+                        fluidMonitor.injectItems(actualDrain.getTransferredGenericStack(), Actionable.MODULATE, src);
                         player.inventory.setItemStack(actualDrain.getResultContainer());
                         this.updateHeld(player);
                     }

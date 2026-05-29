@@ -337,7 +337,8 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             // 余量放入副产品库存
             if (matchingOutputRemainderItems > 0) {
                 context.byproductsInventory.injectItems(
-                        matchingOutput.copy().setStackSize(matchingOutputRemainderItems), Actionable.MODULATE);
+                        new GenericStack(matchingOutput.toAEKey(), matchingOutputRemainderItems),
+                        Actionable.MODULATE);
             }
 
             // 复杂配方处理（合成台容器物品等）
@@ -350,7 +351,8 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 if (output != matchingOutput) {
                     final IAEStack<?> injected = output.copy()
                             .setStackSize(Math.multiplyExact(maxCraftable, output.getStackSize()));
-                    context.byproductsInventory.injectItems(injected, Actionable.MODULATE);
+                    context.byproductsInventory.injectItems(
+                            new GenericStack(injected.toAEKey(), injected.getStackSize()), Actionable.MODULATE);
                     this.byproducts.put(injected.copy(), output.getStackSize());
                 }
             }
@@ -394,7 +396,8 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 if (leftover == null || leftover.getStackSize() <= 0) {
                     continue;
                 }
-                context.byproductsInventory.injectItems(leftover, Actionable.MODULATE);
+                context.byproductsInventory.injectItems(
+                        new GenericStack(leftover.toAEKey(), leftover.getStackSize()), Actionable.MODULATE);
                 this.byproducts.put(leftover.copy(), leftover.getStackSize());
             }
         }

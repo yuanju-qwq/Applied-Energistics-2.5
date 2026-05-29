@@ -89,7 +89,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
                     .getInventory(AEItemStackType.INSTANCE);
 
             final GenericStack out = inv.injectItems(
-                    GenericStack.fromIAEStack(AEItemStackType.INSTANCE.createStack(stack)),
+                    GenericStack.fromItemStack(stack),
                     Actionable.SIMULATE,
                     this.source);
             if (out == null) {
@@ -193,11 +193,12 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
         if (!newItems.isEmpty()) {
             final IAEItemStack aeStack = AEItemStackType.INSTANCE
                     .createStack(newItems);
-            final IAEItemStack failed = appeng.util.StorageHelper.poweredInsert(energy, inv, aeStack, this.source);
+            final GenericStack failed = appeng.util.StorageHelper.poweredInsert(energy, inv,
+                    new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()), this.source);
 
             if (failed != null) {
                 // try unpowered insert, better be a bit lenient then void items
-                final GenericStack spill = inv.injectItems(GenericStack.fromIAEStack(failed), Actionable.MODULATE, this.source);
+                final GenericStack spill = inv.injectItems(failed, Actionable.MODULATE, this.source);
                 if (spill != null) {
                     // last resort try to put it back .. lets hope it's a chest type of thing
                     myAdaptor.addItems(((AEItemKey) spill.what()).toStack((int) spill.amount()));
@@ -229,12 +230,12 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
         final ItemStack simResult;
         if (this.getInstalledUpgrades(Upgrades.FUZZY) > 0) {
             simResult = myAdaptor.simulateSimilarRemove(toSend, itemStackToImport, fzMode, null);
-            itemAmountNotStorable = GenericStack.fromIAEStack(inv.injectItems(AEItemStack.fromItemStack(simResult), Actionable.SIMULATE,
-                    this.source));
+            itemAmountNotStorable = inv.injectItems(GenericStack.fromItemStack(simResult), Actionable.SIMULATE,
+                    this.source);
         } else {
             simResult = myAdaptor.simulateRemove(toSend, itemStackToImport, null);
-            itemAmountNotStorable = GenericStack.fromIAEStack(inv.injectItems(AEItemStack.fromItemStack(simResult), Actionable.SIMULATE,
-                    this.source));
+            itemAmountNotStorable = inv.injectItems(GenericStack.fromItemStack(simResult), Actionable.SIMULATE,
+                    this.source);
         }
 
         if (simResult.isEmpty()) {

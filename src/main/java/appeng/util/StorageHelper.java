@@ -234,7 +234,7 @@ public final class StorageHelper {
 
     public static IAEStack<?> injectItems(final IMEInventory<?> inv, final IAEStack<?> input,
             final Actionable mode, final IActionSource src) {
-        GenericStack gs = GenericStack.fromIAEStack(input);
+        GenericStack gs = new GenericStack(input.toAEKey(), input.getStackSize());
         if (gs == null) return null;
         GenericStack result = inv.injectItems(gs, mode, src);
         return result != null ? result.toIAEStack() : null;
@@ -242,7 +242,7 @@ public final class StorageHelper {
 
     public static IAEStack<?> extractItems(final IMEInventory<?> inv, final IAEStack<?> request,
             final Actionable mode, final IActionSource src) {
-        GenericStack gs = GenericStack.fromIAEStack(request);
+        GenericStack gs = new GenericStack(request.toAEKey(), request.getStackSize());
         if (gs == null) return null;
         GenericStack result = inv.extractItems(gs, mode, src);
         return result != null ? result.toIAEStack() : null;
@@ -290,7 +290,7 @@ public final class StorageHelper {
         IAEStack<?> aeInput = input.toIAEStack();
         if (aeInput == null) return null;
         IAEStack<?> result = (IAEStack<?>) poweredInsert(energy, (IMEInventory) cell, (IAEStack) aeInput, src);
-        return result != null ? GenericStack.fromIAEStack(result) : null;
+        return result != null ? new GenericStack(result.toAEKey(), result.getStackSize()) : null;
     }
 
     /**
@@ -304,7 +304,29 @@ public final class StorageHelper {
         IAEStack<?> aeRequest = request.toIAEStack();
         if (aeRequest == null) return null;
         IAEStack<?> result = (IAEStack<?>) poweredExtraction(energy, (IMEInventory) cell, (IAEStack) aeRequest, src);
-        return result != null ? GenericStack.fromIAEStack(result) : null;
+        return result != null ? new GenericStack(result.toAEKey(), result.getStackSize()) : null;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Nullable
+    public static GenericStack poweredInsert(IEnergySource energy, IMEInventory<?> cell,
+            GenericStack input, IActionSource src, Actionable mode) {
+        if (input == null) return null;
+        IAEStack<?> aeInput = input.toIAEStack();
+        if (aeInput == null) return null;
+        IAEStack<?> result = (IAEStack<?>) poweredInsert(energy, (IMEInventory) cell, (IAEStack) aeInput, src, mode);
+        return result != null ? new GenericStack(result.toAEKey(), result.getStackSize()) : null;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Nullable
+    public static GenericStack poweredExtraction(IEnergySource energy, IMEInventory<?> cell,
+            GenericStack request, IActionSource src, Actionable mode) {
+        if (request == null) return null;
+        IAEStack<?> aeRequest = request.toIAEStack();
+        if (aeRequest == null) return null;
+        IAEStack<?> result = (IAEStack<?>) poweredExtraction(energy, (IMEInventory) cell, (IAEStack) aeRequest, src, mode);
+        return result != null ? new GenericStack(result.toAEKey(), result.getStackSize()) : null;
     }
 
     /**

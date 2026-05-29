@@ -10,6 +10,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import appeng.api.config.Actionable;
+import appeng.api.stacks.GenericStack;
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -133,11 +134,11 @@ public class ExtractItemResolver implements CraftingRequestResolver {
                 final IAEStack<?> available = removedIt.next();
                 final long availAmount = available.getStackSize();
                 if (availAmount > amount) {
-                    target.injectItems(available.copy().setStackSize(amount), Actionable.MODULATE);
+                    target.injectItems(new GenericStack(available.toAEKey(), amount), Actionable.MODULATE);
                     available.setStackSize(availAmount - amount);
                     amount = 0;
                 } else {
-                    target.injectItems(available, Actionable.MODULATE);
+                    target.injectItems(new GenericStack(available.toAEKey(), availAmount), Actionable.MODULATE);
                     amount -= availAmount;
                     removedIt.remove();
                 }
@@ -148,10 +149,12 @@ public class ExtractItemResolver implements CraftingRequestResolver {
         @Override
         public void fullRefund(CraftingContext context) {
             for (IAEStack<?> removed : removedFromByproducts) {
-                context.byproductsInventory.injectItems(removed, Actionable.MODULATE);
+                context.byproductsInventory.injectItems(
+                        new GenericStack(removed.toAEKey(), removed.getStackSize()), Actionable.MODULATE);
             }
             for (IAEStack<?> removed : removedFromSystem) {
-                context.itemModel.injectItems(removed, Actionable.MODULATE);
+                context.itemModel.injectItems(
+                        new GenericStack(removed.toAEKey(), removed.getStackSize()), Actionable.MODULATE);
             }
             removedFromSystem.clear();
         }

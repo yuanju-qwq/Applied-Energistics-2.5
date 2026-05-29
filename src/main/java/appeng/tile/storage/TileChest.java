@@ -61,6 +61,7 @@ import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.util.AEColor;
 import appeng.api.util.IConfigManager;
@@ -449,13 +450,13 @@ public class TileChest extends AENetworkPowerTile
             this.updateHandler();
 
             if (this.cellHandler != null && this.cellHandler.getStackType() == AEItemStackType.INSTANCE) {
-                final IAEItemStack returns = appeng.util.StorageHelper.poweredInsert(this, this.cellHandler,
-                        AEItemStack.fromItemStack(this.inputInventory.getStackInSlot(0)), this.mySrc);
+                final GenericStack returns = appeng.util.StorageHelper.poweredInsert(this, this.cellHandler,
+                        GenericStack.fromItemStack(this.inputInventory.getStackInSlot(0)), this.mySrc);
 
                 if (returns == null) {
                     this.inputInventory.setStackInSlot(0, ItemStack.EMPTY);
                 } else {
-                    this.inputInventory.setStackInSlot(0, returns.createItemStack());
+                    this.inputInventory.setStackInSlot(0, ((AEItemKey) returns.what()).toStack((int) returns.amount()));
                 }
             }
         }
@@ -759,14 +760,14 @@ public class TileChest extends AENetworkPowerTile
             TileChest.this.updateHandler();
             if (TileChest.this.cellHandler != null && TileChest.this.cellHandler
                     .getStackType() == AEFluidStackType.INSTANCE) {
-                final IAEFluidStack results = appeng.util.StorageHelper.poweredInsert(TileChest.this, TileChest.this.cellHandler,
-                        AEFluidStack.fromFluidStack(resource),
+                final GenericStack results = appeng.util.StorageHelper.poweredInsert(TileChest.this, TileChest.this.cellHandler,
+                        GenericStack.fromFluidStack(resource),
                         TileChest.this.mySrc, doFill ? Actionable.MODULATE : Actionable.SIMULATE);
 
                 if (results == null) {
                     return resource.amount;
                 }
-                return resource.amount - (int) results.getStackSize();
+                return resource.amount - (int) results.amount();
             }
             return 0;
         }

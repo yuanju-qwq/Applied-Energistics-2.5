@@ -587,15 +587,15 @@ public class TileMolecularAssembler extends AENetworkInvTile
             IAEItemStack toInsert = AEItemStack.fromItemStack(output);
             IMEMonitor<IAEItemStack> inv = inventory
                     .getInventory(AEItemStackType.INSTANCE);
-            GenericStack remainder = inv.injectItems(GenericStack.fromIAEStack(toInsert), Actionable.SIMULATE, this.mySrc);
+            GenericStack remainder = inv.injectItems(new GenericStack(toInsert.toAEKey(), toInsert.getStackSize()), Actionable.SIMULATE, this.mySrc);
             if (remainder == null) {
-                inv.injectItems(GenericStack.fromIAEStack(toInsert), Actionable.MODULATE, this.mySrc);
+                inv.injectItems(new GenericStack(toInsert.toAEKey(), toInsert.getStackSize()), Actionable.MODULATE, this.mySrc);
                 return ItemStack.EMPTY;
             } else {
                 if (remainder.amount() == toInsert.getStackSize()) {
                     return output;
                 }
-                inv.injectItems(GenericStack.fromIAEStack(toInsert.setStackSize(toInsert.getStackSize() - (int) remainder.amount())),
+                inv.injectItems(new GenericStack(toInsert.toAEKey(), toInsert.getStackSize() - (int) remainder.amount()),
                         Actionable.MODULATE, this.mySrc);
                 this.saveChanges();
                 return ((AEItemKey) remainder.what()).toStack((int) remainder.amount());

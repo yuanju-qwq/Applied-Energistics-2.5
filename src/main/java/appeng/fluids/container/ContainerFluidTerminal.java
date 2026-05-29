@@ -71,8 +71,8 @@ import appeng.util.Platform;
  * @author BrockWS
  * @version rv6 - 12/05/2018
  * @since rv6 12/05/2018
- * @deprecated 使用 {@link appeng.container.implementations.ContainerMEMonitorable} 替代，
- *             该终端已支持物品+流体的统一浏览和桶交互。
+ * @deprecated 使用 {@link appeng.container.implementations.ContainerMEMonitorable} 替代�?
+ *             该终端已支持物品+流体的统一浏览和桶交互�?
  */
 @Deprecated
 public class ContainerFluidTerminal extends AEBaseContainer
@@ -294,13 +294,13 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 }
 
                 // Simulate insert
-                final IAEFluidStack notStorable = appeng.util.StorageHelper.poweredInsert(
+                final GenericStack notStorable = appeng.util.StorageHelper.poweredInsert(
                         this.getPowerSource(), this.monitor,
-                        simDrain.getTransferred(), this.getActionSource(), Actionable.SIMULATE);
+                        simDrain.getTransferredGenericStack(), this.getActionSource(), Actionable.SIMULATE);
 
-                long toDrain = simDrain.getTransferred().getStackSize();
-                if (notStorable != null && notStorable.getStackSize() > 0) {
-                    toDrain -= notStorable.getStackSize();
+                long toDrain = simDrain.getTransferredAmount();
+                if (notStorable != null && notStorable.amount() > 0) {
+                    toDrain -= notStorable.amount();
                     if (toDrain <= 0) {
                         return ItemStack.EMPTY;
                     }
@@ -314,20 +314,20 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 }
 
                 // Insert into ME
-                final IAEFluidStack notInserted = appeng.util.StorageHelper.poweredInsert(
+                final GenericStack notInserted = appeng.util.StorageHelper.poweredInsert(
                         this.getPowerSource(), this.monitor,
-                        actualDrain.getTransferred(), this.getActionSource());
+                        actualDrain.getTransferredGenericStack(), this.getActionSource());
 
-                if (notInserted != null && notInserted.getStackSize() > 0) {
-GenericStack spill = this.monitor.injectItems(GenericStack.fromIAEStack(notInserted), Actionable.MODULATE,
-                        this.getActionSource());
-                if (spill != null && spill.amount() > 0) {
-                    AEFluidStackType.INSTANCE.fillToContainer(
-                            actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
+                if (notInserted != null && notInserted.amount() > 0) {
+                    GenericStack spill = this.monitor.injectItems(notInserted, Actionable.MODULATE,
+                            this.getActionSource());
+                    if (spill != null && spill.amount() > 0) {
+                        AEFluidStackType.INSTANCE.fillToContainer(
+                                actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
                     }
                 }
 
-                if (notInserted == null || notInserted.getStackSize() == 0) {
+                if (notInserted == null || notInserted.amount() == 0) {
                     if (!player.inventory.addItemStackToInventory(actualDrain.getResultContainer())) {
                         player.dropItem(actualDrain.getResultContainer(), false);
                     }
@@ -370,11 +370,11 @@ GenericStack spill = this.monitor.injectItems(GenericStack.fromIAEStack(notInser
                 }
 
                 // Simulate pull from ME
-                final IAEFluidStack canPull = appeng.util.StorageHelper.poweredExtraction(
+                final GenericStack canPull = appeng.util.StorageHelper.poweredExtraction(
                         this.getPowerSource(), this.monitor,
-                        target.copy().setStackSize(simFill.getTransferred().getStackSize()),
+                        new GenericStack(target.toAEKey(), simFill.getTransferredAmount()),
                         this.getActionSource(), Actionable.SIMULATE);
-                if (canPull == null || canPull.getStackSize() < 1) {
+                if (canPull == null || canPull.amount() < 1) {
                     return;
                 }
 
@@ -386,11 +386,11 @@ GenericStack spill = this.monitor.injectItems(GenericStack.fromIAEStack(notInser
                 }
 
                 // Actually pull
-                final IAEFluidStack pulled = appeng.util.StorageHelper.poweredExtraction(
+                final GenericStack pulled = appeng.util.StorageHelper.poweredExtraction(
                         this.getPowerSource(), this.monitor,
-                        target.copy().setStackSize(simFill2.getTransferred().getStackSize()),
+                        new GenericStack(target.toAEKey(), simFill2.getTransferredAmount()),
                         this.getActionSource());
-                if (pulled == null || pulled.getStackSize() < 1) {
+                if (pulled == null || pulled.amount() < 1) {
                     AELog.error("Unable to pull fluid out of the ME system even though the simulation said yes ");
                     return;
                 }
@@ -428,13 +428,13 @@ GenericStack spill = this.monitor.injectItems(GenericStack.fromIAEStack(notInser
                 }
 
                 // Simulate insert into ME
-                final IAEFluidStack notStorable = appeng.util.StorageHelper.poweredInsert(
+                final GenericStack notStorable = appeng.util.StorageHelper.poweredInsert(
                         this.getPowerSource(), this.monitor,
-                        simDrain.getTransferred(), this.getActionSource(), Actionable.SIMULATE);
+                        simDrain.getTransferredGenericStack(), this.getActionSource(), Actionable.SIMULATE);
 
-                long toDrain = simDrain.getTransferred().getStackSize();
-                if (notStorable != null && notStorable.getStackSize() > 0) {
-                    toDrain -= notStorable.getStackSize();
+                long toDrain = simDrain.getTransferredAmount();
+                if (notStorable != null && notStorable.amount() > 0) {
+                    toDrain -= notStorable.amount();
                     if (toDrain <= 0) {
                         return;
                     }
@@ -448,16 +448,16 @@ GenericStack spill = this.monitor.injectItems(GenericStack.fromIAEStack(notInser
                 }
 
                 // Insert into ME
-                final IAEFluidStack notInserted = appeng.util.StorageHelper.poweredInsert(
+                final GenericStack notInserted = appeng.util.StorageHelper.poweredInsert(
                         this.getPowerSource(), this.monitor,
-                        actualDrain.getTransferred(), this.getActionSource());
+                        actualDrain.getTransferredGenericStack(), this.getActionSource());
 
-                if (notInserted != null && notInserted.getStackSize() > 0) {
-GenericStack spill = this.monitor.injectItems(GenericStack.fromIAEStack(notInserted), Actionable.MODULATE,
-                        this.getActionSource());
-                if (spill != null && spill.amount() > 0) {
-                    AEFluidStackType.INSTANCE.fillToContainer(
-                            actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
+                if (notInserted != null && notInserted.amount() > 0) {
+                    GenericStack spill = this.monitor.injectItems(notInserted, Actionable.MODULATE,
+                            this.getActionSource());
+                    if (spill != null && spill.amount() > 0) {
+                        AEFluidStackType.INSTANCE.fillToContainer(
+                                actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
                     }
                 }
 
@@ -506,7 +506,7 @@ GenericStack spill = this.monitor.injectItems(GenericStack.fromIAEStack(notInser
     }
 
     /**
-     * 客户端接收流体库存更新包。
+     * 客户端接收流体库存更新包�?
      */
     public void postUpdate(final List<IAEStack<?>> list) {
         final IConfigManagerHost gui = this.getGui();

@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
@@ -75,9 +76,23 @@ public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T
     }
 
     @Override
+    @Deprecated
     public IItemList<T> getAvailableItems(final IItemList<T> out) {
         super.getAvailableItems(new ItemListIgnoreCrafting(out));
         return out;
+    }
+
+    @Override
+    public KeyCounter getAvailableKeyCounter() {
+        var raw = super.getAvailableKeyCounter();
+        var filtered = new KeyCounter();
+        for (var entry : raw) {
+            var stack = entry.getKey().toIAEStack(entry.getLongValue());
+            if (stack == null || !stack.isCraftable()) {
+                filtered.add(entry.getKey(), entry.getLongValue());
+            }
+        }
+        return filtered;
     }
 
     @Override
@@ -99,7 +114,13 @@ public class MEMonitorPassThrough<T extends IAEStack<T>> extends MEPassThrough<T
     public IItemList<T> getStorageList() {
         if (this.monitor == null) {
             final IItemList<T> out = this.getWrappedType().createList();
-            this.getInternal().getAvailableItems(new ItemListIgnoreCrafting(out));
+            var kc = this.getInternal().getAvailableKeyCounter();
+            for (var entry : kc) {
+                var stack = entry.getKey().toIAEStack(entry.getLongValue());
+                if (stack != null) {
+                    out.add((T) stack);
+                }
+            }
             return out;
         }
         return this.monitor.getStorageList();

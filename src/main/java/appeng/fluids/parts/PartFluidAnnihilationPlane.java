@@ -258,7 +258,7 @@ public class PartFluidAnnihilationPlane extends PartBasicState implements IGridT
 
             if (modulate) {
                 final IEnergyGrid energy = this.getProxy().getEnergy();
-                return appeng.util.StorageHelper.poweredInsert(energy, inv, stack, this.mySrc) == null;
+                return appeng.util.StorageHelper.poweredInsert(energy, inv, new GenericStack(stack.toAEKey(), stack.getStackSize()), this.mySrc) == null;
             } else {
                 final float requiredPower = stack.getStackSize() / Math.min(1.0f, stack.getStackType().transferFactor());
                 final IEnergyGrid energy = this.getProxy().getEnergy();
@@ -266,7 +266,7 @@ public class PartFluidAnnihilationPlane extends PartBasicState implements IGridT
                 if (energy.extractAEPower(requiredPower, Actionable.SIMULATE, PowerMultiplier.CONFIG) < requiredPower) {
                     return false;
                 }
-                final GenericStack leftOver = inv.injectItems(GenericStack.fromIAEStack(stack), Actionable.SIMULATE, this.mySrc);
+                final GenericStack leftOver = inv.injectItems(new GenericStack(stack.toAEKey(), stack.getStackSize()), Actionable.SIMULATE, this.mySrc);
                 return leftOver == null || leftOver.amount() == 0;
             }
         } catch (final GridAccessException e) {

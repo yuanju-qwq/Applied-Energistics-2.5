@@ -263,7 +263,7 @@ public class TileCraftingTile extends AENetworkTile implements IAEMultiBlock<Cra
                 ais = ais.copy();
                 ais.setStackSize(ais.getDefinition().getMaxStackSize());
                 while (true) {
-                    GenericStack gs = inv.extractItems(GenericStack.fromIAEStack(ais.copy()), Actionable.MODULATE,
+                    GenericStack gs = inv.extractItems(new GenericStack(ais.toAEKey(), ais.getStackSize()), Actionable.MODULATE,
                             this.cluster.getActionSource());
                     IAEItemStack g = gs != null ? (IAEItemStack) gs.toIAEStack() : null;
                     if (g == null) {

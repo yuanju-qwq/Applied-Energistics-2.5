@@ -159,11 +159,11 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
         // Build GenericStack arrays
         this.inputStacks = new GenericStack[this.inputs.length];
         for (int i = 0; i < this.inputs.length; i++) {
-            this.inputStacks[i] = GenericStack.fromIAEStack(this.inputs[i]);
+            this.inputStacks[i] = new GenericStack(this.inputs[i].toAEKey(), this.inputs[i].getStackSize());
         }
         this.outputStacks = new GenericStack[this.outputs.length];
         for (int i = 0; i < this.outputs.length; i++) {
-            this.outputStacks[i] = GenericStack.fromIAEStack(this.outputs[i]);
+            this.outputStacks[i] = new GenericStack(this.outputs[i].toAEKey(), this.outputs[i].getStackSize());
         }
 
         final Map<IAEItemStack, IAEItemStack> tmpOutputs = new HashMap<>();
@@ -221,11 +221,11 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
         // Build condensed GenericStack arrays
         this.condensedInputStacks = new GenericStack[this.condensedInputs.length];
         for (int i = 0; i < this.condensedInputs.length; i++) {
-            this.condensedInputStacks[i] = GenericStack.fromIAEStack(this.condensedInputs[i]);
+            this.condensedInputStacks[i] = new GenericStack(this.condensedInputs[i].toAEKey(), this.condensedInputs[i].getStackSize());
         }
         this.condensedOutputStacks = new GenericStack[this.condensedOutputs.length];
         for (int i = 0; i < this.condensedOutputs.length; i++) {
-            this.condensedOutputStacks[i] = GenericStack.fromIAEStack(this.condensedOutputs[i]);
+            this.condensedOutputStacks[i] = new GenericStack(this.condensedOutputs[i].toAEKey(), this.condensedOutputs[i].getStackSize());
         }
     }
 
@@ -539,8 +539,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     // ========== 静态工具方法：列表压缩 ==========
 
     /**
-     * 将物品栈数组中的相同项合并（压缩）。
-     */
+     * 将物品栈数组中的相同项合并（压缩）�?     */
     public static IAEItemStack[] convertToCondensedList(final IAEItemStack[] items) {
         final LinkedHashMap<IAEItemStack, IAEItemStack> tmp = new LinkedHashMap<>();
         for (final IAEItemStack io : items) {
@@ -558,8 +557,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     }
 
     /**
-     * 将generic stack array中的相同项合并（压缩）。
-     */
+     * 将generic stack array中的相同项合并（压缩）�?     */
     @SuppressWarnings("unchecked")
     public static IAEStack<?>[] convertToCondensedAEList(final IAEStack<?>[] items) {
         final LinkedHashMap<IAEStack<?>, IAEStack<?>> tmp = new LinkedHashMap<>();

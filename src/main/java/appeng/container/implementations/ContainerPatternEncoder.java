@@ -32,6 +32,7 @@ import appeng.api.networking.security.IActionHost;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.StorageName;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -921,12 +922,12 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                 return;
             }
 
-            final IAEItemStack extracted = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.getCellInventory(),
-                    out, this.getActionSource());
+            final GenericStack extracted = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(),
+                    this.getCellInventory(), GenericStack.fromIAEStack(out), this.getActionSource());
             final EntityPlayer p = this.getPlayerInv().player;
 
             if (extracted != null) {
-                inv.addItems(extracted.createItemStack());
+                inv.addItems(((AEItemKey) extracted.what()).toStack((int) extracted.amount()));
                 if (p instanceof EntityPlayerMP) {
                     this.updateHeld((EntityPlayerMP) p);
                 }

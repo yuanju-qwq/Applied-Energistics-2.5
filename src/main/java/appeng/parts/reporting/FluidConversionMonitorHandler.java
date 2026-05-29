@@ -26,6 +26,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
 
 import appeng.api.config.Actionable;
+import appeng.api.stacks.GenericStack;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.parts.IConversionMonitorHandler;
@@ -90,12 +91,12 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
         }
 
         // Simulate: check if ME network can accept
-        final IAEFluidStack notStorable = StorageHelper.poweredInsert(
-                energy, monitor, simDrain.getTransferred(), src, Actionable.SIMULATE);
+        final GenericStack notStorable = StorageHelper.poweredInsert(
+                energy, monitor, simDrain.getTransferredGenericStack(), src, Actionable.SIMULATE);
 
-        long toDrain = simDrain.getTransferred().getStackSize();
-        if (notStorable != null && notStorable.getStackSize() > 0) {
-            toDrain -= notStorable.getStackSize();
+        long toDrain = simDrain.getTransferredAmount();
+        if (notStorable != null && notStorable.amount() > 0) {
+            toDrain -= notStorable.amount();
             if (toDrain <= 0) {
                 return;
             }
@@ -109,10 +110,10 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
         }
 
         // Insert into ME network
-        final IAEFluidStack notInserted = StorageHelper.poweredInsert(
-                energy, monitor, actualDrain.getTransferred(), src);
+        final GenericStack notInserted = StorageHelper.poweredInsert(
+                energy, monitor, actualDrain.getTransferredGenericStack(), src);
 
-        if (notInserted != null && notInserted.getStackSize() > 0) {
+        if (notInserted != null && notInserted.amount() > 0) {
             AELog.error("Fluid item [%s] reported a different possible amount to drain than it actually provided.",
                     held.getDisplayName());
         }
@@ -120,7 +121,7 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
         player.setHeldItem(hand, actualDrain.getResultContainer());
     }
 
-    // Fluids don't support "insert all from inventory" — containers are handled one at a time
+    // Fluids don't support "insert all from inventory" �?containers are handled one at a time
     @Override
     public void insertAllFromPlayer(
             @Nonnull EntityPlayer player,
@@ -157,11 +158,9 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
         }
 
         // Simulate: check if ME network has enough
-        final IAEFluidStack request = displayed.copy();
-        request.setStackSize(simFill.getTransferred().getStackSize());
-        final IAEFluidStack canPull = StorageHelper.poweredExtraction(
-                energy, monitor, request, src, Actionable.SIMULATE);
-        if (canPull == null || canPull.getStackSize() < 1) {
+        final GenericStack canPull = StorageHelper.poweredExtraction(
+                energy, monitor, new GenericStack(displayed.toAEKey(), simFill.getTransferredAmount()), src, Actionable.SIMULATE);
+        if (canPull == null || canPull.amount() < 1) {
             return;
         }
 
@@ -173,10 +172,9 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
         }
 
         // Actually pull from ME network
-        final IAEFluidStack pullRequest = displayed.copy();
-        pullRequest.setStackSize(simFill2.getTransferred().getStackSize());
-        final IAEFluidStack pulled = StorageHelper.poweredExtraction(energy, monitor, pullRequest, src);
-        if (pulled == null || pulled.getStackSize() < 1) {
+        final GenericStack pulled = StorageHelper.poweredExtraction(energy, monitor,
+                new GenericStack(displayed.toAEKey(), simFill2.getTransferredAmount()), src);
+        if (pulled == null || pulled.amount() < 1) {
             AELog.error("Unable to pull fluid out of the ME system even though the simulation said yes ");
             return;
         }
@@ -186,7 +184,7 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
                 AEFluidStackType.INSTANCE.fillToContainer(held, pulled, false);
 
         if (!actualFill.isSuccess()
-                || actualFill.getTransferred().getStackSize() != pulled.getStackSize()) {
+                || actualFill.getTransferredAmount() != pulled.amount()) {
             AELog.error("Fluid item [%s] reported a different possible amount than it actually accepted.",
                     held.getDisplayName());
         }

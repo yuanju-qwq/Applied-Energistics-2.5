@@ -135,7 +135,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
             }
 
             // GenericStack list
-            inGenericStack.add(GenericStack.fromIAEStack(aeStack));
+            inGenericStack.add(new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()));
             // Legacy item list: convert fluids to FluidDummyItem items via stackConvert
             inLegacy.add(stackConvert(aeStack));
             in.add(aeStack);
@@ -152,7 +152,7 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
             }
 
             // GenericStack list
-            outGenericStack.add(GenericStack.fromIAEStack(aeStack));
+            outGenericStack.add(new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()));
             outLegacy.add(stackConvert(aeStack));
             out.add(aeStack);
         }

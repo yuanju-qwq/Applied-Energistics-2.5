@@ -216,7 +216,7 @@ public class Platform {
     }
 
     /**
-     * 使用 {@link AEGuiKey} 打开 GUI（新主入口）。
+     * 使用 {@link AEGuiKey} 打开 GUI（新主入口）�?
      */
     public static void openGUI(@Nonnull final EntityPlayer p, @Nullable final TileEntity tile,
             @Nullable final AEPartLocation side, @Nonnull final AEGuiKey guiKey) {
@@ -224,7 +224,7 @@ public class Platform {
             return;
         }
 
-        // ExternalGui 仍需通过 legacy bridge 处理（过渡期）
+        // ExternalGui 仍需通过 legacy bridge 处理（过渡期�?
         final GuiBridge bridge = guiKey.getLegacyBridge();
         if (bridge != null && bridge.getExternalGui() != null) {
             GuiWrapper.IExternalGui obj = bridge.getExternalGui();
@@ -284,7 +284,7 @@ public class Platform {
     }
 
     /**
-     * 使用 {@link AEGuiKey} 在指定槽位打开 GUI（新主入口）。
+     * 使用 {@link AEGuiKey} 在指定槽位打开 GUI（新主入口）�?
      */
     public static void openGUI(@Nonnull final EntityPlayer p, int slot, @Nonnull final AEGuiKey guiKey,
             boolean isBauble) {
@@ -292,7 +292,7 @@ public class Platform {
             return;
         }
 
-        // ExternalGui 仍需通过 legacy bridge 处理（过渡期）
+        // ExternalGui 仍需通过 legacy bridge 处理（过渡期�?
         final GuiBridge bridge = guiKey.getLegacyBridge();
         if (bridge != null && bridge.getExternalGui() != null) {
             GuiWrapper.IExternalGui obj = bridge.getExternalGui();
@@ -326,10 +326,10 @@ public class Platform {
     }
 
     /**
-     * 将 {@link AEGuiKey} 编码为沿用旧协议格式的 GUI 网络标识。
+     * �?{@link AEGuiKey} 编码为沿用旧协议格式�?GUI 网络标识�?
      *
-     * @deprecated 已不再使用，Token Map 方案取代了 ordinal 编码。
-     *             保留以备外部兼容，后续阶段清理。
+     * @deprecated 已不再使用，Token Map 方案取代�?ordinal 编码�?
+     *             保留以备外部兼容，后续阶段清理�?
      */
     @Deprecated
     public static int encodeGuiNetworkId(@Nonnull final AEGuiKey guiKey, final boolean usingItemOnTile,
@@ -349,7 +349,7 @@ public class Platform {
     }
 
     /**
-     * @deprecated 随 {@link #encodeGuiNetworkId} 一同废弃。
+     * @deprecated �?{@link #encodeGuiNetworkId} 一同废弃�?
      */
     @Deprecated
     @Nullable
@@ -472,7 +472,7 @@ public class Platform {
             final String n = ((AEItemStack) o).getDisplayName();
             return n == null ? "** Null" : n;
         } else if (o instanceof IAEStack) {
-            // 泛型 IAEStack 类型（包括 AEFluidStack 等），使用通用的 getDisplayName()
+            // 泛型 IAEStack 类型（包�?AEFluidStack 等），使用通用�?getDisplayName()
             final String n = ((IAEStack<?>) o).getDisplayName();
             return n == null ? "** Null" : n;
         } else if (o instanceof ItemStack) {
@@ -724,7 +724,7 @@ public class Platform {
             ae_req.setStackSize(1);
 
             if (filter == null || filter.isListed(ae_req)) {
-                final GenericStack ae_ext = src.extractItems(GenericStack.fromIAEStack(ae_req), realForFake, mySrc);
+                final GenericStack ae_ext = src.extractItems(new GenericStack(ae_req.toAEKey(), ae_req.getStackSize()), realForFake, mySrc);
                 if (ae_ext != null) {
                     final ItemStack extracted = ((AEItemKey) ae_ext.what()).toStack((int) ae_ext.amount());
                     if (!extracted.isEmpty()) {
@@ -751,7 +751,7 @@ public class Platform {
                             final IAEItemStack ax = x.copy();
                             ax.setStackSize(1);
                             if (filter == null || filter.isListed(ax)) {
-                                final GenericStack ex = src.extractItems(GenericStack.fromIAEStack(ax), realForFake, mySrc);
+                                final GenericStack ex = src.extractItems(new GenericStack(ax.toAEKey(), ax.getStackSize()), realForFake, mySrc);
                                 if (ex != null) {
                                     energySrc.extractAEPower(1, realForFake, PowerMultiplier.CONFIG);
                                     return ((AEItemKey) ex.what()).toStack((int) ex.amount());
@@ -884,25 +884,25 @@ public class Platform {
     }
 
     /**
-     * 向上整除（ceiling division），等价于 Math.ceil((double)a / b) 但使用整数运算。
+     * 向上整除（ceiling division），等价�?Math.ceil((double)a / b) 但使用整数运算�?
      */
     public static long ceilDiv(long a, long b) {
         return (a + b - 1) / b;
     }
 
     /**
-     * 比较两个泛型 IAEStack 是否完全相同（包括类型、内容和数量）。
+     * 比较两个泛型 IAEStack 是否完全相同（包括类型、内容和数量）�?
      */
 
-    // ========== 泛型栈 NBT 序列化/反序列化工具方法 ==========
+    // ========== 泛型�?NBT 序列�?反序列化工具方法 ==========
 
     /**
      * Read a generic {@link IAEStack} from NBT.
      * <p>
      * Supports two NBT formats for seamless legacy save migration:
      * <ol>
-     *   <li><b>New format</b>: contains {@code "StackType"} string key → deserialized via {@link IAEStack#fromNBTGeneric(NBTTagCompound)}</li>
-     *   <li><b>Legacy format</b>: no {@code "StackType"} key → treated as {@link IAEItemStack}, optionally converting FluidDummyItem placeholders</li>
+     *   <li><b>New format</b>: contains {@code "StackType"} string key �?deserialized via {@link IAEStack#fromNBTGeneric(NBTTagCompound)}</li>
+     *   <li><b>Legacy format</b>: no {@code "StackType"} key �?treated as {@link IAEItemStack}, optionally converting FluidDummyItem placeholders</li>
      * </ol>
      *
      * @param tag     NBT tag
@@ -921,7 +921,7 @@ public class Platform {
             return IAEStack.fromNBTGeneric(tag);
         }
 
-        // 旧格式：无 StackType 键，先尝试物品栈，再尝试流体栈
+        // 旧格式：�?StackType 键，先尝试物品栈，再尝试流体�?
         IAEItemStack itemStack = AEItemStack.fromNBT(tag);
         if (itemStack != null) {
             if (convert) {
@@ -940,7 +940,7 @@ public class Platform {
     }
 
     /**
-     * 简化版本：不做旧格式转换。
+     * 简化版本：不做旧格式转换�?
      */
     @Nullable
     public static IAEStack<?> readStackNBT(@Nullable final NBTTagCompound tag) {
@@ -948,18 +948,18 @@ public class Platform {
     }
 
     /**
-     * 将泛型栈写入 NBT。
+     * 将泛型栈写入 NBT�?
      *
      * @param stack    泛型栈，可为 null
      * @param tag      写入目标
-     * @param isModern true = 使用新格式（带 "StackType" 字符串），false = 使用旧格式（兼容旧版 AE2）
+     * @param isModern true = 使用新格式（�?"StackType" 字符串），false = 使用旧格式（兼容旧版 AE2�?
      * @return 写入后的 tag
      */
     public static NBTTagCompound writeStackNBT(@Nullable final IAEStack<?> stack, final NBTTagCompound tag,
             boolean isModern) {
         if (stack != null) {
             if (isModern) {
-                // 新格式：带类型标识
+                // 新格式：带类型标�?
                 stack.writeToNBTGeneric(tag);
             } else if (stack instanceof IAEItemStack) {
                 // 旧格式：直接作为物品栈序列化
@@ -979,13 +979,13 @@ public class Platform {
     }
 
     /**
-     * 将泛型栈写入 NBT（默认使用新格式）。
+     * 将泛型栈写入 NBT（默认使用新格式）�?
      */
     public static NBTTagCompound writeStackNBT(@Nullable final IAEStack<?> stack, final NBTTagCompound tag) {
         return writeStackNBT(stack, tag, true);
     }
 
-    // ========== 泛型栈列表 NBT 序列化/反序列化 ==========
+    // ========== 泛型栈列�?NBT 序列�?反序列化 ==========
 
     /**
      * Read a generic stack list from {@link NBTTagList}.
@@ -1010,16 +1010,16 @@ public class Platform {
     }
 
     /**
-     * 简化版本：不做旧格式转换。
+     * 简化版本：不做旧格式转换�?
      */
     public static IItemList<IAEStack<?>> readAEStackListNBT(@Nullable final NBTTagList tags) {
         return readAEStackListNBT(tags, false);
     }
 
     /**
-     * 将泛型栈列表写入 {@link NBTTagList}（使用新格式）。
+     * 将泛型栈列表写入 {@link NBTTagList}（使用新格式）�?
      *
-     * @param myList 栈列表
+     * @param myList 栈列�?
      * @return 写入后的 NBTTagList
      */
     public static NBTTagList writeAEStackListNBT(final IItemList<?> myList) {
@@ -1027,10 +1027,10 @@ public class Platform {
     }
 
     /**
-     * 将泛型栈列表追加到已有的 {@link NBTTagList}。
+     * 将泛型栈列表追加到已有的 {@link NBTTagList}�?
      *
-     * @param myList 栈列表
-     * @param out    已有的 NBTTagList
+     * @param myList 栈列�?
+     * @param out    已有�?NBTTagList
      * @return 写入后的 NBTTagList
      */
     @SuppressWarnings("unchecked")

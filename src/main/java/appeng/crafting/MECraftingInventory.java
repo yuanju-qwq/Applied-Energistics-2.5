@@ -280,7 +280,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         }
         IItemList<?> itemList = this.getList(AEItemStackType.INSTANCE);
         for (final IAEItemStack is : target.getStorageList()) {
-            GenericStack extracted = target.extractItems(GenericStack.fromIAEStack(is), Actionable.SIMULATE, src);
+            GenericStack extracted = target.extractItems(new GenericStack(is.toAEKey(), is.getStackSize()), Actionable.SIMULATE, src);
             if (extracted != null) {
                 itemList.addGeneric(extracted.toIAEStack());
             }
@@ -362,6 +362,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     /**
      * 注入任意类型的栈。
      */
+    @Deprecated
     public void injectItems(final IAEStack<?> input, final Actionable mode) {
         if (input != null && mode == Actionable.MODULATE) {
             addToTypedList(this.getList(input.getStackType()), input);
@@ -369,6 +370,13 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
                 this.injectedCache.add(input.toAEKey(), input.getStackSize());
             }
         }
+    }
+
+    /**
+     * 注入 GenericStack，无 action source。
+     */
+    public void injectItems(final GenericStack input, final Actionable mode) {
+        injectItems(input, mode, null);
     }
 
     public IAEStack<?> extractAny(final IAEStack<?> request, final Actionable mode) {
@@ -650,6 +658,10 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         return new GenericStack(request.what(), extracted);
     }
 
+    public GenericStack extractItems(final GenericStack request, final Actionable mode) {
+        return extractItems(request, mode, null);
+    }
+
     @Override
     public KeyCounter getAvailableKeyCounter() {
         KeyCounter out = new KeyCounter();
@@ -772,7 +784,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             return stack; // 没有对应 monitor，返回原栈表示注入失败
         } else if (this.legacyTarget != null && stack instanceof IAEItemStack) {
             // v1 向后兼容路径 — 只处理物品
-            GenericStack result = this.legacyTarget.injectItems(GenericStack.fromIAEStack(stack), mode, src);
+            GenericStack result = this.legacyTarget.injectItems(new GenericStack(stack.toAEKey(), stack.getStackSize()), mode, src);
             return result != null ? result.toIAEStack() : null;
         }
         return stack;
@@ -794,7 +806,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             return null;
         } else if (this.legacyTarget != null && stack instanceof IAEItemStack) {
             // v1 向后兼容路径 — 只处理物品
-            GenericStack result = this.legacyTarget.extractItems(GenericStack.fromIAEStack(stack), mode, src);
+            GenericStack result = this.legacyTarget.extractItems(new GenericStack(stack.toAEKey(), stack.getStackSize()), mode, src);
             return result != null ? result.toIAEStack() : null;
         }
         return null;

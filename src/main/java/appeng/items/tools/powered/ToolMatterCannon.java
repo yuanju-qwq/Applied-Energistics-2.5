@@ -187,7 +187,7 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
                             return new ActionResult<>(EnumActionResult.SUCCESS, p.getHeldItem(hand));
                         }
 
-                        GenericStack gsAmmo = inv.extractItems(GenericStack.fromIAEStack(aeAmmo), Actionable.MODULATE, new PlayerSource(p, null));
+                        GenericStack gsAmmo = inv.extractItems(new GenericStack(aeAmmo.toAEKey(), aeAmmo.getStackSize()), Actionable.MODULATE, new PlayerSource(p, null));
                         aeAmmo = gsAmmo != null ? (IAEItemStack) gsAmmo.toIAEStack() : null;
                         if (aeAmmo == null) {
                             return new ActionResult<>(EnumActionResult.SUCCESS, p.getHeldItem(hand));

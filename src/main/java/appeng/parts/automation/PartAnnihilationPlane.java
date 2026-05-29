@@ -304,7 +304,7 @@ public class PartAnnihilationPlane extends PartBasicState implements IGridTickab
      */
     private boolean storeEntityItem(final EntityItem entityItem) {
         if (!entityItem.isDead) {
-            final IAEItemStack overflow = this.storeItemStack(entityItem.getItem());
+            final GenericStack overflow = this.storeItemStack(entityItem.getItem());
 
             return this.handleOverflow(entityItem, overflow);
         }
@@ -318,14 +318,13 @@ public class PartAnnihilationPlane extends PartBasicState implements IGridTickab
      * @param item {@link ItemStack} to store
      * @return the leftover items, which could not be stored inside the network
      */
-    private IAEItemStack storeItemStack(final ItemStack item) {
-        final IAEItemStack itemToStore = AEItemStack.fromItemStack(item);
+    private GenericStack storeItemStack(final ItemStack item) {
         try {
             final IStorageGrid storage = this.getProxy().getStorage();
             final IEnergyGrid energy = this.getProxy().getEnergy();
-            final IAEItemStack overflow = appeng.util.StorageHelper.poweredInsert(energy,
+            final GenericStack overflow = appeng.util.StorageHelper.poweredInsert(energy,
                     storage.getInventory(AEItemStackType.INSTANCE),
-                    itemToStore, this.mySrc);
+                    GenericStack.fromItemStack(item), this.mySrc);
 
             this.isAccepting = overflow == null;
 
@@ -345,14 +344,14 @@ public class PartAnnihilationPlane extends PartBasicState implements IGridTickab
      * @param overflow   the leftover {@link IAEItemStack}
      * @return true, if the entity was changed otherwise false.
      */
-    private boolean handleOverflow(final EntityItem entityItem, final IAEItemStack overflow) {
-        if (overflow == null || overflow.getStackSize() == 0) {
+    private boolean handleOverflow(final EntityItem entityItem, final GenericStack overflow) {
+        if (overflow == null || overflow.amount() == 0) {
             entityItem.setDead();
             return true;
         }
 
         final int oldStackSize = entityItem.getItem().getCount();
-        final int newStackSize = (int) overflow.getStackSize();
+        final int newStackSize = (int) overflow.amount();
         final boolean changed = oldStackSize != newStackSize;
 
         entityItem.getItem().setCount(newStackSize);
@@ -534,7 +533,7 @@ public class PartAnnihilationPlane extends PartBasicState implements IGridTickab
                 final IAEItemStack itemToTest = AEItemStack.fromItemStack(itemStack);
                 final GenericStack overflow = storage
                         .getInventory(AEItemStackType.INSTANCE)
-                        .injectItems(GenericStack.fromIAEStack(itemToTest), Actionable.SIMULATE, this.mySrc);
+                        .injectItems(new GenericStack(itemToTest.toAEKey(), itemToTest.getStackSize()), Actionable.SIMULATE, this.mySrc);
                 if (overflow != null) {
                     canStore = false;
                 }

@@ -170,6 +170,9 @@ public record GenericStack(AEKey what, long amount) {
 
     /**
      * Creates a GenericStack from a legacy {@link IAEStack}.
+     * <p>
+     * This is a bridge method for code that still holds an {@code IAEStack} reference
+     * from old-style APIs. Prefer creating {@code GenericStack} directly when possible.
      *
      * @return the GenericStack, or null if the input is null or conversion fails
      */

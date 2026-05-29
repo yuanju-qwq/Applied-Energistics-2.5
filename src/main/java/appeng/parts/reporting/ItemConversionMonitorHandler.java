@@ -35,6 +35,8 @@ import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.parts.IConversionMonitorHandler;
 import appeng.api.parts.IConversionMonitorHost;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
@@ -81,12 +83,12 @@ public final class ItemConversionMonitorHandler implements IConversionMonitorHan
             @Nonnull IEnergySource energy,
             @Nonnull IMEMonitor<IAEItemStack> monitor,
             @Nonnull IActionSource src) {
-        final IAEItemStack input = AEItemStack.fromItemStack(player.getHeldItem(hand));
+        final GenericStack input = GenericStack.fromItemStack(player.getHeldItem(hand));
         if (input == null) {
             return;
         }
-        final IAEItemStack failedToInsert = StorageHelper.poweredInsert(energy, monitor, input, src);
-        player.setHeldItem(hand, failedToInsert == null ? ItemStack.EMPTY : failedToInsert.createItemStack());
+        final GenericStack failedToInsert = StorageHelper.poweredInsert(energy, monitor, input, src);
+        player.setHeldItem(hand, failedToInsert == null ? ItemStack.EMPTY : ((AEItemKey) failedToInsert.what()).toStack((int) failedToInsert.amount()));
     }
 
     @Override
@@ -105,12 +107,12 @@ public final class ItemConversionMonitorHandler implements IConversionMonitorHan
                 final ItemStack canExtract = inv.extractItem(x, targetStack.getCount(), true);
                 if (!canExtract.isEmpty()) {
                     template.setStackSize(canExtract.getCount());
-                    final IAEItemStack failedToInsert = StorageHelper.poweredInsert(
-                            energy, monitor, template, src);
+                    final GenericStack failedToInsert = StorageHelper.poweredInsert(
+                            energy, monitor, new GenericStack(template.toAEKey(), template.getStackSize()), src);
                     inv.extractItem(x,
                             failedToInsert == null
                                     ? canExtract.getCount()
-                                    : canExtract.getCount() - (int) failedToInsert.getStackSize(),
+                                    : canExtract.getCount() - (int) failedToInsert.amount(),
                             false);
                 }
             }
@@ -130,9 +132,10 @@ public final class ItemConversionMonitorHandler implements IConversionMonitorHan
         final IAEItemStack request = displayed.copy();
         request.setStackSize(count);
 
-        final IAEItemStack retrieved = StorageHelper.poweredExtraction(energy, monitor, request, src);
+        final GenericStack retrieved = StorageHelper.poweredExtraction(energy, monitor,
+                new GenericStack(request.toAEKey(), request.getStackSize()), src);
         if (retrieved != null) {
-            ItemStack newItems = retrieved.createItemStack();
+            ItemStack newItems = ((AEItemKey) retrieved.what()).toStack((int) retrieved.amount());
             final InventoryAdaptor adaptor = InventoryAdaptor.getAdaptor(player);
             newItems = adaptor.addItems(newItems);
             if (!newItems.isEmpty()) {

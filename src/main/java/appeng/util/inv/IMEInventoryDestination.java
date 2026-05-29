@@ -41,7 +41,7 @@ public class IMEInventoryDestination implements IInventoryDestination {
             return false;
         }
 
-        final GenericStack failed = this.me.injectItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(stack)), Actionable.SIMULATE, null);
+        final GenericStack failed = this.me.injectItems(GenericStack.fromItemStack(stack), Actionable.SIMULATE, null);
 
         if (failed == null) {
             return true;

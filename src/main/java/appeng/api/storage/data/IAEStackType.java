@@ -35,6 +35,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 
+import appeng.api.stacks.GenericStack;
+
 /**
  * 表示一种 AE 存储栈的类型（如物品、流体等）。
  * <p>
@@ -188,6 +190,18 @@ public interface IAEStackType<T extends IAEStack<T>> {
     default ContainerInteractionResult<T> fillToContainer(
             @Nonnull ItemStack container, @Nonnull T stack, boolean simulate) {
         return ContainerInteractionResult.empty();
+    }
+
+    /**
+     * GenericStack variant of {@link #fillToContainer(ItemStack, IAEStack, boolean)}.
+     */
+    @Nonnull
+    @SuppressWarnings("unchecked")
+    default ContainerInteractionResult<T> fillToContainer(
+            @Nonnull ItemStack container, @Nonnull GenericStack stack, boolean simulate) {
+        T typed = (T) stack.toIAEStack();
+        if (typed == null) return ContainerInteractionResult.empty();
+        return fillToContainer(container, typed, simulate);
     }
 
     /**

@@ -28,6 +28,8 @@ import javax.annotation.Nullable;
 
 import net.minecraft.item.ItemStack;
 
+import appeng.api.stacks.GenericStack;
+
 /**
  * Result of a container interaction (drain/fill) operation on an {@link IAEStackType}.
  * <p>
@@ -86,6 +88,21 @@ public final class ContainerInteractionResult<T extends IAEStack<T>> {
     @Nullable
     public T getTransferred() {
         return transferred;
+    }
+
+    /**
+     * @return the amount transferred as a plain long (0 if none was transferred)
+     */
+    public long getTransferredAmount() {
+        return transferred != null ? transferred.getStackSize() : 0;
+    }
+
+    /**
+     * @return a GenericStack representing the transferred resource, or null if none was transferred
+     */
+    @Nullable
+    public GenericStack getTransferredGenericStack() {
+        return transferred != null ? new GenericStack(transferred.toAEKey(), transferred.getStackSize()) : null;
     }
 
     /**

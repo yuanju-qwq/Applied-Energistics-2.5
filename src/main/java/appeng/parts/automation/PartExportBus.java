@@ -276,17 +276,18 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
         if (canFit > 0) {
             IAEItemStack ais = org.copy();
             ais.setStackSize(canFit);
-            final IAEItemStack itemsToAdd = appeng.util.StorageHelper.poweredExtraction(energy, inv, ais, this.mySrc);
+            final GenericStack itemsToAdd = appeng.util.StorageHelper.poweredExtraction(energy, inv,
+                    new GenericStack(ais.toAEKey(), ais.getStackSize()), this.mySrc);
 
             if (itemsToAdd != null) {
-                this.itemToSend -= itemsToAdd.getStackSize();
+                this.itemToSend -= itemsToAdd.amount();
 
-                inputStack.setCount(Ints.saturatedCast(itemsToAdd.getStackSize()));
+                inputStack.setCount(Ints.saturatedCast(itemsToAdd.amount()));
 
                 final ItemStack failed = d.addItems(inputStack);
                 if (!failed.isEmpty()) {
                     ais.setStackSize(failed.getCount());
-                    inv.injectItems(GenericStack.fromIAEStack(ais), Actionable.MODULATE, this.mySrc);
+                    inv.injectItems(new GenericStack(ais.toAEKey(), ais.getStackSize()), Actionable.MODULATE, this.mySrc);
                 } else {
                     this.didSomething = true;
                 }

@@ -616,7 +616,7 @@ public class InterfaceLogic
     @Override
     public boolean canInsert(final ItemStack stack) {
         final GenericStack out = this.destination.injectItems(
-                GenericStack.fromIAEStack(AEItemStackType.INSTANCE.createStack(stack)), Actionable.SIMULATE, null);
+                GenericStack.fromItemStack(stack), Actionable.SIMULATE, null);
         if (out == null) {
             return true;
         }

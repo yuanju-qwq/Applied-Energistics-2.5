@@ -130,7 +130,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
 
         final IMEInventory<IAEItemStack> inv = getInventory(is);
         if (inv != null) {
-            GenericStack option = inv.extractItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(paintBall)), Actionable.SIMULATE,
+            GenericStack option = inv.extractItems(GenericStack.fromItemStack(paintBall), Actionable.SIMULATE,
                     new BaseActionSource());
 
             if (option != null) {
@@ -187,11 +187,14 @@ public class ToolColorApplicator extends AEBasePoweredItem
             return false;
 
         ItemStack paintItem = null;
-        for (final IAEItemStack what : inv.getAvailableItems(getStackType().createList())) {
-            final ItemStack def = what.createItemStack();
-            def.setCount(1);
-            if (getColorFromItem(def) == color) {
-                paintItem = def;
+        for (var entry : inv.getAvailableKeyCounter()) {
+            var stack = entry.getKey().toIAEStack(entry.getLongValue());
+            if (stack instanceof IAEItemStack aeStack) {
+                final ItemStack def = aeStack.createItemStack();
+                def.setCount(1);
+                if (getColorFromItem(def) == color) {
+                    paintItem = def;
+                }
             }
         }
 
@@ -207,12 +210,12 @@ public class ToolColorApplicator extends AEBasePoweredItem
             return false;
 
         final Actionable mode = simulate ? Actionable.SIMULATE : Actionable.MODULATE;
-        boolean success = inv.extractItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(paintItem)), mode, new BaseActionSource()) != null
+        boolean success = inv.extractItems(GenericStack.fromItemStack(paintItem), mode, new BaseActionSource()) != null
                 && this.extractAEPower(applicator, POWER_PER_USE, mode) >= POWER_PER_USE;
 
         // Clear the color when we run out
         if (success && !simulate && ItemStack.areItemStacksEqual(paintItem, getColor(applicator))) {
-            if (inv.extractItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(paintItem)), Actionable.SIMULATE,
+            if (inv.extractItems(GenericStack.fromItemStack(paintItem), Actionable.SIMULATE,
                     new BaseActionSource()) == null) {
                 setColor(applicator, ItemStack.EMPTY);
             }
@@ -230,11 +233,14 @@ public class ToolColorApplicator extends AEBasePoweredItem
         if (inv == null)
             return false;
 
-        for (IAEItemStack stack : inv.getAvailableItems(getStackType().createList())) {
-            ItemStack def = stack.getDefinition();
-            if (getColorFromItem(def) == color) {
-                setColor(applicator, def);
-                return true;
+        for (var entry : inv.getAvailableKeyCounter()) {
+            var stack = entry.getKey().toIAEStack(entry.getLongValue());
+            if (stack instanceof IAEItemStack aeStack) {
+                ItemStack def = aeStack.getDefinition();
+                if (getColorFromItem(def) == color) {
+                    setColor(applicator, def);
+                    return true;
+                }
             }
         }
         return false;
@@ -306,11 +312,16 @@ public class ToolColorApplicator extends AEBasePoweredItem
 
         final IMEInventory<IAEItemStack> inv = getInventory(is);
         if (inv != null) {
-            final IItemList<IAEItemStack> itemList = inv.getAvailableItems(getStackType().createList());
+            var itemList = new ArrayList<IAEItemStack>();
+            for (var entry : inv.getAvailableKeyCounter()) {
+                var stack = entry.getKey().toIAEStack(entry.getLongValue());
+                if (stack instanceof IAEItemStack aeStack) {
+                    itemList.add(aeStack);
+                }
+            }
             if (anchor.isEmpty()) {
-                final IAEItemStack firstItem = itemList.getFirstItem();
-                if (firstItem != null) {
-                    newColor = firstItem.asItemStackRepresentation();
+                if (!itemList.isEmpty()) {
+                    newColor = itemList.get(0).asItemStackRepresentation();
                 }
             } else {
                 final LinkedList<IAEItemStack> list = new LinkedList<>();

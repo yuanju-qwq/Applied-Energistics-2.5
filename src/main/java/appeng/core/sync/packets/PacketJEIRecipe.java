@@ -49,6 +49,7 @@ import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
@@ -185,12 +186,13 @@ public class PacketJEIRecipe extends AppEngPacket {
 
                     // put away old item
                     if (newItem != currentItem && security.hasPermission(player, SecurityPermissions.INJECT)) {
-                        final IAEItemStack in = AEItemStack.fromItemStack(currentItem);
-                        final IAEItemStack out = cct.useRealItems()
-                                ? appeng.util.StorageHelper.poweredInsert(energy, storage, in, cct.getActionSource())
+                        final GenericStack out = cct.useRealItems()
+                                ? appeng.util.StorageHelper.poweredInsert(energy, storage,
+                                        GenericStack.fromItemStack(currentItem),
+                                        cct.getActionSource())
                                 : null;
                         if (out != null) {
-                            currentItem = out.createItemStack();
+                            currentItem = ((AEItemKey) out.what()).toStack((int) out.amount());
                         } else {
                             currentItem = ItemStack.EMPTY;
                         }
@@ -206,10 +208,11 @@ public class PacketJEIRecipe extends AppEngPacket {
                             if ((filter == null || filter.isListed(request))
                                     && security.hasPermission(player, SecurityPermissions.EXTRACT)) {
                                 request.setStackSize(1);
-                                IAEItemStack out;
+                                GenericStack out;
 
                                 if (cct.useRealItems()) {
-                                    out = appeng.util.StorageHelper.poweredExtraction(energy, storage, request, cct.getActionSource());
+                                    out = appeng.util.StorageHelper.poweredExtraction(energy, storage,
+                                            new GenericStack(request.toAEKey(), request.getStackSize()), cct.getActionSource());
                                     if (out == null) {
                                         if (request.getItem().isDamageable()
                                                 || Platform.isGTDamageableItem(request.getItem())) {
@@ -227,7 +230,8 @@ public class PacketJEIRecipe extends AppEngPacket {
                                                     }
                                                 }
                                                 out = appeng.util.StorageHelper.poweredExtraction(energy, storage,
-                                                        is.copy().setStackSize(1), cct.getActionSource());
+                                                        new GenericStack(is.toAEKey(), 1),
+                                                        cct.getActionSource());
                                                 if (out != null) {
                                                     break;
                                                 }
@@ -237,19 +241,19 @@ public class PacketJEIRecipe extends AppEngPacket {
                                 } else {
                                     // Query the crafting grid if there is a pattern providing the item
                                     if (!crafting.getCraftingFor(request, null, 0, null).isEmpty()) {
-                                        out = request;
+                                        out = new GenericStack(request.toAEKey(), request.getStackSize());
                                     } else {
                                         // Fall back using an existing item
-                                        GenericStack gs = storage.extractItems(GenericStack.fromIAEStack(request), Actionable.SIMULATE, cct.getActionSource());
-                                        out = gs != null ? (IAEItemStack) gs.toIAEStack() : null;
+                                        out = storage.extractItems(new GenericStack(request.toAEKey(), request.getStackSize()),
+                                                Actionable.SIMULATE, cct.getActionSource());
                                     }
                                 }
 
                                 if (out != null) {
                                     if (!cct.useRealItems()) {
-                                        out.setStackSize(recipe.get(x)[y].getCount());
+                                        out = new GenericStack(out.what(), recipe.get(x)[y].getCount());
                                     }
-                                    currentItem = out.createItemStack();
+                                    currentItem = ((AEItemKey) out.what()).toStack((int) out.amount());
                                 }
                             }
 

@@ -100,7 +100,7 @@ public class PartFluidExportBus extends PartSharedFluidBus {
 
                             toExtract.setStackSize(this.calculateFluidAmountToSend());
 
-                            final GenericStack out = inv.extractItems(GenericStack.fromIAEStack(toExtract), Actionable.SIMULATE, this.source);
+                            final GenericStack out = inv.extractItems(new GenericStack(toExtract.toAEKey(), toExtract.getStackSize()), Actionable.SIMULATE, this.source);
 
                             if (out != null) {
                                 FluidStack fluidStack = ((AEFluidKey) out.what()).toStack((int) out.amount());
@@ -108,7 +108,7 @@ public class PartFluidExportBus extends PartSharedFluidBus {
 
                                 if (wasInserted > 0) {
                                     toExtract.setStackSize(wasInserted);
-                                    inv.extractItems(GenericStack.fromIAEStack(toExtract), Actionable.MODULATE, this.source);
+                                    inv.extractItems(new GenericStack(toExtract.toAEKey(), toExtract.getStackSize()), Actionable.MODULATE, this.source);
 
                                     return TickRateModulation.FASTER;
                                 }

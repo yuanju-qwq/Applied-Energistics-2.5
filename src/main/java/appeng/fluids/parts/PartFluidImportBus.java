@@ -100,7 +100,7 @@ public class PartFluidImportBus extends PartSharedFluidBus {
                     final AEFluidStack aeFluidStack = AEFluidStack.fromFluidStack(fluidStack);
 
                     if (aeFluidStack != null) {
-                        final GenericStack notInserted = inv.injectItems(GenericStack.fromIAEStack(aeFluidStack), Actionable.MODULATE,
+                        final GenericStack notInserted = inv.injectItems(new GenericStack(aeFluidStack.toAEKey(), aeFluidStack.getStackSize()), Actionable.MODULATE,
                                 this.source);
 
                         if (notInserted != null && notInserted.amount() > 0) {

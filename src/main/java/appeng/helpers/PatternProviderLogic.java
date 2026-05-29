@@ -594,7 +594,7 @@ public class PatternProviderLogic
                                 final Iterator<ItemStack> iter = facingQueue.iterator();
                                 while (iter.hasNext()) {
                                     ItemStack whatToSend = iter.next();
-                                    final GenericStack result = inv.injectItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(whatToSend)),
+                                    final GenericStack result = inv.injectItems(GenericStack.fromItemStack(whatToSend),
                                             appeng.api.config.Actionable.MODULATE, this.mySource);
                                     if (result != null) {
                                         whatToSend.setCount((int) result.amount());
@@ -701,7 +701,7 @@ public class PatternProviderLogic
                                 if (is.isEmpty()) {
                                     continue;
                                 }
-                                GenericStack result = inv.injectItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(is)),
+                                GenericStack result = inv.injectItems(GenericStack.fromItemStack(is),
                                         appeng.api.config.Actionable.SIMULATE, this.mySource);
                                 if (result != null) {
                                     allItemsCanBeInserted = false;
@@ -1405,8 +1405,8 @@ public class PatternProviderLogic
                 final appeng.api.networking.energy.IEnergySource src = gridProxy.getEnergy();
                 final IAEItemStack aeStack = AEItemStack.fromItemStack(stack);
 
-                final IAEItemStack remaining = appeng.util.StorageHelper.poweredInsert(
-                        src, storage.getInventory(AEItemStackType.INSTANCE), aeStack,
+                final GenericStack remaining = appeng.util.StorageHelper.poweredInsert(
+                        src, storage.getInventory(AEItemStackType.INSTANCE), new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()),
                         mySource, simulate ? Actionable.SIMULATE : Actionable.MODULATE);
 
                 if (remaining == null) {
@@ -1415,12 +1415,12 @@ public class PatternProviderLogic
                     }
                     return ItemStack.EMPTY;
                 }
-                if (!simulate && remaining.getStackSize() != stack.getCount()) {
+                if (!simulate && remaining.amount() != stack.getCount()) {
                     IAEItemStack inserted = aeStack.copy();
-                    inserted.setStackSize(aeStack.getStackSize() - remaining.getStackSize());
+                    inserted.setStackSize(aeStack.getStackSize() - remaining.amount());
                     iHost.onStackReturnNetwork(inserted);
                 }
-                return remaining.createItemStack();
+                return ((AEItemKey) remaining.what()).toStack((int) remaining.amount());
             } catch (GridAccessException e) {
                 return stack;
             }
@@ -1459,15 +1459,15 @@ public class PatternProviderLogic
                 final appeng.api.networking.energy.IEnergySource src = gridProxy.getEnergy();
                 final IAEFluidStack aeStack = AEFluidStack.fromFluidStack(resource);
 
-                final IAEFluidStack remaining = appeng.util.StorageHelper.poweredInsert(
-                        src, storage.getInventory(AEFluidStackType.INSTANCE), aeStack,
+                final GenericStack remaining = appeng.util.StorageHelper.poweredInsert(
+                        src, storage.getInventory(AEFluidStackType.INSTANCE), new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()),
                         mySource, doFill ? Actionable.MODULATE : Actionable.SIMULATE);
 
                 final long inserted;
                 if (remaining == null) {
                     inserted = resource.amount;
                 } else {
-                    inserted = resource.amount - remaining.getStackSize();
+                    inserted = resource.amount - remaining.amount();
                 }
 
                 if (doFill && inserted > 0) {
