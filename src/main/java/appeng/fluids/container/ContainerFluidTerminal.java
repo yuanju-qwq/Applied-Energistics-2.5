@@ -319,11 +319,11 @@ public class ContainerFluidTerminal extends AEBaseContainer
                         actualDrain.getTransferred(), this.getActionSource());
 
                 if (notInserted != null && notInserted.getStackSize() > 0) {
-                    IAEFluidStack spill = this.monitor.injectItems(notInserted, Actionable.MODULATE,
-                            this.getActionSource());
-                    if (spill != null && spill.getStackSize() > 0) {
-                        AEFluidStackType.INSTANCE.fillToContainer(
-                                actualDrain.getResultContainer(), spill, false);
+GenericStack spill = this.monitor.injectItems(GenericStack.fromIAEStack(notInserted), Actionable.MODULATE,
+                        this.getActionSource());
+                if (spill != null && spill.amount() > 0) {
+                    AEFluidStackType.INSTANCE.fillToContainer(
+                            actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
                     }
                 }
 
@@ -453,11 +453,11 @@ public class ContainerFluidTerminal extends AEBaseContainer
                         actualDrain.getTransferred(), this.getActionSource());
 
                 if (notInserted != null && notInserted.getStackSize() > 0) {
-                    IAEFluidStack spill = this.monitor.injectItems(notInserted, Actionable.MODULATE,
-                            this.getActionSource());
-                    if (spill != null && spill.getStackSize() > 0) {
-                        AEFluidStackType.INSTANCE.fillToContainer(
-                                actualDrain.getResultContainer(), spill, false);
+GenericStack spill = this.monitor.injectItems(GenericStack.fromIAEStack(notInserted), Actionable.MODULATE,
+                        this.getActionSource());
+                if (spill != null && spill.amount() > 0) {
+                    AEFluidStackType.INSTANCE.fillToContainer(
+                            actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
                     }
                 }
 

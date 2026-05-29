@@ -18,28 +18,29 @@
 
 package appeng.helpers.iface;
 
+import java.util.List;
 import java.util.Optional;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import javax.annotation.*;
 
 import com.google.common.primitives.Ints;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
 
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
-import appeng.api.storage.IMEInventory;
-import appeng.api.storage.IMEMonitor;
+import appeng.api.stacks.GenericStack;
+import appeng.api.storage.*;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.me.GridAccessException;
 import appeng.me.storage.MEMonitorIInventory;
-import appeng.util.inv.AdaptorItemHandler;
-import appeng.me.storage.NullInventory;
-import appeng.util.InventoryAdaptor;
+import appeng.util.Platform;
 import appeng.util.StorageHelper;
+import appeng.util.helpers.ItemComparisonHelper;
 import appeng.util.inv.AdaptorItemHandler;
 import appeng.util.item.AEItemStackType;
 
@@ -209,7 +210,19 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler<IAE
         }
 
         @Override
+        @Deprecated
         public IAEItemStack injectItems(final IAEItemStack input, final Actionable type, final IActionSource src) {
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            final Optional<Comparable> ctx = src.context(Comparable.class);
+            if (ctx.isPresent()) {
+                return input;
+            }
+            return super.injectItems(input, type, src);
+        }
+
+        @Override
+        public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
+            if (input == null) return null;
             @SuppressWarnings({"unchecked", "rawtypes"})
             final Optional<Comparable> ctx = src.context(Comparable.class);
             if (ctx.isPresent()) {
@@ -220,7 +233,21 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler<IAE
 
         @SuppressWarnings({"unchecked", "rawtypes"})
         @Override
+        @Deprecated
         public IAEItemStack extractItems(final IAEItemStack request, final Actionable type, final IActionSource src) {
+            final Optional<Comparable> ctx = src.context(Comparable.class);
+            final boolean hasLowerOrEqualPriority = ctx
+                    .map(c -> c.compareTo(context.getPriority()) <= 0).orElse(false);
+            if (hasLowerOrEqualPriority) {
+                return null;
+            }
+            return super.extractItems(request, type, src);
+        }
+
+        @Override
+        public GenericStack extractItems(final GenericStack request, final Actionable type, final IActionSource src) {
+            if (request == null) return null;
+            @SuppressWarnings({"unchecked", "rawtypes"})
             final Optional<Comparable> ctx = src.context(Comparable.class);
             final boolean hasLowerOrEqualPriority = ctx
                     .map(c -> c.compareTo(context.getPriority()) <= 0).orElse(false);

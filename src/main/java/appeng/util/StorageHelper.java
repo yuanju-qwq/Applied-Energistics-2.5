@@ -21,6 +21,8 @@ package appeng.util;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import com.google.common.base.Preconditions;
 
 import net.minecraft.item.ItemStack;
@@ -38,6 +40,9 @@ import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.core.stats.Stats;
 
 public final class StorageHelper {
@@ -149,13 +154,14 @@ public final class StorageHelper {
         return input;
     }
 
+    @SuppressWarnings("unchecked")
     public static void postChanges(final IStorageGrid gs, final ItemStack removed, final ItemStack added,
             final IActionSource src) {
         for (final IAEStackType<?> stackType : AEStackTypeRegistry.getAllTypes()) {
             final IItemList<? extends IAEStack<?>> myChanges;
 
             if (!removed.isEmpty()) {
-                final IMEInventory<?> myInv = AEApi.instance().registries().cell().getCellInventory(removed, null, stackType);
+                var myInv = AEApi.instance().registries().cell().getCellInventory(removed, null, stackType);
                 if (myInv != null) {
                     myChanges = getAvailableItems(myInv);
                     for (final IAEStack<?> is : myChanges) {
@@ -168,7 +174,7 @@ public final class StorageHelper {
                 myChanges = stackType.createList();
             }
             if (!added.isEmpty()) {
-                final IMEInventory<?> myInv = AEApi.instance().registries().cell().getCellInventory(added, null, stackType);
+                var myInv = AEApi.instance().registries().cell().getCellInventory(added, null, stackType);
                 if (myInv != null) {
                     getAvailableItemsInto(myInv, myChanges);
                 }
@@ -183,7 +189,15 @@ public final class StorageHelper {
 
     @SuppressWarnings("unchecked")
     public static IItemList<? extends IAEStack<?>> getAvailableItems(final IMEInventory<?> inv) {
-        return (IItemList<? extends IAEStack<?>>) (Object) inv.getAvailableItems();
+        KeyCounter kc = inv.getAvailableKeyCounter();
+        IItemList<?> out = inv.getStackType().createList();
+        for (var entry : kc) {
+            IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
+            if (stack != null) {
+                ((IItemList) out).add(stack);
+            }
+        }
+        return (IItemList<? extends IAEStack<?>>) out;
     }
 
     @SuppressWarnings("unchecked")
@@ -192,7 +206,15 @@ public final class StorageHelper {
             return getStorageViewFromMonitor(inv);
         }
 
-        return inv.getAvailableItems((IItemList<T>) (Object) inv.getStackType().createList());
+        IItemList<T> out = (IItemList<T>) inv.getStackType().createList();
+        KeyCounter kc = inv.getAvailableKeyCounter();
+        for (var entry : kc) {
+            IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
+            if (stack != null) {
+                out.add((T) stack);
+            }
+        }
+        return out;
     }
 
     @SuppressWarnings("unchecked")
@@ -212,12 +234,18 @@ public final class StorageHelper {
 
     public static IAEStack<?> injectItems(final IMEInventory<?> inv, final IAEStack<?> input,
             final Actionable mode, final IActionSource src) {
-        return inv.injectItemsGeneric(input, mode, src);
+        GenericStack gs = GenericStack.fromIAEStack(input);
+        if (gs == null) return null;
+        GenericStack result = inv.injectItems(gs, mode, src);
+        return result != null ? result.toIAEStack() : null;
     }
 
     public static IAEStack<?> extractItems(final IMEInventory<?> inv, final IAEStack<?> request,
             final Actionable mode, final IActionSource src) {
-        return inv.extractItemsGeneric(request, mode, src);
+        GenericStack gs = GenericStack.fromIAEStack(request);
+        if (gs == null) return null;
+        GenericStack result = inv.extractItems(gs, mode, src);
+        return result != null ? result.toIAEStack() : null;
     }
 
     @SuppressWarnings("unchecked")
@@ -247,5 +275,42 @@ public final class StorageHelper {
         if (!changes.isEmpty()) {
             monitorReceiver.postChange(null, changes, source);
         }
+    }
+
+    // ===================== GenericStack-based overloads =====================
+
+    /**
+     * GenericStack-based variant of {@link #poweredInsert(IEnergySource, IMEInventory, IAEStack, IActionSource)}.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Nullable
+    public static GenericStack poweredInsert(IEnergySource energy, IMEInventory<?> cell,
+            GenericStack input, IActionSource src) {
+        if (input == null) return null;
+        IAEStack<?> aeInput = input.toIAEStack();
+        if (aeInput == null) return null;
+        IAEStack<?> result = (IAEStack<?>) poweredInsert(energy, (IMEInventory) cell, (IAEStack) aeInput, src);
+        return result != null ? GenericStack.fromIAEStack(result) : null;
+    }
+
+    /**
+     * GenericStack-based variant of {@link #poweredExtraction(IEnergySource, IMEInventory, IAEStack, IActionSource)}.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Nullable
+    public static GenericStack poweredExtraction(IEnergySource energy, IMEInventory<?> cell,
+            GenericStack request, IActionSource src) {
+        if (request == null) return null;
+        IAEStack<?> aeRequest = request.toIAEStack();
+        if (aeRequest == null) return null;
+        IAEStack<?> result = (IAEStack<?>) poweredExtraction(energy, (IMEInventory) cell, (IAEStack) aeRequest, src);
+        return result != null ? GenericStack.fromIAEStack(result) : null;
+    }
+
+    /**
+     * Returns a {@link KeyCounter} view of all available items in the given inventory.
+     */
+    public static KeyCounter getAvailableKeyCounter(IMEInventory<?> inv) {
+        return inv.getAvailableKeyCounter();
     }
 }

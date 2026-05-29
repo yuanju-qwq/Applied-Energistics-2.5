@@ -26,9 +26,9 @@ import javax.annotation.Nullable;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
-import appeng.api.config.Actionable;
-import appeng.api.config.Upgrades;
+import appeng.api.config.*;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEFluidStack;
@@ -186,7 +186,19 @@ public final class FluidInterfaceSlotHandler implements IInterfaceSlotHandler<IA
 
         @SuppressWarnings({"unchecked", "rawtypes"})
         @Override
+        @Deprecated
         public IAEFluidStack injectItems(final IAEFluidStack input, final Actionable type, final IActionSource src) {
+            final Optional<Comparable> ctx = src.context(Comparable.class);
+            if (ctx.isPresent()) {
+                return input;
+            }
+            return super.injectItems(input, type, src);
+        }
+
+        @Override
+        public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
+            if (input == null) return null;
+            @SuppressWarnings({"unchecked", "rawtypes"})
             final Optional<Comparable> ctx = src.context(Comparable.class);
             if (ctx.isPresent()) {
                 return input;
@@ -196,8 +208,23 @@ public final class FluidInterfaceSlotHandler implements IInterfaceSlotHandler<IA
 
         @SuppressWarnings({"unchecked", "rawtypes"})
         @Override
+        @Deprecated
         public IAEFluidStack extractItems(final IAEFluidStack request, final Actionable type,
                 final IActionSource src) {
+            final Optional<Comparable> ctx = src.context(Comparable.class);
+            final boolean hasLowerOrEqualPriority = ctx
+                    .map(c -> c.compareTo(context.getPriority()) <= 0).orElse(false);
+            if (hasLowerOrEqualPriority) {
+                return null;
+            }
+            return super.extractItems(request, type, src);
+        }
+
+        @Override
+        public GenericStack extractItems(final GenericStack request, final Actionable type,
+                final IActionSource src) {
+            if (request == null) return null;
+            @SuppressWarnings({"unchecked", "rawtypes"})
             final Optional<Comparable> ctx = src.context(Comparable.class);
             final boolean hasLowerOrEqualPriority = ctx
                     .map(c -> c.compareTo(context.getPriority()) <= 0).orElse(false);

@@ -23,6 +23,8 @@ import appeng.api.config.Actionable;
 import appeng.api.config.IncludeExclude;
 import appeng.api.config.StorageFilter;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.data.IAEStack;
@@ -96,6 +98,7 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
     }
 
     @Override
+    @Deprecated
     public T injectItems(final T input, final Actionable type, final IActionSource src) {
         if (!this.canAccept(input)) {
             return input;
@@ -105,6 +108,16 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
     }
 
     @Override
+    public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
+        if (input == null) return null;
+        if (!this.hasWriteAccess) return input;
+        IAEStack<?> aeInput = input.toIAEStack();
+        if (aeInput != null && !this.canAccept((T) aeInput)) return input;
+        return this.internal.injectItems(input, type, src);
+    }
+
+    @Override
+    @Deprecated
     public T extractItems(final T request, final Actionable type, final IActionSource src) {
         if (!this.canExtract(request)) {
             return null;
@@ -114,6 +127,15 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
     }
 
     @Override
+    public GenericStack extractItems(final GenericStack request, final Actionable type, final IActionSource src) {
+        if (request == null) return null;
+        IAEStack<?> aeRequest = request.toIAEStack();
+        if (aeRequest != null && !this.canExtract((T) aeRequest)) return null;
+        return this.internal.extractItems(request, type, src);
+    }
+
+    @Override
+    @Deprecated
     public IItemList<T> getAvailableItems(final IItemList<T> out) {
         if (this.gettingAvailableContent || !this.hasReadAccess) {
             return out;
@@ -130,6 +152,33 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
                 }
             } else {
                 return this.internal.getAvailableItems(out);
+            }
+        } finally {
+            this.gettingAvailableContent = false;
+        }
+
+        return out;
+    }
+
+    @Override
+    public KeyCounter getAvailableKeyCounter() {
+        KeyCounter out = new KeyCounter();
+        if (this.gettingAvailableContent || !this.hasReadAccess) {
+            return out;
+        }
+
+        this.gettingAvailableContent = true;
+        try {
+            if (this.storageFilter == StorageFilter.EXTRACTABLE_ONLY) {
+                var kc = this.internal.getAvailableKeyCounter();
+                for (var entry : kc) {
+                    IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
+                    if (stack != null && this.shouldItemBeAvailable((T) stack)) {
+                        out.add(entry.getKey(), entry.getLongValue());
+                    }
+                }
+            } else {
+                return this.internal.getAvailableKeyCounter();
             }
         } finally {
             this.gettingAvailableContent = false;

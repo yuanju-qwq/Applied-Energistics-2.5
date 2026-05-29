@@ -32,6 +32,8 @@ import net.minecraft.nbt.NBTTagList;
 import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
@@ -278,7 +280,10 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         }
         IItemList<?> itemList = this.getList(AEItemStackType.INSTANCE);
         for (final IAEItemStack is : target.getStorageList()) {
-            itemList.addGeneric(target.extractItems(is, Actionable.SIMULATE, src));
+            GenericStack extracted = target.extractItems(GenericStack.fromIAEStack(is), Actionable.SIMULATE, src);
+            if (extracted != null) {
+                itemList.addGeneric(extracted.toIAEStack());
+            }
         }
 
         this.par = null;
@@ -318,7 +323,12 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             this.inventoryMap.put(type, type.createList());
         }
         IItemList<IAEItemStack> itemList = this.getItemListInternal();
-        target.getAvailableItems(itemList);
+        KeyCounter kc = target.getAvailableKeyCounter();
+        for (var entry : kc) {
+            if (entry.getKey() instanceof AEItemKey itemKey) {
+                itemList.add((IAEItemStack) itemKey.toIAEStack(entry.getLongValue()));
+            }
+        }
 
         this.par = null;
     }
@@ -538,6 +548,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     // ========== IMEInventory<IAEItemStack> 接口方法（v1 向后兼容） ==========
 
     @Override
+    @Deprecated
     public IAEItemStack injectItems(final IAEItemStack input, final Actionable mode, final IActionSource src) {
         if (input == null) {
             return null;
@@ -554,6 +565,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     }
 
     @Override
+    @Deprecated
     public IAEItemStack extractItems(final IAEItemStack request, final Actionable mode, final IActionSource src) {
         if (request == null) {
             return null;
@@ -589,6 +601,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     }
 
     @Override
+    @Deprecated
     public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
         IItemList<?> itemList = this.getList(AEItemStackType.INSTANCE);
         if (itemList != null) {
@@ -602,6 +615,50 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     @Override
     public IAEStackType<IAEItemStack> getStackType() {
         return AEItemStackType.INSTANCE;
+    }
+
+    // ========== GenericStack / KeyCounter override ==========
+
+    @Override
+    public GenericStack injectItems(final GenericStack input, final Actionable mode, final IActionSource src) {
+        if (input == null) return null;
+        IAEStack<?> aeStack = input.toIAEStack();
+        if (aeStack == null) return input;
+        if (mode == Actionable.MODULATE) {
+            addToTypedList(this.getList(aeStack.getStackType()), aeStack);
+            if (this.logInjections) {
+                this.injectedCache.add(input.what(), input.amount());
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
+        if (request == null) return null;
+        IAEStack<?> aeRequest = request.toIAEStack();
+        if (aeRequest == null) return null;
+        IAEStack<?> list = this.findPreciseInternal(aeRequest);
+        if (list == null || list.getStackSize() <= 0) return null;
+        long extracted = Math.min(list.getStackSize(), request.amount());
+        if (mode == Actionable.MODULATE) {
+            list.decStackSize(extracted);
+            if (this.logExtracted) {
+                this.extractedCache.add(request.what(), extracted);
+            }
+        }
+        return new GenericStack(request.what(), extracted);
+    }
+
+    @Override
+    public KeyCounter getAvailableKeyCounter() {
+        KeyCounter out = new KeyCounter();
+        for (IItemList<?> list : this.inventoryMap.values()) {
+            for (IAEStack<?> stack : iterateTyped(list)) {
+                out.add(stack.toAEKey(), stack.getStackSize());
+            }
+        }
+        return out;
     }
 
     // ========== 旧 API 兼容 ==========
@@ -715,7 +772,8 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             return stack; // 没有对应 monitor，返回原栈表示注入失败
         } else if (this.legacyTarget != null && stack instanceof IAEItemStack) {
             // v1 向后兼容路径 — 只处理物品
-            return this.legacyTarget.injectItems((IAEItemStack) stack, mode, src);
+            GenericStack result = this.legacyTarget.injectItems(GenericStack.fromIAEStack(stack), mode, src);
+            return result != null ? result.toIAEStack() : null;
         }
         return stack;
     }
@@ -736,7 +794,8 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             return null;
         } else if (this.legacyTarget != null && stack instanceof IAEItemStack) {
             // v1 向后兼容路径 — 只处理物品
-            return this.legacyTarget.extractItems((IAEItemStack) stack, mode, src);
+            GenericStack result = this.legacyTarget.extractItems(GenericStack.fromIAEStack(stack), mode, src);
+            return result != null ? result.toIAEStack() : null;
         }
         return null;
     }

@@ -52,14 +52,16 @@ import appeng.util.item.AEItemStack;
 public final class AEItemKey extends AEKey {
 
     private final Item item;
+    private final int itemDamage;
     @Nullable
     private final NBTTagCompound tag;
     private final int hashCode;
 
-    private AEItemKey(Item item, @Nullable NBTTagCompound tag) {
+    private AEItemKey(Item item, int itemDamage, @Nullable NBTTagCompound tag) {
         this.item = item;
+        this.itemDamage = itemDamage;
         this.tag = tag;
-        this.hashCode = Objects.hash(item, tag);
+        this.hashCode = Objects.hash(item, itemDamage, tag);
     }
 
     // ==================== Static factory methods ====================
@@ -74,22 +76,22 @@ public final class AEItemKey extends AEKey {
         if (stack.isEmpty()) {
             return null;
         }
-        return of(stack.getItem(), stack.getTagCompound());
+        return of(stack.getItem(), stack.getItemDamage(), stack.getTagCompound());
     }
 
     /**
-     * Creates an AEItemKey from an Item with no NBT.
+     * Creates an AEItemKey from an Item with no damage and no NBT.
      */
     public static AEItemKey of(Item item) {
-        return of(item, null);
+        return of(item, 0, null);
     }
 
     /**
-     * Creates an AEItemKey from an Item and optional NBT.
+     * Creates an AEItemKey from an Item, its damage value, and optional NBT.
      * The tag is defensively copied.
      */
-    public static AEItemKey of(Item item, @Nullable NBTTagCompound tag) {
-        return new AEItemKey(item, tag != null ? tag.copy() : null);
+    public static AEItemKey of(Item item, int itemDamage, @Nullable NBTTagCompound tag) {
+        return new AEItemKey(item, itemDamage, tag != null ? tag.copy() : null);
     }
 
     // ==================== Matching ====================
@@ -115,7 +117,9 @@ public final class AEItemKey extends AEKey {
      * Checks if this key matches the given ItemStack (same item and NBT).
      */
     public boolean matches(ItemStack stack) {
-        return !stack.isEmpty() && stack.getItem() == item && Objects.equals(stack.getTagCompound(), tag);
+        return !stack.isEmpty() && stack.getItem() == item
+                && stack.getItemDamage() == itemDamage
+                && Objects.equals(stack.getTagCompound(), tag);
     }
 
     // ==================== Conversion ====================
@@ -135,6 +139,7 @@ public final class AEItemKey extends AEKey {
             return ItemStack.EMPTY;
         }
         var result = new ItemStack(item);
+        result.setItemDamage(itemDamage);
         result.setTagCompound(copyTag());
         result.setCount(count);
         return result;
@@ -144,6 +149,10 @@ public final class AEItemKey extends AEKey {
 
     public Item getItem() {
         return item;
+    }
+
+    public int getItemDamage() {
+        return itemDamage;
     }
 
     /**
@@ -166,7 +175,7 @@ public final class AEItemKey extends AEKey {
 
     /** @return true if the item represented by this key is damaged */
     public boolean isDamaged() {
-        return tag != null && tag.getInteger("Damage") > 0;
+        return itemDamage > 0;
     }
 
     // ==================== AEKey implementation ====================
@@ -178,7 +187,7 @@ public final class AEItemKey extends AEKey {
 
     @Override
     public AEItemKey dropSecondary() {
-        return of(item, null);
+        return of(item, 0, null);
     }
 
     @Override
@@ -231,7 +240,7 @@ public final class AEItemKey extends AEKey {
 
     @Override
     public int getFuzzySearchValue() {
-        return this.tag == null ? 0 : this.tag.getInteger("Damage");
+        return this.itemDamage;
     }
 
     @Override
@@ -254,8 +263,9 @@ public final class AEItemKey extends AEKey {
                 return null;
             }
 
+            int damage = tag.getInteger("Damage");
             NBTTagCompound extraTag = tag.hasKey("tag") ? tag.getCompoundTag("tag") : null;
-            return of(item, extraTag);
+            return of(item, damage, extraTag);
         } catch (Exception e) {
             AELog.debug("Tried to load an invalid item key from NBT: %s", tag, e);
             return null;
@@ -268,6 +278,8 @@ public final class AEItemKey extends AEKey {
         ResourceLocation regName = ForgeRegistries.ITEMS.getKey(item);
         result.setString("id", regName != null ? regName.toString() : "minecraft:air");
 
+        result.setInteger("Damage", itemDamage);
+
         if (tag != null) {
             result.setTag("tag", tag.copy());
         }
@@ -278,6 +290,7 @@ public final class AEItemKey extends AEKey {
     @Override
     public void writeToPacket(PacketBuffer data) {
         data.writeVarInt(Item.getIdFromItem(item));
+        data.writeVarInt(itemDamage);
         NBTTagCompound compoundTag = null;
         if (item.isDamageable() || item.getShareTag()) {
             compoundTag = tag;
@@ -289,8 +302,9 @@ public final class AEItemKey extends AEKey {
     public static AEItemKey fromPacket(PacketBuffer data) throws IOException {
         int i = data.readVarInt();
         Item item = Item.getItemById(i);
+        int damage = data.readVarInt();
         NBTTagCompound tag = data.readCompoundTag();
-        return new AEItemKey(item, tag);
+        return new AEItemKey(item, damage, tag);
     }
 
     // ==================== equals / hashCode ====================
@@ -300,7 +314,9 @@ public final class AEItemKey extends AEKey {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AEItemKey aeItemKey = (AEItemKey) o;
-        return hashCode == aeItemKey.hashCode && item == aeItemKey.item && Objects.equals(tag, aeItemKey.tag);
+        return hashCode == aeItemKey.hashCode && item == aeItemKey.item
+                && itemDamage == aeItemKey.itemDamage
+                && Objects.equals(tag, aeItemKey.tag);
     }
 
     @Override

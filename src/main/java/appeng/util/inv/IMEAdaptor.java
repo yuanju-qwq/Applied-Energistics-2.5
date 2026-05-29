@@ -27,6 +27,8 @@ import net.minecraft.item.ItemStack;
 import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
@@ -78,15 +80,12 @@ public class IMEAdaptor extends InventoryAdaptor {
             req = AEItemStack.fromItemStack(filter);
         }
 
-        IAEItemStack out = null;
-
         if (req != null) {
             req.setStackSize(amount);
-            out = this.target.extractItems(req, type, this.src);
-        }
-
-        if (out != null) {
-            return out.createItemStack();
+            GenericStack extracted = this.target.extractItems(GenericStack.fromIAEStack(req), type, this.src);
+            if (extracted != null) {
+                return ((AEItemKey) extracted.what()).toStack((int) extracted.amount());
+            }
         }
 
         return ItemStack.EMPTY;
@@ -118,9 +117,9 @@ public class IMEAdaptor extends InventoryAdaptor {
         for (final IAEItemStack req : ImmutableList.copyOf(this.getList().findFuzzy(reqFilter, fuzzyMode))) {
             if (req != null && req.getStackSize() > 0) {
                 req.setStackSize(amount);
-                out = this.target.extractItems(req, type, this.src);
-                if (out != null) {
-                    return out.createItemStack();
+                GenericStack extracted = this.target.extractItems(GenericStack.fromIAEStack(req), type, this.src);
+                if (extracted != null) {
+                    return ((AEItemKey) extracted.what()).toStack((int) extracted.amount());
                 }
             }
         }
@@ -141,9 +140,9 @@ public class IMEAdaptor extends InventoryAdaptor {
     public ItemStack addItems(final ItemStack toBeAdded) {
         final IAEItemStack in = AEItemStack.fromItemStack(toBeAdded);
         if (in != null) {
-            final IAEItemStack out = this.target.injectItems(in, Actionable.MODULATE, this.src);
+            final GenericStack out = this.target.injectItems(GenericStack.fromIAEStack(in), Actionable.MODULATE, this.src);
             if (out != null) {
-                return out.createItemStack();
+                return ((AEItemKey) out.what()).toStack((int) out.amount());
             }
         }
         return ItemStack.EMPTY;
@@ -153,9 +152,9 @@ public class IMEAdaptor extends InventoryAdaptor {
     public ItemStack simulateAdd(final ItemStack toBeSimulated) {
         final IAEItemStack in = AEItemStack.fromItemStack(toBeSimulated);
         if (in != null) {
-            final IAEItemStack out = this.target.injectItems(in, Actionable.SIMULATE, this.src);
+            final GenericStack out = this.target.injectItems(GenericStack.fromIAEStack(in), Actionable.SIMULATE, this.src);
             if (out != null) {
-                return out.createItemStack();
+                return ((AEItemKey) out.what()).toStack((int) out.amount());
             }
         }
         return ItemStack.EMPTY;

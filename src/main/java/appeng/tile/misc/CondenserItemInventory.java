@@ -28,6 +28,9 @@ import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.data.IAEItemStack;
@@ -52,29 +55,59 @@ class CondenserItemInventory implements IMEMonitor<IAEItemStack>, ITickingMonito
     }
 
     @Override
-    public IAEItemStack injectItems(final IAEItemStack input, final Actionable mode, final IActionSource src) {
-        if (mode == Actionable.MODULATE && input != null) {
-            this.target.addPower(input.getStackSize());
+    public GenericStack injectItems(final GenericStack input, final Actionable mode, final IActionSource src) {
+        if (mode == Actionable.MODULATE && input != null && input.what() instanceof AEItemKey) {
+            this.target.addPower(input.amount());
         }
         return null;
     }
 
     @Override
-    public IAEItemStack extractItems(final IAEItemStack request, final Actionable mode, final IActionSource src) {
-        AEItemStack ret = null;
-        ItemStack slotItem = this.target.getOutputSlot().getStackInSlot(0);
-        if (!slotItem.isEmpty() && request.isSameType(slotItem)) {
-            int count = (int) Math.min(request.getStackSize(), Integer.MAX_VALUE);
-            ret = AEItemStack
-                    .fromItemStack(this.target.getOutputSlot().extractItem(0, count, mode == Actionable.SIMULATE));
-        }
-        return ret;
+    @Deprecated
+    public IAEItemStack injectItems(final IAEItemStack input, final Actionable mode, final IActionSource src) {
+        GenericStack result = injectItems(GenericStack.fromIAEStack(input), mode, src);
+        return result != null ? (IAEItemStack) result.toIAEStack() : null;
     }
 
     @Override
-    public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
+    public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
+        if (request != null && request.what() instanceof AEItemKey requestKey) {
+            ItemStack slotItem = this.target.getOutputSlot().getStackInSlot(0);
+            if (!slotItem.isEmpty() && requestKey.matches(slotItem)) {
+                int count = (int) Math.min(request.amount(), Integer.MAX_VALUE);
+                ItemStack extracted = this.target.getOutputSlot().extractItem(0, count, mode == Actionable.SIMULATE);
+                if (!extracted.isEmpty()) {
+                    return GenericStack.fromItemStack(extracted);
+                }
+            }
+        }
+        return null;
+    }
+
+    @Override
+    @Deprecated
+    public IAEItemStack extractItems(final IAEItemStack request, final Actionable mode, final IActionSource src) {
+        GenericStack result = extractItems(GenericStack.fromIAEStack(request), mode, src);
+        return result != null ? (IAEItemStack) result.toIAEStack() : null;
+    }
+
+    @Override
+    public KeyCounter getAvailableKeyCounter() {
+        KeyCounter kc = new KeyCounter();
         if (!this.target.getOutputSlot().getStackInSlot(0).isEmpty()) {
-            out.add(AEItemStack.fromItemStack(this.target.getOutputSlot().getStackInSlot(0)));
+            kc.add(AEItemKey.of(this.target.getOutputSlot().getStackInSlot(0)), 1);
+        }
+        return kc;
+    }
+
+    @Override
+    @Deprecated
+    public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
+        KeyCounter kc = getAvailableKeyCounter();
+        for (var entry : kc) {
+            if (entry.getKey() instanceof AEItemKey itemKey) {
+                out.add((IAEItemStack) itemKey.toIAEStack(entry.getLongValue()));
+            }
         }
         return out;
     }

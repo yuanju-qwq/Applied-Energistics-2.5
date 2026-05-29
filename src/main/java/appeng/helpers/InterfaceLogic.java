@@ -615,12 +615,12 @@ public class InterfaceLogic
 
     @Override
     public boolean canInsert(final ItemStack stack) {
-        final IAEItemStack out = this.destination.injectItems(
-                AEItemStackType.INSTANCE.createStack(stack), Actionable.SIMULATE, null);
+        final GenericStack out = this.destination.injectItems(
+                GenericStack.fromIAEStack(AEItemStackType.INSTANCE.createStack(stack)), Actionable.SIMULATE, null);
         if (out == null) {
             return true;
         }
-        return out.getStackSize() != stack.getCount();
+        return out.amount() != stack.getCount();
     }
 
     // ========== Capability ==========

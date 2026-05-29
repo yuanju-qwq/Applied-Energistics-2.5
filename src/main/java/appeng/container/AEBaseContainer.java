@@ -58,6 +58,7 @@ import appeng.api.storage.StorageName;
 import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
@@ -782,24 +783,25 @@ public abstract class AEBaseContainer extends Container {
                 final ItemStack isg = player.inventory.getItemStack();
 
                 if (!isg.isEmpty() && releaseQty > 0) {
-                    IAEItemStack ais = AEItemStackType.INSTANCE
-                            .createStack(isg);
-                    ais.setStackSize(1);
-                    final IAEItemStack extracted = ais.copy();
+                    GenericStack ais = GenericStack.fromItemStack(isg);
+                    if (ais != null) {
+                        ais = new GenericStack(ais.what(), 1);
+                        final GenericStack extracted = ais;
 
-                    ais = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
-                            this.getActionSource());
-                    if (ais == null) {
-                        final InventoryAdaptor ia = new AdaptorItemHandler(
-                                new WrapperCursorItemHandler(player.inventory));
+                        ais = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
+                                this.getActionSource());
+                        if (ais == null) {
+                            final InventoryAdaptor ia = new AdaptorItemHandler(
+                                    new WrapperCursorItemHandler(player.inventory));
 
-                        final ItemStack fail = ia.removeItems(1, extracted.getDefinition(), null);
-                        if (fail.isEmpty()) {
-                            this.getCellInventory().extractItems(extracted, Actionable.MODULATE,
-                                    this.getActionSource());
+                            final ItemStack fail = ia.removeItems(1, ((AEItemKey) extracted.what()).toStack(), null);
+                            if (fail.isEmpty()) {
+                                this.getCellInventory().extractItems(extracted, Actionable.MODULATE,
+                                        this.getActionSource());
+                            }
+
+                            this.updateHeld(player);
                         }
-
-                        this.updateHeld(player);
                     }
                 }
 
@@ -824,17 +826,20 @@ public abstract class AEBaseContainer extends Container {
                     }
 
                     if (liftQty > 0) {
-                        IAEItemStack ais = slotItem.copy();
-                        ais.setStackSize(1);
-                        ais = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
-                                this.getActionSource());
-                        if (ais != null) {
+                        IAEItemStack slotAis = slotItem.copy();
+                        slotAis.setStackSize(1);
+                        GenericStack extracted = appeng.util.StorageHelper.poweredExtraction(
+                                this.getPowerSource(), this.getCellInventory(),
+                                GenericStack.fromIAEStack(slotAis), this.getActionSource());
+                        if (extracted != null) {
                             final InventoryAdaptor ia = new AdaptorItemHandler(
                                     new WrapperCursorItemHandler(player.inventory));
 
-                            final ItemStack fail = ia.addItems(ais.createItemStack());
+                            final AEItemKey itemKey = (AEItemKey) extracted.what();
+                            final ItemStack fail = ia.addItems(itemKey.toStack((int) extracted.amount()));
                             if (!fail.isEmpty()) {
-                                this.getCellInventory().injectItems(ais, Actionable.MODULATE, this.getActionSource());
+                                this.getCellInventory().injectItems(new GenericStack(itemKey, fail.getCount()),
+                                        Actionable.MODULATE, this.getActionSource());
                             }
 
                             this.updateHeld(player);
@@ -849,26 +854,30 @@ public abstract class AEBaseContainer extends Container {
 
                 if (player.inventory.getItemStack().isEmpty()) {
                     if (slotItem != null) {
-                        IAEItemStack ais = slotItem.copy();
-                        ais.setStackSize(ais.getDefinition().getMaxStackSize());
-                        ais = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
-                                this.getActionSource());
-                        if (ais != null) {
-                            player.inventory.setItemStack(ais.createItemStack());
+                        IAEItemStack slotAis = slotItem.copy();
+                        slotAis.setStackSize(slotAis.getDefinition().getMaxStackSize());
+                        GenericStack extracted = appeng.util.StorageHelper.poweredExtraction(
+                                this.getPowerSource(), this.getCellInventory(),
+                                GenericStack.fromIAEStack(slotAis), this.getActionSource());
+                        if (extracted != null) {
+                            AEItemKey itemKey = (AEItemKey) extracted.what();
+                            player.inventory.setItemStack(itemKey.toStack((int) extracted.amount()));
                         } else {
                             player.inventory.setItemStack(ItemStack.EMPTY);
                         }
                         this.updateHeld(player);
                     }
                 } else {
-                    IAEItemStack ais = AEItemStackType.INSTANCE
-                            .createStack(player.inventory.getItemStack());
-                    ais = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
-                            this.getActionSource());
-                    if (ais != null) {
-                        player.inventory.setItemStack(ais.createItemStack());
-                    } else {
-                        player.inventory.setItemStack(ItemStack.EMPTY);
+                    GenericStack gs = GenericStack.fromItemStack(player.inventory.getItemStack());
+                    if (gs != null) {
+                        gs = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(), gs,
+                                this.getActionSource());
+                        if (gs != null) {
+                            AEItemKey itemKey = (AEItemKey) gs.what();
+                            player.inventory.setItemStack(itemKey.toStack((int) gs.amount()));
+                        } else {
+                            player.inventory.setItemStack(ItemStack.EMPTY);
+                        }
                     }
                     this.updateHeld(player);
                 }
@@ -881,38 +890,41 @@ public abstract class AEBaseContainer extends Container {
 
                 if (player.inventory.getItemStack().isEmpty()) {
                     if (slotItem != null) {
-                        IAEItemStack ais = slotItem.copy();
-                        final long maxSize = ais.getDefinition().getMaxStackSize();
-                        ais.setStackSize(maxSize);
-                        ais = this.getCellInventory().extractItems(ais, Actionable.SIMULATE, this.getActionSource());
+                        IAEItemStack slotAis = slotItem.copy();
+                        final long maxSize = slotAis.getDefinition().getMaxStackSize();
+                        slotAis.setStackSize(maxSize);
+                        GenericStack extracted = this.getCellInventory().extractItems(
+                                GenericStack.fromIAEStack(slotAis), Actionable.SIMULATE, this.getActionSource());
 
-                        if (ais != null) {
-                            final long stackSize = Math.min(maxSize, ais.getStackSize());
-                            ais.setStackSize((stackSize + 1) >> 1);
-                            ais = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(), this.getCellInventory(), ais,
-                                    this.getActionSource());
+                        if (extracted != null) {
+                            final long stackSize = Math.min(maxSize, extracted.amount());
+                            GenericStack request = new GenericStack(extracted.what(), (stackSize + 1) >> 1);
+                            extracted = appeng.util.StorageHelper.poweredExtraction(
+                                    this.getPowerSource(), this.getCellInventory(), request, this.getActionSource());
                         }
 
-                        if (ais != null) {
-                            player.inventory.setItemStack(ais.createItemStack());
+                        if (extracted != null) {
+                            AEItemKey itemKey = (AEItemKey) extracted.what();
+                            player.inventory.setItemStack(itemKey.toStack((int) extracted.amount()));
                         } else {
                             player.inventory.setItemStack(ItemStack.EMPTY);
                         }
                         this.updateHeld(player);
                     }
                 } else {
-                    IAEItemStack ais = AEItemStackType.INSTANCE
-                            .createStack(player.inventory.getItemStack());
-                    ais.setStackSize(1);
-                    ais = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(), ais,
-                            this.getActionSource());
-                    if (ais == null) {
-                        final ItemStack is = player.inventory.getItemStack();
-                        is.setCount(is.getCount() - 1);
-                        if (is.getCount() <= 0) {
-                            player.inventory.setItemStack(ItemStack.EMPTY);
+                    GenericStack gs = GenericStack.fromItemStack(player.inventory.getItemStack());
+                    if (gs != null) {
+                        gs = new GenericStack(gs.what(), 1);
+                        gs = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(), gs,
+                                this.getActionSource());
+                        if (gs == null) {
+                            final ItemStack is = player.inventory.getItemStack();
+                            is.setCount(is.getCount() - 1);
+                            if (is.getCount() <= 0) {
+                                player.inventory.setItemStack(ItemStack.EMPTY);
+                            }
+                            this.updateHeld(player);
                         }
-                        this.updateHeld(player);
                     }
                 }
 

@@ -31,6 +31,7 @@ import appeng.api.parts.IPart;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartHost;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.util.AECableType;
@@ -265,8 +266,8 @@ public class PartFluidAnnihilationPlane extends PartBasicState implements IGridT
                 if (energy.extractAEPower(requiredPower, Actionable.SIMULATE, PowerMultiplier.CONFIG) < requiredPower) {
                     return false;
                 }
-                final IAEFluidStack leftOver = inv.injectItems(stack, Actionable.SIMULATE, this.mySrc);
-                return leftOver == null || leftOver.getStackSize() == 0;
+                final GenericStack leftOver = inv.injectItems(GenericStack.fromIAEStack(stack), Actionable.SIMULATE, this.mySrc);
+                return leftOver == null || leftOver.amount() == 0;
             }
         } catch (final GridAccessException e) {
             // :P

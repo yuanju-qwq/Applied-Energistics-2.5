@@ -10,6 +10,8 @@ import net.minecraftforge.items.wrapper.RangedWrapper;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.util.inv.IAEAppEngInventory;
@@ -37,17 +39,17 @@ public class AppEngNetworkInventory extends AppEngInternalOversizedInventory {
             int originAmt = stack.getCount();
             IMEInventory<IAEItemStack> dest = storage
                     .getInventory(AEItemStackType.INSTANCE);
-            IAEItemStack overflow = dest.injectItems(AEItemStack.fromItemStack(stack),
+            GenericStack overflow = dest.injectItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(stack)),
                     simulate ? Actionable.SIMULATE : Actionable.MODULATE, this.source);
-            if (overflow != null && overflow.getStackSize() == originAmt) {
+            if (overflow != null && overflow.amount() == originAmt) {
                 return super.insertItem(slot, stack, simulate);
             } else if (overflow != null) {
                 if (!simulate) {
                     ItemStack added = stack.copy();
-                    added.setCount((int) (stack.getCount() - overflow.getStackSize()));
+                    added.setCount((int) (stack.getCount() - overflow.amount()));
                     this.getTileEntity().onChangeInventory(this, slot, InvOperation.INSERT, ItemStack.EMPTY, added);
                 }
-                return overflow.createItemStack();
+                return ((AEItemKey) overflow.what()).toStack((int) overflow.amount());
             } else {
                 if (!simulate) {
                     this.getTileEntity().onChangeInventory(this, slot, InvOperation.INSERT, ItemStack.EMPTY, stack);

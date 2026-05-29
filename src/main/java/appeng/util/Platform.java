@@ -95,6 +95,8 @@ import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
@@ -722,9 +724,9 @@ public class Platform {
             ae_req.setStackSize(1);
 
             if (filter == null || filter.isListed(ae_req)) {
-                final IAEItemStack ae_ext = src.extractItems(ae_req, realForFake, mySrc);
+                final GenericStack ae_ext = src.extractItems(GenericStack.fromIAEStack(ae_req), realForFake, mySrc);
                 if (ae_ext != null) {
-                    final ItemStack extracted = ae_ext.createItemStack();
+                    final ItemStack extracted = ((AEItemKey) ae_ext.what()).toStack((int) ae_ext.amount());
                     if (!extracted.isEmpty()) {
                         energySrc.extractAEPower(1, realForFake, PowerMultiplier.CONFIG);
                         return extracted;
@@ -749,10 +751,10 @@ public class Platform {
                             final IAEItemStack ax = x.copy();
                             ax.setStackSize(1);
                             if (filter == null || filter.isListed(ax)) {
-                                final IAEItemStack ex = src.extractItems(ax, realForFake, mySrc);
+                                final GenericStack ex = src.extractItems(GenericStack.fromIAEStack(ax), realForFake, mySrc);
                                 if (ex != null) {
                                     energySrc.extractAEPower(1, realForFake, PowerMultiplier.CONFIG);
-                                    return ex.createItemStack();
+                                    return ((AEItemKey) ex.what()).toStack((int) ex.amount());
                                 }
                             }
                         }

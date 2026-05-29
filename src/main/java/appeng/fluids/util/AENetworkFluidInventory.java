@@ -7,6 +7,7 @@ import net.minecraftforge.fluids.FluidStack;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.fluids.util.AEFluidStackType;
@@ -33,17 +34,17 @@ public class AENetworkFluidInventory extends AEFluidInventory {
             int originAmt = fluid.amount;
             IMEInventory<IAEFluidStack> dest = storage
                     .getInventory(AEFluidStackType.INSTANCE);
-            IAEFluidStack overflow = dest.injectItems(AEFluidStack.fromFluidStack(fluid),
+            GenericStack overflow = dest.injectItems(GenericStack.fromIAEStack(AEFluidStack.fromFluidStack(fluid)),
                     doFill ? Actionable.MODULATE : Actionable.SIMULATE, this.source);
-            if (overflow != null && overflow.getStackSize() == originAmt) {
+            if (overflow != null && overflow.amount() == originAmt) {
                 return super.fill(fluid, doFill);
             } else if (overflow != null) {
                 if (doFill) {
                     FluidStack added = fluid.copy();
-                    added.amount = (int) (fluid.amount - overflow.getStackSize());
+                    added.amount = (int) (fluid.amount - overflow.amount());
                     this.handler.onFluidInventoryChanged(this, added, null);
                 }
-                return (int) (originAmt - overflow.getStackSize());
+                return (int) (originAmt - overflow.amount());
             } else {
                 if (doFill) {
                     this.handler.onFluidInventoryChanged(this, fluid, null);

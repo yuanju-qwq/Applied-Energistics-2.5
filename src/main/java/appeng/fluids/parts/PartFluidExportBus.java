@@ -23,10 +23,12 @@ import javax.annotation.Nonnull;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 
 import appeng.api.config.*;
+import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
@@ -98,14 +100,15 @@ public class PartFluidExportBus extends PartSharedFluidBus {
 
                             toExtract.setStackSize(this.calculateFluidAmountToSend());
 
-                            final IAEFluidStack out = inv.extractItems(toExtract, Actionable.SIMULATE, this.source);
+                            final GenericStack out = inv.extractItems(GenericStack.fromIAEStack(toExtract), Actionable.SIMULATE, this.source);
 
                             if (out != null) {
-                                int wasInserted = fh.fill(out.getFluidStack(), true);
+                                FluidStack fluidStack = ((AEFluidKey) out.what()).toStack((int) out.amount());
+                                int wasInserted = fh.fill(fluidStack, true);
 
                                 if (wasInserted > 0) {
                                     toExtract.setStackSize(wasInserted);
-                                    inv.extractItems(toExtract, Actionable.MODULATE, this.source);
+                                    inv.extractItems(GenericStack.fromIAEStack(toExtract), Actionable.MODULATE, this.source);
 
                                     return TickRateModulation.FASTER;
                                 }

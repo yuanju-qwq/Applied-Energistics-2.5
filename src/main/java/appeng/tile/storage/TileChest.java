@@ -61,6 +61,7 @@ import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.GenericStack;
 import appeng.api.util.AEColor;
 import appeng.api.util.IConfigManager;
 import appeng.capabilities.Capabilities;
@@ -608,6 +609,7 @@ public class TileChest extends AENetworkPowerTile
         }
 
         @Override
+        @Deprecated
         public T injectItems(final T input, final Actionable mode, final IActionSource src) {
             if (src.player().map(player -> !this.securityCheck(player, SecurityPermissions.INJECT)).orElse(false)) {
                 return input;
@@ -619,6 +621,27 @@ public class TileChest extends AENetworkPowerTile
                             Collections.singletonList(input.copy().setStackSize(
                                     input.getStackSize() - (injected == null ? 0 : injected.getStackSize()))),
                             TileChest.this.mySrc);
+                }
+            }
+            return injected;
+        }
+
+        @Override
+        public GenericStack injectItems(final GenericStack input, final Actionable mode, final IActionSource src) {
+            if (input == null) return null;
+            if (src.player().map(player -> !this.securityCheck(player, SecurityPermissions.INJECT)).orElse(false)) {
+                return input;
+            }
+            GenericStack injected = super.injectItems(input, mode, src);
+            if (mode == Actionable.MODULATE && (injected == null || injected.amount() != input.amount())) {
+                if (TileChest.this.isPowered() && this.getInternalHandler().getCellInv() != null) {
+                    IAEStack<?> aeInput = input.toIAEStack();
+                    if (aeInput != null) {
+                        TileChest.this.cellHandler.postChangesToListeners(
+                                Collections.singletonList(aeInput.copy().setStackSize(
+                                        input.amount() - (injected == null ? 0 : injected.amount()))),
+                                TileChest.this.mySrc);
+                    }
                 }
             }
             return injected;
@@ -650,6 +673,7 @@ public class TileChest extends AENetworkPowerTile
         }
 
         @Override
+        @Deprecated
         public T extractItems(final T request, final Actionable mode, final IActionSource src) {
             if (src.player().map(player -> !this.securityCheck(player, SecurityPermissions.EXTRACT)).orElse(false)) {
                 return null;
@@ -660,6 +684,26 @@ public class TileChest extends AENetworkPowerTile
                     TileChest.this.cellHandler.postChangesToListeners(
                             Collections.singletonList(request.copy().setStackSize(-extracted.getStackSize())),
                             TileChest.this.mySrc);
+                }
+            }
+            return extracted;
+        }
+
+        @Override
+        public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
+            if (request == null) return null;
+            if (src.player().map(player -> !this.securityCheck(player, SecurityPermissions.EXTRACT)).orElse(false)) {
+                return null;
+            }
+            GenericStack extracted = super.extractItems(request, mode, src);
+            if (mode == Actionable.MODULATE && extracted != null) {
+                if (TileChest.this.isPowered() && this.getInternalHandler().getCellInv() != null) {
+                    IAEStack<?> aeRequest = request.toIAEStack();
+                    if (aeRequest != null) {
+                        TileChest.this.cellHandler.postChangesToListeners(
+                                Collections.singletonList(aeRequest.copy().setStackSize(-extracted.amount())),
+                                TileChest.this.mySrc);
+                    }
                 }
             }
             return extracted;

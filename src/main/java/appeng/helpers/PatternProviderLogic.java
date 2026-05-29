@@ -78,6 +78,7 @@ import appeng.api.storage.IStorageMonitorableAccessor;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.IConfigManager;
@@ -593,11 +594,11 @@ public class PatternProviderLogic
                                 final Iterator<ItemStack> iter = facingQueue.iterator();
                                 while (iter.hasNext()) {
                                     ItemStack whatToSend = iter.next();
-                                    final IAEItemStack result = inv.injectItems(AEItemStack.fromItemStack(whatToSend),
+                                    final GenericStack result = inv.injectItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(whatToSend)),
                                             appeng.api.config.Actionable.MODULATE, this.mySource);
                                     if (result != null) {
-                                        whatToSend.setCount((int) result.getStackSize());
-                                        whatToSend.setTagCompound(result.getDefinition().getTagCompound());
+                                        whatToSend.setCount((int) result.amount());
+                                        whatToSend.setTagCompound(((AEItemKey) result.what()).toStack().getTagCompound());
                                     } else {
                                         iter.remove();
                                     }
@@ -700,7 +701,7 @@ public class PatternProviderLogic
                                 if (is.isEmpty()) {
                                     continue;
                                 }
-                                IAEItemStack result = inv.injectItems(AEItemStack.fromItemStack(is),
+                                GenericStack result = inv.injectItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(is)),
                                         appeng.api.config.Actionable.SIMULATE, this.mySource);
                                 if (result != null) {
                                     allItemsCanBeInserted = false;

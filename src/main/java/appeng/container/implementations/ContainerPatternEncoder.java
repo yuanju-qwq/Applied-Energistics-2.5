@@ -998,7 +998,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                     final ItemStack failed = real.getStackInSlot(x);
                     if (!failed.isEmpty()) {
                         this.getCellInventory()
-                                .injectItems(AEItemStack.fromItemStack(failed), Actionable.MODULATE,
+                                .injectItems(GenericStack.fromItemStack(failed), Actionable.MODULATE,
                                         new MachineSource(this.getPart() != null ? this.getPart()
                                                 : (IActionHost) iGuiItemObject));
                     }

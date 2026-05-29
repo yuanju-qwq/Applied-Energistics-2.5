@@ -49,6 +49,7 @@ import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -239,7 +240,8 @@ public class PacketJEIRecipe extends AppEngPacket {
                                         out = request;
                                     } else {
                                         // Fall back using an existing item
-                                        out = storage.extractItems(request, Actionable.SIMULATE, cct.getActionSource());
+                                        GenericStack gs = storage.extractItems(GenericStack.fromIAEStack(request), Actionable.SIMULATE, cct.getActionSource());
+                                        out = gs != null ? (IAEItemStack) gs.toIAEStack() : null;
                                     }
                                 }
 

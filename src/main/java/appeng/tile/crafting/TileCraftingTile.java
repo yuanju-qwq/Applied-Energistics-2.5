@@ -33,6 +33,8 @@ import appeng.api.networking.GridFlags;
 import appeng.api.networking.events.MENetworkChannelsChanged;
 import appeng.api.networking.events.MENetworkEventSubscribe;
 import appeng.api.networking.events.MENetworkPowerStatusChange;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.block.crafting.BlockCraftingUnit;
@@ -255,13 +257,15 @@ public class TileCraftingTile extends AENetworkTile implements IAEMultiBlock<Cra
                         this.cluster + " does not contain any kind of blocks, which were destroyed.");
             }
 
-            for (IAEItemStack ais : inv.getAvailableItems(
-                    AEItemStackType.INSTANCE.createList())) {
+            for (var entry : inv.getAvailableKeyCounter()) {
+                if (!(entry.getKey() instanceof AEItemKey itemKey)) continue;
+                IAEItemStack ais = (IAEItemStack) itemKey.toIAEStack(entry.getLongValue());
                 ais = ais.copy();
                 ais.setStackSize(ais.getDefinition().getMaxStackSize());
                 while (true) {
-                    final IAEItemStack g = inv.extractItems(ais.copy(), Actionable.MODULATE,
+                    GenericStack gs = inv.extractItems(GenericStack.fromIAEStack(ais.copy()), Actionable.MODULATE,
                             this.cluster.getActionSource());
+                    IAEItemStack g = gs != null ? (IAEItemStack) gs.toIAEStack() : null;
                     if (g == null) {
                         break;
                     }

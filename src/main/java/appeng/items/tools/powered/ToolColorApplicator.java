@@ -54,6 +54,8 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.implementations.items.IItemGroup;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.implementations.tiles.IColorableTile;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEItemStack;
@@ -128,11 +130,11 @@ public class ToolColorApplicator extends AEBasePoweredItem
 
         final IMEInventory<IAEItemStack> inv = getInventory(is);
         if (inv != null) {
-            final IAEItemStack option = inv.extractItems(AEItemStack.fromItemStack(paintBall), Actionable.SIMULATE,
+            GenericStack option = inv.extractItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(paintBall)), Actionable.SIMULATE,
                     new BaseActionSource());
 
             if (option != null) {
-                paintBall = option.createItemStack();
+                paintBall = ((AEItemKey) option.what()).toStack((int) option.amount());
                 paintBall.setCount(1);
             } else {
                 paintBall = ItemStack.EMPTY;
@@ -205,12 +207,12 @@ public class ToolColorApplicator extends AEBasePoweredItem
             return false;
 
         final Actionable mode = simulate ? Actionable.SIMULATE : Actionable.MODULATE;
-        boolean success = inv.extractItems(AEItemStack.fromItemStack(paintItem), mode, new BaseActionSource()) != null
+        boolean success = inv.extractItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(paintItem)), mode, new BaseActionSource()) != null
                 && this.extractAEPower(applicator, POWER_PER_USE, mode) >= POWER_PER_USE;
 
         // Clear the color when we run out
         if (success && !simulate && ItemStack.areItemStacksEqual(paintItem, getColor(applicator))) {
-            if (inv.extractItems(AEItemStack.fromItemStack(paintItem), Actionable.SIMULATE,
+            if (inv.extractItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(paintItem)), Actionable.SIMULATE,
                     new BaseActionSource()) == null) {
                 setColor(applicator, ItemStack.EMPTY);
             }

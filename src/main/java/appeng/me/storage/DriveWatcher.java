@@ -24,6 +24,8 @@ import net.minecraft.item.ItemStack;
 
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellHandler;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.data.IAEStack;
@@ -56,6 +58,7 @@ public class DriveWatcher<T extends IAEStack<T>> extends MEInventoryHandler<T> {
     }
 
     @Override
+    @Deprecated
     public T injectItems(final T input, final Actionable type, final IActionSource src) {
         final long size = input.getStackSize();
 
@@ -84,6 +87,38 @@ public class DriveWatcher<T extends IAEStack<T>> extends MEInventoryHandler<T> {
     }
 
     @Override
+    public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
+        final long size = input.amount();
+
+        final GenericStack remainder = super.injectItems(input, type, src);
+
+        if (type == Actionable.MODULATE && (remainder == null || remainder.amount() != size)) {
+            final int newStatus = this.getStatus();
+
+            if (newStatus != this.oldStatus) {
+                this.drive.blinkCell(this.getSlot());
+                this.oldStatus = newStatus;
+            }
+            if (this.drive.getProxy().isActive() && !(handler instanceof CreativeCellHandler)) {
+                try {
+                    var aeStack = input.toIAEStack();
+                    if (aeStack != null) {
+                        var change = aeStack.copy().setStackSize(
+                                size - (remainder == null ? 0 : remainder.amount()));
+                        this.drive.getProxy().getStorage().postAlterationOfStoredItems(this.getStackType(),
+                                Collections.singletonList(change), this.source);
+                    }
+                } catch (GridAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return remainder;
+    }
+
+    @Override
+    @Deprecated
     public T extractItems(final T request, final Actionable type, final IActionSource src) {
         final T extractable = super.extractItems(request, type, src);
 
@@ -99,6 +134,34 @@ public class DriveWatcher<T extends IAEStack<T>> extends MEInventoryHandler<T> {
                     this.drive.getProxy().getStorage().postAlterationOfStoredItems(this.getStackType(),
                             Collections.singletonList(request.copy().setStackSize(-extractable.getStackSize())),
                             this.source);
+                } catch (GridAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return extractable;
+    }
+
+    @Override
+    public GenericStack extractItems(final GenericStack request, final Actionable type, final IActionSource src) {
+        final GenericStack extractable = super.extractItems(request, type, src);
+
+        if (type == Actionable.MODULATE && extractable != null) {
+            final int newStatus = this.getStatus();
+
+            if (newStatus != this.oldStatus) {
+                this.drive.blinkCell(this.getSlot());
+                this.oldStatus = newStatus;
+            }
+            if (this.drive.getProxy().isActive() && !(handler instanceof CreativeCellHandler)) {
+                try {
+                    var aeStack = request.toIAEStack();
+                    if (aeStack != null) {
+                        var change = aeStack.copy().setStackSize(-extractable.amount());
+                        this.drive.getProxy().getStorage().postAlterationOfStoredItems(this.getStackType(),
+                                Collections.singletonList(change), this.source);
+                    }
                 } catch (GridAccessException e) {
                     e.printStackTrace();
                 }

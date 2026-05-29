@@ -25,6 +25,7 @@ import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.*;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
@@ -161,23 +162,22 @@ public class ContainerStorageBus extends ContainerUpgradeable implements IStorag
 
         final IMEInventory cellInv = this.storageBus.getInternalHandler();
 
-        Iterator<IAEStack<?>> i = new NullIterator<>();
-        if (cellInv != null) {
-            final IItemList list = cellInv
-                    .getAvailableItems(
-                            this.storageBus.getStackType().createList());
-            i = list.iterator();
-        }
+        final KeyCounter kc = cellInv != null
+                ? cellInv.getAvailableKeyCounter()
+                : new KeyCounter();
 
-        for (int x = 0; x < inv.getSizeInventory(); x++) {
-            if (i.hasNext() && this.isSlotEnabled((x / 9) - 2)) {
-                final IAEStack<?> next = i.next();
-                final IAEStack<?> copy = next.copy();
-                copy.setStackSize(1);
-                inv.setGenericStack(x, GenericStack.fromIAEStack(copy));
-            } else {
-                inv.setGenericStack(x, null);
+        int idx = 0;
+        for (var entry : kc) {
+            while (idx < inv.getSizeInventory() && !this.isSlotEnabled((idx / 9) - 2)) {
+                inv.setGenericStack(idx, null);
+                idx++;
             }
+            if (idx >= inv.getSizeInventory()) break;
+            inv.setGenericStack(idx, new GenericStack(entry.getKey(), 1));
+            idx++;
+        }
+        for (; idx < inv.getSizeInventory(); idx++) {
+            inv.setGenericStack(idx, null);
         }
 
         this.detectAndSendChanges();

@@ -286,7 +286,7 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
                 final ItemStack failed = d.addItems(inputStack);
                 if (!failed.isEmpty()) {
                     ais.setStackSize(failed.getCount());
-                    inv.injectItems(ais, Actionable.MODULATE, this.mySrc);
+                    inv.injectItems(GenericStack.fromIAEStack(ais), Actionable.MODULATE, this.mySrc);
                 } else {
                     this.didSomething = true;
                 }

@@ -53,6 +53,8 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.IStorageMonitorableAccessor;
@@ -585,18 +587,18 @@ public class TileMolecularAssembler extends AENetworkInvTile
             IAEItemStack toInsert = AEItemStack.fromItemStack(output);
             IMEMonitor<IAEItemStack> inv = inventory
                     .getInventory(AEItemStackType.INSTANCE);
-            IAEItemStack remainder = inv.injectItems(toInsert, Actionable.SIMULATE, this.mySrc);
+            GenericStack remainder = inv.injectItems(GenericStack.fromIAEStack(toInsert), Actionable.SIMULATE, this.mySrc);
             if (remainder == null) {
-                inv.injectItems(toInsert, Actionable.MODULATE, this.mySrc);
+                inv.injectItems(GenericStack.fromIAEStack(toInsert), Actionable.MODULATE, this.mySrc);
                 return ItemStack.EMPTY;
             } else {
-                if (remainder.getStackSize() == toInsert.getStackSize()) {
+                if (remainder.amount() == toInsert.getStackSize()) {
                     return output;
                 }
-                inv.injectItems(toInsert.setStackSize(toInsert.getStackSize() - remainder.getStackSize()),
+                inv.injectItems(GenericStack.fromIAEStack(toInsert.setStackSize(toInsert.getStackSize() - (int) remainder.amount())),
                         Actionable.MODULATE, this.mySrc);
                 this.saveChanges();
-                return remainder.createItemStack();
+                return ((AEItemKey) remainder.what()).toStack((int) remainder.amount());
             }
         } else if (capability instanceof InventoryAdaptor) {
             InventoryAdaptor adaptor = (InventoryAdaptor) capability;

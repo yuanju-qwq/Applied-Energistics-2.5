@@ -11,6 +11,8 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.oredict.OreDictionary;
 
 import appeng.api.config.*;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.container.guisync.GuiSync;
@@ -67,11 +69,13 @@ public class ContainerOreDictStorageBus extends ContainerUpgradeable implements 
 
         Set<Integer> oreIDs = new HashSet<>();
 
-        for (IAEItemStack itemStack : cellInv.getAvailableItems(
-                AEItemStackType.INSTANCE.createList())) {
-            OreReference ref = ((AEItemStack) itemStack).getOre().orElse(null);
-            if (ref != null) {
-                oreIDs.addAll(ref.getOres());
+        KeyCounter kc = cellInv.getAvailableKeyCounter();
+        for (var entry : kc) {
+            if (entry.getKey() instanceof AEItemKey itemKey) {
+                int[] ids = OreDictionary.getOreIDs(itemKey.toStack());
+                for (int id : ids) {
+                    oreIDs.add(id);
+                }
             }
         }
 

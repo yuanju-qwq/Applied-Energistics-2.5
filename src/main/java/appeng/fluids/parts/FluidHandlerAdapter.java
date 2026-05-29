@@ -20,6 +20,8 @@ package appeng.fluids.parts;
 
 import java.util.*;
 
+import com.google.common.primitives.Ints;
+
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
@@ -31,6 +33,9 @@ import appeng.api.config.StorageFilter;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.networking.ticking.TickRateModulation;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.data.IAEFluidStack;
@@ -72,6 +77,7 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
     }
 
     @Override
+    @Deprecated
     public IAEFluidStack injectItems(IAEFluidStack input, Actionable type, IActionSource src) {
         FluidStack fluidStack = input.getFluidStack();
 
@@ -100,6 +106,19 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
     }
 
     @Override
+    public GenericStack injectItems(GenericStack input, Actionable type, IActionSource src) {
+        if (input == null) return null;
+        if (!(input.what() instanceof AEFluidKey fluidKey)) return input;
+        FluidStack fs = fluidKey.toStack(Ints.saturatedCast(input.amount()));
+        IAEFluidStack aeStack = AEFluidStack.fromFluidStack(fs);
+        if (aeStack == null) return input;
+        IAEFluidStack remainder = this.injectItems(aeStack, type, src);
+        if (remainder == null) return null;
+        return GenericStack.fromIAEStack(remainder);
+    }
+
+    @Override
+    @Deprecated
     public IAEFluidStack extractItems(IAEFluidStack request, Actionable mode, IActionSource src) {
         FluidStack requestedFluidStack = request.getFluidStack();
         final boolean doDrain = (mode == Actionable.MODULATE);
@@ -129,6 +148,18 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
     }
 
     @Override
+    public GenericStack extractItems(GenericStack request, Actionable mode, IActionSource src) {
+        if (request == null) return null;
+        if (!(request.what() instanceof AEFluidKey fluidKey)) return null;
+        FluidStack fs = fluidKey.toStack(Ints.saturatedCast(request.amount()));
+        IAEFluidStack aeRequest = AEFluidStack.fromFluidStack(fs);
+        if (aeRequest == null) return null;
+        IAEFluidStack result = this.extractItems(aeRequest, mode, src);
+        if (result == null) return null;
+        return GenericStack.fromIAEStack(result);
+    }
+
+    @Override
     public TickRateModulation onTick() {
         List<IAEFluidStack> changes = this.cache.update();
         if (!changes.isEmpty() && access.hasPermission(AccessRestriction.READ)) {
@@ -140,8 +171,14 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
     }
 
     @Override
+    @Deprecated
     public IItemList<IAEFluidStack> getAvailableItems(IItemList<IAEFluidStack> out) {
         return this.cache.getAvailableItems(out);
+    }
+
+    @Override
+    public KeyCounter getAvailableKeyCounter() {
+        return this.cache.getAvailableKeyCounter();
     }
 
     @Override
@@ -225,6 +262,14 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
 
         public IItemList<IAEFluidStack> getAvailableItems(IItemList<IAEFluidStack> out) {
             currentlyCached.iterator().forEachRemaining(out::add);
+            return out;
+        }
+
+        public KeyCounter getAvailableKeyCounter() {
+            KeyCounter out = new KeyCounter();
+            for (IAEFluidStack stack : currentlyCached) {
+                out.add(stack.toAEKey(), stack.getStackSize());
+            }
             return out;
         }
 

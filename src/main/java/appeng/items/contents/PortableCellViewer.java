@@ -28,6 +28,7 @@ import appeng.api.config.*;
 import appeng.api.implementations.guiobjects.IPortableCell;
 import appeng.api.implementations.items.IAEItemPowerStorage;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -75,6 +76,7 @@ public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implement
     }
 
     @Override
+    @Deprecated
     public IAEItemStack injectItems(IAEItemStack input, Actionable mode, IActionSource src) {
         final long size = input.getStackSize();
 
@@ -91,12 +93,47 @@ public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implement
     }
 
     @Override
+    public GenericStack injectItems(GenericStack input, Actionable mode, IActionSource src) {
+        if (input == null) return null;
+        final long size = input.amount();
+
+        final GenericStack injected = super.injectItems(input, mode, src);
+
+        if (mode == Actionable.MODULATE && (injected == null || injected.amount() != size)) {
+            IAEItemStack aeInput = (IAEItemStack) input.toIAEStack();
+            if (aeInput != null) {
+                long delta = size - (injected == null ? 0 : injected.amount());
+                this.notifyListenersOfChange(
+                        Collections.singletonList(aeInput.copy().setStackSize(delta)), null);
+            }
+        }
+
+        return injected;
+    }
+
+    @Override
+    @Deprecated
     public IAEItemStack extractItems(IAEItemStack request, Actionable mode, IActionSource src) {
         final IAEItemStack extractable = super.extractItems(request, mode, src);
 
         if (mode == Actionable.MODULATE && extractable != null) {
             this.notifyListenersOfChange(
                     Collections.singletonList(request.copy().setStackSize(-extractable.getStackSize())), null);
+        }
+
+        return extractable;
+    }
+
+    @Override
+    public GenericStack extractItems(GenericStack request, Actionable mode, IActionSource src) {
+        final GenericStack extractable = super.extractItems(request, mode, src);
+
+        if (mode == Actionable.MODULATE && extractable != null) {
+            IAEItemStack aeRequest = (IAEItemStack) request.toIAEStack();
+            if (aeRequest != null) {
+                this.notifyListenersOfChange(
+                        Collections.singletonList(aeRequest.copy().setStackSize(-extractable.amount())), null);
+            }
         }
 
         return extractable;

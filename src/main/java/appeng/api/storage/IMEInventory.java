@@ -53,7 +53,9 @@ public interface IMEInventory<T extends IAEStackBase> {
      * @param src   action source
      *
      * @return returns the number of items not added.
+     * @deprecated Use {@link #injectItems(GenericStack, Actionable, IActionSource)} instead.
      */
+    @Deprecated
     T injectItems(T input, Actionable type, IActionSource src);
 
     /**
@@ -63,7 +65,9 @@ public interface IMEInventory<T extends IAEStackBase> {
      * @param mode    simulate, or perform action?
      *
      * @return returns the number of items extracted, null
+     * @deprecated Use {@link #extractItems(GenericStack, Actionable, IActionSource)} instead.
      */
+    @Deprecated
     T extractItems(T request, Actionable mode, IActionSource src);
 
     /**
@@ -72,17 +76,87 @@ public interface IMEInventory<T extends IAEStackBase> {
      * @param out the IItemList the results will be written too
      *
      * @return returns same list that was passed in, is passed out
+     * @deprecated Use {@link #getAvailableKeyCounter()} instead.
      */
+    @Deprecated
     IItemList<T> getAvailableItems(IItemList<T> out);
 
     /**
      * request a full report of all available items, storage.
      *
      * @return a new list of this inventories content
+     * @deprecated Use {@link #getAvailableKeyCounter()} instead.
      */
     @SuppressWarnings("unchecked")
+    @Deprecated
     default IItemList<T> getAvailableItems() {
         return getAvailableItems((IItemList<T>) getStackType().createList());
+    }
+
+    // ===================== GenericStack / KeyCounter entry points =====================
+
+    /**
+     * Store new items, or simulate the addition of new items into the ME Inventory.
+     *
+     * @param input item (as GenericStack) to add.
+     * @param type  action type
+     * @param src   action source
+     *
+     * @return the stack of items not added, or null if fully injected
+     */
+    default GenericStack injectItems(GenericStack input, Actionable type, IActionSource src) {
+        if (input == null) {
+            return null;
+        }
+        IAEStack<?> aeInput = input.toIAEStack();
+        if (aeInput == null) {
+            return null;
+        }
+        IAEStack<?> remaining = injectItemsGeneric(aeInput, type, src);
+        return remaining != null ? GenericStack.fromIAEStack(remaining) : null;
+    }
+
+    /**
+     * Extract the specified item from the ME Inventory.
+     *
+     * @param request item to request (as GenericStack, with stack size)
+     * @param mode    simulate, or perform action?
+     * @param src     action source
+     *
+     * @return the extracted stack, or null if nothing could be extracted
+     */
+    default GenericStack extractItems(GenericStack request, Actionable mode, IActionSource src) {
+        if (request == null) {
+            return null;
+        }
+        IAEStack<?> aeRequest = request.toIAEStack();
+        if (aeRequest == null) {
+            return null;
+        }
+        IAEStack<?> extracted = extractItemsGeneric(aeRequest, mode, src);
+        return extracted != null ? GenericStack.fromIAEStack(extracted) : null;
+    }
+
+    /**
+     * Returns a {@link KeyCounter} view of all available items in this inventory.
+     * <p>
+     * The default implementation adapts from {@link #getAvailableItems(IItemList)}.
+     *
+     * @return a KeyCounter with amounts per AEKey
+     */
+    @SuppressWarnings("unchecked")
+    default KeyCounter getAvailableKeyCounter() {
+        KeyCounter out = new KeyCounter();
+        IItemList<?> list = getAvailableItemsGeneric(getStackType().createList());
+        for (Object obj : list) {
+            if (obj instanceof IAEStack<?> stack) {
+                AEKey key = stack.toAEKey();
+                if (key != null) {
+                    out.add(key, stack.getStackSize());
+                }
+            }
+        }
+        return out;
     }
 
     /**

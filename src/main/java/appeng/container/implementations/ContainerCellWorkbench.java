@@ -34,6 +34,7 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.config.Settings;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellWorkbenchItem;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.StorageName;
@@ -202,21 +203,18 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
 
         final IMEInventory<?> cellInv = AEApi.instance().registries().cell().getCellInventory(is, null, type);
 
-        Iterator<IAEStack<?>> i = new NullIterator<>();
-        if (cellInv != null) {
-        final IItemList<? extends IAEStack<?>> list = appeng.util.StorageHelper.getAvailableItems(cellInv);
-            i = (Iterator<IAEStack<?>>) (Iterator<?>) list.iterator();
-        }
+        final KeyCounter kc = cellInv != null
+                ? appeng.util.StorageHelper.getAvailableKeyCounter(cellInv)
+                : new KeyCounter();
 
-        for (int x = 0; x < inv.getSizeInventory(); x++) {
-            if (i.hasNext()) {
-                final IAEStack<?> next = i.next();
-                final IAEStack<?> copy = next.copy();
-                copy.setStackSize(1);
-                inv.setGenericStack(x, copy != null ? GenericStack.fromIAEStack(copy) : null);
-            } else {
-                inv.setGenericStack(x, null);
-            }
+        int x = 0;
+        for (var entry : kc) {
+            if (x >= inv.getSizeInventory()) break;
+            inv.setGenericStack(x, new GenericStack(entry.getKey(), 1));
+            x++;
+        }
+        for (; x < inv.getSizeInventory(); x++) {
+            inv.setGenericStack(x, null);
         }
 
         this.workBench.syncConfigToCell();

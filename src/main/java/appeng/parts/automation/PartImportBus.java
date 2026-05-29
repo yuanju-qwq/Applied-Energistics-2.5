@@ -32,6 +32,7 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
@@ -87,14 +88,14 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
                     .getStorage()
                     .getInventory(AEItemStackType.INSTANCE);
 
-            final IAEItemStack out = inv.injectItems(
-                    AEItemStackType.INSTANCE.createStack(stack),
+            final GenericStack out = inv.injectItems(
+                    GenericStack.fromIAEStack(AEItemStackType.INSTANCE.createStack(stack)),
                     Actionable.SIMULATE,
                     this.source);
             if (out == null) {
                 return true;
             }
-            return out.getStackSize() != stack.getCount();
+            return out.amount() != stack.getCount();
         } catch (GridAccessException ex) {
             return false;
         }
@@ -196,10 +197,10 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
 
             if (failed != null) {
                 // try unpowered insert, better be a bit lenient then void items
-                final IAEItemStack spill = inv.injectItems(failed, Actionable.MODULATE, this.source);
+                final GenericStack spill = inv.injectItems(GenericStack.fromIAEStack(failed), Actionable.MODULATE, this.source);
                 if (spill != null) {
                     // last resort try to put it back .. lets hope it's a chest type of thing
-                    myAdaptor.addItems(spill.createItemStack());
+                    myAdaptor.addItems(((AEItemKey) spill.what()).toStack((int) spill.amount()));
                 }
                 return true;
             } else {
@@ -224,16 +225,16 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
             itemStackToImport = whatToImport.getDefinition();
         }
 
-        final IAEItemStack itemAmountNotStorable;
+        final GenericStack itemAmountNotStorable;
         final ItemStack simResult;
         if (this.getInstalledUpgrades(Upgrades.FUZZY) > 0) {
             simResult = myAdaptor.simulateSimilarRemove(toSend, itemStackToImport, fzMode, null);
-            itemAmountNotStorable = inv.injectItems(AEItemStack.fromItemStack(simResult), Actionable.SIMULATE,
-                    this.source);
+            itemAmountNotStorable = GenericStack.fromIAEStack(inv.injectItems(AEItemStack.fromItemStack(simResult), Actionable.SIMULATE,
+                    this.source));
         } else {
             simResult = myAdaptor.simulateRemove(toSend, itemStackToImport, null);
-            itemAmountNotStorable = inv.injectItems(AEItemStack.fromItemStack(simResult), Actionable.SIMULATE,
-                    this.source);
+            itemAmountNotStorable = GenericStack.fromIAEStack(inv.injectItems(AEItemStack.fromItemStack(simResult), Actionable.SIMULATE,
+                    this.source));
         }
 
         if (simResult.isEmpty()) {
@@ -241,10 +242,10 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
         }
 
         if (itemAmountNotStorable != null) {
-            if (simResult.getCount() == itemAmountNotStorable.getStackSize()) {
+            if (simResult.getCount() == itemAmountNotStorable.amount()) {
                 return 0;
             }
-            return (int) Math.min(simResult.getCount() - itemAmountNotStorable.getStackSize(), toSend);
+            return (int) Math.min(simResult.getCount() - itemAmountNotStorable.amount(), toSend);
         }
 
         return toSend;

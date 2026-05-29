@@ -30,6 +30,8 @@ import java.util.Map.Entry;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
@@ -73,7 +75,13 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
+    @Deprecated
     public T injectItems(final T input, final Actionable mode, final IActionSource src) {
+        return this.getHandler().injectItems(input, mode, src);
+    }
+
+    @Override
+    public GenericStack injectItems(GenericStack input, Actionable mode, IActionSource src) {
         return this.getHandler().injectItems(input, mode, src);
     }
 
@@ -105,7 +113,13 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
+    @Deprecated
     public T extractItems(final T request, final Actionable mode, final IActionSource src) {
+        return this.getHandler().extractItems(request, mode, src);
+    }
+
+    @Override
+    public GenericStack extractItems(GenericStack request, Actionable mode, IActionSource src) {
         return this.getHandler().extractItems(request, mode, src);
     }
 
@@ -141,8 +155,14 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
+    @Deprecated
     public IItemList<T> getAvailableItems(final IItemList<T> out) {
         return this.getHandler().getAvailableItems(out);
+    }
+
+    @Override
+    public KeyCounter getAvailableKeyCounter() {
+        return this.getHandler().getAvailableKeyCounter();
     }
 
     @Override

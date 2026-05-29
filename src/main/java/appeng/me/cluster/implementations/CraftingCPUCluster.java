@@ -523,8 +523,9 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                         fuzz = fuzz.copy();
                         fuzz.setStackSize(1); // We're iterating over non condensed inputs which means there's 1 of each
                         // needed
-                        final IAEItemStack ais = this.inventory.extractItems(fuzz, Actionable.SIMULATE,
+                        final GenericStack extracted = this.inventory.extractItems(GenericStack.fromIAEStack(fuzz), Actionable.SIMULATE,
                                 this.machineSrc);
+                        final IAEItemStack ais = extracted != null ? (IAEItemStack) extracted.toIAEStack() : null;
 
                         if (ais != null && ais.getStackSize() > 0) {
                             // Mark 1 of the stack as consumed
@@ -556,7 +557,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                 for (IAEItemStack fuzz : this.inventory.findFuzzyItems(g, FuzzyMode.IGNORE_ALL)) {
                     fuzz = fuzz.copy();
                     fuzz.setStackSize(g.getStackSize());
-                    final IAEItemStack ais = this.inventory.extractItems(fuzz, Actionable.SIMULATE, this.machineSrc);
+                    final GenericStack extracted = this.inventory.extractItems(GenericStack.fromIAEStack(fuzz), Actionable.SIMULATE, this.machineSrc);
+                    final IAEItemStack ais = extracted != null ? (IAEItemStack) extracted.toIAEStack() : null;
 
                     if (ais != null && ais.getStackSize() >= g.getStackSize()) {
                         found = true;
@@ -769,8 +771,9 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
                                                 if (details.isValidItemForSlot(x, fuzz.createItemStack(),
                                                         this.getWorld())) {
-                                                    final IAEItemStack ais = this.inventory.extractItems(fuzz,
+                                                    final GenericStack extracted = this.inventory.extractItems(GenericStack.fromIAEStack(fuzz),
                                                             Actionable.MODULATE, this.machineSrc);
+                                                    final IAEItemStack ais = extracted != null ? (IAEItemStack) extracted.toIAEStack() : null;
                                                     final ItemStack is = ais == null ? ItemStack.EMPTY
                                                             : ais.createItemStack();
 
@@ -887,7 +890,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                 // 回退：从 ItemStack 构建（合成台模式的物品栈）
                 final ItemStack is = ic.getStackInSlot(x);
                 if (!is.isEmpty()) {
-                    this.inventory.injectItems(AEItemStack.fromItemStack(is),
+                    this.inventory.injectItems(GenericStack.fromIAEStack(AEItemStack.fromItemStack(is)),
                             Actionable.MODULATE, this.machineSrc);
                 }
             }
@@ -1015,7 +1018,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
                 if (aeStack != null) {
                     this.postChange(aeStack, this.machineSrc);
-                    aeStack = StorageHelper.injectItems(monitor, aeStack, Actionable.MODULATE, this.machineSrc);
+                    GenericStack gs = monitor.injectItems(GenericStack.fromIAEStack(aeStack), Actionable.MODULATE, this.machineSrc);
+                    aeStack = gs != null ? gs.toIAEStack() : null;
                 }
 
                 if (aeStack != null) {

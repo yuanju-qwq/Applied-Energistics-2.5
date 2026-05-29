@@ -35,6 +35,9 @@ import appeng.api.config.StorageFilter;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.networking.ticking.TickRateModulation;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.data.IAEItemStack;
@@ -74,6 +77,7 @@ class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAE
     }
 
     @Override
+    @Deprecated
     public IAEItemStack injectItems(IAEItemStack iox, Actionable type, IActionSource src) {
         // Try to reuse the cached stack
         ItemStack inputStack = iox.getCachedItemStack(iox.getStackSize());
@@ -115,6 +119,19 @@ class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAE
     }
 
     @Override
+    public GenericStack injectItems(GenericStack input, Actionable type, IActionSource src) {
+        if (input == null) return null;
+        if (!(input.what() instanceof AEItemKey itemKey)) return input;
+        ItemStack stack = itemKey.toStack(Ints.saturatedCast(input.amount()));
+        IAEItemStack aeStack = AEItemStack.fromItemStack(stack);
+        if (aeStack == null) return input;
+        IAEItemStack remainder = this.injectItems(aeStack, type, src);
+        if (remainder == null) return null;
+        return GenericStack.fromIAEStack(remainder);
+    }
+
+    @Override
+    @Deprecated
     public IAEItemStack extractItems(IAEItemStack request, Actionable mode, IActionSource src) {
         int remainingSize = Ints.saturatedCast(request.getStackSize());
 
@@ -202,6 +219,18 @@ class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAE
     }
 
     @Override
+    public GenericStack extractItems(GenericStack request, Actionable mode, IActionSource src) {
+        if (request == null) return null;
+        if (!(request.what() instanceof AEItemKey itemKey)) return null;
+        ItemStack stack = itemKey.toStack(Ints.saturatedCast(request.amount()));
+        IAEItemStack aeRequest = AEItemStack.fromItemStack(stack);
+        if (aeRequest == null) return null;
+        IAEItemStack result = this.extractItems(aeRequest, mode, src);
+        if (result == null) return null;
+        return GenericStack.fromIAEStack(result);
+    }
+
+    @Override
     public TickRateModulation onTick() {
         List<IAEItemStack> changes = this.cache.update();
         if (!changes.isEmpty() && access.hasPermission(AccessRestriction.READ)) {
@@ -218,8 +247,14 @@ class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAE
     }
 
     @Override
+    @Deprecated
     public IItemList<IAEItemStack> getAvailableItems(IItemList<IAEItemStack> out) {
         return this.cache.getAvailableItems(out);
+    }
+
+    @Override
+    public KeyCounter getAvailableKeyCounter() {
+        return this.cache.getAvailableKeyCounter();
     }
 
     @Override
@@ -264,6 +299,14 @@ class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAE
 
         public IItemList<IAEItemStack> getAvailableItems(IItemList<IAEItemStack> out) {
             currentlyCached.iterator().forEachRemaining(out::add);
+            return out;
+        }
+
+        public KeyCounter getAvailableKeyCounter() {
+            KeyCounter out = new KeyCounter();
+            for (IAEItemStack stack : currentlyCached) {
+                out.add(stack.toAEKey(), stack.getStackSize());
+            }
             return out;
         }
 

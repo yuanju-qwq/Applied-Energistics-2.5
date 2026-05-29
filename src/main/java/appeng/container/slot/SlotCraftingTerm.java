@@ -38,6 +38,8 @@ import net.minecraftforge.items.IItemHandler;
 import appeng.api.config.Actionable;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.data.IAEItemStack;
@@ -286,10 +288,11 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
                     ItemHandlerUtil.setStackInSlot(this.craftInv, x, set[x]);
                 } else if (!set[x].isEmpty()) {
                     // eek! put it back!
-                    final IAEItemStack fail = inv.injectItems(AEItemStack.fromItemStack(set[x]), Actionable.MODULATE,
+                    final GenericStack fail = inv.injectItems(GenericStack.fromItemStack(set[x]), Actionable.MODULATE,
                             this.mySrc);
                     if (fail != null) {
-                        drops.add(fail.createItemStack());
+                        AEItemKey itemKey = (AEItemKey) fail.what();
+                        drops.add(itemKey.toStack((int) fail.amount()));
                     }
                 }
             }

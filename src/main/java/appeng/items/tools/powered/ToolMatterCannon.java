@@ -47,6 +47,7 @@ import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IStorageCell;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
@@ -186,7 +187,8 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
                             return new ActionResult<>(EnumActionResult.SUCCESS, p.getHeldItem(hand));
                         }
 
-                        aeAmmo = inv.extractItems(aeAmmo, Actionable.MODULATE, new PlayerSource(p, null));
+                        GenericStack gsAmmo = inv.extractItems(GenericStack.fromIAEStack(aeAmmo), Actionable.MODULATE, new PlayerSource(p, null));
+                        aeAmmo = gsAmmo != null ? (IAEItemStack) gsAmmo.toIAEStack() : null;
                         if (aeAmmo == null) {
                             return new ActionResult<>(EnumActionResult.SUCCESS, p.getHeldItem(hand));
                         }
