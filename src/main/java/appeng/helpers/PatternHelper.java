@@ -73,7 +73,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     private final boolean canSubstitute;
     private final Set<TestLookup> failCache = new HashSet<>();
     private final Set<TestLookup> passCache = new HashSet<>();
-    private final IAEItemStack pattern;
+    private final GenericStack pattern;
     private int priority = 0;
 
     public PatternHelper(final ItemStack is, final World w) {
@@ -94,7 +94,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
 
         this.canSubstitute = this.isCrafting && encodedValue.getBoolean("substitute");
         this.patternItem = is;
-        this.pattern = AEItemStack.fromItemStack(is);
+        this.pattern = GenericStack.fromItemStack(is);
 
         final List<IAEItemStack> in = new ArrayList<>();
         final List<IAEItemStack> out = new ArrayList<>();
@@ -539,7 +539,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     // ========== 静态工具方法：列表压缩 ==========
 
     /**
-     * 将物品栈数组中的相同项合并（压缩）�?     */
+     * 将物品栈数组中的相同项合并（压缩）�?     */
     public static IAEItemStack[] convertToCondensedList(final IAEItemStack[] items) {
         final LinkedHashMap<IAEItemStack, IAEItemStack> tmp = new LinkedHashMap<>();
         for (final IAEItemStack io : items) {
@@ -557,7 +557,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     }
 
     /**
-     * 将generic stack array中的相同项合并（压缩）�?     */
+     * 将generic stack array中的相同项合并（压缩）�?     */
     @SuppressWarnings("unchecked")
     public static IAEStack<?>[] convertToCondensedAEList(final IAEStack<?>[] items) {
         final LinkedHashMap<IAEStack<?>, IAEStack<?>> tmp = new LinkedHashMap<>();

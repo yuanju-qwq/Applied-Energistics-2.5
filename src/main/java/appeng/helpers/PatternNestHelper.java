@@ -70,7 +70,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
     private final boolean canSubstitute;
     private final Set<TestLookup> failCache = new HashSet<>();
     private final Set<TestLookup> passCache = new HashSet<>();
-    private final IAEItemStack pattern;
+    private final GenericStack pattern;
     private int priority = 0;
 
     public PatternNestHelper(final ItemStack is, final World w) {
@@ -89,7 +89,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
 
         this.canSubstitute = this.isCrafting && encodedValue.getBoolean("substitute");
         this.patternItem = is;
-        this.pattern = AEItemStack.fromItemStack(is);
+        this.pattern = GenericStack.fromItemStack(is);
 
         final List<IAEItemStack> in = new ArrayList<>();
         final List<IAEItemStack> out = new ArrayList<>();

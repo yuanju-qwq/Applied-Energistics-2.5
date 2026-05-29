@@ -52,7 +52,7 @@ import appeng.util.item.AEItemStack;
 public class UltimatePatternHelper implements ICraftingPatternDetails, Comparable<UltimatePatternHelper> {
 
     private final ItemStack patternItem;
-    private final IAEItemStack pattern;
+    private final GenericStack pattern;
     private final boolean canSubstitute;
     private final boolean canBeSubstitute;
     private int priority = 0;
@@ -103,9 +103,9 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         if (encodedValue.hasKey("author")) {
             final ItemStack forComparison = this.patternItem.copy();
             forComparison.getTagCompound().removeTag("author");
-            this.pattern = AEItemStack.fromItemStack(forComparison);
+            this.pattern = GenericStack.fromItemStack(forComparison);
         } else {
-            this.pattern = AEItemStack.fromItemStack(is);
+            this.pattern = GenericStack.fromItemStack(is);
         }
 
         final NBTTagList inTag = encodedValue.getTagList("in", NBT.TAG_COMPOUND);

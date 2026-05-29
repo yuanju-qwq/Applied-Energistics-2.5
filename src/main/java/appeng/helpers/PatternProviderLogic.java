@@ -148,7 +148,7 @@ public class PatternProviderLogic
     private final ConfigManager cm = new ConfigManager(this);
 
     // --- Push waiting queue ---
-    private List<IAEStack<?>> waitingToSend = null;
+    private List<GenericStack> waitingToSend = null;
     private EnumMap<EnumFacing, List<ItemStack>> waitingToSendFacing = null;
     private EnumSet<EnumFacing> visitedFaces = EnumSet.noneOf(EnumFacing.class);
 
@@ -160,7 +160,7 @@ public class PatternProviderLogic
     @Nullable
     private UnlockCraftingEvent unlockEvent;
     @Nullable
-    private IAEStack<?> unlockStack;
+    private GenericStack unlockStack;
 
     // ========== Construction ==========
 
@@ -194,9 +194,7 @@ public class PatternProviderLogic
         } else if (unlockEvent == UnlockCraftingEvent.RESULT) {
             if (unlockStack != null) {
                 data.setByte("unlockEvent", (byte) 2);
-                NBTTagCompound unlockStackTag = new NBTTagCompound();
-                unlockStack.writeToNBTGeneric(unlockStackTag);
-                data.setTag("unlockStack", unlockStackTag);
+                data.setTag("unlockStack", GenericStack.writeTag(unlockStack));
             } else {
                 AELog.error("Saving PatternProvider {}, locked waiting for stack, but stack is null!", iHost);
             }
@@ -205,9 +203,8 @@ public class PatternProviderLogic
         // Items waiting to be pushed
         final NBTTagList waitingToSendTag = new NBTTagList();
         if (this.waitingToSend != null) {
-            for (final IAEStack<?> is : this.waitingToSend) {
-                final NBTTagCompound itemNBT = is.toNBTGeneric();
-                waitingToSendTag.appendTag(itemNBT);
+            for (final GenericStack is : this.waitingToSend) {
+                waitingToSendTag.appendTag(GenericStack.writeTag(is));
             }
         }
         data.setTag("waitingToSend", waitingToSendTag);
@@ -237,7 +234,7 @@ public class PatternProviderLogic
             for (int x = 0; x < waitingList.tagCount(); x++) {
                 final NBTTagCompound c = waitingList.getCompoundTagAt(x);
                 if (c != null) {
-                    IAEStack<?> stack = c.hasKey("StackType") ? IAEStack.fromNBTGeneric(c) : null;
+                    GenericStack stack = c.hasKey("StackType") ? GenericStack.readTag(c) : null;
                     if (stack != null) {
                         this.addToSendList(stack);
                     } else {
@@ -299,7 +296,7 @@ public class PatternProviderLogic
         };
 
         if (this.unlockEvent == UnlockCraftingEvent.RESULT) {
-            this.unlockStack = IAEStack.fromNBTGeneric(data.getCompoundTag("unlockStack"));
+            this.unlockStack = GenericStack.readTag(data.getCompoundTag("unlockStack"));
             if (this.unlockStack == null) {
                 AELog.error("Could not load unlock stack for PatternProvider from NBT: {}", data);
             }
@@ -414,8 +411,8 @@ public class PatternProviderLogic
 
     // ========== Push queue management ==========
 
-    private void addToSendList(final IAEStack<?> is) {
-        if (is == null || is.getStackSize() <= 0) {
+    private void addToSendList(final GenericStack is) {
+        if (is == null || is.amount() <= 0) {
             return;
         }
         if (this.waitingToSend == null) {
@@ -434,7 +431,7 @@ public class PatternProviderLogic
         if (is.isEmpty()) {
             return;
         }
-        this.addToSendList(AEItemStack.fromItemStack(is));
+        this.addToSendList(GenericStack.fromItemStack(is));
     }
 
     private void addToSendListFacing(final ItemStack is, EnumFacing f) {
@@ -442,15 +439,15 @@ public class PatternProviderLogic
             return;
         }
 
-        // Try to convert fluid-containing ItemStack to IAEFluidStack
-        final IAEStack<?> converted = tryConvertToFluidStack(is);
+        // Try to convert fluid-containing ItemStack to AE stack
+        final GenericStack converted = tryConvertToFluidStack(is);
 
         if (this.waitingToSendFacing == null) {
             this.waitingToSendFacing = new EnumMap<>(EnumFacing.class);
         }
         this.waitingToSendFacing.computeIfAbsent(f, k -> new ArrayList<>());
 
-        if (!(converted instanceof IAEItemStack)) {
+        if (converted != null && !(converted.what() instanceof AEItemKey)) {
             // Non-item types (fluid, future types) go to the generic waitingToSend queue
             if (this.waitingToSend == null) {
                 this.waitingToSend = new ArrayList<>();
@@ -474,19 +471,26 @@ public class PatternProviderLogic
      * {@link IAEStackType#getStackFromContainerItem(ItemStack)}.
      */
     @Nullable
-    private static IAEStack<?> tryConvertToFluidStack(final ItemStack is) {
+    private static GenericStack tryConvertToFluidStack(final ItemStack is) {
         if (is.isEmpty()) {
             return null;
         }
 
-        // FluidDummyItem placeholder (produced by asItemStackRepresentation)
-        final IAEStack<?> converted = Platform.convertSlotStackToAEStack(is);
-        if (converted != null && !converted.isItem()) {
-            return converted;
+        // FluidDummyItem placeholder
+        if (is.getItem() instanceof appeng.fluids.items.FluidDummyItem fluidDummy) {
+            final net.minecraftforge.fluids.FluidStack fluid = fluidDummy.getFluidStack(is);
+            if (fluid != null) {
+                return GenericStack.fromFluidStack(fluid);
+            }
         }
 
         // Generic fluid container item (e.g., bucket)
-        return AEFluidStackType.INSTANCE.getStackFromContainerItem(is);
+        final IAEStack<?> fromContainer = AEFluidStackType.INSTANCE.getStackFromContainerItem(is);
+        if (fromContainer != null && !fromContainer.isItem()) {
+            return new GenericStack(fromContainer.toAEKey(), fromContainer.getStackSize());
+        }
+
+        return null;
     }
 
     private boolean hasItemsToSend() {
@@ -517,9 +521,9 @@ public class PatternProviderLogic
         final TileEntity tile = this.iHost.getTileEntity();
         final World w = tile.getWorld();
 
-        final Iterator<IAEStack<?>> i = this.waitingToSend.iterator();
+        final Iterator<GenericStack> i = this.waitingToSend.iterator();
         while (i.hasNext()) {
-            IAEStack<?> whatToSend = i.next();
+            GenericStack whatToSend = i.next();
 
             for (final EnumFacing s : possibleDirections) {
                 final TileEntity te = w.getTileEntity(tile.getPos().offset(s));
@@ -529,8 +533,8 @@ public class PatternProviderLogic
 
                 final InventoryAdaptor ad = InventoryAdaptor.getAdaptor(te, s.getOpposite());
                 if (ad != null) {
-                    final IAEStack<?> result = ad.addStack(whatToSend);
-                    if (result == null || result.getStackSize() <= 0) {
+                    final GenericStack result = ad.addStack(whatToSend);
+                    if (result == null || result.amount() <= 0) {
                         whatToSend = null;
                     } else {
                         whatToSend = result;
@@ -541,7 +545,7 @@ public class PatternProviderLogic
                 }
             }
 
-            if (whatToSend == null || whatToSend.getStackSize() <= 0) {
+            if (whatToSend == null || whatToSend.amount() <= 0) {
                 i.remove();
             }
         }
@@ -806,7 +810,7 @@ public class PatternProviderLogic
             for (int x = 0; x < meTable.getSizeInventory(); x++) {
                 final IAEStack<?> aeStack = meTable.getAEStackInSlot(x);
                 if (aeStack != null) {
-                    this.addToSendList(aeStack.copy());
+                    this.addToSendList(new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()));
                 }
             }
         } else {
@@ -947,7 +951,7 @@ public class PatternProviderLogic
             }
             case LOCK_UNTIL_RESULT -> {
                 unlockEvent = UnlockCraftingEvent.RESULT;
-                unlockStack = pattern.getOutputStacks()[0].toIAEStack();
+                unlockStack = pattern.getOutputStacks()[0];
                 saveChanges();
             }
         }
@@ -978,7 +982,7 @@ public class PatternProviderLogic
     }
 
     @Nullable
-    public IAEStack<?> getUnlockStack() {
+    public GenericStack getUnlockStack() {
         return unlockStack;
     }
 
@@ -989,13 +993,13 @@ public class PatternProviderLogic
         if (unlockStack == null) {
             AELog.error("PatternProvider was waiting for RESULT, but no result was set");
             unlockEvent = null;
-        } else if (unlockStack.isSameType(stack.toIAEStack())) {
-            var remainingAmount = unlockStack.getStackSize() - stack.amount();
+        } else if (unlockStack.what().getClass().equals(stack.what().getClass())) {
+            var remainingAmount = unlockStack.amount() - stack.amount();
             if (remainingAmount <= 0) {
                 unlockEvent = null;
                 unlockStack = null;
             } else {
-                unlockStack.setStackSize(remainingAmount);
+                unlockStack = new GenericStack(unlockStack.what(), remainingAmount);
             }
         }
     }
@@ -1284,9 +1288,8 @@ public class PatternProviderLogic
 
     public void addDrops(final List<ItemStack> drops) {
         if (this.waitingToSend != null) {
-            for (final IAEStack<?> aeStack : this.waitingToSend) {
-                // Use asItemStackRepresentation() for all types (items, fluids, future types)
-                final ItemStack is = aeStack.asItemStackRepresentation();
+            for (final GenericStack aeStack : this.waitingToSend) {
+                final ItemStack is = aeStack.what().asItemStackRepresentation();
                 if (!is.isEmpty()) {
                     drops.add(is);
                 }

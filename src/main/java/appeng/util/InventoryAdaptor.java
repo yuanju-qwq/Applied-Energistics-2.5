@@ -34,6 +34,8 @@ import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.FuzzyMode;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.util.inv.*;
@@ -159,6 +161,44 @@ public abstract class InventoryAdaptor implements Iterable<ItemSlot> {
             if (result.isEmpty()) {
                 return null;
             }
+        }
+        return toBeSimulated;
+    }
+
+    /**
+     * GenericStack variant of {@link #addStack(IAEStack)}.
+     */
+    @Nullable
+    public GenericStack addStack(GenericStack toBeAdded) {
+        if (toBeAdded.what() instanceof AEItemKey itemKey) {
+            ItemStack result = this.addItems(itemKey.toStack((int) toBeAdded.amount()));
+            if (result.isEmpty()) return null;
+            return GenericStack.fromItemStack(result);
+        }
+        ItemStack repr = toBeAdded.what().asItemStackRepresentation();
+        if (!repr.isEmpty()) {
+            repr.setCount((int) toBeAdded.amount());
+            ItemStack result = this.addItems(repr);
+            if (result.isEmpty()) return null;
+        }
+        return toBeAdded;
+    }
+
+    /**
+     * GenericStack variant of {@link #simulateAddStack(IAEStack)}.
+     */
+    @Nullable
+    public GenericStack simulateAddStack(GenericStack toBeSimulated) {
+        if (toBeSimulated.what() instanceof AEItemKey itemKey) {
+            ItemStack result = this.simulateAdd(itemKey.toStack((int) toBeSimulated.amount()));
+            if (result.isEmpty()) return null;
+            return GenericStack.fromItemStack(result);
+        }
+        ItemStack repr = toBeSimulated.what().asItemStackRepresentation();
+        if (!repr.isEmpty()) {
+            repr.setCount((int) toBeSimulated.amount());
+            ItemStack result = this.simulateAdd(repr);
+            if (result.isEmpty()) return null;
         }
         return toBeSimulated;
     }

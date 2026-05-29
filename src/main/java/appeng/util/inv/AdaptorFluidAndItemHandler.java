@@ -12,9 +12,9 @@ import net.minecraftforge.fluids.capability.IFluidTankProperties;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.FuzzyMode;
-import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.fluids.util.AEFluidStack;
 import appeng.util.InventoryAdaptor;
 import appeng.util.item.AEItemStack;
@@ -111,40 +111,38 @@ public class AdaptorFluidAndItemHandler extends InventoryAdaptor {
 
     @Override
     @Nullable
-    public IAEStack<?> addStack(IAEStack<?> toBeAdded) {
-        if (toBeAdded instanceof IAEFluidStack fluidStack) {
-            FluidStack fs = fluidStack.getFluidStack();
+    public GenericStack addStack(GenericStack toBeAdded) {
+        if (toBeAdded.what() instanceof AEFluidKey fluidKey) {
+            FluidStack fs = fluidKey.toStack((int) toBeAdded.amount());
             int filled = this.fluidHandler.fill(fs, true);
-            if (filled >= toBeAdded.getStackSize()) {
+            if (filled >= toBeAdded.amount()) {
                 return null;
             }
-            IAEFluidStack remainder = fluidStack.copy();
-            remainder.setStackSize(toBeAdded.getStackSize() - filled);
-            return remainder;
+            return new GenericStack(fluidKey, toBeAdded.amount() - filled);
         }
-        if (toBeAdded instanceof IAEItemStack itemStack) {
-            ItemStack result = this.addItems(itemStack.createItemStack());
-            return AEItemStack.fromItemStack(result);
+        if (toBeAdded.what() instanceof AEItemKey itemKey) {
+            ItemStack result = this.addItems(itemKey.toStack((int) toBeAdded.amount()));
+            if (result.isEmpty()) return null;
+            return GenericStack.fromItemStack(result);
         }
         return toBeAdded;
     }
 
     @Override
     @Nullable
-    public IAEStack<?> simulateAddStack(IAEStack<?> toBeSimulated) {
-        if (toBeSimulated instanceof IAEFluidStack fluidStack) {
-            FluidStack fs = fluidStack.getFluidStack();
+    public GenericStack simulateAddStack(GenericStack toBeSimulated) {
+        if (toBeSimulated.what() instanceof AEFluidKey fluidKey) {
+            FluidStack fs = fluidKey.toStack((int) toBeSimulated.amount());
             int filled = this.fluidHandler.fill(fs, false);
-            if (filled >= toBeSimulated.getStackSize()) {
+            if (filled >= toBeSimulated.amount()) {
                 return null;
             }
-            IAEFluidStack remainder = fluidStack.copy();
-            remainder.setStackSize(toBeSimulated.getStackSize() - filled);
-            return remainder;
+            return new GenericStack(fluidKey, toBeSimulated.amount() - filled);
         }
-        if (toBeSimulated instanceof IAEItemStack itemStack) {
-            ItemStack result = this.simulateAdd(itemStack.createItemStack());
-            return AEItemStack.fromItemStack(result);
+        if (toBeSimulated.what() instanceof AEItemKey itemKey) {
+            ItemStack result = this.simulateAdd(itemKey.toStack((int) toBeSimulated.amount()));
+            if (result.isEmpty()) return null;
+            return GenericStack.fromItemStack(result);
         }
         return toBeSimulated;
     }

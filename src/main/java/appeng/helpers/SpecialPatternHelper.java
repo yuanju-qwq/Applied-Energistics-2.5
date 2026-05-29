@@ -62,7 +62,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
     private final IAEStack<?>[] genericCondensedOutputs;
 
     private final Map<Integer, List<IAEItemStack>> substituteInputs = new HashMap<>();
-    private final IAEItemStack pattern;
+    private final GenericStack pattern;
     private int priority = 0;
 
     /**
@@ -82,7 +82,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
 
         this.canSubstitute = false; // Processing mode does not support substitution
         this.patternItem = is;
-        this.pattern = AEItemStack.fromItemStack(is);
+        this.pattern = GenericStack.fromItemStack(is);
 
         final List<IAEItemStack> inItems = new ArrayList<>();
         final List<IAEItemStack> outItems = new ArrayList<>();

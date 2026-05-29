@@ -13,7 +13,8 @@ import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.GenericStack;
 import appeng.fluids.util.AEFluidStack;
 import appeng.util.InventoryAdaptor;
 
@@ -102,34 +103,30 @@ public class AdaptorFluidHandler extends InventoryAdaptor {
 
     @Override
     @Nullable
-    public IAEStack<?> addStack(IAEStack<?> toBeAdded) {
-        if (toBeAdded instanceof IAEFluidStack fluidStack) {
-            FluidStack fs = fluidStack.getFluidStack();
+    public GenericStack addStack(GenericStack toBeAdded) {
+        if (toBeAdded.what() instanceof AEFluidKey fluidKey) {
+            FluidStack fs = fluidKey.toStack((int) toBeAdded.amount());
             int filled = this.fluidHandler.fill(fs, true);
-            if (filled >= toBeAdded.getStackSize()) {
+            if (filled >= toBeAdded.amount()) {
                 return null;
             }
-            IAEFluidStack remainder = fluidStack.copy();
-            remainder.setStackSize(toBeAdded.getStackSize() - filled);
-            return remainder;
+            return new GenericStack(fluidKey, toBeAdded.amount() - filled);
         }
-        return toBeAdded;
+        return super.addStack(toBeAdded);
     }
 
     @Override
     @Nullable
-    public IAEStack<?> simulateAddStack(IAEStack<?> toBeSimulated) {
-        if (toBeSimulated instanceof IAEFluidStack fluidStack) {
-            FluidStack fs = fluidStack.getFluidStack();
+    public GenericStack simulateAddStack(GenericStack toBeSimulated) {
+        if (toBeSimulated.what() instanceof AEFluidKey fluidKey) {
+            FluidStack fs = fluidKey.toStack((int) toBeSimulated.amount());
             int filled = this.fluidHandler.fill(fs, false);
-            if (filled >= toBeSimulated.getStackSize()) {
+            if (filled >= toBeSimulated.amount()) {
                 return null;
             }
-            IAEFluidStack remainder = fluidStack.copy();
-            remainder.setStackSize(toBeSimulated.getStackSize() - filled);
-            return remainder;
+            return new GenericStack(fluidKey, toBeSimulated.amount() - filled);
         }
-        return toBeSimulated;
+        return super.simulateAddStack(toBeSimulated);
     }
 
     @Override
