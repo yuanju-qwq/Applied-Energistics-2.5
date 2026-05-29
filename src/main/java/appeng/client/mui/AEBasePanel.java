@@ -56,6 +56,8 @@ import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
@@ -510,11 +512,12 @@ public abstract class AEBasePanel extends GuiContainer {
         } else if (s instanceof SlotFake && !s.getStack().isEmpty()) {
             // SlotFake may contain a FluidDummyItem (or other non-item representation):
             // try to convert to a generic IAEStack and render via the appropriate renderer
-            final IAEStack<?> converted = Platform.convertSlotStackToAEStack(s.getStack());
-            if (converted != null && !converted.isItem()) {
-                final IAEStackTypeRenderer renderer = AEStackTypeRendererRegistry.getRenderer(converted);
-                renderer.renderIcon(Minecraft.getMinecraft(), converted, s.xPos, s.yPos);
-                renderer.renderStackSize(this.fontRenderer, converted, s.xPos, s.yPos);
+            final GenericStack converted = Platform.convertSlotStackToAEStack(s.getStack());
+            if (converted != null && !(converted.what() instanceof AEItemKey)) {
+                final IAEStack<?> legacy = converted.toIAEStack();
+                final IAEStackTypeRenderer renderer = AEStackTypeRendererRegistry.getRenderer(legacy);
+                renderer.renderIcon(Minecraft.getMinecraft(), legacy, s.xPos, s.yPos);
+                renderer.renderStackSize(this.fontRenderer, legacy, s.xPos, s.yPos);
                 return;
             }
             // Fall through to default rendering for regular items in SlotFake

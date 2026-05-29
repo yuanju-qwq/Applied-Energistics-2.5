@@ -20,6 +20,7 @@ package appeng.helpers;
 
 import static appeng.helpers.PatternHelper.convertToCondensedAEList;
 import static appeng.helpers.PatternHelper.convertToCondensedList;
+import static appeng.util.Platform.readStackFromNBT;
 import static appeng.util.Platform.readStackNBT;
 import static appeng.util.Platform.stackConvert;
 
@@ -63,11 +64,11 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
     private final GenericStack[] condensedInputStacks;
     private final GenericStack[] condensedOutputStacks;
 
-    // Legacy IAEStack arrays (deprecated, converted from GenericStack)
-    private final IAEStack<?>[] aeInputs;
-    private final IAEStack<?>[] aeOutputs;
-    private final IAEStack<?>[] condensedAEInputs;
-    private final IAEStack<?>[] condensedAEOutputs;
+    // Generic arrays for generic type support
+    private final GenericStack[] aeInputs;
+    private final GenericStack[] aeOutputs;
+    private final GenericStack[] condensedAEInputs;
+    private final GenericStack[] condensedAEOutputs;
 
     // Legacy item-type arrays (deprecated)
     private final IAEItemStack[] inputs;
@@ -120,14 +121,14 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         final List<IAEItemStack> outLegacy = new ArrayList<>();
 
         // Generic list (main entry)
-        final List<IAEStack<?>> in = new ArrayList<>();
-        final List<IAEStack<?>> out = new ArrayList<>();
+        final List<GenericStack> in = new ArrayList<>();
+        final List<GenericStack> out = new ArrayList<>();
 
         // ========== Parse inputs ==========
         for (int x = 0; x < inTag.tagCount(); x++) {
             final NBTTagCompound tag = inTag.getCompoundTagAt(x);
-            // readStackNBT(tag, true): enable legacy FluidDummyItem auto-conversion
-            final IAEStack<?> aeStack = readStackNBT(tag, true);
+            // readStackFromNBT(tag, true): enable legacy FluidDummyItem auto-conversion
+            final GenericStack aeStack = readStackFromNBT(tag, true);
 
             if (aeStack == null && !tag.isEmpty()) {
                 encodedValue.setBoolean("InvalidPattern", true);
@@ -135,16 +136,16 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
             }
 
             // GenericStack list
-            inGenericStack.add(new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()));
+            inGenericStack.add(aeStack);
             // Legacy item list: convert fluids to FluidDummyItem items via stackConvert
-            inLegacy.add(stackConvert(aeStack));
+            inLegacy.add(stackConvert(aeStack.toIAEStack()));
             in.add(aeStack);
         }
 
         // ========== Parse outputs ==========
         for (int x = 0; x < outTag.tagCount(); x++) {
             final NBTTagCompound tag = outTag.getCompoundTagAt(x);
-            final IAEStack<?> aeStack = readStackNBT(tag, true);
+            final GenericStack aeStack = readStackFromNBT(tag, true);
 
             if (aeStack == null && !tag.isEmpty()) {
                 encodedValue.setBoolean("InvalidPattern", true);
@@ -152,8 +153,8 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
             }
 
             // GenericStack list
-            outGenericStack.add(new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()));
-            outLegacy.add(stackConvert(aeStack));
+            outGenericStack.add(aeStack);
+            outLegacy.add(stackConvert(aeStack.toIAEStack()));
             out.add(aeStack);
         }
 
@@ -163,8 +164,8 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
         this.condensedInputs = convertToCondensedList(this.inputs);
         this.condensedOutputs = convertToCondensedList(this.outputs);
 
-        this.aeInputs = in.toArray(new IAEStack<?>[0]);
-        this.aeOutputs = out.toArray(new IAEStack<?>[0]);
+        this.aeInputs = in.toArray(new GenericStack[0]);
+        this.aeOutputs = out.toArray(new GenericStack[0]);
         this.condensedAEInputs = convertToCondensedAEList(this.aeInputs);
         this.condensedAEOutputs = convertToCondensedAEList(this.aeOutputs);
 
@@ -325,9 +326,9 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
      * @param unknownItem fallback item to use when an entry cannot be parsed (may be null)
      * @return generic stack array
      */
-    public static IAEStack<?>[] loadIAEStackFromNBT(final NBTTagList tags, boolean saveOrder,
+    public static GenericStack[] loadIAEStackFromNBT(final NBTTagList tags, boolean saveOrder,
             final ItemStack unknownItem) {
-        final List<IAEStack<?>> items = new ArrayList<>();
+        final List<GenericStack> items = new ArrayList<>();
         for (int x = 0; x < tags.tagCount(); x++) {
             final NBTTagCompound tag = tags.getCompoundTagAt(x);
             if (tag.isEmpty()) {
@@ -337,15 +338,15 @@ public class UltimatePatternHelper implements ICraftingPatternDetails, Comparabl
                 continue;
             }
 
-            IAEStack<?> gs = readStackNBT(tag, true);
+            GenericStack gs = readStackFromNBT(tag, true);
             if (gs == null && unknownItem != null && !unknownItem.isEmpty()) {
-                gs = AEItemStack.fromItemStack(unknownItem);
+                gs = GenericStack.fromItemStack(unknownItem);
             }
             if (gs != null || saveOrder) {
                 items.add(gs);
             }
         }
-        return items.toArray(new IAEStack<?>[0]);
+        return items.toArray(new GenericStack[0]);
     }
 
     /**

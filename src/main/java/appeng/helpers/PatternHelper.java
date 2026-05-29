@@ -559,19 +559,19 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
     /**
      * 将generic stack array中的相同项合并（压缩）�?     */
     @SuppressWarnings("unchecked")
-    public static IAEStack<?>[] convertToCondensedAEList(final IAEStack<?>[] items) {
-        final LinkedHashMap<IAEStack<?>, IAEStack<?>> tmp = new LinkedHashMap<>();
-        for (final IAEStack<?> io : items) {
+    public static GenericStack[] convertToCondensedAEList(final GenericStack[] items) {
+        final LinkedHashMap<GenericStack, GenericStack> tmp = new LinkedHashMap<>();
+        for (final GenericStack io : items) {
             if (io == null) {
                 continue;
             }
-            final IAEStack g = tmp.get(io);
+            final GenericStack g = tmp.get(io);
             if (g == null) {
-                tmp.put(io, io.copy());
+                tmp.put(io, io);
             } else {
-                g.add(io);
+                tmp.put(io, new GenericStack(g.what(), g.amount() + io.amount()));
             }
         }
-        return tmp.values().toArray(new IAEStack<?>[0]);
+        return tmp.values().toArray(new GenericStack[0]);
     }
 }

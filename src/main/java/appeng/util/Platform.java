@@ -720,11 +720,10 @@ public class Platform {
                 return ItemStack.EMPTY;
             }
 
-            final AEItemStack ae_req = AEItemStack.fromItemStack(providedTemplate);
-            ae_req.setStackSize(1);
+            final GenericStack ae_req = new GenericStack(GenericStack.fromItemStack(providedTemplate).what(), 1);
 
-            if (filter == null || filter.isListed(ae_req)) {
-                final GenericStack ae_ext = src.extractItems(new GenericStack(ae_req.toAEKey(), ae_req.getStackSize()), realForFake, mySrc);
+            if (filter == null || filter.isListed((IAEItemStack) ae_req.toIAEStack())) {
+                final GenericStack ae_ext = src.extractItems(ae_req, realForFake, mySrc);
                 if (ae_ext != null) {
                     final ItemStack extracted = ((AEItemKey) ae_ext.what()).toStack((int) ae_ext.amount());
                     if (!extracted.isEmpty()) {
@@ -734,14 +733,15 @@ public class Platform {
                 }
             }
 
-            final boolean checkFuzzy = ae_req.getOre().isPresent()
+            final AEItemStack aeReqItem = (AEItemStack) ae_req.toIAEStack();
+            final boolean checkFuzzy = aeReqItem.getOre().isPresent()
                     || providedTemplate.getItemDamage() == OreDictionary.WILDCARD_VALUE
                     || providedTemplate.hasTagCompound() || providedTemplate.isItemStackDamageable();
 
             if (items != null && checkFuzzy) {
                 for (final IAEItemStack x : items) {
                     final ItemStack sh = x.getDefinition();
-                    if ((Platform.itemComparisons().isEqualItemType(providedTemplate, sh) || ae_req.sameOre(x))
+                    if ((Platform.itemComparisons().isEqualItemType(providedTemplate, sh) || aeReqItem.sameOre(x))
                             && !ItemStack.areItemsEqual(sh, output)) { // Platform.isSameItemType( sh, providedTemplate
                                                                        // )
                         final ItemStack cp = sh.copy();
@@ -948,6 +948,25 @@ public class Platform {
     }
 
     /**
+     * Read a GenericStack from NBT.
+     * Handles both new generic format and legacy IAEItemStack/IAEFluidStack formats.
+     */
+    @Nullable
+    public static GenericStack readStackFromNBT(@Nullable final NBTTagCompound tag, final boolean convert) {
+        IAEStack<?> result = readStackNBT(tag, convert);
+        if (result == null) return null;
+        return new GenericStack(result.toAEKey(), result.getStackSize());
+    }
+
+    /**
+     * Simplified version: no legacy format conversion.
+     */
+    @Nullable
+    public static GenericStack readStackFromNBT(@Nullable final NBTTagCompound tag) {
+        return readStackFromNBT(tag, false);
+    }
+
+    /**
      * Write generic stack to NBT.
      *
      * @param stack    generic stack, can be null
@@ -1063,7 +1082,7 @@ public class Platform {
         }
         final ItemStack repr = stack.asItemStackRepresentation();
         if (repr != null && !repr.isEmpty()) {
-            IAEItemStack result = AEItemStack.fromItemStack(repr);
+            IAEItemStack result = (IAEItemStack) GenericStack.fromItemStack(repr).toIAEStack();
             if (result != null) {
                 result.setStackSize(stack.getStackSize());
                 result.setCraftable(stack.isCraftable());
@@ -1088,7 +1107,7 @@ public class Platform {
         if (is.getItem() instanceof appeng.fluids.items.FluidDummyItem fluidDummy) {
             final net.minecraftforge.fluids.FluidStack fluid = fluidDummy.getFluidStack(is);
             if (fluid != null) {
-                IAEFluidStack fluidStack = AEFluidStack.fromFluidStack(fluid);
+                IAEFluidStack fluidStack = (IAEFluidStack) GenericStack.fromFluidStack(fluid).toIAEStack();
                 if (fluidStack != null) {
                     fluidStack.setStackSize(stack.getStackSize());
                     fluidStack.setCraftable(stack.isCraftable());
@@ -1110,16 +1129,16 @@ public class Platform {
      * @return the converted IAEStack, or null if the input is empty
      */
     @Nullable
-    public static IAEStack<?> convertSlotStackToAEStack(@Nonnull final ItemStack itemStack) {
+    public static GenericStack convertSlotStackToAEStack(@Nonnull final ItemStack itemStack) {
         if (itemStack.isEmpty()) {
             return null;
         }
         if (itemStack.getItem() instanceof appeng.fluids.items.FluidDummyItem fluidDummy) {
             final net.minecraftforge.fluids.FluidStack fluid = fluidDummy.getFluidStack(itemStack);
             if (fluid != null) {
-                return AEFluidStack.fromFluidStack(fluid);
+                return GenericStack.fromFluidStack(fluid);
             }
         }
-        return AEItemStack.fromItemStack(itemStack);
+        return GenericStack.fromItemStack(itemStack);
     }
 }
