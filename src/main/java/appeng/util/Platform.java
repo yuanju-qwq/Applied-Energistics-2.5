@@ -224,7 +224,7 @@ public class Platform {
             return;
         }
 
-        // ExternalGui 仍需通过 legacy bridge 处理（过渡期�?
+        // ExternalGui still needs to be handled via legacy bridge (transitional period)
         final GuiBridge bridge = guiKey.getLegacyBridge();
         if (bridge != null && bridge.getExternalGui() != null) {
             GuiWrapper.IExternalGui obj = bridge.getExternalGui();
@@ -284,7 +284,7 @@ public class Platform {
     }
 
     /**
-     * 使用 {@link AEGuiKey} 在指定槽位打开 GUI（新主入口）�?
+     * Use {@link AEGuiKey} at the specified slot to open GUI (new primary entry point).
      */
     public static void openGUI(@Nonnull final EntityPlayer p, int slot, @Nonnull final AEGuiKey guiKey,
             boolean isBauble) {
@@ -292,7 +292,7 @@ public class Platform {
             return;
         }
 
-        // ExternalGui 仍需通过 legacy bridge 处理（过渡期�?
+        // ExternalGui still needs to be handled via legacy bridge (transitional period)
         final GuiBridge bridge = guiKey.getLegacyBridge();
         if (bridge != null && bridge.getExternalGui() != null) {
             GuiWrapper.IExternalGui obj = bridge.getExternalGui();
@@ -326,10 +326,10 @@ public class Platform {
     }
 
     /**
-     * �?{@link AEGuiKey} 编码为沿用旧协议格式�?GUI 网络标识�?
+     * Encode {@link AEGuiKey} into the legacy protocol format GUI network ID.
      *
-     * @deprecated 已不再使用，Token Map 方案取代�?ordinal 编码�?
-     *             保留以备外部兼容，后续阶段清理�?
+     * @deprecated No longer used; Token Map scheme replaces ordinal encoding.
+     *             Retained for external compatibility; to be cleaned up later.
      */
     @Deprecated
     public static int encodeGuiNetworkId(@Nonnull final AEGuiKey guiKey, final boolean usingItemOnTile,
@@ -349,7 +349,7 @@ public class Platform {
     }
 
     /**
-     * @deprecated �?{@link #encodeGuiNetworkId} 一同废弃�?
+     * @deprecated Deprecated together with {@link #encodeGuiNetworkId}.
      */
     @Deprecated
     @Nullable
@@ -472,7 +472,7 @@ public class Platform {
             final String n = ((AEItemStack) o).getDisplayName();
             return n == null ? "** Null" : n;
         } else if (o instanceof IAEStack) {
-            // 泛型 IAEStack 类型（包�?AEFluidStack 等），使用通用�?getDisplayName()
+            // Generic IAEStack types (including AEFluidStack, etc.), use common getDisplayName()
             final String n = ((IAEStack<?>) o).getDisplayName();
             return n == null ? "** Null" : n;
         } else if (o instanceof ItemStack) {
@@ -884,25 +884,25 @@ public class Platform {
     }
 
     /**
-     * 向上整除（ceiling division），等价�?Math.ceil((double)a / b) 但使用整数运算�?
+     * Ceiling division, equivalent to Math.ceil((double)a / b) but using integer arithmetic.
      */
     public static long ceilDiv(long a, long b) {
         return (a + b - 1) / b;
     }
 
     /**
-     * 比较两个泛型 IAEStack 是否完全相同（包括类型、内容和数量）�?
+     * Compare whether two generic IAEStacks are completely identical (type, content and amount).
      */
 
-    // ========== 泛型�?NBT 序列�?反序列化工具方法 ==========
+    // ========== Generic NBT serialization/deserialization utility methods ==========
 
     /**
      * Read a generic {@link IAEStack} from NBT.
      * <p>
      * Supports two NBT formats for seamless legacy save migration:
      * <ol>
-     *   <li><b>New format</b>: contains {@code "StackType"} string key �?deserialized via {@link IAEStack#fromNBTGeneric(NBTTagCompound)}</li>
-     *   <li><b>Legacy format</b>: no {@code "StackType"} key �?treated as {@link IAEItemStack}, optionally converting FluidDummyItem placeholders</li>
+     *   <li><b>New format</b>: contains {@code "StackType"} string key, deserialized via {@link IAEStack#fromNBTGeneric(NBTTagCompound)}</li>
+     *   <li><b>Legacy format</b>: no {@code "StackType"} key, treated as {@link IAEItemStack}, optionally converting FluidDummyItem placeholders</li>
      * </ol>
      *
      * @param tag     NBT tag
@@ -915,13 +915,13 @@ public class Platform {
             return null;
         }
 
-        // 新格式：StackType 为字符串
+        // New format: StackType as string
         String stackType = tag.getString("StackType");
         if (!stackType.isEmpty()) {
             return IAEStack.fromNBTGeneric(tag);
         }
 
-        // 旧格式：�?StackType 键，先尝试物品栈，再尝试流体�?
+        // Legacy format: no StackType key; try item stack first, then fluid
         IAEItemStack itemStack = AEItemStack.fromNBT(tag);
         if (itemStack != null) {
             if (convert) {
@@ -930,7 +930,7 @@ public class Platform {
             return itemStack;
         }
 
-        // 尝试旧的 AEFluidStack NBT 格式（含 Amt / FluidName 键）
+        // Try legacy AEFluidStack NBT format (with Amt / FluidName keys)
         IAEFluidStack fluidStack = AEFluidStack.fromNBT(tag);
         if (fluidStack != null) {
             return fluidStack;
@@ -940,7 +940,7 @@ public class Platform {
     }
 
     /**
-     * 简化版本：不做旧格式转换�?
+     * Simplified version: no legacy format conversion.
      */
     @Nullable
     public static IAEStack<?> readStackNBT(@Nullable final NBTTagCompound tag) {
@@ -948,21 +948,21 @@ public class Platform {
     }
 
     /**
-     * 将泛型栈写入 NBT�?
+     * Write generic stack to NBT.
      *
-     * @param stack    泛型栈，可为 null
-     * @param tag      写入目标
-     * @param isModern true = 使用新格式（�?"StackType" 字符串），false = 使用旧格式（兼容旧版 AE2�?
-     * @return 写入后的 tag
+     * @param stack    generic stack, can be null
+     * @param tag      write target
+     * @param isModern true = use new format (with "StackType" string), false = use legacy format (compatible with old AE2)
+     * @return the resulting tag
      */
     public static NBTTagCompound writeStackNBT(@Nullable final IAEStack<?> stack, final NBTTagCompound tag,
             boolean isModern) {
         if (stack != null) {
             if (isModern) {
-                // 新格式：带类型标�?
+                // New format: with type tag
                 stack.writeToNBTGeneric(tag);
             } else if (stack instanceof IAEItemStack) {
-                // 旧格式：直接作为物品栈序列化
+                // Legacy format: serialize directly as item stack
                 stack.writeToNBT(tag);
             } else if (stack instanceof IAEFluidStack) {
                 // Legacy format: fluids need to be converted to FluidDummyItem item stack format
@@ -971,7 +971,7 @@ public class Platform {
                     converted.writeToNBT(tag);
                 }
             } else {
-                // 未知类型，回退到新格式
+                // Unknown type, fallback to new format
                 stack.writeToNBTGeneric(tag);
             }
         }
@@ -979,13 +979,13 @@ public class Platform {
     }
 
     /**
-     * 将泛型栈写入 NBT（默认使用新格式）�?
+     * Write generic stack to NBT (default uses new format).
      */
     public static NBTTagCompound writeStackNBT(@Nullable final IAEStack<?> stack, final NBTTagCompound tag) {
         return writeStackNBT(stack, tag, true);
     }
 
-    // ========== 泛型栈列�?NBT 序列�?反序列化 ==========
+    // ========== Generic stack list NBT serialization/deserialization ==========
 
     /**
      * Read a generic stack list from {@link NBTTagList}.
@@ -1010,28 +1010,28 @@ public class Platform {
     }
 
     /**
-     * 简化版本：不做旧格式转换�?
+     * Simplified version: no legacy format conversion.
      */
     public static IItemList<IAEStack<?>> readAEStackListNBT(@Nullable final NBTTagList tags) {
         return readAEStackListNBT(tags, false);
     }
 
     /**
-     * 将泛型栈列表写入 {@link NBTTagList}（使用新格式）�?
+     * Write generic stack list to {@link NBTTagList} (using new format).
      *
-     * @param myList 栈列�?
-     * @return 写入后的 NBTTagList
+     * @param myList stack list
+     * @return the resulting NBTTagList
      */
     public static NBTTagList writeAEStackListNBT(final IItemList<?> myList) {
         return writeAEStackListNBT(myList, new NBTTagList());
     }
 
     /**
-     * 将泛型栈列表追加到已有的 {@link NBTTagList}�?
+     * Append generic stack list to an existing {@link NBTTagList}.
      *
-     * @param myList 栈列�?
-     * @param out    已有�?NBTTagList
-     * @return 写入后的 NBTTagList
+     * @param myList stack list
+     * @param out    existing NBTTagList
+     * @return the resulting NBTTagList
      */
     @SuppressWarnings("unchecked")
     public static NBTTagList writeAEStackListNBT(final IItemList<?> myList, NBTTagList out) {
