@@ -25,6 +25,8 @@ package appeng.api.storage;
 
 import javax.annotation.Nullable;
 
+import appeng.api.stacks.AEKeyType;
+import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 
@@ -36,7 +38,17 @@ public interface IStorageMonitorable {
 
     /**
      * 通过 {@link IAEStackType} 获取对应的 {@link IMEMonitor}。
+     * @deprecated Use {@link #getInventory(AEKeyType)} instead.
      */
+    @Deprecated
     <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type);
 
+    /**
+     * 通过 {@link AEKeyType} 获取对应的 {@link IMEMonitor}。
+     */
+    default IMEMonitor<?> getInventory(AEKeyType type) {
+        var legacyType = AEStackTypeRegistry.getType(type.getId());
+        if (legacyType == null) return null;
+        return getInventory(legacyType);
+    }
 }

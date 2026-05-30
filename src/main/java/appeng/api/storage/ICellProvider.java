@@ -26,6 +26,7 @@ package appeng.api.storage;
 import java.util.List;
 
 import appeng.api.networking.IGridNodeService;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 
@@ -42,8 +43,19 @@ public interface ICellProvider extends IGridNodeService {
      *
      * @param type 栈类型
      * @return 有效的 handler 列表，不能为 null
+     * @deprecated Use {@link #getCellArray(AEKeyType)} instead.
      */
+    @Deprecated
     <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(IAEStackType<T> type);
+
+    /**
+     * AEKeyType-based variant of {@link #getCellArray(IAEStackType)}.
+     */
+    default List<IMEInventoryHandler<?>> getCellArray(AEKeyType type) {
+        var legacyType = appeng.api.storage.data.AEStackTypeRegistry.getType(type.getId());
+        if (legacyType == null) return java.util.Collections.emptyList();
+        return getCellArray(legacyType);
+    }
 
     /**
      * the storage's priority.

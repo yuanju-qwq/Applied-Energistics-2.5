@@ -791,7 +791,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                                     }
                                                 }
                                             }
-                                        } else {
+                                        }  else {
                                             // 加工模式：使用泛型接口提取所有类型
                                             final IAEStack<?> ais = this.inventory.extractAny(input[x].toIAEStack(),
                                                     Actionable.MODULATE);
@@ -875,6 +875,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                 }
             }
         }
+    }
+
     }
 
     /**

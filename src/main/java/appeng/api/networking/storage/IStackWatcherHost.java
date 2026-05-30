@@ -24,6 +24,7 @@
 package appeng.api.networking.storage;
 
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -43,7 +44,20 @@ public interface IStackWatcherHost {
      *
      * @param diffStack new stack
      * @param chan      storage channel
+     * @deprecated Use {@link #onStackChange(IItemList, IAEStack, IAEStack, IActionSource, AEKeyType)} instead.
      */
+    @Deprecated
     void onStackChange(IItemList<?> o, IAEStack<?> fullStack, IAEStack<?> diffStack, IActionSource src,
             IAEStackType<?> type);
+
+    /**
+     * AEKeyType-based variant of {@link #onStackChange(IItemList, IAEStack, IAEStack, IActionSource, IAEStackType)}.
+     */
+    default void onStackChange(IItemList<?> o, IAEStack<?> fullStack, IAEStack<?> diffStack, IActionSource src,
+            AEKeyType type) {
+        var legacyType = appeng.api.storage.data.AEStackTypeRegistry.getType(type.getId());
+        if (legacyType != null) {
+            onStackChange(o, fullStack, diffStack, src, legacyType);
+        }
+    }
 }

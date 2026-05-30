@@ -36,6 +36,7 @@ import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
@@ -66,7 +67,9 @@ public interface IStorageHelper {
      * @param src     Action source.
      * @param mode    Simulate or modulate
      * @return extracted items or {@code null} of nothing was extracted.
+     * @deprecated Use {@link #poweredExtraction(IEnergySource, IMEInventory, GenericStack, IActionSource, Actionable)}
      */
+    @Deprecated
     <T extends IAEStack<T>> T poweredExtraction(final IEnergySource energy, final IMEInventory<T> inv, final T request,
             final IActionSource src, final Actionable mode);
 
@@ -79,9 +82,37 @@ public interface IStorageHelper {
      * @param src    Action source.
      * @param mode   Simulate or modulate
      * @return items not inserted or {@code null} if everything was inserted.
+     * @deprecated Use {@link #poweredInsert(IEnergySource, IMEInventory, GenericStack, IActionSource, Actionable)}
      */
+    @Deprecated
     <T extends IAEStack<T>> T poweredInsert(final IEnergySource energy, final IMEInventory<T> inv, final T input,
             final IActionSource src, final Actionable mode);
+
+    /**
+     * GenericStack variant of {@link #poweredExtraction(IEnergySource, IMEInventory, IAEStack, IActionSource, Actionable)}.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    default GenericStack poweredExtraction(final IEnergySource energy, final IMEInventory<?> inv,
+            final GenericStack request, final IActionSource src, final Actionable mode) {
+        IMEInventory rawInv = (IMEInventory) inv;
+        IAEStack<?> aeRequest = request.toIAEStack();
+        if (aeRequest == null) return null;
+        IAEStack<?> result = poweredExtraction(energy, rawInv, (IAEStack) aeRequest, src, mode);
+        return result != null ? GenericStack.fromIAEStack(result) : null;
+    }
+
+    /**
+     * GenericStack variant of {@link #poweredInsert(IEnergySource, IMEInventory, IAEStack, IActionSource, Actionable)}.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    default GenericStack poweredInsert(final IEnergySource energy, final IMEInventory<?> inv,
+            final GenericStack input, final IActionSource src, final Actionable mode) {
+        IMEInventory rawInv = (IMEInventory) inv;
+        IAEStack<?> aeInput = input.toIAEStack();
+        if (aeInput == null) return null;
+        IAEStack<?> result = poweredInsert(energy, rawInv, (IAEStack) aeInput, src, mode);
+        return result != null ? GenericStack.fromIAEStack(result) : null;
+    }
 
     /**
      * Posts alteration of stored items to the provided {@link IStorageGrid}. This can be used by cell containers to

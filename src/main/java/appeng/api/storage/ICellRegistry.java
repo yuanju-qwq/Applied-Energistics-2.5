@@ -30,6 +30,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
 import appeng.api.IAppEngApi;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 
@@ -79,14 +80,38 @@ public interface ICellRegistry {
 
     /**
      * 通过 {@link IAEStackType} 获取 GUI handler。
+     * @deprecated Use {@link #getGuiHandler(AEKeyType, ItemStack)} instead.
      */
+    @Deprecated
     @Nullable
     <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(IAEStackType<T> type, ItemStack is);
 
     /**
-     * 通过 {@link IAEStackType} 获取 cell 的 inventory handler。
+     * AEKeyType-based variant of {@link #getGuiHandler(IAEStackType, ItemStack)}.
      */
+    @Nullable
+    default ICellGuiHandler getGuiHandler(AEKeyType type, ItemStack is) {
+        var legacyType = appeng.api.storage.data.AEStackTypeRegistry.getType(type.getId());
+        if (legacyType == null) return null;
+        return getGuiHandler(legacyType, is);
+    }
+
+    /**
+     * 通过 {@link IAEStackType} 获取 cell 的 inventory handler。
+     * @deprecated Use {@link #getCellInventory(ItemStack, ISaveProvider, AEKeyType)} instead.
+     */
+    @Deprecated
     @Nullable
     <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
             IAEStackType<T> type);
+
+    /**
+     * AEKeyType-based variant of {@link #getCellInventory(ItemStack, ISaveProvider, IAEStackType)}.
+     */
+    @Nullable
+    default ICellInventoryHandler<?> getCellInventory(ItemStack is, ISaveProvider host, AEKeyType type) {
+        var legacyType = appeng.api.storage.data.AEStackTypeRegistry.getType(type.getId());
+        if (legacyType == null) return null;
+        return getCellInventory(is, host, legacyType);
+    }
 }

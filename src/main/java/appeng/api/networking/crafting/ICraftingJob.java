@@ -27,6 +27,8 @@ import java.util.concurrent.Future;
 
 import appeng.api.config.CraftingMode;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
@@ -62,6 +64,15 @@ public interface ICraftingJob<StackType extends IAEStack> {
      * @return the final output of the job.
      */
     StackType getOutput();
+
+    /**
+     * @return the final output as a GenericStack.
+     */
+    @Nullable
+    default GenericStack getOutputGeneric() {
+        var out = getOutput();
+        return out != null ? GenericStack.fromIAEStack(out) : null;
+    }
 
     /**
      * returns true if this needs more simulation.
@@ -109,8 +120,17 @@ public interface ICraftingJob<StackType extends IAEStack> {
      *
      * @param material output material
      * @return number of crafts
+     * @deprecated Use {@link #getTotalCraftsForPrimaryOutput(AEKey)} instead.
      */
+    @Deprecated
     default long getTotalCraftsForPrimaryOutput(IAEStack<?> material) {
         return 0;
+    }
+
+    /**
+     * AEKey-based variant of {@link #getTotalCraftsForPrimaryOutput(IAEStack)}.
+     */
+    default long getTotalCraftsForPrimaryOutput(AEKey material) {
+        return getTotalCraftsForPrimaryOutput(new GenericStack(material, 1).toIAEStack());
     }
 }

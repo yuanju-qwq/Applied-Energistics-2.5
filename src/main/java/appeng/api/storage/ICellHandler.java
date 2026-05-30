@@ -25,6 +25,7 @@ package appeng.api.storage;
 
 import net.minecraft.item.ItemStack;
 
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 
@@ -52,9 +53,20 @@ public interface ICellHandler {
      * @param host 负责持久化 cell 内容的宿主，可为 null
      * @param type 请求的栈类型
      * @return 新的 IMEHandler，或 null
+     * @deprecated Use {@link #getCellInventory(ItemStack, ISaveProvider, AEKeyType)} instead.
      */
+    @Deprecated
     <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
             IAEStackType<T> type);
+
+    /**
+     * AEKeyType-based variant of {@link #getCellInventory(ItemStack, ISaveProvider, IAEStackType)}.
+     */
+    default ICellInventoryHandler<?> getCellInventory(ItemStack is, ISaveProvider host, AEKeyType type) {
+        var legacyType = appeng.api.storage.data.AEStackTypeRegistry.getType(type.getId());
+        if (legacyType == null) return null;
+        return getCellInventory(is, host, legacyType);
+    }
 
     /**
      * 0 - cell is missing.

@@ -30,6 +30,9 @@ import appeng.api.config.Actionable;
 import appeng.api.config.StorageFilter;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.data.IAEFluidStack;
@@ -85,6 +88,16 @@ public class MEMonitorIFluidHandler implements IMEMonitor<IAEFluidStack>, ITicki
     }
 
     @Override
+    public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
+        var aeInput = input != null ? input.toIAEStack() : null;
+        if (!(aeInput instanceof IAEFluidStack aeFluid)) {
+            return input;
+        }
+        var result = injectItems(aeFluid, type, src);
+        return result != null ? GenericStack.fromIAEStack(result) : null;
+    }
+
+    @Override
     public IAEFluidStack extractItems(final IAEFluidStack request, final Actionable type, final IActionSource src) {
         final FluidStack removed = this.handler.drain(request.getFluidStack(), type == Actionable.MODULATE);
 
@@ -103,6 +116,16 @@ public class MEMonitorIFluidHandler implements IMEMonitor<IAEFluidStack>, ITicki
             }
         }
         return o;
+    }
+
+    @Override
+    public GenericStack extractItems(final GenericStack request, final Actionable type, final IActionSource src) {
+        var aeRequest = request != null ? request.toIAEStack() : null;
+        if (!(aeRequest instanceof IAEFluidStack aeFluid)) {
+            return null;
+        }
+        var result = extractItems(aeFluid, type, src);
+        return result != null ? GenericStack.fromIAEStack(result) : null;
     }
 
     @Override
@@ -203,6 +226,18 @@ public class MEMonitorIFluidHandler implements IMEMonitor<IAEFluidStack>, ITicki
             out.addStorage(fs);
         }
 
+        return out;
+    }
+
+    @Override
+    public KeyCounter getAvailableKeyCounter() {
+        KeyCounter out = new KeyCounter();
+        for (IAEFluidStack fs : cache) {
+            var key = fs.toAEKey();
+            if (key instanceof AEFluidKey fluidKey) {
+                out.add(fluidKey, fs.getStackSize());
+            }
+        }
         return out;
     }
 

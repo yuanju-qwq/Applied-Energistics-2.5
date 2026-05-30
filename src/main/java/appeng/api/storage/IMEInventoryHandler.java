@@ -24,6 +24,7 @@
 package appeng.api.storage;
 
 import appeng.api.config.AccessRestriction;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 
@@ -49,7 +50,9 @@ public interface IMEInventoryHandler<T extends IAEStackBase> extends IMEInventor
      * @param input - item that might be added
      *
      * @return if its prioritized
+     * @deprecated Use {@link #isPrioritized(GenericStack)} instead.
      */
+    @Deprecated
     boolean isPrioritized(T input);
 
     /**
@@ -58,8 +61,32 @@ public interface IMEInventoryHandler<T extends IAEStackBase> extends IMEInventor
      * @param input - item that might be added
      *
      * @return if the item can be added
+     * @deprecated Use {@link #canAccept(GenericStack)} instead.
      */
+    @Deprecated
     boolean canAccept(T input);
+
+    /**
+     * GenericStack-based variant of {@link #isPrioritized(T)}.
+     */
+    @SuppressWarnings("unchecked")
+    default boolean isPrioritized(GenericStack input) {
+        if (input == null) return false;
+        var aeStack = input.toIAEStack();
+        if (aeStack == null) return false;
+        return isPrioritized((T) aeStack);
+    }
+
+    /**
+     * GenericStack-based variant of {@link #canAccept(T)}.
+     */
+    @SuppressWarnings("unchecked")
+    default boolean canAccept(GenericStack input) {
+        if (input == null) return false;
+        var aeStack = input.toIAEStack();
+        if (aeStack == null) return false;
+        return canAccept((T) aeStack);
+    }
 
     /**
      * determine what the priority of the inventory is.

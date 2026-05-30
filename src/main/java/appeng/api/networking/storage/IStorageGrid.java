@@ -26,6 +26,7 @@ package appeng.api.networking.storage;
 import appeng.api.networking.IGridCache;
 import appeng.api.networking.IGridHost;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.ICellContainer;
 import appeng.api.storage.ICellProvider;
 import appeng.api.storage.IStorageMonitorable;
@@ -51,6 +52,38 @@ public interface IStorageGrid extends IGridCache, IStorageMonitorable {
     void postAlterationOfStoredItems(IAEStackType<?> type, Iterable<? extends IAEStackBase> input, IActionSource src);
 
     void postCraftablesChanges(IAEStackType<?> type, Iterable<? extends IAEStackBase> input, IActionSource src);
+
+    /**
+     * GenericStack-based variant of {@link #postAlterationOfStoredItems(IAEStackType, Iterable, IActionSource)}.
+     * <p>
+     * The default implementation converts each GenericStack to IAEStack via the bridge.
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    default void postAlterationOfStoredItems(IAEStackType<?> type, Iterable<GenericStack> input, IActionSource src) {
+        var list = new java.util.ArrayList<IAEStack<?>>();
+        for (var gs : input) {
+            var ae = gs.toIAEStack();
+            if (ae != null) {
+                list.add(ae);
+            }
+        }
+        postAlterationOfStoredItems(type, (Iterable) list, src);
+    }
+
+    /**
+     * GenericStack-based variant of {@link #postCraftablesChanges(IAEStackType, Iterable, IActionSource)}.
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    default void postCraftablesChanges(IAEStackType<?> type, Iterable<GenericStack> input, IActionSource src) {
+        var list = new java.util.ArrayList<IAEStack<?>>();
+        for (var gs : input) {
+            var ae = gs.toIAEStack();
+            if (ae != null) {
+                list.add(ae);
+            }
+        }
+        postCraftablesChanges(type, (Iterable) list, src);
+    }
 
     /**
      * Used to add a cell provider to the storage system

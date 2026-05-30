@@ -23,6 +23,8 @@ import net.minecraft.item.ItemStack;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.data.IAEItemStack;
@@ -63,6 +65,16 @@ public class CreativeCellInventory implements IMEInventoryHandler<IAEItemStack> 
     }
 
     @Override
+    public GenericStack injectItems(final GenericStack input, final Actionable mode, final IActionSource src) {
+        var aeInput = input != null ? input.toIAEStack() : null;
+        if (!(aeInput instanceof IAEItemStack aeItem)) {
+            return input;
+        }
+        var result = injectItems(aeItem, mode, src);
+        return result != null ? GenericStack.fromIAEStack(result) : null;
+    }
+
+    @Override
     public IAEItemStack extractItems(final IAEItemStack request, final Actionable mode, final IActionSource src) {
         final IAEItemStack local = this.itemListCache.findPrecise(request);
         if (local == null) {
@@ -73,9 +85,31 @@ public class CreativeCellInventory implements IMEInventoryHandler<IAEItemStack> 
     }
 
     @Override
+    public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
+        var aeRequest = request != null ? request.toIAEStack() : null;
+        if (!(aeRequest instanceof IAEItemStack aeItem)) {
+            return null;
+        }
+        var result = extractItems(aeItem, mode, src);
+        return result != null ? GenericStack.fromIAEStack(result) : null;
+    }
+
+    @Override
     public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
         for (final IAEItemStack ais : this.itemListCache) {
             out.add(ais);
+        }
+        return out;
+    }
+
+    @Override
+    public KeyCounter getAvailableKeyCounter() {
+        KeyCounter out = new KeyCounter();
+        for (IAEItemStack ais : this.itemListCache) {
+            var key = ais.toAEKey();
+            if (key != null) {
+                out.add(key, ais.getStackSize());
+            }
         }
         return out;
     }

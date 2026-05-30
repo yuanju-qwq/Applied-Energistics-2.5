@@ -21,6 +21,8 @@ package appeng.me.storage;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
@@ -35,13 +37,28 @@ public class NullInventory<T extends IAEStack<T>> implements IMEInventoryHandler
     }
 
     @Override
+    public GenericStack injectItems(final GenericStack input, final Actionable mode, final IActionSource src) {
+        return input;
+    }
+
+    @Override
     public T extractItems(final T request, final Actionable mode, final IActionSource src) {
+        return null;
+    }
+
+    @Override
+    public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
         return null;
     }
 
     @Override
     public IItemList<T> getAvailableItems(final IItemList<T> out) {
         return out;
+    }
+
+    @Override
+    public KeyCounter getAvailableKeyCounter() {
+        return new KeyCounter();
     }
 
     @Override

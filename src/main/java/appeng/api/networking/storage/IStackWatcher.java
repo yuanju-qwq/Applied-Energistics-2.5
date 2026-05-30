@@ -23,6 +23,8 @@
 
 package appeng.api.networking.storage;
 
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 
 /**
@@ -38,7 +40,9 @@ public interface IStackWatcher {
      *
      * @param stack
      * @return true, if successfully added.
+     * @deprecated Use {@link #add(AEKey)} instead.
      */
+    @Deprecated
     boolean add(IAEStack<?> stack);
 
     /**
@@ -46,8 +50,24 @@ public interface IStackWatcher {
      *
      * @param stack
      * @return true, if successfully removed.
+     * @deprecated Use {@link #remove(AEKey)} instead.
      */
+    @Deprecated
     boolean remove(IAEStack<?> stack);
+
+    /**
+     * Add a specific {@link AEKey} to watch.
+     */
+    default boolean add(AEKey key) {
+        return add(new GenericStack(key, 0).toIAEStack());
+    }
+
+    /**
+     * Remove a specific {@link AEKey} from the watcher.
+     */
+    default boolean remove(AEKey key) {
+        return remove(new GenericStack(key, 0).toIAEStack());
+    }
 
     /**
      * Removes all watched stacks and resets the watcher to a clean state.

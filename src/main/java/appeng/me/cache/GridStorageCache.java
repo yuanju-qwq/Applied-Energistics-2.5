@@ -35,6 +35,7 @@ import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.*;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
@@ -142,6 +143,13 @@ public class GridStorageCache implements IStorageGrid {
     @Override
     public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
         return (IMEMonitor<T>) this.storageMonitors.get(type);
+    }
+
+    @Override
+    public IMEMonitor<?> getInventory(AEKeyType type) {
+        var legacyType = AEStackTypeRegistry.getType(type.getId());
+        if (legacyType == null) return null;
+        return getInventory(legacyType);
     }
 
     @SuppressWarnings("unchecked")

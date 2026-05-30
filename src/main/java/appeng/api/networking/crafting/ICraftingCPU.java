@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 
@@ -63,6 +64,15 @@ public interface ICraftingCPU extends IBaseMonitor<IAEStackBase> {
     @Nullable
     default IAEStack<?> getFinalMultiOutput() {
         return null;
+    }
+
+    /**
+     * GenericStack-based variant of {@link #getFinalMultiOutput()}.
+     */
+    @Nullable
+    default GenericStack getFinalMultiOutputGeneric() {
+        var ae = getFinalMultiOutput();
+        return ae != null ? GenericStack.fromIAEStack(ae) : null;
     }
 
     default boolean isPause() {

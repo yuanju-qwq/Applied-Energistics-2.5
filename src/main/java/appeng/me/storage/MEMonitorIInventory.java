@@ -28,6 +28,9 @@ import appeng.api.config.Actionable;
 import appeng.api.config.StorageFilter;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.data.IAEItemStack;
@@ -89,6 +92,16 @@ public class MEMonitorIInventory implements IMEMonitor<IAEItemStack>, ITickingMo
     }
 
     @Override
+    public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
+        var aeInput = input != null ? input.toIAEStack() : null;
+        if (!(aeInput instanceof IAEItemStack aeItem)) {
+            return input;
+        }
+        var result = injectItems(aeItem, type, src);
+        return result != null ? GenericStack.fromIAEStack(result) : null;
+    }
+
+    @Override
     public IAEItemStack extractItems(final IAEItemStack request, final Actionable type, final IActionSource src) {
         ItemStack out = ItemStack.EMPTY;
 
@@ -116,6 +129,16 @@ public class MEMonitorIInventory implements IMEMonitor<IAEItemStack>, ITickingMo
         }
 
         return o;
+    }
+
+    @Override
+    public GenericStack extractItems(final GenericStack request, final Actionable type, final IActionSource src) {
+        var aeRequest = request != null ? request.toIAEStack() : null;
+        if (!(aeRequest instanceof IAEItemStack aeItem)) {
+            return null;
+        }
+        var result = extractItems(aeItem, type, src);
+        return result != null ? GenericStack.fromIAEStack(result) : null;
     }
 
     @Override
@@ -215,6 +238,18 @@ public class MEMonitorIInventory implements IMEMonitor<IAEItemStack>, ITickingMo
             out.addStorage(is);
         }
 
+        return out;
+    }
+
+    @Override
+    public KeyCounter getAvailableKeyCounter() {
+        KeyCounter out = new KeyCounter();
+        for (IAEItemStack is : cache) {
+            var key = is.toAEKey();
+            if (key instanceof AEItemKey itemKey) {
+                out.add(itemKey, is.getStackSize());
+            }
+        }
         return out;
     }
 
