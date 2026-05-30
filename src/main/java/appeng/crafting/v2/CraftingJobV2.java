@@ -14,7 +14,7 @@ import appeng.api.networking.crafting.ICraftingCallback;
 import appeng.api.networking.crafting.ICraftingCPU;
 import appeng.api.networking.crafting.ICraftingJob;
 import appeng.api.networking.security.IActionSource;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.core.AELog;
@@ -24,15 +24,9 @@ import appeng.hooks.TickHandler;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import io.netty.buffer.ByteBuf;
 
-/**
- * v2 Crafting task——使用基于请求和解析器（resolver）的架构，原生支持 IAEStack<?> 泛型。
- *
- * @param <StackType> 顶层请求的栈类型
- */
-public class CraftingJobV2<StackType extends IAEStack> implements ICraftingJob<StackType>,
-        ITreeSerializable {
+public class CraftingJobV2 implements ICraftingJob, ITreeSerializable {
 
-    private final StackType output;
+    private final GenericStack output;
     private CraftingContext context;
     private CraftingRequest topRequest;
     private CraftingMode craftingMode = CraftingMode.STANDARD;
@@ -41,34 +35,23 @@ public class CraftingJobV2<StackType extends IAEStack> implements ICraftingJob<S
     private ICraftingCallback callback;
     private CraftingStepLimitExceeded limitExceeded = null;
 
-    /**
-     * 从 GUI 创建新的Crafting task
-     *
-     * @param output    要合成的目标物品/流体
-     * @param grid      ME 网格
-     * @param source    请求源
-     * @param callback  完成回调
-     */
-    public CraftingJobV2(@Nonnull StackType output, @Nonnull IGrid grid, @Nonnull IActionSource source,
+    public CraftingJobV2(@Nonnull GenericStack output, @Nonnull IGrid grid, @Nonnull IActionSource source,
             ICraftingCallback callback, net.minecraft.world.World world, CraftingMode craftingMode) {
         this.output = output;
         this.callback = callback;
         this.craftingMode = craftingMode;
         this.context = new CraftingContext(world, grid, source);
         this.topRequest = new CraftingRequest(
-                output.copy(),
+                output.what(), output.amount(),
                 CraftingRequest.SubstitutionMode.PRECISE_FRESH,
                 true,
                 craftingMode);
     }
 
-    /**
-     * 反序列化构造
-     */
     @SuppressWarnings("unchecked")
     public CraftingJobV2(CraftingTreeSerializer serializer, ITreeSerializable parent) throws IOException {
         final ByteBuf buffer = serializer.getBuffer();
-        this.output = (StackType) serializer.readStack();
+        this.output = serializer.readStack();
         this.done = buffer.readBoolean();
         this.started = buffer.readBoolean();
         int modeOrd = buffer.readInt();
@@ -99,8 +82,6 @@ public class CraftingJobV2<StackType extends IAEStack> implements ICraftingJob<S
         }
     }
 
-    // ==================== ICraftingJob 接口实现 ====================
-
     @Override
     public boolean isSimulation() {
         return context != null && context.wasSimulated;
@@ -115,7 +96,6 @@ public class CraftingJobV2<StackType extends IAEStack> implements ICraftingJob<S
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void populatePlan(IItemList<IAEStackBase> plan) {
         if (topRequest == null) {
             return;
@@ -126,7 +106,7 @@ public class CraftingJobV2<StackType extends IAEStack> implements ICraftingJob<S
     }
 
     @Override
-    public StackType getOutput() {
+    public GenericStack getOutput() {
         return output;
     }
 
@@ -171,7 +151,7 @@ public class CraftingJobV2<StackType extends IAEStack> implements ICraftingJob<S
     }
 
     @Override
-    public Future<ICraftingJob<StackType>> schedule() {
+    public Future<ICraftingJob> schedule() {
         return TickHandler.instance().registerCraftingSimulation(
                 context != null ? context.world : null,
                 this);
@@ -206,8 +186,6 @@ public class CraftingJobV2<StackType extends IAEStack> implements ICraftingJob<S
         return context.availableCache;
     }
 
-    // ==================== 查询方法 ====================
-
     public CraftingRequest getTopRequest() {
         return topRequest;
     }
@@ -228,9 +206,6 @@ public class CraftingJobV2<StackType extends IAEStack> implements ICraftingJob<S
         return callback;
     }
 
-    /**
-     * 用于序列化后的网络传输
-     */
     public ByteBuf serializeToNetwork() {
         if (context == null) {
             return null;

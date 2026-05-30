@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
@@ -51,7 +52,7 @@ public class SimulateMissingItemResolver implements CraftingRequestResolver {
             request.wasSimulated = true;
             context.wasSimulated = true;
             fulfilled = request.remainingToProcess;
-            request.fulfill(this, request.stack.copy().setStackSize(request.remainingToProcess), context);
+            request.fulfill(this, new GenericStack(request.what, request.remainingToProcess), context);
             return new StepOutput(Collections.emptyList());
         }
 
@@ -72,7 +73,7 @@ public class SimulateMissingItemResolver implements CraftingRequestResolver {
         @Override
         @SuppressWarnings("unchecked")
         public void populatePlan(IItemList<IAEStackBase> targetPlan) {
-            if (fulfilled > 0) targetPlan.add(request.stack.copy().setStackSize(fulfilled));
+            if (fulfilled > 0) targetPlan.add(new GenericStack(request.what, fulfilled).toIAEStack());
         }
 
         @Override

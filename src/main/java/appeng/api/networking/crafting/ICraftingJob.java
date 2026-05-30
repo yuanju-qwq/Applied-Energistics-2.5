@@ -35,91 +35,38 @@ import appeng.api.storage.data.IItemList;
 import appeng.crafting.MECraftingInventory;
 
 /**
- * Crafting job interface. v2 version supports generic stack types (item/fluid etc.).
- *
- * @param <StackType> the output stack type of this crafting job
+ * Crafting job interface that supports generic stack types (item/fluid etc.).
  */
-public interface ICraftingJob<StackType extends IAEStack> {
+public interface ICraftingJob {
 
-    /**
-     * @return if this job is a simulation, simulations cannot be submitted and only represent 1 possible future
-     *         crafting job with fake items.
-     */
     boolean isSimulation();
 
-    /**
-     * @return total number of bytes to process this job.
-     */
     long getByteTotal();
 
-    /**
-     * Populates the plan list with stack size, and requestable values that represent the stored, and crafting job
-     * contents respectively.
-     *
-     * @param plan plan
-     */
     void populatePlan(IItemList<IAEStackBase> plan);
 
-    /**
-     * @return the final output of the job.
-     */
-    StackType getOutput();
+    GenericStack getOutput();
 
-    /**
-     * @return the final output as a GenericStack.
-     */
-    @Nullable
-    default GenericStack getOutputGeneric() {
-        var out = getOutput();
-        return out != null ? GenericStack.fromIAEStack(out) : null;
-    }
-
-    /**
-     * returns true if this needs more simulation.
-     *
-     * @param milli milliseconds of simulation
-     * @return true if this needs more simulation
-     */
     boolean simulateFor(final int milli);
 
-    /**
-     * Submit this job to the TickHandler for asynchronous computation.
-     */
-    Future<ICraftingJob<StackType>> schedule();
+    Future<ICraftingJob> schedule();
 
-    /**
-     * @return whether this job can run on the given cluster
-     */
     default boolean supportsCPUCluster(final ICraftingCPU cluster) {
         return false;
     }
 
-    /**
-     * @return the crafting mode used by this job
-     */
     default CraftingMode getCraftingMode() {
         return CraftingMode.STANDARD;
     }
 
-    /**
-     * Begin executing crafting on the CPU cluster.
-     */
     default void startCrafting(final MECraftingInventory storage, final ICraftingCPU craftingCPUCluster,
             final IActionSource src) {}
 
-    /**
-     * Return the snapshot of the storage when crafting calculation begins, should be read-only, do not modify.
-     */
     default MECraftingInventory getStorageAtBeginning() {
         return new MECraftingInventory();
     }
 
     /**
-     * Get the total number of crafts for the specified output material (used for Crafting confirm GUI display).
-     * Default implementation returns 0; overridden by concrete crafting job implementations (e.g. CraftingJob).
-     *
-     * @param material output material
-     * @return number of crafts
      * @deprecated Use {@link #getTotalCraftsForPrimaryOutput(AEKey)} instead.
      */
     @Deprecated
@@ -127,10 +74,8 @@ public interface ICraftingJob<StackType extends IAEStack> {
         return 0;
     }
 
-    /**
-     * AEKey-based variant of {@link #getTotalCraftsForPrimaryOutput(IAEStack)}.
-     */
     default long getTotalCraftsForPrimaryOutput(AEKey material) {
-        return getTotalCraftsForPrimaryOutput(new GenericStack(material, 1).toIAEStack());
+        var output = getOutput();
+        return output != null && output.what().equals(material) ? output.amount() : 0;
     }
 }

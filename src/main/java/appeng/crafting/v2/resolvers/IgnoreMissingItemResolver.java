@@ -7,6 +7,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import appeng.api.config.CraftingMode;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
@@ -50,7 +51,7 @@ public class IgnoreMissingItemResolver implements CraftingRequestResolver {
                 return new StepOutput(Collections.emptyList());
             }
             fulfilled = request.remainingToProcess;
-            request.fulfill(this, request.stack.copy().setStackSize(request.remainingToProcess), context);
+            request.fulfill(this, new GenericStack(request.what, request.remainingToProcess), context);
             return new StepOutput(Collections.emptyList());
         }
 
@@ -71,13 +72,13 @@ public class IgnoreMissingItemResolver implements CraftingRequestResolver {
         @Override
         @SuppressWarnings("unchecked")
         public void populatePlan(IItemList<IAEStackBase> targetPlan) {
-            if (fulfilled > 0) targetPlan.addRequestable(request.stack.copy().setCountRequestable(fulfilled));
+            if (fulfilled > 0) targetPlan.addRequestable(new GenericStack(request.what, fulfilled).toIAEStack());
         }
 
         @Override
         public void startOnCpu(CraftingContext context, CraftingCPUCluster cpuCluster,
                 MECraftingInventory craftingInv) {
-            cpuCluster.addEmitable(this.request.stack.copy().setStackSize(fulfilled));
+            cpuCluster.addEmitable(new GenericStack(this.request.what, fulfilled).toIAEStack());
         }
 
         @Override

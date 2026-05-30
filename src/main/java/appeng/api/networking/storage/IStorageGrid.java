@@ -53,37 +53,9 @@ public interface IStorageGrid extends IGridCache, IStorageMonitorable {
 
     void postCraftablesChanges(IAEStackType<?> type, Iterable<? extends IAEStackBase> input, IActionSource src);
 
-    /**
-     * GenericStack-based variant of {@link #postAlterationOfStoredItems(IAEStackType, Iterable, IActionSource)}.
-     * <p>
-     * The default implementation converts each GenericStack to IAEStack via the bridge.
-     */
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    default void postAlterationOfStoredItems(IAEStackType<?> type, Iterable<GenericStack> input, IActionSource src) {
-        var list = new java.util.ArrayList<IAEStack<?>>();
-        for (var gs : input) {
-            var ae = gs.toIAEStack();
-            if (ae != null) {
-                list.add(ae);
-            }
-        }
-        postAlterationOfStoredItems(type, (Iterable) list, src);
-    }
-
-    /**
-     * GenericStack-based variant of {@link #postCraftablesChanges(IAEStackType, Iterable, IActionSource)}.
-     */
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    default void postCraftablesChanges(IAEStackType<?> type, Iterable<GenericStack> input, IActionSource src) {
-        var list = new java.util.ArrayList<IAEStack<?>>();
-        for (var gs : input) {
-            var ae = gs.toIAEStack();
-            if (ae != null) {
-                list.add(ae);
-            }
-        }
-        postCraftablesChanges(type, (Iterable) list, src);
-    }
+    // Note: GenericStack-based overloads are not possible here because
+    // Iterable<GenericStack> and Iterable<? extends IAEStackBase> have the same erased signature.
+    // Use the IAEStackBase-based methods directly with toIAEStack() conversion at call sites.
 
     /**
      * Used to add a cell provider to the storage system

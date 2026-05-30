@@ -16,7 +16,8 @@ import com.google.common.collect.ImmutableSet.Builder;
 
 import appeng.api.config.CraftingMode;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
 import appeng.crafting.v2.CraftingContext.RequestInProcessing;
@@ -29,17 +30,8 @@ import io.netty.buffer.ByteBuf;
 public class CraftingRequest implements ITreeSerializable {
 
     public enum SubstitutionMode {
-        /**
-         * 不允许替代，不使用 AE 系统中的物品 — 用于用户发起的请求
-         */
         PRECISE_FRESH,
-        /**
-         * 精确使用请求的物品
-         */
         PRECISE,
-        /**
-         * 允许模糊匹配材料
-         */
         ACCEPT_FUZZY
     }
 
@@ -47,9 +39,9 @@ public class CraftingRequest implements ITreeSerializable {
 
         public final CraftingRequest parent;
         public CraftingTask task;
-        public final IAEStack<?> resolvedStack;
+        public GenericStack resolvedStack;
 
-        public UsedResolverEntry(CraftingRequest parent, CraftingTask task, IAEStack<?> resolvedStack) {
+        public UsedResolverEntry(CraftingRequest parent, CraftingTask task, GenericStack resolvedStack) {
             this.parent = parent;
             this.task = task;
             this.resolvedStack = resolvedStack;
@@ -76,43 +68,33 @@ public class CraftingRequest implements ITreeSerializable {
     public final CraftingRequest parentRequest;
     public final Set<CraftingRequest> parentRequests;
     RequestInProcessing liveRequest;
+
+    public final AEKey what;
     /**
-     * 代表需要合成的物品/流体及其数量
+     * 总请求量（可能因退还而改变）
      */
-    public final IAEStack<?> stack;
+    public long totalAmount;
 
     public final SubstitutionMode substitutionMode;
-    public final Predicate<IAEStack<?>> acceptableSubstituteFn;
+    public final Predicate<AEKey> acceptableSubstituteFn;
 
     public final CraftingMode craftingMode;
 
     public final List<UsedResolverEntry> usedResolvers = new ArrayList<>();
-    /**
-     * 此请求及其子请求是否可以用模拟来满足
-     */
     public final boolean allowSimulation;
-    /**
-     * 尚未解决的元素数量（物品数/mB）
-     */
     public volatile long remainingToProcess;
 
     private volatile long byteCost = 0;
     private volatile long untransformedByteCost = 0;
-    /**
-     * 如果物品不得不被模拟（系统中没有足够的材料以任何方式满足此请求）
-     */
     public volatile boolean wasSimulated = false;
     public boolean incomplete = false;
 
-    /**
-     * 用于避免无限递归的所有祖先 pattern 集合
-     */
     public final Set<ICraftingPatternDetails> patternParents = new HashSet<>();
 
     @Override
     public List<? extends ITreeSerializable> serializeTree(CraftingTreeSerializer serializer) throws IOException {
         final ByteBuf buffer = serializer.getBuffer();
-        serializer.writeStack(stack);
+        serializer.writeStack(new GenericStack(what, totalAmount));
         serializer.writeEnum(substitutionMode);
         buffer.writeBoolean(allowSimulation);
         buffer.writeLong(remainingToProcess);
@@ -134,7 +116,9 @@ public class CraftingRequest implements ITreeSerializable {
     @SuppressWarnings({ "unused" })
     public CraftingRequest(CraftingTreeSerializer serializer, ITreeSerializable parent) throws IOException {
         final ByteBuf buffer = serializer.getBuffer();
-        stack = serializer.readStack();
+        GenericStack stack = serializer.readStack();
+        this.what = stack.what();
+        this.totalAmount = stack.amount();
         parentRequest = null;
         parentRequests = Collections.emptySet();
         substitutionMode = serializer.readEnum(SubstitutionMode.class);
@@ -151,14 +135,9 @@ public class CraftingRequest implements ITreeSerializable {
         acceptableSubstituteFn = x -> true;
     }
 
-    /**
-     * @param parentRequest          发起此合成请求的父请求。null 如果是根请求
-     * @param stack                  要请求的物品/流体及数量
-     * @param substitutionMode       是否以及如何允许替代
-     * @param acceptableSubstituteFn 在模糊模式下判断给定物品是否可以满足请求的谓词
-     */
-    public CraftingRequest(CraftingRequest parentRequest, @Nonnull IAEStack<?> stack, SubstitutionMode substitutionMode,
-            boolean allowSimulation, CraftingMode craftingMode, Predicate<IAEStack<?>> acceptableSubstituteFn) {
+    public CraftingRequest(CraftingRequest parentRequest, @Nonnull AEKey what, long amount,
+            SubstitutionMode substitutionMode, boolean allowSimulation, CraftingMode craftingMode,
+            Predicate<AEKey> acceptableSubstituteFn) {
         this.parentRequest = parentRequest;
         if (parentRequest == null) {
             this.parentRequests = Collections.emptySet();
@@ -168,25 +147,26 @@ public class CraftingRequest implements ITreeSerializable {
             builder.add(parentRequest);
             this.parentRequests = builder.build();
         }
-        this.stack = stack;
+        this.what = what;
+        this.totalAmount = amount;
         this.substitutionMode = substitutionMode;
         this.acceptableSubstituteFn = acceptableSubstituteFn;
-        this.remainingToProcess = stack.getStackSize();
+        this.remainingToProcess = amount;
         this.allowSimulation = allowSimulation;
         this.craftingMode = craftingMode;
     }
 
-    public CraftingRequest(CraftingRequest parentRequest, @Nonnull IAEStack<?> stack, SubstitutionMode substitutionMode,
-            boolean allowSimulation, CraftingMode craftingMode) {
-        this(parentRequest, stack, substitutionMode, allowSimulation, craftingMode, x -> true);
+    public CraftingRequest(CraftingRequest parentRequest, @Nonnull AEKey what, long amount,
+            SubstitutionMode substitutionMode, boolean allowSimulation, CraftingMode craftingMode) {
+        this(parentRequest, what, amount, substitutionMode, allowSimulation, craftingMode, x -> true);
         if (substitutionMode == SubstitutionMode.ACCEPT_FUZZY) {
             throw new IllegalArgumentException("Fuzzy requests must have a substitution-valid predicate");
         }
     }
 
-    public CraftingRequest(IAEStack<?> request, SubstitutionMode substitutionMode, boolean allowSimulation,
+    public CraftingRequest(AEKey what, long amount, SubstitutionMode substitutionMode, boolean allowSimulation,
             CraftingMode craftingMode) {
-        this(null, request, substitutionMode, allowSimulation, craftingMode, x -> true);
+        this(null, what, amount, substitutionMode, allowSimulation, craftingMode, x -> true);
         if (substitutionMode == SubstitutionMode.ACCEPT_FUZZY) {
             throw new IllegalArgumentException("Fuzzy requests must have a substitution-valid predicate");
         }
@@ -198,16 +178,16 @@ public class CraftingRequest implements ITreeSerializable {
 
     private String getReadableStackName() {
         try {
-            return stack.getDisplayName();
+            return what.getDisplayName();
         } catch (Exception e) {
-            AELog.warn(e, "Trying to obtain display name for " + stack);
+            AELog.warn(e, "Trying to obtain display name for " + what);
             return "<EXCEPTION>";
         }
     }
 
     @Override
     public String toString() {
-        return "CraftingRequest{request=" + stack
+        return "CraftingRequest{what=" + what
                 + "<"
                 + getReadableStackName()
                 + ">, substitutionMode="
@@ -240,43 +220,38 @@ public class CraftingRequest implements ITreeSerializable {
                 + (wasSimulated ? GuiText.Yes.getLocal() : GuiText.No.getLocal());
     }
 
-    /**
-     * 减少满足此请求所需的物品数量，并将多余的物品添加到上下文缓存中。
-     */
-    public void fulfill(CraftingTask origin, IAEStack<?> input, CraftingContext context) {
-        if (input == null || input.getStackSize() == 0) {
+    public void fulfill(CraftingTask origin, GenericStack input, CraftingContext context) {
+        if (input == null || input.amount() == 0) {
             return;
         }
-        if (input.getStackSize() < 0) {
+        if (input.amount() < 0) {
             throw new IllegalArgumentException(
                     "Can't fulfill crafting request with a negative amount of " + input + " : " + this);
         }
-        if (this.remainingToProcess < input.getStackSize()) {
+        if (this.remainingToProcess < input.amount()) {
             throw new IllegalArgumentException(
                     "Can't fulfill crafting request with too many of " + input + " : " + this);
         }
-        this.untransformedByteCost += input.getStackSize();
+        this.untransformedByteCost += input.amount();
         this.byteCost = CraftingCalculations.adjustByteCost(this, untransformedByteCost);
-        this.remainingToProcess -= input.getStackSize();
-        this.usedResolvers.add(new UsedResolverEntry(this, origin, input.copy()));
+        this.remainingToProcess -= input.amount();
+        this.usedResolvers.add(new UsedResolverEntry(this, origin, input));
     }
 
-    /**
-     * 通过 resolver Crafting task传播所需的退还。
-     */
     public void partialRefund(CraftingContext context, final long refundedAmount) {
         long remainingTaskAmount = refundedAmount;
         for (UsedResolverEntry resolver : usedResolvers) {
             if (remainingTaskAmount <= 0) {
                 break;
             }
-            if (resolver.resolvedStack.getStackSize() <= 0) {
+            if (resolver.resolvedStack.amount() <= 0) {
                 continue;
             }
             final long taskRefunded = resolver.task
-                    .partialRefund(context, Math.min(remainingTaskAmount, resolver.resolvedStack.getStackSize()));
+                    .partialRefund(context, Math.min(remainingTaskAmount, resolver.resolvedStack.amount()));
             remainingTaskAmount -= taskRefunded;
-            resolver.resolvedStack.setStackSize(resolver.resolvedStack.getStackSize() - taskRefunded);
+            resolver.resolvedStack = new GenericStack(resolver.resolvedStack.what(),
+                    resolver.resolvedStack.amount() - taskRefunded);
         }
         if (remainingTaskAmount < 0) {
             throw new IllegalStateException("Refunds resulted in a negative amount of an item for request " + this);
@@ -285,7 +260,7 @@ public class CraftingRequest implements ITreeSerializable {
             throw new IllegalStateException("Partial refunds could not cover all resolved items for request " + this);
         }
 
-        final long originallyRequested = this.stack.getStackSize();
+        final long originallyRequested = this.totalAmount;
         final long originallyRemainingToProcess = this.remainingToProcess;
         final long originallyProcessed = originallyRequested - originallyRemainingToProcess;
 
@@ -293,7 +268,7 @@ public class CraftingRequest implements ITreeSerializable {
         final long newlyProcessed = Math.min(originallyProcessed, newlyRequested);
         final long newlyRemainingToProcess = newlyRequested - newlyProcessed;
 
-        this.stack.setStackSize(newlyRequested);
+        this.totalAmount = newlyRequested;
         this.remainingToProcess = newlyRemainingToProcess;
         this.untransformedByteCost -= refundedAmount;
         this.byteCost = CraftingCalculations.adjustByteCost(this, untransformedByteCost);
@@ -309,23 +284,18 @@ public class CraftingRequest implements ITreeSerializable {
         this.remainingToProcess = 0;
         this.untransformedByteCost = 0;
         this.byteCost = CraftingCalculations.adjustByteCost(this, untransformedByteCost);
-        this.stack.setStackSize(0);
+        this.totalAmount = 0;
         this.usedResolvers.clear();
     }
 
-    /**
-     * 获取已解析的物品栈。
-     *
-     * @throws IllegalStateException 如果使用了多种物品类型来解析此请求
-     */
-    public IAEStack<?> getOneResolvedType() {
-        IAEStack<?> found = null;
+    public GenericStack getOneResolvedType() {
+        GenericStack found = null;
         for (UsedResolverEntry resolver : usedResolvers) {
-            if (resolver.resolvedStack.getStackSize() <= 0) {
+            if (resolver.resolvedStack.amount() <= 0) {
                 continue;
             }
             if (found == null) {
-                found = resolver.resolvedStack.copy();
+                found = resolver.resolvedStack;
             } else {
                 throw new IllegalStateException("Found multiple item types resolving " + this);
             }

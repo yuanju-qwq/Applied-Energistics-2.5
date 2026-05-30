@@ -21,6 +21,7 @@ import com.google.common.base.Throwables;
 
 import appeng.api.implementations.ICraftingPatternItem;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.core.AEConfig;
@@ -174,12 +175,12 @@ public final class CraftingTreeSerializer {
         return type.getEnumConstants()[ordinal];
     }
 
-    public void writeStack(IAEStack<?> stack) {
-        writeStackByte(stack, buffer);
+    public void writeStack(GenericStack stack) {
+        writeStackByte(stack.toIAEStack(), buffer);
     }
 
-    public IAEStack<?> readStack() {
-        return readStackByte(buffer);
+    public GenericStack readStack() {
+        return GenericStack.fromIAEStack(readStackByte(buffer));
     }
 
     public IAEItemStack readItemStack() {
@@ -187,7 +188,7 @@ public final class CraftingTreeSerializer {
     }
 
     public void writePattern(ICraftingPatternDetails pattern) {
-        writeStack(AEItemStack.fromItemStack(pattern.getPattern()));
+        writeStack(GenericStack.fromIAEStack(AEItemStack.fromItemStack(pattern.getPattern())));
     }
 
     @SuppressWarnings("unchecked")

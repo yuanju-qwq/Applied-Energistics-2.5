@@ -789,9 +789,10 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                                         found = true;
                                                         break;
                                                     }
+                                                    }
                                                 }
                                             }
-                                        }  else {
+                                        } else {
                                             // 加工模式：使用泛型接口提取所有类型
                                             final IAEStack<?> ais = this.inventory.extractAny(input[x].toIAEStack(),
                                                     Actionable.MODULATE);
@@ -875,8 +876,6 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                 }
             }
         }
-    }
-
     }
 
     /**
@@ -1070,8 +1069,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             return null;
         }
         if (ci.commit(src)) {
-                this.finalOutput = job.getOutput();
-                this.amount = job.getOutput().getStackSize();
+                this.finalOutput = job.getOutput().toIAEStack();
+                this.amount = job.getOutput().amount();
                 this.waiting = false;
                 this.isComplete = false;
 

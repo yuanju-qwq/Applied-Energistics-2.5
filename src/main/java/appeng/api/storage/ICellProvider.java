@@ -29,6 +29,7 @@ import appeng.api.networking.IGridNodeService;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
+import appeng.api.storage.data.AEStackTypeRegistry;
 
 /**
  * Allows you to provide cells via non IGridHosts directly to the storage system, drives, and similar features should go
@@ -51,10 +52,11 @@ public interface ICellProvider extends IGridNodeService {
     /**
      * AEKeyType-based variant of {@link #getCellArray(IAEStackType)}.
      */
+    @SuppressWarnings({"rawtypes", "unchecked"})
     default List<IMEInventoryHandler<?>> getCellArray(AEKeyType type) {
-        var legacyType = appeng.api.storage.data.AEStackTypeRegistry.getType(type.getId());
+        var legacyType = AEStackTypeRegistry.getType(type.getId());
         if (legacyType == null) return java.util.Collections.emptyList();
-        return getCellArray(legacyType);
+        return (List) getCellArray(legacyType);
     }
 
     /**

@@ -1,21 +1,3 @@
-/*
- * This file is part of Applied Energistics 2.
- * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
- *
- * Applied Energistics 2 is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Applied Energistics 2 is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
- */
-
 package appeng.crafting;
 
 import net.minecraft.nbt.NBTTagCompound;
@@ -24,6 +6,7 @@ import appeng.api.config.Actionable;
 import appeng.api.networking.crafting.ICraftingCPU;
 import appeng.api.networking.crafting.ICraftingLink;
 import appeng.api.networking.crafting.ICraftingRequester;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 
@@ -152,22 +135,33 @@ public class CraftingLink implements ICraftingLink {
     }
 
     /**
-     * IAEItemStack 重载 — 向后兼容。
+     * @deprecated Use {@link #injectItems(GenericStack, Actionable)} instead.
      */
+    @Deprecated
     public IAEItemStack injectItems(final IAEItemStack input, final Actionable mode) {
         IAEStack<?> result = injectItems((IAEStack<?>) input, mode);
         return result instanceof IAEItemStack ? (IAEItemStack) result : null;
     }
 
     /**
-     * 泛型版本：将已完成的合成结果注入请求者。
+     * @deprecated Use {@link #injectItems(GenericStack, Actionable)} instead.
      */
+    @Deprecated
     public IAEStack<?> injectItems(final IAEStack<?> input, final Actionable mode) {
         if (this.tie == null || this.tie.getRequest() == null || this.tie.getRequest().getRequester() == null) {
             return input;
         }
 
         return this.tie.getRequest().getRequester().injectCraftedItems(this.tie.getRequest(), input, mode);
+    }
+
+    /**
+     * GenericStack-based variant of {@link #injectItems(IAEStack, Actionable)}.
+     */
+    public GenericStack injectItems(final GenericStack input, final Actionable mode) {
+        IAEStack<?> result = injectItems(input.toIAEStack(), mode);
+        if (result == null) return null;
+        return GenericStack.fromIAEStack(result);
     }
 
     public void markDone() {
