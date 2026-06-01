@@ -76,7 +76,7 @@ import appeng.util.inv.InvOperation;
 import appeng.util.item.AEItemStackType;
 
 public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherHost, IStackWatcherHost,
-        ICraftingWatcherHost, IMEMonitorHandlerReceiver<IAEStackBase>, ICraftingProvider, IIAEStackInventory {
+        ICraftingWatcherHost, IMEMonitorHandlerReceiver, ICraftingProvider, IIAEStackInventory {
 
     @PartModels
     public static final ResourceLocation MODEL_BASE_OFF = new ResourceLocation(AppEng.MOD_ID,
@@ -323,7 +323,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     }
 
     @SuppressWarnings("unchecked")
-    private void updateReportingValue(final IMEMonitor<?> monitor) {
+    private void updateReportingValue(final IMEMonitor monitor) {
         final GenericStack gs = this.config.getGenericStack(0);
         final IAEStack<?> myStack = gs != null ? gs.toIAEStack() : null;
 
@@ -389,9 +389,9 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     }
 
     @Override
-    public void postChange(final IBaseMonitor<IAEStackBase> monitor, final Iterable<IAEStackBase> change,
+    public void postChange(final IBaseMonitor monitor, final Iterable<IAEStackBase> change,
             final IActionSource actionSource) {
-        this.updateReportingValue((IMEMonitor<?>) monitor);
+        this.updateReportingValue((IMEMonitor) monitor);
     }
 
     @Override

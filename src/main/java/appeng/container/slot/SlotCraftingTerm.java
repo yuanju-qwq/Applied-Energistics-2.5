@@ -107,7 +107,7 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
             return;
         }
 
-        final IMEMonitor<IAEItemStack> inv = this.storage
+        final IMEMonitor inv = this.storage
                 .getInventory(AEItemStackType.INSTANCE);
         final int howManyPerCraft = this.getStack().getCount();
         int maxTimesToCraft = 0;
@@ -196,7 +196,7 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
         return maxTimesToCraft;
     }
 
-    private ItemStack craftItem(final EntityPlayer p, final ItemStack request, final IMEMonitor<IAEItemStack> inv,
+    private ItemStack craftItem(final EntityPlayer p, final ItemStack request, final IMEMonitor inv,
             final IItemList<IAEItemStack> all) {
         // update crafting matrix...
         ItemStack is = this.getStack();
@@ -267,7 +267,7 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
         return ItemStack.EMPTY;
     }
 
-    private boolean preCraft(final EntityPlayer p, final IMEMonitor<IAEItemStack> inv, final ItemStack[] set,
+    private boolean preCraft(final EntityPlayer p, final IMEMonitor inv, final ItemStack[] set,
             final ItemStack result) {
         return true;
     }
@@ -276,7 +276,7 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
         super.onTake(p, is);
     }
 
-    private void postCraft(final EntityPlayer p, final IMEMonitor<IAEItemStack> inv, final ItemStack[] set,
+    private void postCraft(final EntityPlayer p, final IMEMonitor inv, final ItemStack[] set,
             final ItemStack result) {
         final List<ItemStack> drops = new ArrayList<>();
 

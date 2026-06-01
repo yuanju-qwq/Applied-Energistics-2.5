@@ -60,10 +60,10 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
 
     private final AppEngCellInventory inv = new AppEngCellInventory(this, 10);
     private final ICellHandler[] handlersBySlot = new ICellHandler[10];
-    private final DriveWatcher<IAEItemStack>[] invBySlot = new DriveWatcher[10];
+    private final DriveWatcher[] invBySlot = new DriveWatcher[10];
     private final IActionSource mySrc;
     private boolean isCached = false;
-    private final Map<IAEStackType<?>, List<IMEInventoryHandler<?>>> inventoryHandlers;
+    private final Map<IAEStackType<?>, List<IMEInventoryHandler>> inventoryHandlers;
     private int priority = 0;
     private boolean wasActive = false;
     private final DriveCellManager cellManager;
@@ -246,13 +246,13 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
+    public <T extends IAEStack<T>> List<IMEInventoryHandler> getCellArray(final IAEStackType<T> type) {
         this.updateState();
-        final List<IMEInventoryHandler<?>> handlers = this.inventoryHandlers.get(type);
+        final List<IMEInventoryHandler> handlers = this.inventoryHandlers.get(type);
         if (handlers == null) {
             return Collections.emptyList();
         }
-        return (List<IMEInventoryHandler<T>>) (List<?>) handlers;
+        return (List<IMEInventoryHandler>) (List<?>) handlers;
     }
 
     @Override
@@ -283,7 +283,7 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
     }
 
     @Override
-    public void saveChanges(final ICellInventory<?> cellInventory) {
+    public void saveChanges(final ICellInventory cellInventory) {
         this.world.markChunkDirty(this.pos, this);
     }
 

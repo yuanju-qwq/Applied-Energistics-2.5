@@ -33,16 +33,16 @@ import net.minecraft.util.EnumHand;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
 
 /**
  * Handles type-specific player interactions for the Conversion Monitor part.
  * <p>
- * Each {@link IAEStackType} registers an implementation that knows how to:
+ * Each {@link AEKeyType} registers an implementation that knows how to:
  * <ul>
  *   <li>Determine if a held item can interact with this type (e.g., fluid containers for fluids)</li>
- *   <li>Convert a held item into the corresponding {@link IAEStack} for matching</li>
+ *   <li>Convert a held item into the corresponding {@link GenericStack} for matching</li>
  *   <li>Insert resources from the player into the ME network</li>
  *   <li>Insert all matching resources from the player's inventory into the ME network</li>
  *   <li>Extract resources from the ME network to the player</li>
@@ -50,16 +50,14 @@ import appeng.api.storage.data.IAEStackType;
  * <p>
  * This abstraction replaces all {@code instanceof IAEItemStack / IAEFluidStack}
  * dispatching in the Conversion Monitor.
- *
- * @param <T> the concrete stack type
  */
-public interface IConversionMonitorHandler<T extends IAEStack<T>> {
+public interface IConversionMonitorHandler {
 
     /**
-     * @return the stack type this handler manages
+     * @return the key type this handler manages
      */
     @Nonnull
-    IAEStackType<T> getStackType();
+    AEKeyType getKeyType();
 
     /**
      * Determine if the player's held item can interact with this stack type
@@ -82,7 +80,7 @@ public interface IConversionMonitorHandler<T extends IAEStack<T>> {
      * @return the AE stack extracted from the container, or null if not applicable
      */
     @Nullable
-    T getStackFromContainer(@Nonnull ItemStack heldItem);
+    GenericStack getStackFromContainer(@Nonnull ItemStack heldItem);
 
     /**
      * Insert a single held item/container into the ME network.
@@ -100,7 +98,7 @@ public interface IConversionMonitorHandler<T extends IAEStack<T>> {
             @Nonnull EntityPlayer player,
             @Nonnull EnumHand hand,
             @Nonnull IEnergySource energy,
-            @Nonnull IMEMonitor<T> monitor,
+            @Nonnull IMEMonitor monitor,
             @Nonnull IActionSource src);
 
     /**
@@ -117,9 +115,9 @@ public interface IConversionMonitorHandler<T extends IAEStack<T>> {
      */
     void insertAllFromPlayer(
             @Nonnull EntityPlayer player,
-            @Nonnull T displayed,
+            @Nonnull GenericStack displayed,
             @Nonnull IEnergySource energy,
-            @Nonnull IMEMonitor<T> monitor,
+            @Nonnull IMEMonitor monitor,
             @Nonnull IActionSource src);
 
     /**
@@ -141,10 +139,10 @@ public interface IConversionMonitorHandler<T extends IAEStack<T>> {
     void extractToPlayer(
             @Nonnull EntityPlayer player,
             @Nonnull EnumHand hand,
-            @Nonnull T displayed,
+            @Nonnull GenericStack displayed,
             long count,
             @Nonnull IEnergySource energy,
-            @Nonnull IMEMonitor<T> monitor,
+            @Nonnull IMEMonitor monitor,
             @Nonnull IActionSource src,
             @Nonnull IConversionMonitorHost host);
 
@@ -157,11 +155,11 @@ public interface IConversionMonitorHandler<T extends IAEStack<T>> {
      * For items: returns AEItemStack from the held ItemStack.
      * For fluids: returns AEFluidStack from a fluid container.
      * <p>
-     * The returned stack should have stackSize set to 0 (it's a type reference, not a quantity).
+     * The returned stack should have amount set to 0 (it's a type reference, not a quantity).
      *
      * @param heldItem the item the player is holding
-     * @return the configured stack with stackSize=0, or null if this handler cannot resolve the held item
+     * @return the configured stack with amount=0, or null if this handler cannot resolve the held item
      */
     @Nullable
-    T resolveConfiguredStack(@Nonnull ItemStack heldItem);
+    GenericStack resolveConfiguredStack(@Nonnull ItemStack heldItem);
 }

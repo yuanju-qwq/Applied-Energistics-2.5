@@ -37,22 +37,22 @@ public final class CreativeCellHandler implements ICellHandler {
     }
 
     @Override
-    public <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(final ItemStack is, final ISaveProvider container,
+    public <T extends IAEStack<T>> ICellInventoryHandler getCellInventory(final ItemStack is, final ISaveProvider container,
             final IAEStackType<T> type) {
         if (type == AEItemStackType.INSTANCE && !is.isEmpty() && is
                 .getItem() instanceof ItemCreativeStorageCell) {
-            return (ICellInventoryHandler<T>) CreativeCellInventory.getCell(is);
+            return (ICellInventoryHandler) CreativeCellInventory.getCell(is);
         }
         return null;
     }
 
     @Override
-    public <T extends IAEStack<T>> int getStatusForCell(final ItemStack is, final ICellInventoryHandler<T> handler) {
+    public <T extends IAEStack<T>> int getStatusForCell(final ItemStack is, final ICellInventoryHandler handler) {
         return 2;
     }
 
     @Override
-    public <T extends IAEStack<T>> double cellIdleDrain(final ItemStack is, final ICellInventoryHandler<T> handler) {
+    public <T extends IAEStack<T>> double cellIdleDrain(final ItemStack is, final ICellInventoryHandler handler) {
         return 0;
     }
 }

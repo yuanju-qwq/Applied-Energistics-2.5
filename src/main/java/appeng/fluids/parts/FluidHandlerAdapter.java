@@ -34,12 +34,13 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.fluids.util.AEFluidStack;
 import appeng.fluids.util.AEFluidStackType;
@@ -55,8 +56,8 @@ import appeng.parts.misc.AbstractPartStorageBus;
  * @version rv6 - 22/05/2018
  * @since rv6 22/05/2018
  */
-public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMonitor<IAEFluidStack>, ITickingMonitor {
-    private final Map<IMEMonitorHandlerReceiver<? super IAEFluidStack>, Object> listeners = new HashMap<>();
+public class FluidHandlerAdapter implements IMEInventory, IBaseMonitor, ITickingMonitor {
+    private final Map<IMEMonitorHandlerReceiver, Object> listeners = new HashMap<>();
     private IActionSource source;
     private final IFluidHandler fluidHandler;
     private final IGridProxyable proxyable;
@@ -92,7 +93,7 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
         if (type == Actionable.MODULATE) {
             IAEFluidStack added = input.copy().setStackSize(input.getStackSize() - remaining);
             this.cache.currentlyCached.add(added);
-            this.postDifference(Collections.singletonList(added));
+            this.postDifference(Collections.singletonList(GenericStack.fromIAEStack(added)));
             try {
                 this.proxyable.getProxy().getTick().alertDevice(this.proxyable.getProxy().getNode());
             } catch (GridAccessException ex) {
@@ -136,7 +137,7 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
             if (cachedStack != null) {
                 cachedStack.decStackSize(gatheredAEFluidstack.getStackSize());
                 this.postDifference(Collections
-                        .singletonList(gatheredAEFluidstack.copy().setStackSize(-gatheredAEFluidstack.getStackSize())));
+                        .singletonList(GenericStack.fromIAEStack(gatheredAEFluidstack.copy().setStackSize(-gatheredAEFluidstack.getStackSize()))));
             }
             try {
                 this.proxyable.getProxy().getTick().alertDevice(this.proxyable.getProxy().getNode());
@@ -182,8 +183,8 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
     }
 
     @Override
-    public IAEStackType<IAEFluidStack> getStackType() {
-        return AEFluidStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.fluids();
     }
 
     @Override
@@ -192,24 +193,23 @@ public class FluidHandlerAdapter implements IMEInventory<IAEFluidStack>, IBaseMo
     }
 
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<? super IAEFluidStack> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver l, final Object verificationToken) {
         this.listeners.put(l, verificationToken);
     }
 
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<? super IAEFluidStack> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver l) {
         this.listeners.remove(l);
     }
 
-    @SuppressWarnings("unchecked")
-    private void postDifference(Iterable<IAEFluidStack> a) {
-        final Iterator<Map.Entry<IMEMonitorHandlerReceiver<? super IAEFluidStack>, Object>> i = this.listeners.entrySet()
+    private void postDifference(Iterable<GenericStack> a) {
+        final Iterator<Map.Entry<IMEMonitorHandlerReceiver, Object>> i = this.listeners.entrySet()
                 .iterator();
         while (i.hasNext()) {
-            final Map.Entry<IMEMonitorHandlerReceiver<? super IAEFluidStack>, Object> l = i.next();
-            final IMEMonitorHandlerReceiver<? super IAEFluidStack> key = l.getKey();
+            final Map.Entry<IMEMonitorHandlerReceiver, Object> l = i.next();
+            final IMEMonitorHandlerReceiver key = l.getKey();
             if (key.isValid(l.getValue())) {
-                ((IMEMonitorHandlerReceiver) key).postChange(this, a, this.source);
+                key.postChange(this, a, this.source);
             } else {
                 i.remove();
             }

@@ -62,7 +62,9 @@ import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.util.AEColor;
 import appeng.api.util.IConfigManager;
 import appeng.capabilities.Capabilities;
@@ -189,7 +191,7 @@ public class TileChest extends AENetworkPowerTile
                     double power = 1.0;
 
                     for (IAEStackType<?> stackType : AEApi.instance().storage().getStackTypes()) {
-                        final ICellInventoryHandler<?> newCell = cellHandler.getCellInventory(is, this,
+                        final ICellInventoryHandler newCell = cellHandler.getCellInventory(is, this,
                                 stackType);
                         if (newCell != null) {
                             power += cellHandler.cellIdleDrain(is, newCell);
@@ -210,18 +212,16 @@ public class TileChest extends AENetworkPowerTile
         }
     }
 
-    private <T extends IAEStack<T>> ChestMonitorHandler<T> wrap(final IMEInventoryHandler<T> h) {
+    private ChestMonitorHandler wrap(final IMEInventoryHandler h) {
         if (h == null) {
             return null;
         }
 
-        @SuppressWarnings("unchecked")
-        final IAEStackType<T> stackType = (IAEStackType<T>) h.getStackType();
-        final MEInventoryHandler<T> ih = new MEInventoryHandler<T>(h, stackType);
+        final MEInventoryHandler ih = new MEInventoryHandler(h, h.getKeyType());
         ih.setPriority(this.priority);
 
-        final ChestMonitorHandler<T> g = new ChestMonitorHandler<T>(ih);
-        g.addListener(new ChestNetNotifier<T>(stackType), g);
+        final ChestMonitorHandler g = new ChestMonitorHandler(ih);
+        g.addListener(new ChestNetNotifier(h.getStackType()), g);
 
         return g;
     }
@@ -395,7 +395,7 @@ public class TileChest extends AENetworkPowerTile
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+    public IMEMonitor getInventory(IAEStackType<?> type) {
         this.updateHandler();
 
         if (this.cellHandler != null && this.cellHandler.getStackType() == type) {
@@ -464,10 +464,10 @@ public class TileChest extends AENetworkPowerTile
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
+    public List<IMEInventoryHandler> getCellArray(final IAEStackType<?> type) {
         this.updateHandler();
         if (this.cellHandler != null && this.cellHandler.getStackType() == type) {
-            return Collections.singletonList((IMEInventoryHandler<T>) this.cellHandler);
+            return Collections.singletonList((IMEInventoryHandler) this.cellHandler);
         }
         return Collections.emptyList();
     }
@@ -552,18 +552,18 @@ public class TileChest extends AENetworkPowerTile
     }
 
     @Override
-    public void saveChanges(final ICellInventory<?> cellInventory) {
+    public void saveChanges(final ICellInventory cellInventory) {
         if (cellInventory != null) {
             cellInventory.persist();
         }
         this.world.markChunkDirty(this.pos, this);
     }
 
-    private class ChestNetNotifier<T extends IAEStack<T>> implements IMEMonitorHandlerReceiver<T> {
+    private class ChestNetNotifier implements IMEMonitorHandlerReceiver {
 
-        private final IAEStackType<T> chan;
+        private final IAEStackType<?> chan;
 
-        public ChestNetNotifier(final IAEStackType<T> chan) {
+        public ChestNetNotifier(final IAEStackType<?> chan) {
             this.chan = chan;
         }
 
@@ -577,11 +577,17 @@ public class TileChest extends AENetworkPowerTile
         }
 
         @Override
-        public void postChange(final IBaseMonitor<T> monitor, final Iterable<T> change, final IActionSource source) {
+        public void postChange(final IBaseMonitor monitor, final Iterable<GenericStack> change, final IActionSource source) {
             try {
                 if (TileChest.this.getProxy().isActive()) {
-                    TileChest.this.getProxy().getStorage().postAlterationOfStoredItems(this.chan, change,
-                            TileChest.this.mySrc);
+                    KeyCounter kc = new KeyCounter();
+                    for (GenericStack gs : change) {
+                        if (gs != null) {
+                            kc.add(gs.what(), gs.amount());
+                        }
+                    }
+                    TileChest.this.getProxy().getStorage().postAlterationOfStoredItems(
+                            AEKeyType.fromLegacyType(this.chan), kc, TileChest.this.mySrc);
                 }
             } catch (final GridAccessException e) {
                 // :(
@@ -595,36 +601,18 @@ public class TileChest extends AENetworkPowerTile
         }
     }
 
-    private class ChestMonitorHandler<T extends IAEStack<T>> extends MEMonitorHandler<T> {
+    private class ChestMonitorHandler extends MEMonitorHandler {
 
-        public ChestMonitorHandler(final IMEInventoryHandler<T> t) {
+        public ChestMonitorHandler(final IMEInventoryHandler t) {
             super(t);
         }
 
-        private ICellInventoryHandler<T> getInternalHandler() {
-            final IMEInventoryHandler<T> h = this.getHandler();
+        private ICellInventoryHandler getInternalHandler() {
+            final IMEInventoryHandler h = this.getHandler();
             if (h instanceof MEInventoryHandler) {
-                return (ICellInventoryHandler<T>) ((MEInventoryHandler<T>) h).getInternal();
+                return (ICellInventoryHandler) ((MEInventoryHandler) h).getInternal();
             }
-            return (ICellInventoryHandler<T>) this.getHandler();
-        }
-
-        @Override
-        @Deprecated
-        public T injectItems(final T input, final Actionable mode, final IActionSource src) {
-            if (src.player().map(player -> !this.securityCheck(player, SecurityPermissions.INJECT)).orElse(false)) {
-                return input;
-            }
-            T injected = super.injectItems(input, mode, src);
-            if (mode == Actionable.MODULATE && (injected == null || injected.getStackSize() != input.getStackSize())) {
-                if (TileChest.this.isPowered() && this.getInternalHandler().getCellInv() != null) {
-                    TileChest.this.cellHandler.postChangesToListeners(
-                            Collections.singletonList(input.copy().setStackSize(
-                                    input.getStackSize() - (injected == null ? 0 : injected.getStackSize()))),
-                            TileChest.this.mySrc);
-                }
-            }
-            return injected;
+            return (ICellInventoryHandler) this.getHandler();
         }
 
         @Override
@@ -671,23 +659,6 @@ public class TileChest extends AENetworkPowerTile
                 return false;
             }
             return true;
-        }
-
-        @Override
-        @Deprecated
-        public T extractItems(final T request, final Actionable mode, final IActionSource src) {
-            if (src.player().map(player -> !this.securityCheck(player, SecurityPermissions.EXTRACT)).orElse(false)) {
-                return null;
-            }
-            T extracted = super.extractItems(request, mode, src);
-            if (mode == Actionable.MODULATE && extracted != null) {
-                if (TileChest.this.isPowered() && this.getInternalHandler().getCellInv() != null) {
-                    TileChest.this.cellHandler.postChangesToListeners(
-                            Collections.singletonList(request.copy().setStackSize(-extracted.getStackSize())),
-                            TileChest.this.mySrc);
-                }
-            }
-            return extracted;
         }
 
         @Override

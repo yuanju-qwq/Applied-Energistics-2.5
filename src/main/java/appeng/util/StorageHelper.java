@@ -33,243 +33,214 @@ import appeng.api.config.PowerMultiplier;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
-import appeng.api.stacks.AEKey;
-import appeng.api.stacks.GenericStack;
-import appeng.api.stacks.KeyCounter;
 import appeng.core.stats.Stats;
 
 public final class StorageHelper {
 
     private StorageHelper() {}
 
-    public static <T extends IAEStack<T>> T poweredExtraction(final IEnergySource energy, final IMEInventory<T> cell,
-            final T request, final IActionSource src) {
+    public static GenericStack poweredExtraction(IEnergySource energy, IMEInventory cell,
+            GenericStack request, IActionSource src) {
         return poweredExtraction(energy, cell, request, src, Actionable.MODULATE);
     }
 
-    public static <T extends IAEStack<T>> T poweredExtraction(final IEnergySource energy, final IMEInventory<T> cell,
-            final T request, final IActionSource src, final Actionable mode) {
+    public static GenericStack poweredExtraction(IEnergySource energy, IMEInventory cell,
+            GenericStack request, IActionSource src, Actionable mode) {
         Preconditions.checkNotNull(energy);
         Preconditions.checkNotNull(cell);
         Preconditions.checkNotNull(request);
         Preconditions.checkNotNull(src);
         Preconditions.checkNotNull(mode);
 
-        final T possible = cell.extractItems(request.copy(), Actionable.SIMULATE, src);
+        GenericStack possible = cell.extractItems(request, Actionable.SIMULATE, src);
 
-        long retrieved = 0;
-        if (possible != null) {
-            retrieved = possible.getStackSize();
-        }
+        long retrieved = possible != null ? possible.amount() : 0;
 
-        final double energyFactor = Math.max(1.0, cell.getStackType().transferFactor());
-        final double availablePower = energy.extractAEPower(retrieved / energyFactor, Actionable.SIMULATE,
+        double energyFactor = Math.max(1.0, cell.getKeyType().getAmountPerUnit());
+        double availablePower = energy.extractAEPower(retrieved / energyFactor, Actionable.SIMULATE,
                 PowerMultiplier.CONFIG);
-        final long itemToExtract = Math.min((long) ((availablePower * energyFactor) + 0.9), retrieved);
+        long itemToExtract = Math.min((long) ((availablePower * energyFactor) + 0.9), retrieved);
 
         if (itemToExtract > 0) {
             if (mode == Actionable.MODULATE) {
                 energy.extractAEPower(retrieved / energyFactor, Actionable.MODULATE, PowerMultiplier.CONFIG);
-                possible.setStackSize(itemToExtract);
-                final T ret = cell.extractItems(possible, Actionable.MODULATE, src);
+                GenericStack toExtract = new GenericStack(request.what(), itemToExtract);
+                GenericStack ret = cell.extractItems(toExtract, Actionable.MODULATE, src);
 
                 if (ret != null) {
-                    src.player().ifPresent(player -> Stats.ItemsExtracted.addToPlayer(player, (int) ret.getStackSize()));
+                    src.player().ifPresent(player -> Stats.ItemsExtracted.addToPlayer(player, (int) ret.amount()));
                 }
                 return ret;
             } else {
-                return possible.setStackSize(itemToExtract);
+                return new GenericStack(request.what(), itemToExtract);
             }
         }
 
         return null;
     }
 
-    public static <T extends IAEStack<T>> T poweredInsert(final IEnergySource energy, final IMEInventory<T> cell,
-            final T input, final IActionSource src) {
+    public static GenericStack poweredInsert(IEnergySource energy, IMEInventory cell,
+            GenericStack input, IActionSource src) {
         return poweredInsert(energy, cell, input, src, Actionable.MODULATE);
     }
 
-    public static <T extends IAEStack<T>> T poweredInsert(final IEnergySource energy, final IMEInventory<T> cell,
-            final T input, final IActionSource src, final Actionable mode) {
+    @Nullable
+    public static GenericStack poweredInsert(IEnergySource energy, IMEInventory cell,
+            GenericStack input, IActionSource src, Actionable mode) {
         Preconditions.checkNotNull(energy);
         Preconditions.checkNotNull(cell);
         Preconditions.checkNotNull(input);
         Preconditions.checkNotNull(src);
         Preconditions.checkNotNull(mode);
 
-        final T possible = cell.injectItems(input, Actionable.SIMULATE, src);
+        GenericStack possible = cell.injectItems(input, Actionable.SIMULATE, src);
 
-        long stored = input.getStackSize();
+        long stored = input.amount();
         if (possible != null) {
-            stored -= possible.getStackSize();
+            stored -= possible.amount();
         }
 
-        final double energyFactor = Math.max(1.0, cell.getStackType().transferFactor());
-        final double availablePower = energy.extractAEPower(stored / energyFactor, Actionable.SIMULATE,
+        double energyFactor = Math.max(1.0, cell.getKeyType().getAmountPerUnit());
+        double availablePower = energy.extractAEPower(stored / energyFactor, Actionable.SIMULATE,
                 PowerMultiplier.CONFIG);
-        final long itemToAdd = Math.min((long) ((availablePower * energyFactor) + 0.9), stored);
+        long itemToAdd = Math.min((long) ((availablePower * energyFactor) + 0.9), stored);
 
         if (itemToAdd > 0) {
             if (mode == Actionable.MODULATE) {
                 energy.extractAEPower(stored / energyFactor, Actionable.MODULATE, PowerMultiplier.CONFIG);
-                if (itemToAdd < input.getStackSize()) {
-                    final long original = input.getStackSize();
-                    final T leftover = input.copy();
-                    final T split = input.copy();
-
-                    leftover.decStackSize(itemToAdd);
-                    split.setStackSize(itemToAdd);
-                    leftover.add(cell.injectItems(split, Actionable.MODULATE, src));
+                if (itemToAdd < input.amount()) {
+                    long original = input.amount();
+                    GenericStack toInject = new GenericStack(input.what(), itemToAdd);
+                    GenericStack injectResult = cell.injectItems(toInject, Actionable.MODULATE, src);
+                    long actuallyInserted = itemToAdd;
+                    if (injectResult != null) {
+                        actuallyInserted -= injectResult.amount();
+                    }
+                    long leftoverAmount = original - actuallyInserted;
 
                     src.player().ifPresent(player -> {
-                        final long diff = original - leftover.getStackSize();
-                        Stats.ItemsInserted.addToPlayer(player, (int) diff);
+                        Stats.ItemsInserted.addToPlayer(player, (int) actuallyInserted);
                     });
 
-                    return leftover;
+                    return leftoverAmount > 0 ? new GenericStack(input.what(), leftoverAmount) : null;
                 }
 
-                final T ret = cell.injectItems(input, Actionable.MODULATE, src);
+                GenericStack ret = cell.injectItems(input, Actionable.MODULATE, src);
 
                 src.player().ifPresent(player -> {
-                    final long diff = ret == null ? input.getStackSize() : input.getStackSize() - ret.getStackSize();
+                    long diff = ret == null ? input.amount() : input.amount() - ret.amount();
                     Stats.ItemsInserted.addToPlayer(player, (int) diff);
                 });
 
                 return ret;
             } else {
-                final T ret = input.copy().setStackSize(input.getStackSize() - itemToAdd);
-                return (ret != null && ret.getStackSize() > 0) ? ret : null;
+                long leftover = input.amount() - itemToAdd;
+                return leftover > 0 ? new GenericStack(input.what(), leftover) : null;
             }
         }
 
         return input;
     }
 
-    @SuppressWarnings("unchecked")
     public static void postChanges(final IStorageGrid gs, final ItemStack removed, final ItemStack added,
             final IActionSource src) {
-        for (final IAEStackType<?> stackType : AEStackTypeRegistry.getAllTypes()) {
-            final IItemList<? extends IAEStack<?>> myChanges;
+        for (final AEKeyType keyType : AEKeyType.getAllTypes()) {
+            final KeyCounter myChanges = new KeyCounter();
 
             if (!removed.isEmpty()) {
-                var myInv = AEApi.instance().registries().cell().getCellInventory(removed, null, stackType);
+                var myInv = AEApi.instance().registries().cell().getCellInventory(removed, null, keyType);
                 if (myInv != null) {
-                    myChanges = getAvailableItems(myInv);
-                    for (final IAEStack<?> is : myChanges) {
-                        is.setStackSize(-is.getStackSize());
+                    KeyCounter removedItems = myInv.getAvailableKeyCounter();
+                    for (var entry : removedItems) {
+                        myChanges.add(entry.getKey(), -entry.getLongValue());
                     }
-                } else {
-                    myChanges = stackType.createList();
                 }
-            } else {
-                myChanges = stackType.createList();
             }
             if (!added.isEmpty()) {
-                var myInv = AEApi.instance().registries().cell().getCellInventory(added, null, stackType);
+                var myInv = AEApi.instance().registries().cell().getCellInventory(added, null, keyType);
                 if (myInv != null) {
-                    getAvailableItemsInto(myInv, myChanges);
+                    myChanges.addAll(myInv.getAvailableKeyCounter());
                 }
             }
-            gs.postAlterationOfStoredItems(stackType, myChanges, src);
+            gs.postAlterationOfStoredItems(keyType, myChanges, src);
         }
     }
 
-    private static void getAvailableItemsInto(final IMEInventory<?> inv, final IItemList<?> out) {
-        inv.getAvailableItemsGeneric(out);
+    public static KeyCounter getAvailableItems(final IMEInventory inv) {
+        return inv.getAvailableKeyCounter();
     }
 
-    @SuppressWarnings("unchecked")
-    public static IItemList<? extends IAEStack<?>> getAvailableItems(final IMEInventory<?> inv) {
-        KeyCounter kc = inv.getAvailableKeyCounter();
-        IItemList<?> out = inv.getStackType().createList();
-        for (var entry : kc) {
-            IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
-            if (stack != null) {
-                ((IItemList) out).add(stack);
-            }
+    public static KeyCounter getStorageView(final IMEInventory inv) {
+        if (inv instanceof IMEMonitor) {
+            return ((IMEMonitor) inv).getKeyCounter();
         }
-        return (IItemList<? extends IAEStack<?>>) out;
+        return inv.getAvailableKeyCounter();
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T extends IAEStack<T>> IItemList<T> getStorageView(final IMEInventory<T> inv) {
-        if (inv instanceof IMEMonitor<?>) {
-            return getStorageViewFromMonitor(inv);
-        }
-
-        IItemList<T> out = (IItemList<T>) inv.getStackType().createList();
-        KeyCounter kc = inv.getAvailableKeyCounter();
-        for (var entry : kc) {
-            IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
-            if (stack != null) {
-                out.add((T) stack);
-            }
-        }
-        return out;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T extends IAEStack<T>> IItemList<T> getStorageViewFromMonitor(final IMEInventory<T> inv) {
-        return ((IMEMonitor<T>) inv).getStorageList();
-    }
-
-    public static <T extends IAEStack<T>> T injectTyped(final IMEInventory<T> inv, final T input,
+    public static GenericStack injectTyped(final IMEInventory inv, final GenericStack input,
             final Actionable mode, final IActionSource src) {
         return inv.injectItems(input, mode, src);
     }
 
-    public static <T extends IAEStack<T>> T extractTyped(final IMEInventory<T> inv, final T request,
+    public static GenericStack extractTyped(final IMEInventory inv, final GenericStack request,
             final Actionable mode, final IActionSource src) {
         return inv.extractItems(request, mode, src);
     }
 
-    public static IAEStack<?> injectItems(final IMEInventory<?> inv, final IAEStack<?> input,
+    public static IAEStack<?> injectItems(final IMEInventory inv, final IAEStack<?> input,
             final Actionable mode, final IActionSource src) {
-        GenericStack gs = new GenericStack(input.toAEKey(), input.getStackSize());
-        if (gs == null) return null;
+        AEKey key = input.toAEKey();
+        if (key == null) {
+            return null;
+        }
+        GenericStack gs = new GenericStack(key, input.getStackSize());
         GenericStack result = inv.injectItems(gs, mode, src);
         return result != null ? result.toIAEStack() : null;
     }
 
-    public static IAEStack<?> extractItems(final IMEInventory<?> inv, final IAEStack<?> request,
+    public static IAEStack<?> extractItems(final IMEInventory inv, final IAEStack<?> request,
             final Actionable mode, final IActionSource src) {
-        GenericStack gs = new GenericStack(request.toAEKey(), request.getStackSize());
-        if (gs == null) return null;
+        AEKey key = request.toAEKey();
+        if (key == null) {
+            return null;
+        }
+        GenericStack gs = new GenericStack(key, request.getStackSize());
         GenericStack result = inv.extractItems(gs, mode, src);
         return result != null ? result.toIAEStack() : null;
     }
 
-    @SuppressWarnings("unchecked")
-    public static IAEStack<?> poweredInsertWildcard(final IEnergySource energy, final IMEInventory<?> inv,
+    @Nullable
+    public static IAEStack<?> poweredInsertWildcard(final IEnergySource energy, final IMEInventory inv,
             final IAEStack<?> input, final IActionSource src) {
-        return (IAEStack<?>) poweredInsert(energy, (IMEInventory) inv, (IAEStack) input, src);
+        AEKey key = input.toAEKey();
+        if (key == null) {
+            return null;
+        }
+        GenericStack result = poweredInsert(energy, inv, new GenericStack(key, input.getStackSize()), src);
+        return result != null ? result.toIAEStack() : null;
     }
 
-    public static <T extends IAEStack<T>> void postListChanges(final IItemList<T> before, final IItemList<T> after,
-            final IMEMonitorHandlerReceiver<T> monitorReceiver, final IActionSource source) {
-        final List<T> changes = new ArrayList<>();
+    public static void postListChanges(final KeyCounter before, final KeyCounter after,
+            final IMEMonitorHandlerReceiver monitorReceiver, final IActionSource source) {
+        final List<GenericStack> changes = new ArrayList<>();
 
-        for (final T is : before) {
-            is.setStackSize(-is.getStackSize());
+        KeyCounter diff = new KeyCounter();
+        for (var entry : before) {
+            diff.add(entry.getKey(), -entry.getLongValue());
         }
+        diff.addAll(after);
+        diff.removeZeros();
 
-        for (final T is : after) {
-            before.add(is);
-        }
-
-        for (final T is : before) {
-            if (is.getStackSize() != 0) {
-                changes.add(is);
-            }
+        for (var entry : diff) {
+            changes.add(new GenericStack(entry.getKey(), entry.getLongValue()));
         }
 
         if (!changes.isEmpty()) {
@@ -277,62 +248,7 @@ public final class StorageHelper {
         }
     }
 
-    // ===================== GenericStack-based overloads =====================
-
-    /**
-     * GenericStack-based variant of {@link #poweredInsert(IEnergySource, IMEInventory, IAEStack, IActionSource)}.
-     */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @Nullable
-    public static GenericStack poweredInsert(IEnergySource energy, IMEInventory<?> cell,
-            GenericStack input, IActionSource src) {
-        if (input == null) return null;
-        IAEStack<?> aeInput = input.toIAEStack();
-        if (aeInput == null) return null;
-        IAEStack<?> result = (IAEStack<?>) poweredInsert(energy, (IMEInventory) cell, (IAEStack) aeInput, src);
-        return result != null ? new GenericStack(result.toAEKey(), result.getStackSize()) : null;
-    }
-
-    /**
-     * GenericStack-based variant of {@link #poweredExtraction(IEnergySource, IMEInventory, IAEStack, IActionSource)}.
-     */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @Nullable
-    public static GenericStack poweredExtraction(IEnergySource energy, IMEInventory<?> cell,
-            GenericStack request, IActionSource src) {
-        if (request == null) return null;
-        IAEStack<?> aeRequest = request.toIAEStack();
-        if (aeRequest == null) return null;
-        IAEStack<?> result = (IAEStack<?>) poweredExtraction(energy, (IMEInventory) cell, (IAEStack) aeRequest, src);
-        return result != null ? new GenericStack(result.toAEKey(), result.getStackSize()) : null;
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @Nullable
-    public static GenericStack poweredInsert(IEnergySource energy, IMEInventory<?> cell,
-            GenericStack input, IActionSource src, Actionable mode) {
-        if (input == null) return null;
-        IAEStack<?> aeInput = input.toIAEStack();
-        if (aeInput == null) return null;
-        IAEStack<?> result = (IAEStack<?>) poweredInsert(energy, (IMEInventory) cell, (IAEStack) aeInput, src, mode);
-        return result != null ? new GenericStack(result.toAEKey(), result.getStackSize()) : null;
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @Nullable
-    public static GenericStack poweredExtraction(IEnergySource energy, IMEInventory<?> cell,
-            GenericStack request, IActionSource src, Actionable mode) {
-        if (request == null) return null;
-        IAEStack<?> aeRequest = request.toIAEStack();
-        if (aeRequest == null) return null;
-        IAEStack<?> result = (IAEStack<?>) poweredExtraction(energy, (IMEInventory) cell, (IAEStack) aeRequest, src, mode);
-        return result != null ? new GenericStack(result.toAEKey(), result.getStackSize()) : null;
-    }
-
-    /**
-     * Returns a {@link KeyCounter} view of all available items in the given inventory.
-     */
-    public static KeyCounter getAvailableKeyCounter(IMEInventory<?> inv) {
+    public static KeyCounter getAvailableKeyCounter(IMEInventory inv) {
         return inv.getAvailableKeyCounter();
     }
 }

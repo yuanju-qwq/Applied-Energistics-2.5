@@ -50,7 +50,7 @@ import appeng.tile.crafting.TileCraftingTile;
 import appeng.util.Platform;
 
 public class ContainerCraftingCPU extends AEBaseContainer
-        implements IMEMonitorHandlerReceiver<IAEStackBase>, ICustomNameObject {
+        implements IMEMonitorHandlerReceiver, ICustomNameObject {
 
     private final KeyCounter changed = new KeyCounter();
     private IGrid network;
@@ -204,7 +204,7 @@ public class ContainerCraftingCPU extends AEBaseContainer
     }
 
     @Override
-    public void postChange(final IBaseMonitor<IAEStackBase> monitor, final Iterable<IAEStackBase> change,
+    public void postChange(final IBaseMonitor monitor, final Iterable<IAEStackBase> change,
             final IActionSource actionSource) {
         for (IAEStackBase is : change) {
             if (is instanceof IAEStack<?> aeStack) {

@@ -23,7 +23,7 @@ public class BasicItemCellGuiHandler implements ICellGuiHandler {
 
     @Override
     public <T extends IAEStack<T>> void openChestGui(final EntityPlayer player, final IChestOrDrive chest, final ICellHandler cellHandler,
-            final IMEInventoryHandler<T> inv, final ItemStack is, final IAEStackType<T> type) {
+            final IMEInventoryHandler inv, final ItemStack is, final IAEStackType<T> type) {
         Platform.openGUI(player, (TileEntity) chest, AEPartLocation.fromFacing(chest.getUp()), AEGuiKeys.ME_TERMINAL);
     }
 }

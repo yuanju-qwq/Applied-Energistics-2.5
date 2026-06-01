@@ -231,7 +231,7 @@ public class TileCraftingTile extends AENetworkTile implements IAEMultiBlock<Cra
     public void breakCluster() {
         if (this.cluster != null) {
             this.cluster.cancel();
-            final IMEInventory<IAEItemStack> inv = this.cluster.getInventory();
+            final IMEInventory inv = this.cluster.getInventory();
 
             final LinkedList<BlockPos> places = new LinkedList<>();
 

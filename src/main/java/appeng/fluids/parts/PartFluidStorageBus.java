@@ -38,8 +38,8 @@ import appeng.api.storage.IStorageMonitorableAccessor;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.KeyCounter;
 import appeng.capabilities.Capabilities;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
@@ -62,7 +62,7 @@ import appeng.parts.misc.AbstractPartStorageBus;
  * @version rv6 - 22/05/2018
  * @since rv6 22/05/2018
  */
-public class PartFluidStorageBus extends AbstractPartStorageBus<IAEFluidStack>
+public class PartFluidStorageBus extends AbstractPartStorageBus
         implements IIAEStackInventory, IConfigurableFluidInventory, IConfigurableAEStackInventory {
 
     public static final ResourceLocation MODEL_BASE = new ResourceLocation(AppEng.MOD_ID,
@@ -86,7 +86,7 @@ public class PartFluidStorageBus extends AbstractPartStorageBus<IAEFluidStack>
     // ---- AbstractPartStorageBus abstract method implementations ----
 
     @Override
-    public IAEStackType<IAEFluidStack> getStackType() {
+    public AEKeyType getStackType() {
         return AEFluidStackType.INSTANCE;
     }
 
@@ -101,7 +101,7 @@ public class PartFluidStorageBus extends AbstractPartStorageBus<IAEFluidStack>
     }
 
     @Override
-    protected IMEInventory<IAEFluidStack> getInventoryWrapper(TileEntity target) {
+    protected IMEInventory getInventoryWrapper(TileEntity target) {
         EnumFacing targetSide = this.getSide().getFacing().getOpposite();
         // Prioritize a handler to directly link to another ME network
         IStorageMonitorableAccessor accessor = target.getCapability(Capabilities.STORAGE_MONITORABLE_ACCESSOR,
@@ -161,13 +161,13 @@ public class PartFluidStorageBus extends AbstractPartStorageBus<IAEFluidStack>
     }
 
     @Override
-    protected IItemList<IAEFluidStack> buildPriorityList(int slotsToUse) {
-        final IItemList<IAEFluidStack> priorityList = AEFluidStackType.INSTANCE.createList();
+    protected KeyCounter buildPriorityList(int slotsToUse) {
+        final KeyCounter priorityList = new KeyCounter();
         for (int x = 0; x < this.config.size() && x < slotsToUse; x++) {
             final GenericStack gs = this.config.getGenericStack(x);
             final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is instanceof IAEFluidStack fluidStack) {
-                priorityList.add(fluidStack);
+            if (is instanceof IAEFluidStack && gs != null) {
+                priorityList.add(gs.what(), gs.amount());
             }
         }
         return priorityList;

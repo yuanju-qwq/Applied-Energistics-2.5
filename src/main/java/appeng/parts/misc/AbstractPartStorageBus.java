@@ -46,9 +46,10 @@ import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.storage.*;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.api.util.AECableType;
 import appeng.api.util.IConfigManager;
 import appeng.core.settings.TickRates;
@@ -72,14 +73,14 @@ import appeng.util.prioritylist.PrecisePriorityList;
  *
  * @param <T> the type of {@link IAEStack} this storage bus handles
  */
-public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends PartUpgradeable
-        implements IGridTickable, ICellContainer, IMEMonitorHandlerReceiver<T>, IPriorityHost {
+public abstract class AbstractPartStorageBus extends PartUpgradeable
+        implements IGridTickable, ICellContainer, IMEMonitorHandlerReceiver, IPriorityHost {
 
     protected final IActionSource mySrc;
     protected int priority = 0;
     protected boolean cached = false;
     protected ITickingMonitor monitor = null;
-    protected MEInventoryHandler<T> handler = null;
+    protected MEInventoryHandler handler = null;
     protected int handlerHash = 0;
     private boolean wasActive = false;
     private byte resetCacheLogic = 0;
@@ -99,7 +100,7 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
     /**
      * @return the {@link IAEStackType} this storage bus operates on
      */
-    public abstract IAEStackType<T> getStackType();
+    public abstract AEKeyType getStackType();
 
     /**
      * @return the {@link TickRates} entry for this storage bus type
@@ -117,7 +118,7 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
      * @param target the target tile entity
      * @return the wrapped ME inventory, or null if not applicable
      */
-    protected abstract IMEInventory<T> getInventoryWrapper(TileEntity target);
+    protected abstract IMEInventory getInventoryWrapper(TileEntity target);
 
     /**
      * Creates a hash for the target tile entity's handler to detect changes.
@@ -150,7 +151,7 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
      * @param slotsToUse the number of config slots to read
      * @return the populated priority list
      */
-    protected abstract IItemList<T> buildPriorityList(int slotsToUse);
+    protected abstract KeyCounter buildPriorityList(int slotsToUse);
 
     /**
      * @return the item stack representation for this part
@@ -255,7 +256,7 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
     }
 
     @Override
-    public void postChange(final IBaseMonitor<T> monitor, final Iterable<T> change,
+    public void postChange(final IBaseMonitor monitor, final Iterable<GenericStack> change,
             final IActionSource source) {
         if (this.getProxy().isActive()) {
             var filteredChanges = this.filterChanges(change);
@@ -265,9 +266,14 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
             if (readOncePass) {
                 readOncePass = false;
                 try {
+                    KeyCounter kc = new KeyCounter();
+                    for (GenericStack gs : filteredChanges) {
+                        if (gs != null) {
+                            kc.add(gs.what(), gs.amount());
+                        }
+                    }
                     this.getProxy().getStorage().postAlterationOfStoredItems(
-                            this.getStackType(), filteredChanges,
-                            mySrc);
+                            this.getStackType(), kc, mySrc);
                 } catch (final GridAccessException e) {
                     // :(
                 }
@@ -277,9 +283,14 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
                 return;
             }
             try {
+                KeyCounter kc = new KeyCounter();
+                for (GenericStack gs : filteredChanges) {
+                    if (gs != null) {
+                        kc.add(gs.what(), gs.amount());
+                    }
+                }
                 this.getProxy().getStorage().postAlterationOfStoredItems(
-                        this.getStackType(), filteredChanges,
-                        source);
+                        this.getStackType(), kc, source);
             } catch (final GridAccessException e) {
                 // :(
             }
@@ -367,9 +378,9 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
         final boolean fullReset = this.resetCacheLogic == 2;
         this.resetCacheLogic = 0;
 
-        final MEInventoryHandler<T> in = this.getInternalHandler();
+        final MEInventoryHandler in = this.getInternalHandler();
 
-        IItemList<T> before = this.getStackType().createList();
+        KeyCounter before = new KeyCounter();
         if (in != null) {
             if (accessChanged) {
                 AccessRestriction currentAccess = (AccessRestriction) ((ConfigManager) this.getConfigManager())
@@ -381,11 +392,11 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
                     readOncePass = true;
                 }
                 in.setBaseAccess(oldAccess);
-                before = in.getAvailableItems(before);
+                before = in.getAvailableKeyCounter();
                 in.setBaseAccess(currentAccess);
                 accessChanged = false;
             } else {
-                before = in.getAvailableItems(before);
+                before = in.getAvailableKeyCounter();
             }
         }
 
@@ -394,20 +405,19 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
             this.handlerHash = 0;
         }
 
-        final MEInventoryHandler<T> out = this.getInternalHandler();
+        final MEInventoryHandler out = this.getInternalHandler();
 
-        IItemList<T> after = this.getStackType().createList();
+        KeyCounter after = new KeyCounter();
 
         if (in != out) {
             if (out != null) {
-                after = out.getAvailableItems(after);
+                after = out.getAvailableKeyCounter();
             }
             appeng.util.StorageHelper.postListChanges(before, after, this, this.mySrc);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public MEInventoryHandler<T> getInternalHandler() {
+    public MEInventoryHandler getInternalHandler() {
         if (this.cached) {
             return this.handler;
         }
@@ -426,11 +436,11 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
         this.handlerHash = newHandlerHash;
         this.handler = null;
         if (this.monitor != null) {
-            ((IBaseMonitor<T>) monitor).removeListener(this);
+            ((IBaseMonitor) monitor).removeListener(this);
         }
         this.monitor = null;
         if (target != null) {
-            IMEInventory<T> inv = this.getInventoryWrapper(target);
+            IMEInventory inv = this.getInventoryWrapper(target);
 
             if (inv instanceof ITickingMonitor) {
                 this.monitor = (ITickingMonitor) inv;
@@ -439,7 +449,7 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
             }
 
             if (inv != null) {
-                this.handler = new MEInventoryHandler<>(inv, this.getStackType());
+                this.handler = new MEInventoryHandler(inv, this.getStackType());
 
                 this.handler.setBaseAccess((AccessRestriction) this.getConfigManager().getSetting(Settings.ACCESS));
                 this.handler.setWhitelist(this.getInstalledUpgrades(Upgrades.INVERTER) > 0 ? IncludeExclude.BLACKLIST
@@ -448,7 +458,7 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
                 this.handler
                         .setStorageFilter((StorageFilter) this.getConfigManager().getSetting(Settings.STORAGE_FILTER));
 
-                final IItemList<T> priorityList = this.buildPriorityList(
+                final KeyCounter priorityList = this.buildPriorityList(
                         18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9);
 
                 if (this.getInstalledUpgrades(Upgrades.STICKY) > 0) {
@@ -465,7 +475,7 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
                 if (inv instanceof IBaseMonitor) {
                     if (((AccessRestriction) ((ConfigManager) this.getConfigManager()).getSetting(Settings.ACCESS))
                             .hasPermission(AccessRestriction.READ)) {
-                        ((IBaseMonitor<T>) inv).addListener(this, this.handler);
+                        ((IBaseMonitor) inv).addListener(this, this.handler);
                     }
                 }
             }
@@ -497,11 +507,11 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
 
     @Override
     @SuppressWarnings("unchecked")
-    public <S extends IAEStack<S>> List<IMEInventoryHandler<S>> getCellArray(final IAEStackType<S> type) {
-        if (type == this.getStackType()) {
-            final IMEInventoryHandler<T> out = this.getInternalHandler();
+    public List<IMEInventoryHandler> getCellArray(final IAEStackType<?> type) {
+        if (type == this.getStackType() || type.getStackTypeBase() == this.getStackType()) {
+            final IMEInventoryHandler out = this.getInternalHandler();
             if (out != null) {
-                return Collections.singletonList((IMEInventoryHandler<S>) out);
+                return Collections.singletonList((IMEInventoryHandler) out);
             }
         }
         return Collections.emptyList();
@@ -524,7 +534,7 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
     }
 
     @Override
-    public void saveChanges(final ICellInventory<?> cellInventory) {
+    public void saveChanges(final ICellInventory cellInventory) {
         // nope!
     }
 
@@ -537,12 +547,12 @@ public abstract class AbstractPartStorageBus<T extends IAEStack<T>> extends Part
      * Filters the changes to only include items that pass the storage filter. Optimally, this should be handled by the
      * underlying monitor.
      */
-    protected Iterable<T> filterChanges(Iterable<T> change) {
+    protected Iterable<GenericStack> filterChanges(Iterable<GenericStack> change) {
         var storageFilter = this.getConfigManager().getSetting(Settings.STORAGE_FILTER);
         if (storageFilter == StorageFilter.EXTRACTABLE_ONLY && handler != null) {
-            var filteredList = new ArrayList<T>();
-            for (final T stack : change) {
-                if (this.handler.passesBlackOrWhitelist(stack)) {
+            var filteredList = new ArrayList<GenericStack>();
+            for (final GenericStack stack : change) {
+                if (stack != null && this.handler.passesBlackOrWhitelist(stack.what())) {
                     filteredList.add(stack);
                 }
             }

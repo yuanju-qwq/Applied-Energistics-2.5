@@ -26,8 +26,7 @@ package appeng.api.storage;
 import java.util.List;
 
 import appeng.api.networking.IGridNodeService;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 
 /**
  * Allows you to provide cells via non IGridHosts directly to the storage system, drives, and similar features should go
@@ -36,14 +35,14 @@ import appeng.api.storage.data.IAEStackType;
 public interface ICellProvider extends IGridNodeService {
 
     /**
-     * 通过 {@link IAEStackType} 获取存储 cell 列表。
+     * Get the list of storage cells for the given key type.
      * <p>
-     * 必须返回对应类型的正确 handler，不能返回 null。
+     * Must return a valid handler list for the type, cannot return null.
      *
-     * @param type 栈类型
-     * @return 有效的 handler 列表，不能为 null
+     * @param type the key type
+     * @return valid handler list, not null
      */
-    <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(IAEStackType<T> type);
+    List<IMEInventoryHandler> getCellArray(AEKeyType type);
 
     /**
      * the storage's priority.

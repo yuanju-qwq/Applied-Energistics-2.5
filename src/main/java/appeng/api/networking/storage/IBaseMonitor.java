@@ -24,21 +24,17 @@
 package appeng.api.networking.storage;
 
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
+import appeng.api.stacks.GenericStack;
 
-public interface IBaseMonitor<T extends IAEStackBase> {
+public interface IBaseMonitor {
 
     /**
      * add a new Listener to the monitor, be sure to properly remove yourself when your done.
-     *
-     * Uses {@code ? super T} to allow a single receiver (e.g. typed as {@code IAEStackBase})
-     * to listen to monitors of any concrete stack type.
      */
-    void addListener(IMEMonitorHandlerReceiver<? super T> l, Object verificationToken);
+    void addListener(IMEMonitorHandlerReceiver l, Object verificationToken);
 
     /**
      * remove a Listener to the monitor.
      */
-    void removeListener(IMEMonitorHandlerReceiver<? super T> l);
+    void removeListener(IMEMonitorHandlerReceiver l);
 }

@@ -34,9 +34,8 @@ import appeng.tile.inventory.IAEStackInventory;
 import appeng.api.storage.AEKeyFilter;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ISaveProvider;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.util.Platform;
 

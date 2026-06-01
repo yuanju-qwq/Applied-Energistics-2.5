@@ -36,13 +36,13 @@ import appeng.fluids.util.AEFluidStackType;
 public class BasicFluidCellGuiHandler implements ICellGuiHandler {
 
     @Override
-    public <T extends IAEStack<T>> boolean isHandlerFor(final IAEStackType<T> type) {
+    public boolean isHandlerFor(final AEKeyType type) {
         return type == AEFluidStackType.INSTANCE;
     }
 
     @Override
-    public <T extends IAEStack<T>> void openChestGui(final EntityPlayer player, final IChestOrDrive chest, final ICellHandler cellHandler,
-            final IMEInventoryHandler<T> inv, final ItemStack is, final IAEStackType<T> type) {
+    public void openChestGui(final EntityPlayer player, final IChestOrDrive chest, final ICellHandler cellHandler,
+            final IMEInventoryHandler inv, final ItemStack is, final AEKeyType type) {
         Platform.openGUI(player, (TileEntity) chest, AEPartLocation.fromFacing(chest.getUp()),
                 AEGuiKeys.ME_TERMINAL);
     }

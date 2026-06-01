@@ -25,10 +25,9 @@ package appeng.api.storage;
 
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
+import appeng.api.stacks.GenericStack;
 
-public interface IMEMonitorHandlerReceiver<T extends IAEStackBase> {
+public interface IMEMonitorHandlerReceiver {
 
     /**
      * return true if this object should remain as a listener.
@@ -44,7 +43,7 @@ public interface IMEMonitorHandlerReceiver<T extends IAEStackBase> {
      *
      * @param change done change
      */
-    void postChange(IBaseMonitor<T> monitor, Iterable<T> change, IActionSource actionSource);
+    void postChange(IBaseMonitor monitor, Iterable<GenericStack> change, IActionSource actionSource);
 
     /**
      * called when the list updates its contents, this is mostly for handling power events.

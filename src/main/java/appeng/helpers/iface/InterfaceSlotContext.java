@@ -122,5 +122,5 @@ public interface InterfaceSlotContext {
      * Get the ME network inventory for the given stack type.
      */
     @Nonnull
-    <T extends IAEStack<T>> IMEMonitor<T> getNetworkInventory(IAEStackType<T> type);
+    IMEMonitor getNetworkInventory(IAEStackType type);
 }

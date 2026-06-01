@@ -5,17 +5,16 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 
 import appeng.api.implementations.tiles.IChestOrDrive;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 
 public interface ICellGuiHandler {
     /**
-     * 判断此 handler 是否可以处理指定的栈类型。
+     * Check if this handler can handle the given key type.
      *
-     * @param type 栈类型
-     * @return 如果可以处理返回 true
+     * @param type the key type
+     * @return true if this handler can handle the type
      */
-    <T extends IAEStack<T>> boolean isHandlerFor(IAEStackType<T> type);
+    boolean isHandlerFor(AEKeyType type);
 
     /**
      * Return true to prioritize this handler for the provided {@link ItemStack}.
@@ -28,9 +27,9 @@ public interface ICellGuiHandler {
     }
 
     /**
-     * 通过 {@link IAEStackType} 打开 ME Chest 的 GUI。
+     * Open the ME Chest GUI for the given key type.
      */
-    <T extends IAEStack<T>> void openChestGui(EntityPlayer player, IChestOrDrive chest,
-            ICellHandler cellHandler, IMEInventoryHandler<T> inv, ItemStack is, IAEStackType<T> type);
+    void openChestGui(EntityPlayer player, IChestOrDrive chest,
+            ICellHandler cellHandler, IMEInventoryHandler inv, ItemStack is, AEKeyType type);
 
 }

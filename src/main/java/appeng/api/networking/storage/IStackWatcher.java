@@ -23,7 +23,7 @@
 
 package appeng.api.networking.storage;
 
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEKey;
 
 /**
  * DO NOT IMPLEMENT.
@@ -32,22 +32,20 @@ import appeng.api.storage.data.IAEStack;
  */
 public interface IStackWatcher {
     /**
-     * Add a specific {@link IAEStack} to watch.
+     * Add a specific {@link AEKey} to watch.
      *
-     * Supports multiple values, duplicate ones will not be added.
-     *
-     * @param stack
+     * @param key the key to watch
      * @return true, if successfully added.
      */
-    boolean add(IAEStack<?> stack);
+    boolean add(AEKey key);
 
     /**
-     * Remove a specific {@link IAEStack} from the watcher.
+     * Remove a specific {@link AEKey} from the watcher.
      *
-     * @param stack
+     * @param key the key to remove
      * @return true, if successfully removed.
      */
-    boolean remove(IAEStack<?> stack);
+    boolean remove(AEKey key);
 
     /**
      * Removes all watched stacks and resets the watcher to a clean state.

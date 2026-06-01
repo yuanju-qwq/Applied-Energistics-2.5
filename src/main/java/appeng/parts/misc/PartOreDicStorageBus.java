@@ -80,7 +80,7 @@ public class PartOreDicStorageBus extends PartStorageBus {
     }
 
     @Override
-    public MEInventoryHandler<IAEItemStack> getInternalHandler() {
+    public MEInventoryHandler getInternalHandler() {
         if (this.cached) {
             return this.handler;
         }
@@ -99,11 +99,11 @@ public class PartOreDicStorageBus extends PartStorageBus {
         this.handlerHash = newHandlerHash;
         this.handler = null;
         if (this.monitor != null) {
-            ((IBaseMonitor<IAEItemStack>) monitor).removeListener(this);
+            ((IBaseMonitor) monitor).removeListener(this);
         }
         this.monitor = null;
         if (target != null) {
-            IMEInventory<IAEItemStack> inv = this.getInventoryWrapper(target);
+            IMEInventory inv = this.getInventoryWrapper(target);
 
             if (inv instanceof ITickingMonitor) {
                 this.monitor = (ITickingMonitor) inv;
@@ -112,7 +112,7 @@ public class PartOreDicStorageBus extends PartStorageBus {
             }
 
             if (inv != null) {
-                this.handler = new MEInventoryHandler<>(inv,
+                this.handler = new MEInventoryHandler(inv,
                         AEItemStackType.INSTANCE);
 
                 this.handler.setBaseAccess((AccessRestriction) this.getConfigManager().getSetting(Settings.ACCESS));
@@ -127,7 +127,7 @@ public class PartOreDicStorageBus extends PartStorageBus {
                 if (inv instanceof IBaseMonitor) {
                     if (((AccessRestriction) ((ConfigManager) this.getConfigManager()).getSetting(Settings.ACCESS))
                             .hasPermission(AccessRestriction.READ)) {
-                        ((IBaseMonitor<IAEItemStack>) inv).addListener(this, this.handler);
+                        ((IBaseMonitor) inv).addListener(this, this.handler);
                     }
                 }
             }

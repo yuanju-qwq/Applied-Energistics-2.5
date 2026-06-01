@@ -55,8 +55,8 @@ import appeng.util.item.AEItemStackType;
 /**
  * Wraps an Item Handler in such a way that it can be used as an IMEInventory for items.
  */
-class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAEItemStack>, ITickingMonitor {
-    private final Object2ObjectMap<IMEMonitorHandlerReceiver<? super IAEItemStack>, Object> listeners = new Object2ObjectOpenHashMap<>();
+class ItemHandlerAdapter implements IMEInventory, IBaseMonitor, ITickingMonitor {
+    private final Object2ObjectMap<IMEMonitorHandlerReceiver, Object> listeners = new Object2ObjectOpenHashMap<>();
     private IActionSource mySource;
     private final IItemHandler itemHandler;
     private final IGridProxyable proxyable;
@@ -263,22 +263,22 @@ class ItemHandlerAdapter implements IMEInventory<IAEItemStack>, IBaseMonitor<IAE
     }
 
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<? super IAEItemStack> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver l, final Object verificationToken) {
         this.listeners.put(l, verificationToken);
     }
 
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<? super IAEItemStack> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver l) {
         this.listeners.remove(l);
     }
 
     @SuppressWarnings("unchecked")
     private void postDifference(Iterable<IAEItemStack> a) {
-        final Iterator<Map.Entry<IMEMonitorHandlerReceiver<? super IAEItemStack>, Object>> i = this.listeners.entrySet()
+        final Iterator<Map.Entry<IMEMonitorHandlerReceiver, Object>> i = this.listeners.entrySet()
                 .iterator();
         while (i.hasNext()) {
-            final Map.Entry<IMEMonitorHandlerReceiver<? super IAEItemStack>, Object> l = i.next();
-            final IMEMonitorHandlerReceiver<? super IAEItemStack> key = l.getKey();
+            final Map.Entry<IMEMonitorHandlerReceiver, Object> l = i.next();
+            final IMEMonitorHandlerReceiver key = l.getKey();
             if (key.isValid(l.getValue())) {
                 ((IMEMonitorHandlerReceiver) key).postChange(this, a, this.mySource);
             } else {

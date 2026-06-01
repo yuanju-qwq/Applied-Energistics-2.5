@@ -24,16 +24,14 @@
 package appeng.api.storage;
 
 import appeng.api.config.AccessRestriction;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
 
 /**
  * Thin logic layer that can be swapped with different IMEInventory implementations, used to handle features related to
  * storage, that are Separate from the storage medium itself.
- *
- * @param <T>
  */
-public interface IMEInventoryHandler<T extends IAEStackBase> extends IMEInventory<T> {
+public interface IMEInventoryHandler extends IMEInventory {
 
     /**
      * determine if items can be injected/extracted.
@@ -46,20 +44,20 @@ public interface IMEInventoryHandler<T extends IAEStackBase> extends IMEInventor
      * determine if a particular item is prioritized for this inventory handler, if it is, then it will be added to this
      * inventory prior to any non-prioritized inventories.
      *
-     * @param input - item that might be added
+     * @param input - key that might be added
      *
      * @return if its prioritized
      */
-    boolean isPrioritized(T input);
+    boolean isPrioritized(AEKey input);
 
     /**
      * determine if an item can be accepted and stored.
      *
-     * @param input - item that might be added
+     * @param input - key that might be added
      *
      * @return if the item can be added
      */
-    boolean canAccept(T input);
+    boolean canAccept(AEKey input);
 
     /**
      * determine what the priority of the inventory is.

@@ -202,7 +202,7 @@ public class PartMEInterface extends PartBasicState implements IGridTickable, IS
     // ========== IStorageMonitorable ==========
 
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+    public IMEMonitor getInventory(IAEStackType type) {
         return this.logic.getInventory(type);
     }
 

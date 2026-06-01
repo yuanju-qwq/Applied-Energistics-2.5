@@ -81,7 +81,7 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
         return MODELS.getModels();
     }
 
-    private final MEInventoryHandler<IAEItemStack> myHandler = new MEInventoryHandler<>(this,
+    private final MEInventoryHandler myHandler = new MEInventoryHandler(this,
             AEItemStackType.INSTANCE);
     private final IAEStackInventory Config = new IAEStackInventory(this, 63, StorageName.CONFIG);
 
@@ -191,10 +191,10 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
+    public List<IMEInventoryHandler> getCellArray(final IAEStackType<?> type) {
         if (type == AEItemStackType.INSTANCE) {
-            final List<IMEInventoryHandler<T>> handler = new ArrayList<>(1);
-            handler.add((IMEInventoryHandler<T>) this.myHandler);
+            final List<IMEInventoryHandler> handler = new ArrayList<>(1);
+            handler.add((IMEInventoryHandler) this.myHandler);
             return handler;
         }
         return Collections.emptyList();

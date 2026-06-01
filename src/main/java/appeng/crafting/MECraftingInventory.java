@@ -33,6 +33,7 @@ import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
@@ -56,14 +57,14 @@ import appeng.util.item.IAEStackList;
  * 内部按 {@link IAEStackType} 分类存储，支持物品和流体等所有已注册的栈类型。
  * 同时保留 {@link IMEInventory}{@code <IAEItemStack>} 接口以兼容 v1 合成树。
  */
-public class MECraftingInventory implements IMEInventory<IAEItemStack> {
+public class MECraftingInventory implements IMEInventory {
 
     private final MECraftingInventory par;
 
     // 多类型来源（v2 合成树使用）
     private final IStorageMonitorable monitorableTarget;
     // 单类型来源（v1 合成树向后兼容）
-    private final IMEInventory<IAEItemStack> legacyTarget;
+    private final IMEInventory legacyTarget;
 
     // 按类型分类的内部缓存
     private final Map<IAEStackType<?>, IItemList<?>> inventoryMap = new IdentityHashMap<>();
@@ -147,14 +148,20 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         return stack == null ? null : findPreciseStack(this.getList(stack.getStackType()), stack);
     }
 
-    private static IAEStack<?> injectToMonitor(final IMEMonitor<?> monitor, final IAEStack<?> stack,
+    private static IAEStack<?> injectToMonitor(final IMEMonitor monitor, final IAEStack<?> stack,
             final Actionable mode, final IActionSource src) {
-        return monitor.injectItemsGeneric(stack, mode, src);
+        GenericStack gs = GenericStack.fromIAEStack(stack);
+        if (gs == null) return stack;
+        GenericStack result = monitor.injectItems(gs, mode, src);
+        return result != null ? result.toIAEStack() : null;
     }
 
-    private static IAEStack<?> extractFromMonitor(final IMEMonitor<?> monitor, final IAEStack<?> stack,
+    private static IAEStack<?> extractFromMonitor(final IMEMonitor monitor, final IAEStack<?> stack,
             final Actionable mode, final IActionSource src) {
-        return monitor.extractItemsGeneric(stack, mode, src);
+        GenericStack gs = GenericStack.fromIAEStack(stack);
+        if (gs == null) return null;
+        GenericStack result = monitor.extractItems(gs, mode, src);
+        return result != null ? result.toIAEStack() : null;
     }
 
     /**
@@ -233,11 +240,16 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
             IItemList<?> list = type.createList();
             this.inventoryMap.put(type, list);
-            IMEMonitor<?> monitor = target.getInventory(type);
+            AEKeyType keyType = AEKeyType.fromLegacyType(type);
+            if (keyType == null) continue;
+            IMEMonitor monitor = target.getInventory(keyType);
             if (monitor != null) {
-                IItemList<?> storageList = monitor.getStorageList();
-                for (IAEStack<?> stack : iterateTyped(storageList)) {
-                    list.addGeneric(stack.copy());
+                KeyCounter kc = monitor.getKeyCounter();
+                for (var entry : kc) {
+                    IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
+                    if (stack != null) {
+                        list.addGeneric(stack.copy());
+                    }
                 }
             }
         }
@@ -248,7 +260,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     /**
      * v1 合成树兼容构造函数 — 从 IMEMonitor&lt;IAEItemStack&gt; 读取物品库存。
      */
-    public MECraftingInventory(final IMEMonitor<IAEItemStack> target, final IActionSource src,
+    public MECraftingInventory(final IMEMonitor target, final IActionSource src,
             final boolean logExtracted, final boolean logInjections, final boolean logMissing) {
         this.legacyTarget = target;
         this.monitorableTarget = null;
@@ -279,10 +291,13 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
             this.inventoryMap.put(type, type.createList());
         }
         IItemList<?> itemList = this.getList(AEItemStackType.INSTANCE);
-        for (final IAEItemStack is : target.getStorageList()) {
-            GenericStack extracted = target.extractItems(new GenericStack(is.toAEKey(), is.getStackSize()), Actionable.SIMULATE, src);
-            if (extracted != null) {
-                itemList.addGeneric(extracted.toIAEStack());
+        KeyCounter kc = target.getKeyCounter();
+        for (var entry : kc) {
+            if (entry.getKey() instanceof AEItemKey) {
+                GenericStack extracted = target.extractItems(new GenericStack(entry.getKey(), entry.getLongValue()), Actionable.SIMULATE, src);
+                if (extracted != null) {
+                    itemList.addGeneric(extracted.toIAEStack());
+                }
             }
         }
 
@@ -292,7 +307,7 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     /**
      * v1 合成树兼容构造函数 — 从 IMEInventory&lt;IAEItemStack&gt; 读取物品库存。
      */
-    public MECraftingInventory(final IMEInventory<IAEItemStack> target, final boolean logExtracted,
+    public MECraftingInventory(final IMEInventory target, final boolean logExtracted,
             final boolean logInjections, final boolean logMissing) {
         this.legacyTarget = target;
         this.monitorableTarget = null;
@@ -573,9 +588,8 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         }
     }
 
-    // ========== IMEInventory<IAEItemStack> 接口方法（v1 向后兼容） ==========
+    // ========== IMEInventory 接口方法（v1 向后兼容） ==========
 
-    @Override
     @Deprecated
     public IAEItemStack injectItems(final IAEItemStack input, final Actionable mode, final IActionSource src) {
         if (input == null) {
@@ -592,7 +606,6 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         return null;
     }
 
-    @Override
     @Deprecated
     public IAEItemStack extractItems(final IAEItemStack request, final Actionable mode, final IActionSource src) {
         if (request == null) {
@@ -628,7 +641,6 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         return ret;
     }
 
-    @Override
     @Deprecated
     public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
         IItemList<?> itemList = this.getList(AEItemStackType.INSTANCE);
@@ -643,6 +655,11 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
     @Override
     public IAEStackType<IAEItemStack> getStackType() {
         return AEItemStackType.INSTANCE;
+    }
+
+    @Override
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     // ========== GenericStack / KeyCounter override ==========
@@ -796,12 +813,13 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         if (stack == null) return null;
 
         if (this.monitorableTarget != null) {
-            // 多类型路径
-            IMEMonitor<?> monitor = this.monitorableTarget.getInventory(stack.getStackType());
+            AEKeyType keyType = AEKeyType.fromLegacyType(stack.getStackType());
+            if (keyType == null) return stack;
+            IMEMonitor monitor = this.monitorableTarget.getInventory(keyType);
             if (monitor != null) {
                 return injectToMonitor(monitor, stack, mode, src);
             }
-            return stack; // 没有对应 monitor，返回原栈表示注入失败
+            return stack;
         } else if (this.legacyTarget != null && stack instanceof IAEItemStack) {
             // v1 向后兼容路径 — 只处理物品
             GenericStack result = this.legacyTarget.injectItems(new GenericStack(stack.toAEKey(), stack.getStackSize()), mode, src);
@@ -818,8 +836,9 @@ public class MECraftingInventory implements IMEInventory<IAEItemStack> {
         if (stack == null) return null;
 
         if (this.monitorableTarget != null) {
-            // 多类型路径
-            IMEMonitor<?> monitor = this.monitorableTarget.getInventory(stack.getStackType());
+            AEKeyType keyType = AEKeyType.fromLegacyType(stack.getStackType());
+            if (keyType == null) return null;
+            IMEMonitor monitor = this.monitorableTarget.getInventory(keyType);
             if (monitor != null) {
                 return extractFromMonitor(monitor, stack, mode, src);
             }

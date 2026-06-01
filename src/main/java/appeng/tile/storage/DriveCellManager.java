@@ -22,11 +22,11 @@ public class DriveCellManager {
     private final AppEngCellInventory inv;
     private final ICellHandler[] handlersBySlot;
     private final DriveWatcher<IAEItemStack>[] invBySlot;
-    private final Map<IAEStackType<?>, List<IMEInventoryHandler<?>>> inventoryHandlers;
+    private final Map<IAEStackType<?>, List<IMEInventoryHandler>> inventoryHandlers;
 
     public DriveCellManager(TileDrive drive, AppEngCellInventory inv,
             ICellHandler[] handlersBySlot, DriveWatcher<IAEItemStack>[] invBySlot,
-            Map<IAEStackType<?>, List<IMEInventoryHandler<?>>> inventoryHandlers) {
+            Map<IAEStackType<?>, List<IMEInventoryHandler>> inventoryHandlers) {
         this.drive = drive;
         this.inv = inv;
         this.handlersBySlot = handlersBySlot;
@@ -60,7 +60,7 @@ public class DriveCellManager {
 
             if (this.handlersBySlot[slot] != null) {
                 for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
-                    ICellInventoryHandler<?> cell = this.handlersBySlot[slot].getCellInventory(is, drive, type);
+                    ICellInventoryHandler cell = this.handlersBySlot[slot].getCellInventory(is, drive, type);
 
                     if (cell != null) {
                         this.inv.setHandler(slot, cell);

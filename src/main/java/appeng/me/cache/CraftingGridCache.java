@@ -51,7 +51,10 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.ICellProvider;
 import appeng.api.storage.IMEInventoryHandler;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -82,7 +85,7 @@ public class CraftingGridCache
         CRAFTING_POOL = Executors.newCachedThreadPool(factory);
     }
 
-    private final Map<IAEStackType<?>, CraftingInventoryHandler<?>> handlers = new HashMap<>();
+    private final Map<AEKeyType, CraftingInventoryHandler> handlers = new HashMap<>();
 
     private final Set<CraftingCPUCluster> craftingCPUClusters = new HashSet<>();
     private final Set<ICraftingProvider> craftingProviders = new HashSet<>();
@@ -248,7 +251,10 @@ public class CraftingGridCache
 
                 methods.add(details);
 
-                ensureHandlerForType(out.getStackType());
+                AEKeyType kt = AEKeyType.fromLegacyType(out.getStackType());
+                if (kt != null) {
+                    ensureHandlerForType(kt);
+                }
             }
         }
 
@@ -258,15 +264,18 @@ public class CraftingGridCache
         }
 
         // 按类型分组 craftables 变更
-        Map<IAEStackType<?>, List<IAEStack<?>>> craftablesChangedByType = new HashMap<>();
+        Map<AEKeyType, List<IAEStack<?>>> craftablesChangedByType = new HashMap<>();
 
         for (Entry<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> ais : oldItems.entrySet()) {
             if (!this.craftableItems.containsKey(ais.getKey())) {
                 var changedStack = ais.getKey().copy();
                 changedStack.reset();
                 changedStack.setCraftable(false);
-                craftablesChangedByType.computeIfAbsent(changedStack.getStackType(), k -> new ArrayList<>())
-                        .add(changedStack);
+                AEKeyType kt = AEKeyType.fromLegacyType(changedStack.getStackType());
+                if (kt != null) {
+                    craftablesChangedByType.computeIfAbsent(kt, k -> new ArrayList<>())
+                            .add(changedStack);
+                }
             }
         }
 
@@ -275,8 +284,11 @@ public class CraftingGridCache
                 var changedStack = ais.getKey().copy();
                 changedStack.reset();
                 changedStack.setCraftable(true);
-                craftablesChangedByType.computeIfAbsent(changedStack.getStackType(), k -> new ArrayList<>())
-                        .add(changedStack);
+                AEKeyType kt = AEKeyType.fromLegacyType(changedStack.getStackType());
+                if (kt != null) {
+                    craftablesChangedByType.computeIfAbsent(kt, k -> new ArrayList<>())
+                            .add(changedStack);
+                }
             }
         }
 
@@ -285,8 +297,11 @@ public class CraftingGridCache
                 var changedStack = st.copy();
                 changedStack.reset();
                 changedStack.setCraftable(false);
-                craftablesChangedByType.computeIfAbsent(changedStack.getStackType(), k -> new ArrayList<>())
-                        .add(changedStack);
+                AEKeyType kt = AEKeyType.fromLegacyType(changedStack.getStackType());
+                if (kt != null) {
+                    craftablesChangedByType.computeIfAbsent(kt, k -> new ArrayList<>())
+                            .add(changedStack);
+                }
             }
         }
 
@@ -295,18 +310,26 @@ public class CraftingGridCache
                 var changedStack = st.copy();
                 changedStack.reset();
                 changedStack.setCraftable(true);
-                craftablesChangedByType.computeIfAbsent(changedStack.getStackType(), k -> new ArrayList<>())
-                        .add(changedStack);
+                AEKeyType kt = AEKeyType.fromLegacyType(changedStack.getStackType());
+                if (kt != null) {
+                    craftablesChangedByType.computeIfAbsent(kt, k -> new ArrayList<>())
+                            .add(changedStack);
+                }
             }
         }
 
-        // 按类型通知存储系统
         var src = new BaseActionSource();
         for (var entry : craftablesChangedByType.entrySet()) {
-            this.storageGrid.postCraftablesChanges(entry.getKey(), entry.getValue(), src);
+            KeyCounter changes = new KeyCounter();
+            for (IAEStack<?> stack : entry.getValue()) {
+                AEKey key = stack.toAEKey();
+                if (key != null) {
+                    changes.add(key, stack.isCraftable() ? 1 : -1);
+                }
+            }
+            this.storageGrid.postCraftablesChanges(entry.getKey(), changes, src);
         }
 
-        // 确保所有出现过的类型都有 handler
         for (var type : craftablesChangedByType.keySet()) {
             ensureHandlerForType(type);
         }
@@ -373,25 +396,23 @@ public class CraftingGridCache
         this.ensureHandlerForType(someItem.getStackType());
     }
 
-    private void ensureHandlerForType(IAEStackType<?> type) {
-        this.handlers.computeIfAbsent(type,
-                t -> new CraftingInventoryHandler<>(t, this));
+    private void ensureHandlerForType(AEKeyType keyType) {
+        this.handlers.computeIfAbsent(keyType,
+                t -> new CraftingInventoryHandler(t, this));
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler<T>> getCellArray(final IAEStackType<T> type) {
+    public List<IMEInventoryHandler> getCellArray(AEKeyType type) {
         var handler = this.handlers.get(type);
         if (handler != null) {
-            return Collections.singletonList((IMEInventoryHandler<T>) handler);
+            return Collections.singletonList(handler);
         }
         return Collections.emptyList();
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> CraftingInventoryHandler<T> getOrCreateHandler(IAEStackType<T> type) {
-        return (CraftingInventoryHandler<T>) this.handlers.computeIfAbsent(type,
-                t -> new CraftingInventoryHandler<>((IAEStackType<T>) t, this));
+    private CraftingInventoryHandler getOrCreateHandler(AEKeyType type) {
+        return this.handlers.computeIfAbsent(type,
+                t -> new CraftingInventoryHandler(t, this));
     }
 
     @Override
@@ -489,14 +510,13 @@ public class CraftingGridCache
         return this.requesting(what) > 0;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public long requesting(IAEStack<?> what) {
         long requested = 0;
         for (final CraftingCPUCluster cluster : this.craftingCPUClusters) {
-            IAEStack<?> finalOut = cluster.getFinalMultiOutput();
-            if (finalOut != null && finalOut.isSameType(what)) {
-                requested += finalOut.getStackSize();
+            GenericStack finalOut = cluster.getFinalMultiOutput();
+            if (finalOut != null && finalOut.what().equals(what.toAEKey())) {
+                requested += finalOut.amount();
             }
         }
         return requested;
@@ -526,18 +546,16 @@ public class CraftingGridCache
     /**
      * 泛型合成库存处理器。
      * <p>
-     * 每个 {@link IAEStackType} 对应一个实例，向网络暴露该类型的可合成物品列表，
+     * 每个 {@link AEKeyType} 对应一个实例，向网络暴露该类型的可合成物品列表，
      * 并将注入操作转发给Crafting CPU。
      */
-    private static class CraftingInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHandler<T> {
+    private static class CraftingInventoryHandler implements IMEInventoryHandler {
 
-        private final IAEStackType<T> type;
+        private final AEKeyType type;
         private final CraftingGridCache cache;
 
-        CraftingInventoryHandler(IAEStackType<?> type, CraftingGridCache cache) {
-            @SuppressWarnings("unchecked")
-            var t = (IAEStackType<T>) type;
-            this.type = t;
+        CraftingInventoryHandler(AEKeyType type, CraftingGridCache cache) {
+            this.type = type;
             this.cache = cache;
         }
 
@@ -547,14 +565,14 @@ public class CraftingGridCache
         }
 
         @Override
-        public boolean isPrioritized(T input) {
+        public boolean isPrioritized(AEKey input) {
             return true;
         }
 
         @Override
-        public boolean canAccept(T input) {
+        public boolean canAccept(AEKey input) {
             for (final CraftingCPUCluster cpu : this.cache.craftingCPUClusters) {
-                if (cpu.canAccept(input)) {
+                if (cpu.canAccept(input.toIAEStack(1))) {
                     return true;
                 }
             }
@@ -576,38 +594,41 @@ public class CraftingGridCache
             return i == 1;
         }
 
-        @SuppressWarnings("unchecked")
         @Override
-        public T injectItems(T input, Actionable type, IActionSource src) {
+        public GenericStack injectItems(GenericStack input, Actionable type, IActionSource src) {
             for (final CraftingCPUCluster cpu : this.cache.craftingCPUClusters) {
-                IAEStack<?> result = cpu.injectItems((IAEStack<?>) input, type, src);
-                input = (T) result;
+                IAEStack<?> result = cpu.injectItems(input.toIAEStack(), type, src);
+                if (result == null) {
+                    return null;
+                }
+                input = new GenericStack(result.toAEKey(), result.getStackSize());
             }
             return input;
         }
 
         @Override
-        public T extractItems(T request, Actionable mode, IActionSource src) {
+        public GenericStack extractItems(GenericStack request, Actionable mode, IActionSource src) {
             return null;
         }
 
         @Override
-        public IItemList<T> getAvailableItems(IItemList<T> out) {
+        public KeyCounter getAvailableKeyCounter() {
+            KeyCounter out = new KeyCounter();
             for (final IAEStack<?> stack : this.cache.craftableItems.keySet()) {
-                if (stack.getStackType() == this.type) {
-                    out.addCraftingGeneric(stack);
+                if (stack.getStackTypeBase() != null && AEKeyType.fromLegacyType(stack.getStackTypeBase()) == this.type) {
+                    out.add(stack.toAEKey(), stack.getStackSize());
                 }
             }
             for (final IAEStack<?> st : this.cache.emitableItems) {
-                if (st.getStackType() == this.type) {
-                    out.addCraftingGeneric(st);
+                if (st.getStackTypeBase() != null && AEKeyType.fromLegacyType(st.getStackTypeBase()) == this.type) {
+                    out.add(st.toAEKey(), st.getStackSize());
                 }
             }
             return out;
         }
 
         @Override
-        public IAEStackType<T> getStackType() {
+        public AEKeyType getKeyType() {
             return this.type;
         }
     }

@@ -81,7 +81,7 @@ public class TileSecurityStation extends AENetworkTile implements ITerminalHost,
     private final AppEngInternalInventory configSlot = new AppEngInternalInventory(this, 1);
     private final IConfigManager cm = new ConfigManager(this);
     private final SecurityStationInventory inventory = new SecurityStationInventory(this);
-    private final MEMonitorHandler<IAEItemStack> securityMonitor = new MEMonitorHandler<>(this.inventory);
+    private final MEMonitorHandler securityMonitor = new MEMonitorHandler(this.inventory);
     private long securityKey;
     private AEColor paintedColor = AEColor.TRANSPARENT;
     private boolean isActive = false;
@@ -118,7 +118,7 @@ public class TileSecurityStation extends AENetworkTile implements ITerminalHost,
         }
     }
 
-    IMEInventoryHandler<IAEItemStack> getSecurityInventory() {
+    IMEInventoryHandler getSecurityInventory() {
         return this.inventory;
     }
 
@@ -241,9 +241,9 @@ public class TileSecurityStation extends AENetworkTile implements ITerminalHost,
     }
 
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+    public IMEMonitor getInventory(IAEStackType<?> type) {
         if (type == AEItemStackType.INSTANCE) {
-            return (IMEMonitor<T>) this.securityMonitor;
+            return (IMEMonitor) this.securityMonitor;
         }
         return null;
 

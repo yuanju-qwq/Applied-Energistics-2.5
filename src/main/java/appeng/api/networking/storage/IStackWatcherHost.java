@@ -24,14 +24,13 @@
 package appeng.api.networking.storage;
 
 import appeng.api.networking.security.IActionSource;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.KeyCounter;
 
 public interface IStackWatcherHost {
 
     /**
-     * provides the IStackWatcher for this host, for the current network, is called when the hot changes networks. You
+     * provides the IStackWatcher for this host, for the current network, is called when the host changes networks. You
      * do not need to clear your old watcher, its already been removed by the time this gets called.
      *
      * @param newWatcher stack watcher
@@ -41,9 +40,9 @@ public interface IStackWatcherHost {
     /**
      * Called when a watched item changes amounts.
      *
-     * @param diffStack new stack
-     * @param chan      storage channel
+     * @param fullStack current full count per key
+     * @param diffStack the changes per key
+     * @param src       the action source
      */
-    void onStackChange(IItemList<?> o, IAEStack<?> fullStack, IAEStack<?> diffStack, IActionSource src,
-            IAEStackType<?> type);
+    void onStackChange(KeyCounter fullStack, KeyCounter diffStack, IActionSource src);
 }

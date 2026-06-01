@@ -128,7 +128,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
 
         ItemStack paintBall = this.getColor(is);
 
-        final IMEInventory<IAEItemStack> inv = getInventory(is);
+        final IMEInventory inv = getInventory(is);
         if (inv != null) {
             GenericStack option = inv.extractItems(GenericStack.fromItemStack(paintBall), Actionable.SIMULATE,
                     new BaseActionSource());
@@ -182,7 +182,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
     }
 
     public boolean consumeColor(ItemStack applicator, AEColor color, boolean simulate) {
-        final IMEInventory<IAEItemStack> inv = getInventory(applicator);
+        final IMEInventory inv = getInventory(applicator);
         if (inv == null)
             return false;
 
@@ -205,7 +205,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
     }
 
     public boolean consumeItem(ItemStack applicator, ItemStack paintItem, boolean simulate) {
-        final IMEInventory<IAEItemStack> inv = getInventory(applicator);
+        final IMEInventory inv = getInventory(applicator);
         if (inv == null)
             return false;
 
@@ -229,7 +229,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
             return true;
         }
 
-        final IMEInventory<IAEItemStack> inv = getInventory(applicator);
+        final IMEInventory inv = getInventory(applicator);
         if (inv == null)
             return false;
 
@@ -287,7 +287,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
         return null;
     }
 
-    private IMEInventory<IAEItemStack> getInventory(ItemStack stack) {
+    private IMEInventory getInventory(ItemStack stack) {
         return AEApi.instance()
                 .registries()
                 .cell()
@@ -310,7 +310,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
     private ItemStack findNextColor(final ItemStack is, final ItemStack anchor, final int scrollOffset) {
         ItemStack newColor = ItemStack.EMPTY;
 
-        final IMEInventory<IAEItemStack> inv = getInventory(is);
+        final IMEInventory inv = getInventory(is);
         if (inv != null) {
             var itemList = new ArrayList<IAEItemStack>();
             for (var entry : inv.getAvailableKeyCounter()) {
@@ -443,7 +443,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
             final ITooltipFlag advancedTooltips) {
         super.addCheckedInformation(stack, world, lines, advancedTooltips);
 
-        final ICellInventoryHandler<IAEItemStack> cdi = AEApi.instance()
+        final ICellInventoryHandler cdi = AEApi.instance()
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,

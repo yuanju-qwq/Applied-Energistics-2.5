@@ -38,7 +38,7 @@ import appeng.me.helpers.MachineSource;
 import appeng.tile.misc.TileSecurityStation;
 import appeng.util.item.AEItemStackType;
 
-public class SecurityStationInventory implements IMEInventoryHandler<IAEItemStack> {
+public class SecurityStationInventory implements IMEInventoryHandler {
 
     private final IItemList<IAEItemStack> storedItems = AEItemStackType.INSTANCE.createList();
     private final TileSecurityStation securityTile;

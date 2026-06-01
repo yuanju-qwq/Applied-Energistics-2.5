@@ -23,20 +23,16 @@
 
 package appeng.api.storage;
 
-import javax.annotation.Nullable;
-
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 
 /**
- * Exposes the monitorable network inventories of a grid node that choses to export them. This interface can only be
+ * Exposes the monitorable network inventories of a grid node that chooses to export them. This interface can only be
  * obtained using Forge capabilities for {@link IStorageMonitorableAccessor}.
  */
 public interface IStorageMonitorable {
 
     /**
-     * 通过 {@link IAEStackType} 获取对应的 {@link IMEMonitor}。
+     * Get the {@link IMEMonitor} for the given key type.
      */
-    <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type);
-
+    IMEMonitor getInventory(AEKeyType type);
 }

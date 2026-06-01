@@ -84,7 +84,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
         }
 
         try {
-            final IMEMonitor<IAEItemStack> inv = this.getProxy()
+            final IMEMonitor inv = this.getProxy()
                     .getStorage()
                     .getInventory(AEItemStackType.INSTANCE);
 
@@ -136,7 +136,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
             try {
                 this.itemsToSend = this.calculateItemsToSend();
 
-                final IMEMonitor<IAEItemStack> inv = this.getProxy()
+                final IMEMonitor inv = this.getProxy()
                         .getStorage()
                         .getInventory(AEItemStackType.INSTANCE);
                 final IEnergyGrid energy = this.getProxy().getEnergy();
@@ -173,7 +173,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
     }
 
     private boolean importStuff(final InventoryAdaptor myAdaptor, final IAEItemStack whatToImport,
-            final IMEMonitor<IAEItemStack> inv, final IEnergySource energy, final FuzzyMode fzMode) {
+            final IMEMonitor inv, final IEnergySource energy, final FuzzyMode fzMode) {
         final int toSend = this.calculateMaximumAmountToImport(myAdaptor, whatToImport, inv, fzMode);
 
         if (toSend == 0) {
@@ -216,7 +216,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
     }
 
     private int calculateMaximumAmountToImport(final InventoryAdaptor myAdaptor, final IAEItemStack whatToImport,
-            final IMEMonitor<IAEItemStack> inv, final FuzzyMode fzMode) {
+            final IMEMonitor inv, final FuzzyMode fzMode) {
         final int toSend = Math.min(this.itemsToSend, 64);
         final ItemStack itemStackToImport;
 

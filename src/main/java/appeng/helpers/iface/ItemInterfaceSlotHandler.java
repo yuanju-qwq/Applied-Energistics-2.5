@@ -182,19 +182,19 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler<IAE
 
     @Nullable
     @Override
-    public IMEMonitor<IAEItemStack> createConfiguredMonitor(@Nonnull InterfaceSlotContext context) {
+    public IMEMonitor createConfiguredMonitor(@Nonnull InterfaceSlotContext context) {
         return new ItemInterfaceInventory(context);
     }
 
     @Nonnull
     @Override
-    public IMEMonitor<IAEItemStack> getPassThroughMonitor(@Nonnull InterfaceSlotContext context) {
+    public IMEMonitor getPassThroughMonitor(@Nonnull InterfaceSlotContext context) {
         // This is handled externally by InterfaceLogic's MEMonitorPassThrough
         throw new UnsupportedOperationException("Use InterfaceLogic.items passthrough");
     }
 
     @Override
-    public void onGridChanged(@Nullable IMEInventory<IAEItemStack> networkInventory,
+    public void onGridChanged(@Nullable IMEInventory networkInventory,
             @Nonnull InterfaceSlotContext context) {
         // Handled by InterfaceLogic directly via MEMonitorPassThrough
     }

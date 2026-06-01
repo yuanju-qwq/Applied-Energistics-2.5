@@ -69,6 +69,7 @@ import appeng.util.inv.MEInventoryCrafting;
 import appeng.util.item.IAEStackList;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.integration.modules.betterquesting.BQEventHelper;
 import appeng.me.cache.CraftingGridCache;
 import appeng.me.cluster.IAECluster;
@@ -93,7 +94,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
     private final List<TileCraftingTile> tiles = new ArrayList<>();
     private final List<TileCraftingTile> storage = new ArrayList<>();
     private final List<TileCraftingMonitorTile> status = new ArrayList<>();
-    private final HashMap<IMEMonitorHandlerReceiver<? super IAEStackBase>, Object> listeners = new HashMap<>();
+    private final HashMap<IMEMonitorHandlerReceiver, Object> listeners = new HashMap<>();
     private final Map<ICraftingPatternDetails, Queue<ICraftingMedium>> visitedMediums = new HashMap<>();
     private ICraftingMedium LatestMedium;
     private ICraftingLink myLastLink;
@@ -132,8 +133,9 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
     }
 
     @Override
-    public IAEStack<?> getFinalMultiOutput() {
-        return finalOutput;
+    public GenericStack getFinalMultiOutput() {
+        if (finalOutput == null) return null;
+        return new GenericStack(finalOutput.toAEKey(), finalOutput.getStackSize());
     }
 
     @Override
@@ -159,7 +161,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
      * add a new Listener to the monitor, be sure to properly remove yourself when your done.
      */
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<? super IAEStackBase> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver l, final Object verificationToken) {
         this.listeners.put(l, verificationToken);
     }
 
@@ -167,11 +169,11 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
      * remove a Listener to the monitor.
      */
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<? super IAEStackBase> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver l) {
         this.listeners.remove(l);
     }
 
-    public IMEInventory<IAEItemStack> getInventory() {
+    public IMEInventory getInventory() {
         return this.inventory;
     }
 
@@ -360,18 +362,19 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
     @SuppressWarnings("unchecked")
     private void postChange(final IAEStack<?> diff, final IActionSource src) {
-        final Iterator<Entry<IMEMonitorHandlerReceiver<? super IAEStackBase>, Object>> i = this.getListeners();
+        final Iterator<Entry<IMEMonitorHandlerReceiver, Object>> i = this.getListeners();
 
         // protect integrity
         if (i.hasNext()) {
-            final ImmutableList<IAEStackBase> single = ImmutableList.of(diff.copy());
+            final ImmutableList<GenericStack> single = ImmutableList.of(
+                    new GenericStack(diff.toAEKey(), diff.getStackSize()));
 
             while (i.hasNext()) {
-                final Entry<IMEMonitorHandlerReceiver<? super IAEStackBase>, Object> o = i.next();
-                final IMEMonitorHandlerReceiver<? super IAEStackBase> receiver = o.getKey();
+                final Entry<IMEMonitorHandlerReceiver, Object> o = i.next();
+                final IMEMonitorHandlerReceiver receiver = o.getKey();
 
                 if (receiver.isValid(o.getValue())) {
-                    ((IMEMonitorHandlerReceiver) receiver).postChange(null, single, src);
+                    receiver.postChange(null, single, src);
                 } else {
                     i.remove();
                 }
@@ -475,7 +478,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         }
     }
 
-    private Iterator<Entry<IMEMonitorHandlerReceiver<? super IAEStackBase>, Object>> getListeners() {
+    private Iterator<Entry<IMEMonitorHandlerReceiver, Object>> getListeners() {
         return this.listeners.entrySet().iterator();
     }
 
@@ -783,11 +786,12 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                                     if (extracted != null && extracted.amount() > 0 && extracted.what() instanceof AEItemKey itemKey) {
                                                         final ItemStack is = itemKey.toStack((int) Math.min(extracted.amount(), Integer.MAX_VALUE));
 
-                                                    if (!is.isEmpty()) {
-                                                        this.postChange(AEItemStack.fromItemStack(is), this.machineSrc);
-                                                        ic.setInventorySlotContents(x, is);
-                                                        found = true;
-                                                        break;
+                                                        if (!is.isEmpty()) {
+                                                            this.postChange(AEItemStack.fromItemStack(is), this.machineSrc);
+                                                            ic.setInventorySlotContents(x, is);
+                                                            found = true;
+                                                            break;
+                                                        }
                                                     }
                                                 }
                                             }
@@ -1015,8 +1019,9 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
         // 统一处理所有类型（物品、流体等）
         for (var entry : this.inventory.getInventoryMap().entrySet()) {
-            final var type = entry.getKey();
-            final IMEMonitor<?> monitor = sg.getInventory(type);
+            final AEKeyType keyType = AEKeyType.fromLegacyType(entry.getKey());
+            if (keyType == null) continue;
+            final IMEMonitor monitor = sg.getInventory(keyType);
             if (monitor == null) continue;
             final IItemList<?> list = entry.getValue();
             for (IAEStack<?> aeStack : iterateTyped(list)) {

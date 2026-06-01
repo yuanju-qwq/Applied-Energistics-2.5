@@ -25,8 +25,7 @@ package appeng.api.storage;
 
 import net.minecraft.item.ItemStack;
 
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 
 /**
  * Registration record for {@link ICellRegistry}
@@ -44,7 +43,7 @@ public interface ICellHandler {
     boolean isCell(ItemStack is);
 
     /**
-     * 通过 {@link IAEStackType} 获取 cell 的 inventory handler。
+     * 通过 {@link AEKeyType} 获取 cell 的 inventory handler。
      * <p>
      * 如果无法处理该物品，返回 null。
      *
@@ -53,8 +52,7 @@ public interface ICellHandler {
      * @param type 请求的栈类型
      * @return 新的 IMEHandler，或 null
      */
-    <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
-            IAEStackType<T> type);
+    ICellInventoryHandler getCellInventory(ItemStack is, ISaveProvider host, AEKeyType type);
 
     /**
      * 0 - cell is missing.
@@ -70,7 +68,7 @@ public interface ICellHandler {
      *
      * @return get the status of the cell based on its contents.
      */
-    default <T extends IAEStack<T>> int getStatusForCell(ItemStack is, ICellInventoryHandler<T> handler) {
+    default int getStatusForCell(ItemStack is, ICellInventoryHandler handler) {
         if (handler.getCellInv() != null) {
             int val = handler.getCellInv().getStatusForCell();
 
@@ -86,7 +84,7 @@ public interface ICellHandler {
     /**
      * @return the ae/t to drain for this storage cell inside a chest/drive.
      */
-    default <T extends IAEStack<T>> double cellIdleDrain(ItemStack is, ICellInventoryHandler<T> handler) {
+    default double cellIdleDrain(ItemStack is, ICellInventoryHandler handler) {
         if (handler.getCellInv() != null) {
             return handler.getCellInv().getIdleDrain();
         }

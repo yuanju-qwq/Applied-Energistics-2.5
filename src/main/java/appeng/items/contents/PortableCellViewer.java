@@ -32,7 +32,7 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.util.IConfigManager;
 import appeng.container.interfaces.IInventorySlotAware;
 import appeng.me.helpers.MEMonitorHandler;
@@ -40,7 +40,7 @@ import appeng.util.ConfigManager;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
 
-public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implements IPortableCell, IInventorySlotAware {
+public class PortableCellViewer extends MEMonitorHandler implements IPortableCell, IInventorySlotAware {
 
     private final ItemStack target;
     private final IAEItemPowerStorage ips;
@@ -140,9 +140,9 @@ public class PortableCellViewer extends MEMonitorHandler<IAEItemStack> implement
     }
 
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+    public IMEMonitor getInventory(AEKeyType type) {
         if (type == AEItemStackType.INSTANCE) {
-            return (IMEMonitor<T>) this;
+            return this;
         }
         return null;
     }

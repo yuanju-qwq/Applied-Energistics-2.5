@@ -29,9 +29,8 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.ICellContainer;
 import appeng.api.storage.ICellProvider;
 import appeng.api.storage.IStorageMonitorable;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.KeyCounter;
 
 /**
  * Common base class for item / fluid storage caches.
@@ -40,22 +39,24 @@ public interface IStorageGrid extends IGridCache, IStorageMonitorable {
 
     /**
      * Used to inform the network of alterations to the storage system that fall outside of the standard Network
-     * operations, Examples, ME Chest inputs from the world, or a Storage Bus detecting modifications made to the chest
+     * operations. Examples, ME Chest inputs from the world, or a Storage Bus detecting modifications made to the chest
      * by an outside force.
      *
-     * Expects the input to have either a negative or a positive stack size to correspond to the injection, or
+     * Expects the input to have either a negative or a positive amount to correspond to the injection, or
      * extraction operation.
      *
-     * @param input injected items
+     * @param type   the key type of the changes
+     * @param input  the changes (positive for insert, negative for extract)
+     * @param src    the action source
      */
-    void postAlterationOfStoredItems(IAEStackType<?> type, Iterable<? extends IAEStackBase> input, IActionSource src);
+    void postAlterationOfStoredItems(AEKeyType type, KeyCounter input, IActionSource src);
 
-    void postCraftablesChanges(IAEStackType<?> type, Iterable<? extends IAEStackBase> input, IActionSource src);
+    void postCraftablesChanges(AEKeyType type, KeyCounter input, IActionSource src);
 
     /**
      * Used to add a cell provider to the storage system
      *
-     * THIS IT NOT FOR USE {@link IGridHost} THAT PROVIDE {@link ICellContainer} - those are automatically handled by
+     * THIS IS NOT FOR USE {@link IGridHost} THAT PROVIDE {@link ICellContainer} - those are automatically handled by
      * the storage system.
      *
      * @param cc to be added cell provider

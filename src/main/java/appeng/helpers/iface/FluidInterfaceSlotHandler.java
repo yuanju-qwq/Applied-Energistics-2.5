@@ -157,19 +157,19 @@ public final class FluidInterfaceSlotHandler implements IInterfaceSlotHandler<IA
 
     @Nullable
     @Override
-    public IMEMonitor<IAEFluidStack> createConfiguredMonitor(@Nonnull InterfaceSlotContext context) {
+    public IMEMonitor createConfiguredMonitor(@Nonnull InterfaceSlotContext context) {
         return new FluidInterfaceInventory(context);
     }
 
     @Nonnull
     @Override
-    public IMEMonitor<IAEFluidStack> getPassThroughMonitor(@Nonnull InterfaceSlotContext context) {
+    public IMEMonitor getPassThroughMonitor(@Nonnull InterfaceSlotContext context) {
         // This is handled externally by InterfaceLogic's MEMonitorPassThrough
         throw new UnsupportedOperationException("Use InterfaceLogic.fluids passthrough");
     }
 
     @Override
-    public void onGridChanged(@Nullable IMEInventory<IAEFluidStack> networkInventory,
+    public void onGridChanged(@Nullable IMEInventory networkInventory,
             @Nonnull InterfaceSlotContext context) {
         // Handled by InterfaceLogic directly via MEMonitorPassThrough
     }

@@ -46,7 +46,7 @@ import appeng.util.StorageHelper;
  * and filling held containers from the ME network.
  * Uses {@link IAEStackType#drainFromContainer} and {@link IAEStackType#fillToContainer} APIs.
  */
-public final class FluidConversionMonitorHandler implements IConversionMonitorHandler<IAEFluidStack> {
+public final class FluidConversionMonitorHandler implements IConversionMonitorHandler {
 
     public static final FluidConversionMonitorHandler INSTANCE = new FluidConversionMonitorHandler();
 
@@ -54,7 +54,7 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
 
     @Nonnull
     @Override
-    public IAEStackType<IAEFluidStack> getStackType() {
+    public IAEStackType getStackType() {
         return AEFluidStackType.INSTANCE;
     }
 
@@ -76,7 +76,7 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
             @Nonnull EntityPlayer player,
             @Nonnull EnumHand hand,
             @Nonnull IEnergySource energy,
-            @Nonnull IMEMonitor<IAEFluidStack> monitor,
+            @Nonnull IMEMonitor monitor,
             @Nonnull IActionSource src) {
         final ItemStack held = player.getHeldItem(hand);
         if (held.getCount() != 1) {
@@ -127,7 +127,7 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
             @Nonnull EntityPlayer player,
             @Nonnull IAEFluidStack displayed,
             @Nonnull IEnergySource energy,
-            @Nonnull IMEMonitor<IAEFluidStack> monitor,
+            @Nonnull IMEMonitor monitor,
             @Nonnull IActionSource src) {
         // No-op: fluid containers in the player's inventory cannot be bulk-drained
     }
@@ -140,7 +140,7 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
             @Nonnull IAEFluidStack displayed,
             long count,
             @Nonnull IEnergySource energy,
-            @Nonnull IMEMonitor<IAEFluidStack> monitor,
+            @Nonnull IMEMonitor monitor,
             @Nonnull IActionSource src,
             @Nonnull IConversionMonitorHost host) {
         final ItemStack held = player.getHeldItem(hand);

@@ -115,7 +115,7 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
 
         try {
             final InventoryAdaptor destination = this.getHandler();
-            final IMEMonitor<IAEItemStack> inv = this.getProxy().getStorage()
+            final IMEMonitor inv = this.getProxy().getStorage()
                     .getInventory(AEItemStackType.INSTANCE);
             final IEnergyGrid energy = this.getProxy().getEnergy();
             final ICraftingGrid cg = this.getProxy().getCrafting();
@@ -258,7 +258,7 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
     }
 
     private void pushItemIntoTarget(final InventoryAdaptor d, final IEnergyGrid energy,
-            final IMEInventory<IAEItemStack> inv, IAEItemStack org) {
+            final IMEInventory inv, IAEItemStack org) {
         ItemStack inputStack = org.getCachedItemStack(org.getStackSize());
 
         ItemStack remaining = d.simulateAdd(inputStack);

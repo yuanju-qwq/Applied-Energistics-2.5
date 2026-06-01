@@ -323,11 +323,11 @@ public class TileCondenser extends AEBaseInvTile implements IConfigManagerHost, 
         }
 
         @Override
-        public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+        public <T extends IAEStack<T>> IMEMonitor getInventory(IAEStackType<T> type) {
             if (type == AEItemStackType.INSTANCE) {
-                return (IMEMonitor<T>) this.itemInventory;
+                return (IMEMonitor) this.itemInventory;
             } else {
-                return new CondenserVoidInventory<>(TileCondenser.this, type);
+                return new CondenserVoidInventory(TileCondenser.this, type);
             }
         }
     }

@@ -79,7 +79,7 @@ public class CellRegistry implements ICellRegistry {
     }
 
     @Override
-    public <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(final ItemStack is,
+    public <T extends IAEStack<T>> ICellInventoryHandler getCellInventory(final ItemStack is,
             final ISaveProvider container, final IAEStackType<T> type) {
         if (is.isEmpty()) {
             return null;

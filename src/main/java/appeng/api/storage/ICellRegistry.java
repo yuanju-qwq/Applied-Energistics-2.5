@@ -30,8 +30,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
 import appeng.api.IAppEngApi;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 
 /**
  * Storage Cell Registry, used for specially implemented cells, if you just want to make a item act like a cell, or new
@@ -78,15 +77,15 @@ public interface ICellRegistry {
     ICellHandler getHandler(ItemStack is);
 
     /**
-     * 通过 {@link IAEStackType} 获取 GUI handler。
+     * Get the GUI handler for the given key type.
      */
     @Nullable
-    <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(IAEStackType<T> type, ItemStack is);
+    ICellGuiHandler getGuiHandler(AEKeyType type, ItemStack is);
 
     /**
-     * 通过 {@link IAEStackType} 获取 cell 的 inventory handler。
+     * Get the cell's inventory handler for the given key type.
      */
     @Nullable
-    <T extends IAEStack<T>> ICellInventoryHandler<T> getCellInventory(ItemStack is, ISaveProvider host,
-            IAEStackType<T> type);
+    ICellInventoryHandler getCellInventory(ItemStack is, ISaveProvider host,
+            AEKeyType type);
 }

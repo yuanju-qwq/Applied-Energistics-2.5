@@ -52,9 +52,11 @@ import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.*;
 import appeng.api.storage.data.*;
+import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.util.AECableType;
 import appeng.api.util.DimensionalCoord;
 import appeng.api.util.IConfigManager;
@@ -138,10 +140,10 @@ public class InterfaceLogic
     private final IAEStack<?>[] requireWork = new IAEStack<?>[NUMBER_OF_CONFIG_SLOTS];
 
     // --- ME 网络存储代理 ---
-    private final MEMonitorPassThrough<IAEItemStack> items = new MEMonitorPassThrough<>(
-            new NullInventory<IAEItemStack>(), AEItemStackType.INSTANCE);
-    private final MEMonitorPassThrough<IAEFluidStack> fluids = new MEMonitorPassThrough<>(
-            new NullInventory<IAEFluidStack>(), AEFluidStackType.INSTANCE);
+    private final MEMonitorPassThrough items = new MEMonitorPassThrough(
+            new NullInventory(), AEItemStackType.INSTANCE);
+    private final MEMonitorPassThrough fluids = new MEMonitorPassThrough(
+            new NullInventory(), AEFluidStackType.INSTANCE);
 
     // --- Capability ---
     private final IStorageMonitorableAccessor accessor = this::getMonitorable;
@@ -160,11 +162,11 @@ public class InterfaceLogic
     private int priority;
 
     // --- ME 网络库存缓存 ---
-    private IMEInventory<IAEItemStack> destination;
+    private IMEInventory destination;
     private boolean resetItemConfigCache = true;
-    private IMEMonitor<IAEItemStack> itemConfigCachedHandler;
+    private IMEMonitor itemConfigCachedHandler;
     private boolean resetFluidConfigCache = true;
-    private IMEMonitor<IAEFluidStack> fluidConfigCachedHandler;
+    private IMEMonitor fluidConfigCachedHandler;
 
     // ========== Construction ==========
 
@@ -532,14 +534,15 @@ public class InterfaceLogic
         return this.craftingTracker.getRequestedJobs();
     }
 
-    @Override
+@Override
     @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> IMEMonitor<T> getNetworkInventory(IAEStackType<T> type) {
+    public IMEMonitor getNetworkInventory(AEKeyType type) {
         try {
             return this.gridProxy.getStorage().getInventory(type);
         } catch (final GridAccessException e) {
-            return (IMEMonitor<T>) new NullInventory<>();
+            return (IMEMonitor) new NullInventory();
         }
+    }
     }
 
     // ========== IGridTickable ==========
@@ -574,32 +577,33 @@ public class InterfaceLogic
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+    public IMEMonitor getInventory(AEKeyType type) {
         // Check if there's a config for this type and use handler-provided monitor
-        if (this.configuredTypes.contains(type)) {
-            IInterfaceSlotHandler<T> handler = InterfaceSlotHandlerRegistry.getHandler(type);
+        IAEStackType<?> legacyType = AEStackTypeRegistry.getType(type.getId());
+        if (legacyType != null && this.configuredTypes.contains(legacyType)) {
+            IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(legacyType);
             if (handler != null) {
                 if (type == AEItemStackType.INSTANCE) {
                     if (resetItemConfigCache) {
                         resetItemConfigCache = false;
-                        itemConfigCachedHandler = (IMEMonitor<IAEItemStack>) handler.createConfiguredMonitor(this);
+                        itemConfigCachedHandler = (IMEMonitor) handler.createConfiguredMonitor(this);
                     }
-                    return (IMEMonitor<T>) itemConfigCachedHandler;
+                    return (IMEMonitor) itemConfigCachedHandler;
                 } else if (type == AEFluidStackType.INSTANCE) {
                     if (resetFluidConfigCache) {
                         resetFluidConfigCache = false;
-                        fluidConfigCachedHandler = (IMEMonitor<IAEFluidStack>) handler.createConfiguredMonitor(this);
+                        fluidConfigCachedHandler = (IMEMonitor) handler.createConfiguredMonitor(this);
                     }
-                    return (IMEMonitor<T>) fluidConfigCachedHandler;
+                    return (IMEMonitor) fluidConfigCachedHandler;
                 }
             }
         }
 
         // No config for this type: pass through to network
         if (type == AEItemStackType.INSTANCE) {
-            return (IMEMonitor<T>) this.items;
+            return (IMEMonitor) this.items;
         } else if (type == AEFluidStackType.INSTANCE) {
-            return (IMEMonitor<T>) this.fluids;
+            return (IMEMonitor) this.fluids;
         }
         return null;
     }
@@ -647,8 +651,8 @@ public class InterfaceLogic
             this.items.setInternal(this.gridProxy.getStorage().getInventory(AEItemStackType.INSTANCE));
             this.fluids.setInternal(this.gridProxy.getStorage().getInventory(AEFluidStackType.INSTANCE));
         } catch (final GridAccessException gae) {
-            this.items.setInternal(new NullInventory<>());
-            this.fluids.setInternal(new NullInventory<>());
+            this.items.setInternal(new NullInventory());
+            this.fluids.setInternal(new NullInventory());
         }
         this.notifyNeighbors();
     }

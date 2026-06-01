@@ -52,7 +52,7 @@ import appeng.util.item.AEItemStackType;
  * Items do not have a "container" concept in this context (unlike fluids with buckets),
  * so container-related methods return false/null.
  */
-public final class ItemConversionMonitorHandler implements IConversionMonitorHandler<IAEItemStack> {
+public final class ItemConversionMonitorHandler implements IConversionMonitorHandler {
 
     public static final ItemConversionMonitorHandler INSTANCE = new ItemConversionMonitorHandler();
 
@@ -60,7 +60,7 @@ public final class ItemConversionMonitorHandler implements IConversionMonitorHan
 
     @Nonnull
     @Override
-    public IAEStackType<IAEItemStack> getStackType() {
+    public IAEStackType getStackType() {
         return AEItemStackType.INSTANCE;
     }
 
@@ -81,7 +81,7 @@ public final class ItemConversionMonitorHandler implements IConversionMonitorHan
             @Nonnull EntityPlayer player,
             @Nonnull EnumHand hand,
             @Nonnull IEnergySource energy,
-            @Nonnull IMEMonitor<IAEItemStack> monitor,
+            @Nonnull IMEMonitor monitor,
             @Nonnull IActionSource src) {
         final GenericStack input = GenericStack.fromItemStack(player.getHeldItem(hand));
         if (input == null) {
@@ -96,7 +96,7 @@ public final class ItemConversionMonitorHandler implements IConversionMonitorHan
             @Nonnull EntityPlayer player,
             @Nonnull IAEItemStack displayed,
             @Nonnull IEnergySource energy,
-            @Nonnull IMEMonitor<IAEItemStack> monitor,
+            @Nonnull IMEMonitor monitor,
             @Nonnull IActionSource src) {
         final IAEItemStack template = displayed.copy();
         final IItemHandler inv = new PlayerMainInvWrapper(player.inventory);
@@ -126,7 +126,7 @@ public final class ItemConversionMonitorHandler implements IConversionMonitorHan
             @Nonnull IAEItemStack displayed,
             long count,
             @Nonnull IEnergySource energy,
-            @Nonnull IMEMonitor<IAEItemStack> monitor,
+            @Nonnull IMEMonitor monitor,
             @Nonnull IActionSource src,
             @Nonnull IConversionMonitorHost host) {
         final IAEItemStack request = displayed.copy();

@@ -23,24 +23,24 @@ import appeng.api.config.Actionable;
 import appeng.api.config.IncludeExclude;
 import appeng.api.config.StorageFilter;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.util.prioritylist.DefaultPriorityList;
 import appeng.util.prioritylist.IPartitionList;
 
-public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHandler<T> {
+@SuppressWarnings("rawtypes")
+public class MEInventoryHandler implements IMEInventoryHandler {
 
-    private final IMEInventoryHandler<T> internal;
+    private final IMEInventoryHandler internal;
     private int myPriority;
     private IncludeExclude myWhitelist;
     private AccessRestriction myAccess;
     private StorageFilter storageFilter;
-    private IPartitionList<T> myPartitionList;
+    private IPartitionList myPartitionList;
 
     private AccessRestriction cachedAccessRestriction;
 
@@ -57,17 +57,17 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
     private boolean isSticky;
     private boolean gettingAvailableContent;
 
-    public MEInventoryHandler(final IMEInventory<T> i, final IAEStackType<T> type) {
+    public MEInventoryHandler(final IMEInventory i, final AEKeyType type) {
         if (i instanceof IMEInventoryHandler) {
-            this.internal = (IMEInventoryHandler<T>) i;
+            this.internal = (IMEInventoryHandler) i;
         } else {
-            this.internal = new MEPassThrough<>(i, type);
+            this.internal = new MEPassThrough(i, type);
         }
 
         this.myPriority = 0;
         this.myWhitelist = IncludeExclude.WHITELIST;
         this.setBaseAccess(AccessRestriction.READ_WRITE);
-        this.myPartitionList = new DefaultPriorityList<>();
+        this.myPartitionList = new DefaultPriorityList();
     }
 
     IncludeExclude getWhitelist() {
@@ -89,75 +89,27 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
         this.hasWriteAccess = this.cachedAccessRestriction.hasPermission(AccessRestriction.WRITE);
     }
 
-    public IPartitionList<T> getPartitionList() {
+    public IPartitionList getPartitionList() {
         return this.myPartitionList;
     }
 
-    public void setPartitionList(final IPartitionList<T> myPartitionList) {
+    public void setPartitionList(final IPartitionList myPartitionList) {
         this.myPartitionList = myPartitionList;
-    }
-
-    @Override
-    @Deprecated
-    public T injectItems(final T input, final Actionable type, final IActionSource src) {
-        if (!this.canAccept(input)) {
-            return input;
-        }
-
-        return this.internal.injectItems(input, type, src);
     }
 
     @Override
     public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
         if (input == null) return null;
         if (!this.hasWriteAccess) return input;
-        IAEStack<?> aeInput = input.toIAEStack();
-        if (aeInput != null && !this.canAccept((T) aeInput)) return input;
+        if (!this.canAccept(input.what())) return input;
         return this.internal.injectItems(input, type, src);
-    }
-
-    @Override
-    @Deprecated
-    public T extractItems(final T request, final Actionable type, final IActionSource src) {
-        if (!this.canExtract(request)) {
-            return null;
-        }
-
-        return this.internal.extractItems(request, type, src);
     }
 
     @Override
     public GenericStack extractItems(final GenericStack request, final Actionable type, final IActionSource src) {
         if (request == null) return null;
-        IAEStack<?> aeRequest = request.toIAEStack();
-        if (aeRequest != null && !this.canExtract((T) aeRequest)) return null;
+        if (!this.canExtract(request.what())) return null;
         return this.internal.extractItems(request, type, src);
-    }
-
-    @Override
-    @Deprecated
-    public IItemList<T> getAvailableItems(final IItemList<T> out) {
-        if (this.gettingAvailableContent || !this.hasReadAccess) {
-            return out;
-        }
-
-        this.gettingAvailableContent = true;
-        try {
-            if (this.storageFilter == StorageFilter.EXTRACTABLE_ONLY) {
-                var stackList = this.internal.getAvailableItems(this.getStackType().createList());
-                for (final T t : stackList) {
-                    if (this.shouldItemBeAvailable(t)) {
-                        out.add(t);
-                    }
-                }
-            } else {
-                return this.internal.getAvailableItems(out);
-            }
-        } finally {
-            this.gettingAvailableContent = false;
-        }
-
-        return out;
     }
 
     @Override
@@ -172,8 +124,7 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
             if (this.storageFilter == StorageFilter.EXTRACTABLE_ONLY) {
                 var kc = this.internal.getAvailableKeyCounter();
                 for (var entry : kc) {
-                    IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
-                    if (stack != null && this.shouldItemBeAvailable((T) stack)) {
+                    if (this.shouldItemBeAvailable(entry.getKey())) {
                         out.add(entry.getKey(), entry.getLongValue());
                     }
                 }
@@ -188,9 +139,8 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public IAEStackType<T> getStackType() {
-        return (IAEStackType<T>) this.internal.getStackType();
+    public AEKeyType getKeyType() {
+        return this.internal.getKeyType();
     }
 
     @Override
@@ -199,7 +149,7 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
     }
 
     @Override
-    public boolean isPrioritized(final T input) {
+    public boolean isPrioritized(final AEKey input) {
         if (this.myWhitelist == IncludeExclude.WHITELIST) {
             return this.myPartitionList.isListed(input) || this.internal.isPrioritized(input);
         }
@@ -207,7 +157,7 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
     }
 
     @Override
-    public boolean canAccept(final T input) {
+    public boolean canAccept(final AEKey input) {
         if (!this.hasWriteAccess) {
             return false;
         }
@@ -238,7 +188,7 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
         return true;
     }
 
-    public IMEInventory<T> getInternal() {
+    public IMEInventory getInternal() {
         return this.internal;
     }
 
@@ -251,15 +201,15 @@ public class MEInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHa
         this.isSticky = isSticky;
     }
 
-    protected boolean canExtract(T request) {
+    protected boolean canExtract(AEKey request) {
         return this.hasReadAccess && this.passesBlackOrWhitelist(request);
     }
 
-    protected boolean shouldItemBeAvailable(T request) {
+    protected boolean shouldItemBeAvailable(AEKey request) {
         return this.hasReadAccess && this.passesBlackOrWhitelist(request);
     }
 
-    public boolean passesBlackOrWhitelist(T input) {
+    public boolean passesBlackOrWhitelist(AEKey input) {
         if (this.myPartitionList.isEmpty()) {
             return true;
         }

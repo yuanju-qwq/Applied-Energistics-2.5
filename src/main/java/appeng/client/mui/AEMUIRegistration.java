@@ -280,15 +280,15 @@ public final class AEMUIRegistration {
                         new ContainerFluidIO(ip, (PartSharedFluidBus) host)));
 
         AEMUIGuiFactory.register(AEGuiKeys.STORAGE_BUS,
-                (ip, host) -> new ContainerStorageBus(ip, (AbstractPartStorageBus<?>) host),
+                (ip, host) -> new ContainerStorageBus(ip, (AbstractPartStorageBus) host),
                 (ip, host) -> new MUIStorageBusPanel(
-                        new ContainerStorageBus(ip, (AbstractPartStorageBus<?>) host),
+                        new ContainerStorageBus(ip, (AbstractPartStorageBus) host),
                         AEItemStackType.INSTANCE, GuiText.StorageBus));
 
         AEMUIGuiFactory.register(AEGuiKeys.STORAGE_BUS_FLUID,
-                (ip, host) -> new ContainerStorageBus(ip, (AbstractPartStorageBus<?>) host),
+                (ip, host) -> new ContainerStorageBus(ip, (AbstractPartStorageBus) host),
                 (ip, host) -> new MUIStorageBusPanel(
-                        new ContainerStorageBus(ip, (AbstractPartStorageBus<?>) host),
+                        new ContainerStorageBus(ip, (AbstractPartStorageBus) host),
                         AEFluidStackType.INSTANCE, GuiText.StorageBusFluids));
 
         AEMUIGuiFactory.register(AEGuiKeys.FORMATION_PLANE,

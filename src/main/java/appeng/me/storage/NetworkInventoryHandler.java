@@ -28,40 +28,40 @@ import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.security.ISecurityGrid;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.me.cache.SecurityCache;
 
-public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInventoryHandler<T> {
+@SuppressWarnings("rawtypes")
+public class NetworkInventoryHandler implements IMEInventoryHandler {
 
     private static final ThreadLocal<Deque> DEPTH_MOD = new ThreadLocal<>();
     private static final ThreadLocal<Deque> DEPTH_SIM = new ThreadLocal<>();
     private static final Comparator<Integer> PRIORITY_SORTER = (o1, o2) -> Integer.compare(o2, o1);
 
     private static int currentPass = 0;
-    private final IAEStackType<T> myStackType;
+    private final AEKeyType myKeyType;
     private final SecurityCache security;
-    private final NavigableMap<Integer, List<IMEInventoryHandler<T>>> craftingPriorityInventory;
-    private final NavigableMap<Integer, List<IMEInventoryHandler<T>>> priorityInventory;
-    private final NavigableMap<Integer, List<IMEInventoryHandler<T>>> stickyPriorityInventory;
+    private final NavigableMap<Integer, List<IMEInventoryHandler>> craftingPriorityInventory;
+    private final NavigableMap<Integer, List<IMEInventoryHandler>> priorityInventory;
+    private final NavigableMap<Integer, List<IMEInventoryHandler>> stickyPriorityInventory;
     private int myPass = 0;
 
-    public NetworkInventoryHandler(final IAEStackType<T> type, final SecurityCache security) {
-        this.myStackType = type;
+    public NetworkInventoryHandler(final AEKeyType type, final SecurityCache security) {
+        this.myKeyType = type;
         this.security = security;
         this.priorityInventory = new TreeMap<>(PRIORITY_SORTER);
         this.stickyPriorityInventory = new TreeMap<>(PRIORITY_SORTER);
         this.craftingPriorityInventory = new TreeMap<>(PRIORITY_SORTER);
     }
 
-    public void addNewStorage(final IMEInventoryHandler<T> h) {
+    public void addNewStorage(final IMEInventoryHandler h) {
         final int priority = h.getPriority();
 
-        final NavigableMap<Integer, List<IMEInventoryHandler<T>>> list;
+        final NavigableMap<Integer, List<IMEInventoryHandler>> list;
         if (h instanceof ICraftingGrid) {
             list = this.craftingPriorityInventory;
         } else if (h.isSticky()) {
@@ -71,87 +71,6 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
         }
 
         list.computeIfAbsent(priority, $ -> new ArrayList<>()).add(h);
-    }
-
-    @Override
-    @Deprecated
-    public T injectItems(T input, final Actionable type, final IActionSource src) {
-        if (this.diveList(this, type)) {
-            return input;
-        }
-
-        if (this.testPermission(src, SecurityPermissions.INJECT)) {
-            this.surface(this, type);
-            return input;
-        }
-
-        // First pass. Check if the crafting grid is awaiting the input.
-        for (final List<IMEInventoryHandler<T>> invList : this.craftingPriorityInventory.values()) {
-            Iterator<IMEInventoryHandler<T>> ii = invList.iterator();
-            while (ii.hasNext() && input != null) {
-                final IMEInventoryHandler<T> inv = ii.next();
-
-                if (inv.canAccept(input)
-                        && (inv.isPrioritized(input) || inv.extractItems(input, Actionable.SIMULATE, src) != null)) {
-                    input = inv.injectItems(input, type, src);
-                }
-            }
-        }
-
-        // If everything got stored in the crafting storage, no need to continue.
-        if (input == null) {
-            this.surface(this, type);
-            return input;
-        }
-
-        boolean stickyInventoryFound = false;
-        // For this pass we do return input if the item is able to go into a sticky inventory. We NEVER want to try and
-        // insert the item into a non-sticky inventory if it could already go into a sticky inventory.
-        for (final List<IMEInventoryHandler<T>> stickyInvList : this.stickyPriorityInventory.values()) {
-            Iterator<IMEInventoryHandler<T>> ii = stickyInvList.iterator();
-            while (ii.hasNext() && input != null) {
-                final IMEInventoryHandler<T> inv = ii.next();
-                if (inv.validForPass(1) && inv.canAccept(input)
-                        && (inv.isPrioritized(input) || inv.extractItems(input, Actionable.SIMULATE, src) != null)) {
-                    input = inv.injectItems(input, type, src);
-                    stickyInventoryFound = true;
-                }
-            }
-        }
-
-        if (stickyInventoryFound) {
-            this.surface(this, type);
-            return input;
-        }
-
-        for (final List<IMEInventoryHandler<T>> invList : this.priorityInventory.values()) {
-            Iterator<IMEInventoryHandler<T>> ii = invList.iterator();
-            while (ii.hasNext() && input != null) {
-                final IMEInventoryHandler<T> inv = ii.next();
-
-                if (inv.validForPass(1) && inv
-                        .canAccept(input)
-                        && (inv.isPrioritized(input) || inv.extractItems(input, Actionable.SIMULATE, src) != null)) {
-                    input = inv.injectItems(input, type, src);
-                }
-            }
-
-            // We need to ignore prioritized inventories in the second pass. If they were not able to store everything
-            // during the first pass, they will do so in the second, but as this is stateless we will just report twice
-            // the amount of storable items.
-            ii = invList.iterator();
-            while (ii.hasNext() && input != null) {
-                final IMEInventoryHandler<T> inv = ii.next();
-
-                if (inv.validForPass(2) && inv.canAccept(input) && !inv.isPrioritized(input)) {
-                    input = inv.injectItems(input, type, src);
-                }
-            }
-        }
-
-        this.surface(this, type);
-
-        return input;
     }
 
     @Override
@@ -166,14 +85,14 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
         }
 
         // First pass. Check if the crafting grid is awaiting the input.
-        for (final List<IMEInventoryHandler<T>> invList : this.craftingPriorityInventory.values()) {
-            Iterator<IMEInventoryHandler<T>> ii = invList.iterator();
+        for (final List<IMEInventoryHandler> invList : this.craftingPriorityInventory.values()) {
+            Iterator<IMEInventoryHandler> ii = invList.iterator();
             while (ii.hasNext() && input != null) {
-                final IMEInventoryHandler<T> inv = ii.next();
+                final IMEInventoryHandler inv = ii.next();
+                AEKey key = input.what();
 
-                var aeInput = input.toIAEStack();
-                if (aeInput != null && inv.canAccept((T) aeInput)
-                        && (inv.isPrioritized((T) aeInput) || inv.extractItems((T) aeInput, Actionable.SIMULATE, src) != null)) {
+                if (inv.canAccept(key)
+                        && (inv.isPrioritized(key) || inv.extractItems(new GenericStack(key, input.amount()), Actionable.SIMULATE, src) != null)) {
                     input = inv.injectItems(input, type, src);
                 }
             }
@@ -185,13 +104,13 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
         }
 
         boolean stickyInventoryFound = false;
-        for (final List<IMEInventoryHandler<T>> stickyInvList : this.stickyPriorityInventory.values()) {
-            Iterator<IMEInventoryHandler<T>> ii = stickyInvList.iterator();
+        for (final List<IMEInventoryHandler> stickyInvList : this.stickyPriorityInventory.values()) {
+            Iterator<IMEInventoryHandler> ii = stickyInvList.iterator();
             while (ii.hasNext() && input != null) {
-                final IMEInventoryHandler<T> inv = ii.next();
-                var aeInput = input.toIAEStack();
-                if (aeInput != null && inv.validForPass(1) && inv.canAccept((T) aeInput)
-                        && (inv.isPrioritized((T) aeInput) || inv.extractItems((T) aeInput, Actionable.SIMULATE, src) != null)) {
+                final IMEInventoryHandler inv = ii.next();
+                AEKey key = input.what();
+                if (inv.validForPass(1) && inv.canAccept(key)
+                        && (inv.isPrioritized(key) || inv.extractItems(new GenericStack(key, input.amount()), Actionable.SIMULATE, src) != null)) {
                     input = inv.injectItems(input, type, src);
                     stickyInventoryFound = true;
                 }
@@ -203,22 +122,25 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
             return input;
         }
 
-        for (final List<IMEInventoryHandler<T>> invList : this.priorityInventory.values()) {
-            Iterator<IMEInventoryHandler<T>> ii = invList.iterator();
+        for (final List<IMEInventoryHandler> invList : this.priorityInventory.values()) {
+            Iterator<IMEInventoryHandler> ii = invList.iterator();
             while (ii.hasNext() && input != null) {
-                final IMEInventoryHandler<T> inv = ii.next();
-                var aeInput = input.toIAEStack();
-                if (aeInput != null && inv.validForPass(1) && inv.canAccept((T) aeInput)
-                        && (inv.isPrioritized((T) aeInput) || inv.extractItems((T) aeInput, Actionable.SIMULATE, src) != null)) {
+                final IMEInventoryHandler inv = ii.next();
+                AEKey key = input.what();
+
+                if (inv.validForPass(1) && inv
+                        .canAccept(key)
+                        && (inv.isPrioritized(key) || inv.extractItems(new GenericStack(key, input.amount()), Actionable.SIMULATE, src) != null)) {
                     input = inv.injectItems(input, type, src);
                 }
             }
 
             ii = invList.iterator();
             while (ii.hasNext() && input != null) {
-                final IMEInventoryHandler<T> inv = ii.next();
-                var aeInput = input.toIAEStack();
-                if (aeInput != null && inv.validForPass(2) && inv.canAccept((T) aeInput) && !inv.isPrioritized((T) aeInput)) {
+                final IMEInventoryHandler inv = ii.next();
+                AEKey key = input.what();
+
+                if (inv.validForPass(2) && inv.canAccept(key) && !inv.isPrioritized(key)) {
                     input = inv.injectItems(input, type, src);
                 }
             }
@@ -229,7 +151,7 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
         return input;
     }
 
-    private boolean diveList(final NetworkInventoryHandler<T> networkInventoryHandler, final Actionable type) {
+    private boolean diveList(final NetworkInventoryHandler networkInventoryHandler, final Actionable type) {
         final Deque cDepth = this.getDepth(type);
         if (cDepth.contains(networkInventoryHandler)) {
             return true;
@@ -263,7 +185,7 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
         return false;
     }
 
-    private void surface(final NetworkInventoryHandler<T> networkInventoryHandler, final Actionable type) {
+    private void surface(final NetworkInventoryHandler networkInventoryHandler, final Actionable type) {
         if (this.getDepth(type).pop() != this) {
             throw new IllegalStateException("Invalid Access to Networked Storage API detected.");
         }
@@ -282,56 +204,6 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
     }
 
     @Override
-    @Deprecated
-    public T extractItems(T request, final Actionable mode, final IActionSource src) {
-        if (this.diveList(this, mode)) {
-            return null;
-        }
-
-        if (this.testPermission(src, SecurityPermissions.EXTRACT)) {
-            this.surface(this, mode);
-            return null;
-        }
-
-        final Iterator<List<IMEInventoryHandler<T>>> i = this.priorityInventory.descendingMap().values().iterator();// priorityInventory.asMap().descendingMap().entrySet().iterator();
-
-        final T output = request.copy();
-        request = request.copy();
-        output.setStackSize(0);
-        final long req = request.getStackSize();
-
-        while (i.hasNext()) {
-            final List<IMEInventoryHandler<T>> invList = i.next();
-
-            final Iterator<IMEInventoryHandler<T>> ii = invList.iterator();
-            while (ii.hasNext() && output.getStackSize() < req) {
-                final IMEInventoryHandler<T> inv = ii.next();
-
-                request.setStackSize(req - output.getStackSize());
-                output.add(inv.extractItems(request, mode, src));
-            }
-        }
-
-        for (List<IMEInventoryHandler<T>> invList : this.stickyPriorityInventory.descendingMap().values()) {
-            final Iterator<IMEInventoryHandler<T>> jj = invList.iterator();
-            while (jj.hasNext() && output.getStackSize() < req) {
-                final IMEInventoryHandler<T> inv = jj.next();
-
-                request.setStackSize(req - output.getStackSize());
-                output.add(inv.extractItems(request, mode, src));
-            }
-        }
-
-        this.surface(this, mode);
-
-        if (output.getStackSize() <= 0) {
-            return null;
-        }
-
-        return output;
-    }
-
-    @Override
     public GenericStack extractItems(GenericStack request, final Actionable mode, final IActionSource src) {
         if (this.diveList(this, mode)) {
             return null;
@@ -345,8 +217,8 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
         long extracted = 0;
         final long req = request.amount();
 
-        for (final List<IMEInventoryHandler<T>> invList : this.priorityInventory.descendingMap().values()) {
-            for (final IMEInventoryHandler<T> inv : invList) {
+        for (final List<IMEInventoryHandler> invList : this.priorityInventory.descendingMap().values()) {
+            for (final IMEInventoryHandler inv : invList) {
                 if (extracted >= req) break;
                 long toExtract = req - extracted;
                 var result = inv.extractItems(new GenericStack(request.what(), toExtract), mode, src);
@@ -356,8 +228,8 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
             }
         }
 
-        for (final List<IMEInventoryHandler<T>> invList : this.stickyPriorityInventory.descendingMap().values()) {
-            for (final IMEInventoryHandler<T> inv : invList) {
+        for (final List<IMEInventoryHandler> invList : this.stickyPriorityInventory.descendingMap().values()) {
+            for (final IMEInventoryHandler inv : invList) {
                 if (extracted >= req) break;
                 long toExtract = req - extracted;
                 var result = inv.extractItems(new GenericStack(request.what(), toExtract), mode, src);
@@ -376,22 +248,6 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
     }
 
     @Override
-    @Deprecated
-    public IItemList<T> getAvailableItems(IItemList<T> out) {
-        if (this.diveIteration(this, Actionable.SIMULATE)) {
-            return out;
-        }
-
-        iterateInventories(out, priorityInventory);
-        iterateInventories(out, stickyPriorityInventory);
-        iterateInventories(out, craftingPriorityInventory);
-
-        this.surface(this, Actionable.SIMULATE);
-
-        return out;
-    }
-
-    @Override
     public KeyCounter getAvailableKeyCounter() {
         KeyCounter out = new KeyCounter();
         if (this.diveIteration(this, Actionable.SIMULATE)) {
@@ -407,23 +263,15 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
         return out;
     }
 
-    private void iterateInventories(IItemList<T> out, final NavigableMap<Integer, List<IMEInventoryHandler<T>>> map) {
-        for (final List<IMEInventoryHandler<T>> i : map.values()) {
-            for (final IMEInventoryHandler<T> j : i) {
-                j.getAvailableItems(out);
-            }
-        }
-    }
-
-    private void iterateKeyCounters(KeyCounter out, final NavigableMap<Integer, List<IMEInventoryHandler<T>>> map) {
-        for (final List<IMEInventoryHandler<T>> i : map.values()) {
-            for (final IMEInventoryHandler<T> j : i) {
+    private void iterateKeyCounters(KeyCounter out, final NavigableMap<Integer, List<IMEInventoryHandler>> map) {
+        for (final List<IMEInventoryHandler> i : map.values()) {
+            for (final IMEInventoryHandler j : i) {
                 out.addAll(j.getAvailableKeyCounter());
             }
         }
     }
 
-    private boolean diveIteration(final NetworkInventoryHandler<T> networkInventoryHandler, final Actionable type) {
+    private boolean diveIteration(final NetworkInventoryHandler networkInventoryHandler, final Actionable type) {
         final Deque cDepth = this.getDepth(type);
         if (cDepth.isEmpty()) {
             currentPass++;
@@ -441,8 +289,8 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
     }
 
     @Override
-    public IAEStackType<T> getStackType() {
-        return this.myStackType;
+    public AEKeyType getKeyType() {
+        return this.myKeyType;
     }
 
     @Override
@@ -451,12 +299,12 @@ public class NetworkInventoryHandler<T extends IAEStack<T>> implements IMEInvent
     }
 
     @Override
-    public boolean isPrioritized(final T input) {
+    public boolean isPrioritized(final AEKey input) {
         return false;
     }
 
     @Override
-    public boolean canAccept(final T input) {
+    public boolean canAccept(final AEKey input) {
         return true;
     }
 

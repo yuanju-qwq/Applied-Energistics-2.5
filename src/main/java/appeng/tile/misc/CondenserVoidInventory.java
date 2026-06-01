@@ -21,52 +21,54 @@ package appeng.tile.misc;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 
-class CondenserVoidInventory<T extends IAEStack<T>> implements IMEMonitor<T> {
+class CondenserVoidInventory implements IMEMonitor {
 
     private final TileCondenser target;
-    private final IAEStackType<T> stackType;
+    private final AEKeyType keyType;
 
-    CondenserVoidInventory(final TileCondenser te, final IAEStackType<T> stackType) {
+    CondenserVoidInventory(final TileCondenser te, final IAEStackType<?> stackType) {
         this.target = te;
-        this.stackType = stackType;
+        this.keyType = AEKeyType.fromLegacyType(stackType);
     }
 
     @Override
-    public T injectItems(final T input, final Actionable mode, final IActionSource src) {
+    public GenericStack injectItems(final GenericStack input, final Actionable mode, final IActionSource src) {
         if (mode == Actionable.SIMULATE) {
             return null;
         }
 
         if (input != null) {
-            this.target.addPower(input.getStackSize() / (double) this.stackType.transferFactor());
+            this.target.addPower(input.amount() / (double) this.keyType.getAmountPerUnit());
         }
         return null;
     }
 
     @Override
-    public T extractItems(final T request, final Actionable mode, final IActionSource src) {
+    public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
         return null;
     }
 
     @Override
-    public IItemList<T> getAvailableItems(final IItemList<T> out) {
-        return out;
+    public KeyCounter getAvailableKeyCounter() {
+        return new KeyCounter();
     }
 
     @Override
-    public IItemList<T> getStorageList() {
-        return this.stackType.createList();
+    public KeyCounter getKeyCounter() {
+        return new KeyCounter();
     }
 
     @Override
-    public IAEStackType<T> getStackType() {
-        return this.stackType;
+    public AEKeyType getKeyType() {
+        return this.keyType;
     }
 
     @Override
@@ -75,12 +77,12 @@ class CondenserVoidInventory<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
-    public boolean isPrioritized(final T input) {
+    public boolean isPrioritized(final AEKey input) {
         return false;
     }
 
     @Override
-    public boolean canAccept(final T input) {
+    public boolean canAccept(final AEKey input) {
         return true;
     }
 
@@ -100,12 +102,12 @@ class CondenserVoidInventory<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
-    public void addListener(IMEMonitorHandlerReceiver<? super T> l, Object verificationToken) {
+    public void addListener(IMEMonitorHandlerReceiver l, Object verificationToken) {
         // Not implemented since the Condenser automatically voids everything, and there are no updates
     }
 
     @Override
-    public void removeListener(IMEMonitorHandlerReceiver<? super T> l) {
+    public void removeListener(IMEMonitorHandlerReceiver l) {
         // Not implemented since we don't remember registered listeners anyway
     }
 }

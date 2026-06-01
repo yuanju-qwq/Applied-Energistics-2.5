@@ -21,32 +21,32 @@ package appeng.me.storage;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
-import appeng.util.item.AEItemStackType;
 
-public class NullInventory<T extends IAEStack<T>> implements IMEInventoryHandler<T> {
+public class NullInventory implements IMEInventoryHandler {
 
     @Override
-    public T injectItems(final T input, final Actionable mode, final IActionSource src) {
+    public GenericStack injectItems(final GenericStack input, final Actionable mode, final IActionSource src) {
         return input;
     }
 
     @Override
-    public T extractItems(final T request, final Actionable mode, final IActionSource src) {
+    public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
         return null;
     }
 
     @Override
-    public IItemList<T> getAvailableItems(final IItemList<T> out) {
-        return out;
+    public KeyCounter getAvailableKeyCounter() {
+        return new KeyCounter();
     }
 
     @Override
-    public IAEStackType<?> getStackType() {
-        return AEItemStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     @Override
@@ -55,12 +55,12 @@ public class NullInventory<T extends IAEStack<T>> implements IMEInventoryHandler
     }
 
     @Override
-    public boolean isPrioritized(final T input) {
+    public boolean isPrioritized(final AEKey input) {
         return false;
     }
 
     @Override
-    public boolean canAccept(final T input) {
+    public boolean canAccept(final AEKey input) {
         return false;
     }
 

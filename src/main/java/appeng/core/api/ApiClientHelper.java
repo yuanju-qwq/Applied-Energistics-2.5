@@ -39,12 +39,12 @@ public class ApiClientHelper implements IClientHelper {
     private static final String[] NUMBER_FORMATS = new String[] { "#.000", "#.00", "#.0", "#" };
 
     @Override
-    public <T extends IAEStack<T>> void addCellInformation(ICellInventoryHandler<T> handler, List<String> lines) {
+    public <T extends IAEStack<T>> void addCellInformation(ICellInventoryHandler handler, List<String> lines) {
         if (handler == null) {
             return;
         }
 
-        final ICellInventory<T> cellInventory = handler.getCellInv();
+        final ICellInventory cellInventory = handler.getCellInv();
 
         if (cellInventory != null) {
             lines.add(

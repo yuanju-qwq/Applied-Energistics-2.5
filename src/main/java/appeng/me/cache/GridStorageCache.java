@@ -35,12 +35,10 @@ import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.*;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.AEStackTypeRegistry;
-import appeng.api.storage.data.IItemList;
 import appeng.me.helpers.BaseActionSource;
 import appeng.me.helpers.GenericInterestManager;
 import appeng.me.helpers.MachineSource;
@@ -55,8 +53,8 @@ public class GridStorageCache implements IStorageGrid {
     private final SetMultimap<IAEStack, ItemWatcher> interests = HashMultimap.create();
     private final GenericInterestManager<ItemWatcher> interestManager = new GenericInterestManager<>(this.interests);
     private final HashMap<IGridNode, IStackWatcher> watchers = new HashMap<>();
-    private final Map<IAEStackType<?>, NetworkInventoryHandler<?>> storageNetworks;
-    private final Map<IAEStackType<?>, NetworkMonitor<?>> storageMonitors;
+    private final Map<AEKeyType, NetworkInventoryHandler> storageNetworks;
+    private final Map<AEKeyType, NetworkMonitor> storageMonitors;
     private int localDepth;
 
     public GridStorageCache(final IGrid g) {
@@ -64,8 +62,8 @@ public class GridStorageCache implements IStorageGrid {
         this.storageNetworks = new IdentityHashMap<>();
         this.storageMonitors = new IdentityHashMap<>();
 
-        AEStackTypeRegistry.getAllTypes()
-                .forEach(type -> this.storageMonitors.put(type, new NetworkMonitor<>(this, type)));
+        AEKeyType.getAllTypes()
+                .forEach(type -> this.storageMonitors.put(type, new NetworkMonitor(this, type)));
     }
 
     @Override
@@ -135,29 +133,27 @@ public class GridStorageCache implements IStorageGrid {
 
     }
 
-    public <T extends IAEStack<T>> IMEInventoryHandler<T> getInventoryHandler(IAEStackType<T> type) {
-        return (IMEInventoryHandler<T>) this.storageNetworks.computeIfAbsent(type, this::buildNetworkStorage);
+    public IMEInventoryHandler getInventoryHandler(AEKeyType type) {
+        return (IMEInventoryHandler) this.storageNetworks.computeIfAbsent(type, this::buildNetworkStorage);
     }
 
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
-        return (IMEMonitor<T>) this.storageMonitors.get(type);
+    public IMEMonitor getInventory(AEKeyType type) {
+        return (IMEMonitor) this.storageMonitors.get(type);
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void addCellArrayForType(
-            final ICellProvider cc, final IAEStackType<T> type,
+    private void addCellArrayForType(
+            final ICellProvider cc, final AEKeyType type,
             final CellChangeTracker tracker, final IActionSource actionSrc) {
-        for (final IMEInventoryHandler<T> h : cc.getCellArray(type)) {
+        for (final IMEInventoryHandler h : cc.getCellArray(type)) {
             tracker.postChanges(type, 1, h, actionSrc);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void removeCellArrayForType(
-            final ICellProvider cc, final IAEStackType<T> type,
+    private void removeCellArrayForType(
+            final ICellProvider cc, final AEKeyType type,
             final CellChangeTracker tracker, final IActionSource actionSrc) {
-        for (final IMEInventoryHandler<T> h : cc.getCellArray(type)) {
+        for (final IMEInventoryHandler h : cc.getCellArray(type)) {
             tracker.postChanges(type, -1, h, actionSrc);
         }
     }
@@ -227,20 +223,29 @@ public class GridStorageCache implements IStorageGrid {
         this.storageMonitors.forEach((channel, monitor) -> monitor.setForceUpdate(true));
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void postChangesToNetwork(final IAEStackType<T> type,
-            final int upOrDown, final IItemList<T> availableItems, final IActionSource src) {
-        ((NetworkMonitor<T>) this.storageMonitors.get(type)).postChange(upOrDown > 0, availableItems, src);
+    private void postChangesToNetwork(final AEKeyType type,
+            final int upOrDown, final KeyCounter availableItems, final IActionSource src) {
+        NetworkMonitor monitor = (NetworkMonitor) this.storageMonitors.get(type);
+        if (monitor != null) {
+            List<IAEStack<?>> changes = new ArrayList<>();
+            for (var entry : availableItems) {
+                IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
+                if (stack != null) {
+                    changes.add(stack);
+                }
+            }
+            monitor.postChange(upOrDown > 0, changes, src);
+        }
     }
 
-    private <T extends IAEStack<T>> NetworkInventoryHandler<T> buildNetworkStorage(
-            final IAEStackType<T> type) {
+    private NetworkInventoryHandler buildNetworkStorage(
+            final AEKeyType type) {
         final SecurityCache security = this.getGrid().getCache(ISecurityGrid.class);
 
-        final NetworkInventoryHandler<T> storageNetwork = new NetworkInventoryHandler<>(type, security);
+        final NetworkInventoryHandler storageNetwork = new NetworkInventoryHandler(type, security);
 
         for (final ICellProvider cc : this.activeCellProviders) {
-            for (final IMEInventoryHandler<T> h : cc.getCellArray(type)) {
+            for (final IMEInventoryHandler h : cc.getCellArray(type)) {
                 storageNetwork.addNewStorage(h);
             }
         }
@@ -249,34 +254,35 @@ public class GridStorageCache implements IStorageGrid {
     }
 
     @Override
-    public void postAlterationOfStoredItems(final IAEStackType<?> type, final Iterable<? extends IAEStackBase> input,
+    public void postAlterationOfStoredItems(final AEKeyType type, final KeyCounter input,
             final IActionSource src) {
-        postAlterationHelper(type, input, src);
+        NetworkMonitor monitor = (NetworkMonitor) this.storageMonitors.get(type);
+        if (monitor == null) return;
+        List<IAEStack<?>> changes = new ArrayList<>();
+        for (var entry : input) {
+            IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
+            if (stack != null) {
+                changes.add(stack);
+            }
+        }
+        monitor.postChange(true, changes, src);
     }
 
     @Override
-    public void postCraftablesChanges(IAEStackType<?> type, Iterable<? extends IAEStackBase> input,
+    public void postCraftablesChanges(AEKeyType type, KeyCounter input,
             IActionSource src) {
-        postCraftablesHelper(type, input, src);
-    }
-
-    /**
-     * 类型安全的 helper：利用 capture 将通配符 {@code IAEStackType<?>} 转为具体泛型参数 {@code T}。
-     */
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void postAlterationHelper(IAEStackType<?> rawType,
-            Iterable<? extends IAEStackBase> input, IActionSource src) {
-        IAEStackType<T> type = (IAEStackType<T>) rawType;
-        NetworkMonitor<T> monitor = (NetworkMonitor<T>) this.storageMonitors.get(type);
-        monitor.postChange(true, (Iterable<T>) input, src);
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void postCraftablesHelper(IAEStackType<?> rawType,
-            Iterable<? extends IAEStackBase> input, IActionSource src) {
-        IAEStackType<T> type = (IAEStackType<T>) rawType;
-        NetworkMonitor<T> monitor = (NetworkMonitor<T>) this.storageMonitors.get(type);
-        monitor.updateCraftables((Iterable<T>) input, src);
+        NetworkMonitor monitor = (NetworkMonitor) this.storageMonitors.get(type);
+        if (monitor == null) return;
+        List<IAEStack<?>> changes = new ArrayList<>();
+        for (var entry : input) {
+            long amount = entry.getLongValue();
+            IAEStack<?> stack = entry.getKey().toIAEStack(Math.abs(amount));
+            if (stack != null) {
+                stack.setCraftable(amount > 0);
+                changes.add(stack);
+            }
+        }
+        monitor.updateCraftables(changes, src);
     }
 
     @Override
@@ -299,20 +305,20 @@ public class GridStorageCache implements IStorageGrid {
         return this.myGrid;
     }
 
-    private class CellChangeTrackerRecord<T extends IAEStack<T>> {
+    private class CellChangeTrackerRecord {
 
-        final IAEStackType<T> type;
+        final AEKeyType type;
         final int up_or_down;
-        final IItemList<T> list;
+        final KeyCounter list;
         final IActionSource src;
 
-        public CellChangeTrackerRecord(final IAEStackType<T> type, final int i, final IMEInventoryHandler<T> h,
+        public CellChangeTrackerRecord(final AEKeyType type, final int i, final IMEInventoryHandler h,
                 final IActionSource actionSrc) {
             this.type = type;
             this.up_or_down = i;
             this.src = actionSrc;
 
-            this.list = h.getAvailableItems(type.createList());
+            this.list = h.getAvailableKeyCounter();
         }
 
         public void applyChanges() {
@@ -322,17 +328,17 @@ public class GridStorageCache implements IStorageGrid {
         }
     }
 
-    private class CellChangeTracker<T extends IAEStack<T>> {
+    private class CellChangeTracker {
 
-        final List<CellChangeTrackerRecord<T>> data = new ArrayList<>();
+        final List<CellChangeTrackerRecord> data = new ArrayList<>();
 
-        public void postChanges(final IAEStackType<T> type, final int i, final IMEInventoryHandler<T> h,
+        public void postChanges(final AEKeyType type, final int i, final IMEInventoryHandler h,
                 final IActionSource actionSrc) {
-            this.data.add(new CellChangeTrackerRecord<T>(type, i, h, actionSrc));
+            this.data.add(new CellChangeTrackerRecord(type, i, h, actionSrc));
         }
 
         public void applyChanges() {
-            for (final CellChangeTrackerRecord<T> rec : this.data) {
+            for (final CellChangeTrackerRecord rec : this.data) {
                 rec.applyChanges();
             }
         }

@@ -76,9 +76,9 @@ import appeng.util.Platform;
  */
 @Deprecated
 public class ContainerFluidTerminal extends AEBaseContainer
-        implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver<IAEFluidStack> {
+        implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver {
     private final IConfigManager clientCM;
-    private final IMEMonitor<IAEFluidStack> monitor;
+    private final IMEMonitor monitor;
     private final IItemList<IAEFluidStack> fluids = AEFluidStackType.INSTANCE.createList();
     @GuiSync(99)
     public boolean hasPower = false;
@@ -136,10 +136,12 @@ public class ContainerFluidTerminal extends AEBaseContainer
     }
 
     @Override
-    public void postChange(IBaseMonitor<IAEFluidStack> monitor, Iterable<IAEFluidStack> change,
+    public void postChange(IBaseMonitor monitor, Iterable<GenericStack> change,
             IActionSource actionSource) {
-        for (final IAEFluidStack is : change) {
-            this.fluids.add(is);
+        for (final GenericStack is : change) {
+            if (is.toIAEStack() instanceof IAEFluidStack fluidStack) {
+                this.fluids.add(fluidStack);
+            }
         }
     }
 

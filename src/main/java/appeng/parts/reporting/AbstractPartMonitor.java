@@ -215,12 +215,13 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void updateReportingValue(final IMEMonitor<T> monitor) {
+    private void updateReportingValue(final IMEMonitor monitor) {
         if (this.configured != null) {
-            final T result = monitor.getStorageList().findPrecise((T) this.configured);
-            final long amount = result != null ? result.getStackSize() : 0;
-            this.configured.setStackSize(amount);
+            var key = this.configured.toAEKey();
+            if (key != null) {
+                long amount = monitor.getKeyCounter().get(key);
+                this.configured.setStackSize(amount);
+            }
         }
     }
 

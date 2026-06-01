@@ -46,13 +46,13 @@ import appeng.api.stacks.GenericStack;
  *
  * @param <T> the concrete stack type
  */
-public interface IInterfaceSlotHandler<T extends IAEStack<T>> {
+public interface IInterfaceSlotHandler {
 
     /**
      * @return the stack type this handler manages
      */
     @Nonnull
-    IAEStackType<T> getStackType();
+    IAEStackType getStackType();
 
     // ========== Slot Storage Init ==========
 
@@ -80,7 +80,7 @@ public interface IInterfaceSlotHandler<T extends IAEStack<T>> {
      * @return the work plan, or null if the slot is already satisfied
      */
     @Nullable
-    IAEStack<?> computePlan(int slot, @Nonnull T desired, @Nonnull InterfaceSlotContext context);
+    IAEStack<?> computePlan(int slot, @Nonnull Object desired, @Nonnull InterfaceSlotContext context);
 
     // ========== Plan Execution ==========
 
@@ -93,7 +93,7 @@ public interface IInterfaceSlotHandler<T extends IAEStack<T>> {
      * @param context slot context for accessing storage and network
      * @return true if any transfer occurred
      */
-    boolean executePlan(int slot, @Nonnull T plan, @Nonnull InterfaceSlotContext context);
+    boolean executePlan(int slot, @Nonnull Object plan, @Nonnull InterfaceSlotContext context);
 
     // ========== Network Integration ==========
 
@@ -106,7 +106,7 @@ public interface IInterfaceSlotHandler<T extends IAEStack<T>> {
      * @return the ME monitor wrapper, or null if not applicable
      */
     @Nullable
-    IMEMonitor<T> createConfiguredMonitor(@Nonnull InterfaceSlotContext context);
+    IMEMonitor createConfiguredMonitor(@Nonnull InterfaceSlotContext context);
 
     /**
      * Get the pass-through monitor for this type (used when no config is set,
@@ -116,7 +116,7 @@ public interface IInterfaceSlotHandler<T extends IAEStack<T>> {
      * @return the pass-through monitor
      */
     @Nonnull
-    IMEMonitor<T> getPassThroughMonitor(@Nonnull InterfaceSlotContext context);
+    IMEMonitor getPassThroughMonitor(@Nonnull InterfaceSlotContext context);
 
     // ========== Grid Changed ==========
 
@@ -127,5 +127,5 @@ public interface IInterfaceSlotHandler<T extends IAEStack<T>> {
      * @param networkInventory the new network inventory for this type (may be null if not connected)
      * @param context          slot context
      */
-    void onGridChanged(@Nullable IMEInventory<T> networkInventory, @Nonnull InterfaceSlotContext context);
+    void onGridChanged(@Nullable IMEInventory networkInventory, @Nonnull InterfaceSlotContext context);
 }

@@ -98,8 +98,8 @@ public abstract class AEBaseContainer extends Container {
     private boolean isContainerValid = true;
     private String customName;
     private ContainerOpenContext openContext;
-    private IMEInventoryHandler<IAEItemStack> cellInv;
-    private IMEInventoryHandler<IAEFluidStack> fluidCellInv;
+    private IMEInventoryHandler cellInv;
+    private IMEInventoryHandler fluidCellInv;
     private IEnergySource powerSrc;
     private boolean sentCustomName;
     private int ticksSinceCheck = 900;
@@ -1363,19 +1363,19 @@ public abstract class AEBaseContainer extends Container {
         return true;
     }
 
-    public IMEInventoryHandler<IAEItemStack> getCellInventory() {
+    public IMEInventoryHandler getCellInventory() {
         return this.cellInv;
     }
 
-    public void setCellInventory(final IMEInventoryHandler<IAEItemStack> cellInv) {
+    public void setCellInventory(final IMEInventoryHandler cellInv) {
         this.cellInv = cellInv;
     }
 
-    public IMEInventoryHandler<IAEFluidStack> getFluidCellInventory() {
+    public IMEInventoryHandler getFluidCellInventory() {
         return this.fluidCellInv;
     }
 
-    public void setFluidCellInventory(final IMEInventoryHandler<IAEFluidStack> fluidCellInv) {
+    public void setFluidCellInventory(final IMEInventoryHandler fluidCellInv) {
         this.fluidCellInv = fluidCellInv;
     }
 

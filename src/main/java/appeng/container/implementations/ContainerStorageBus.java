@@ -43,7 +43,7 @@ import appeng.util.iterators.NullIterator;
  */
 public class ContainerStorageBus extends ContainerUpgradeable implements IStorageBusContainer {
 
-    private final AbstractPartStorageBus<?> storageBus;
+    private final AbstractPartStorageBus storageBus;
 
     @GuiSync(3)
     public AccessRestriction rwMode = AccessRestriction.READ_WRITE;
@@ -54,7 +54,7 @@ public class ContainerStorageBus extends ContainerUpgradeable implements IStorag
     @GuiSync(7)
     public YesNo stickyMode = YesNo.NO;
 
-    public ContainerStorageBus(final InventoryPlayer ip, final AbstractPartStorageBus<?> te) {
+    public ContainerStorageBus(final InventoryPlayer ip, final AbstractPartStorageBus te) {
         super(ip, te);
         this.storageBus = te;
     }
@@ -183,7 +183,7 @@ public class ContainerStorageBus extends ContainerUpgradeable implements IStorag
         this.detectAndSendChanges();
     }
 
-    public AbstractPartStorageBus<?> getStorageBus() {
+    public AbstractPartStorageBus getStorageBus() {
         return this.storageBus;
     }
 

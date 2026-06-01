@@ -23,14 +23,12 @@ import net.minecraft.item.ItemStack;
 import appeng.api.config.Actionable;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.util.item.AEItemStack;
 
 public class IMEInventoryDestination implements IInventoryDestination {
 
-    private final IMEInventory<IAEItemStack> me;
+    private final IMEInventory me;
 
-    public IMEInventoryDestination(final IMEInventory<IAEItemStack> o) {
+    public IMEInventoryDestination(final IMEInventory o) {
         this.me = o;
     }
 

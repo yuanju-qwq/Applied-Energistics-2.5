@@ -23,7 +23,7 @@ import appeng.api.util.IConfigManager;
 import appeng.helpers.IPriorityHost;
 
 public abstract class PartAbstractFormationPlane<T extends IAEStack<T>> extends PartUpgradeable
-        implements ICellContainer, IPriorityHost, IMEInventory<T> {
+        implements ICellContainer, IPriorityHost, IMEInventory {
 
     private boolean wasActive = false;
     private int priority = 0;
@@ -226,7 +226,7 @@ public abstract class PartAbstractFormationPlane<T extends IAEStack<T>> extends 
     }
 
     @Override
-    public void saveChanges(final ICellInventory<?> cell) {
+    public void saveChanges(final ICellInventory cell) {
         // nope!
     }
 }

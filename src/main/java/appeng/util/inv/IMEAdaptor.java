@@ -18,7 +18,9 @@
 
 package appeng.util.inv;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
@@ -29,20 +31,18 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IItemList;
 import appeng.util.InventoryAdaptor;
-import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
 
 public class IMEAdaptor extends InventoryAdaptor {
 
-    private final IMEInventory<IAEItemStack> target;
+    private final IMEInventory target;
     private final IActionSource src;
     private int maxSlots = 0;
 
-    public IMEAdaptor(final IMEInventory<IAEItemStack> input, final IActionSource src) {
+    public IMEAdaptor(final IMEInventory input, final IActionSource src) {
         this.target = input;
         this.src = src;
     }
@@ -54,12 +54,26 @@ public class IMEAdaptor extends InventoryAdaptor {
 
     @Override
     public Iterator<ItemSlot> iterator() {
-        return new IMEAdaptorIterator(this, this.getList());
+        final KeyCounter list = this.getList();
+        final List<ItemSlot> slots = new ArrayList<>();
+        int idx = 0;
+        for (var entry : list) {
+            if (entry.getKey() instanceof AEItemKey itemKey && entry.getLongValue() > 0) {
+                ItemSlot slot = new ItemSlot();
+                slot.setSlot(idx++);
+                slot.setExtractable(true);
+                IAEItemStack aeStack = (IAEItemStack) itemKey.toIAEStack(entry.getLongValue());
+                if (aeStack != null) {
+                    slot.setAEItemStack(aeStack);
+                    slots.add(slot);
+                }
+            }
+        }
+        return slots.iterator();
     }
 
-    private IItemList<IAEItemStack> getList() {
-        return this.target.getAvailableItems(
-                AEItemStackType.INSTANCE.createList());
+    private KeyCounter getList() {
+        return this.target.getAvailableKeyCounter();
     }
 
     @Override
@@ -69,20 +83,20 @@ public class IMEAdaptor extends InventoryAdaptor {
 
     private ItemStack doRemoveItems(final int amount, final ItemStack filter, final IInventoryDestination destination,
             final Actionable type) {
-        IAEItemStack req = null;
+        AEItemKey reqKey = null;
 
-        if (filter.isEmpty()) {
-            final IItemList<IAEItemStack> list = this.getList();
-            if (!list.isEmpty()) {
-                req = list.getFirstItem();
+        if (filter == null || filter.isEmpty()) {
+            final KeyCounter list = this.getList();
+            AEKey firstKey = list.getFirstKey();
+            if (firstKey instanceof AEItemKey itemKey) {
+                reqKey = itemKey;
             }
         } else {
-            req = AEItemStack.fromItemStack(filter);
+            reqKey = AEItemKey.of(filter);
         }
 
-        if (req != null) {
-            req.setStackSize(amount);
-            GenericStack extracted = this.target.extractItems(GenericStack.fromIAEStack(req), type, this.src);
+        if (reqKey != null) {
+            GenericStack extracted = this.target.extractItems(new GenericStack(reqKey, amount), type, this.src);
             if (extracted != null) {
                 return ((AEItemKey) extracted.what()).toStack((int) extracted.amount());
             }
@@ -107,17 +121,15 @@ public class IMEAdaptor extends InventoryAdaptor {
 
     private ItemStack doRemoveItemsFuzzy(final int amount, final ItemStack filter,
             final IInventoryDestination destination, final Actionable type, final FuzzyMode fuzzyMode) {
-        final IAEItemStack reqFilter = AEItemStack.fromItemStack(filter);
-        if (reqFilter == null) {
+        final AEItemKey reqKey = AEItemKey.of(filter);
+        if (reqKey == null) {
             return ItemStack.EMPTY;
         }
 
-        IAEItemStack out = null;
-
-        for (final IAEItemStack req : ImmutableList.copyOf(this.getList().findFuzzy(reqFilter, fuzzyMode))) {
-            if (req != null && req.getStackSize() > 0) {
-                req.setStackSize(amount);
-                GenericStack extracted = this.target.extractItems(GenericStack.fromIAEStack(req), type, this.src);
+        for (final var entry : ImmutableList.copyOf(this.getList().findFuzzy(reqKey, fuzzyMode))) {
+            if (entry.getLongValue() > 0) {
+                GenericStack extracted = this.target.extractItems(
+                        new GenericStack(entry.getKey(), amount), type, this.src);
                 if (extracted != null) {
                     return ((AEItemKey) extracted.what()).toStack((int) extracted.amount());
                 }
@@ -138,9 +150,9 @@ public class IMEAdaptor extends InventoryAdaptor {
 
     @Override
     public ItemStack addItems(final ItemStack toBeAdded) {
-        final IAEItemStack in = AEItemStack.fromItemStack(toBeAdded);
-        if (in != null) {
-            final GenericStack out = this.target.injectItems(GenericStack.fromIAEStack(in), Actionable.MODULATE, this.src);
+        AEItemKey key = AEItemKey.of(toBeAdded);
+        if (key != null) {
+            final GenericStack out = this.target.injectItems(new GenericStack(key, toBeAdded.getCount()), Actionable.MODULATE, this.src);
             if (out != null) {
                 return ((AEItemKey) out.what()).toStack((int) out.amount());
             }
@@ -150,9 +162,9 @@ public class IMEAdaptor extends InventoryAdaptor {
 
     @Override
     public ItemStack simulateAdd(final ItemStack toBeSimulated) {
-        final IAEItemStack in = AEItemStack.fromItemStack(toBeSimulated);
-        if (in != null) {
-            final GenericStack out = this.target.injectItems(GenericStack.fromIAEStack(in), Actionable.SIMULATE, this.src);
+        AEItemKey key = AEItemKey.of(toBeSimulated);
+        if (key != null) {
+            final GenericStack out = this.target.injectItems(new GenericStack(key, toBeSimulated.getCount()), Actionable.SIMULATE, this.src);
             if (out != null) {
                 return ((AEItemKey) out.what()).toStack((int) out.amount());
             }

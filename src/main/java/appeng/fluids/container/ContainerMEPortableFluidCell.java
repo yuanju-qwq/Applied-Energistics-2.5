@@ -69,13 +69,13 @@ import appeng.util.inv.InvOperation;
  */
 @Deprecated
 public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAEAppEngInventory, IConfigManagerHost,
-        IConfigurableObject, IMEMonitorHandlerReceiver<IAEFluidStack>, IUpgradeableCellContainer, IInventorySlotAware {
+        IConfigurableObject, IMEMonitorHandlerReceiver, IUpgradeableCellContainer, IInventorySlotAware {
 
     protected final WirelessTerminalGuiObject wirelessTerminalGUIObject;
     protected final WirelessContainerHelper wirelessHelper;
 
     private final IConfigManager clientCM;
-    private final IMEMonitor<IAEFluidStack> monitor;
+    private final IMEMonitor monitor;
     private final IItemList<IAEFluidStack> fluids = AEFluidStackType.INSTANCE.createList();
     @GuiSync(99)
     public boolean hasPower = false;
@@ -403,10 +403,12 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
     }
 
     @Override
-    public void postChange(IBaseMonitor<IAEFluidStack> monitor, Iterable<IAEFluidStack> change,
+    public void postChange(IBaseMonitor monitor, Iterable<GenericStack> change,
             IActionSource actionSource) {
-        for (final IAEFluidStack is : change) {
-            this.fluids.add(is);
+        for (final GenericStack is : change) {
+            if (is.toIAEStack() instanceof IAEFluidStack fluidStack) {
+                this.fluids.add(fluidStack);
+            }
         }
     }
 

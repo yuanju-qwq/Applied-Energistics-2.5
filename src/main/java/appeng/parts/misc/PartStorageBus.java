@@ -43,8 +43,8 @@ import appeng.api.storage.StorageName;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.KeyCounter;
 import appeng.capabilities.Capabilities;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
@@ -59,7 +59,7 @@ import appeng.tile.misc.TileMEInterface;
 import appeng.util.inv.InvOperation;
 import appeng.util.item.AEItemStackType;
 
-public class PartStorageBus extends AbstractPartStorageBus<IAEItemStack>
+public class PartStorageBus extends AbstractPartStorageBus
         implements IIAEStackInventory {
 
     public static final ResourceLocation MODEL_BASE = new ResourceLocation(AppEng.MOD_ID, "part/storage_bus_base");
@@ -87,7 +87,7 @@ public class PartStorageBus extends AbstractPartStorageBus<IAEItemStack>
     // ---- AbstractPartStorageBus abstract method implementations ----
 
     @Override
-    public IAEStackType<IAEItemStack> getStackType() {
+    public AEKeyType getStackType() {
         return AEItemStackType.INSTANCE;
     }
 
@@ -102,7 +102,7 @@ public class PartStorageBus extends AbstractPartStorageBus<IAEItemStack>
     }
 
     @Override
-    protected IMEInventory<IAEItemStack> getInventoryWrapper(TileEntity target) {
+    protected IMEInventory getInventoryWrapper(TileEntity target) {
         EnumFacing targetSide = this.getSide().getFacing().getOpposite();
 
         // Prioritize a handler to directly link to another ME network
@@ -180,13 +180,13 @@ public class PartStorageBus extends AbstractPartStorageBus<IAEItemStack>
     }
 
     @Override
-    protected IItemList<IAEItemStack> buildPriorityList(int slotsToUse) {
-        final IItemList<IAEItemStack> priorityList = AEItemStackType.INSTANCE.createList();
+    protected KeyCounter buildPriorityList(int slotsToUse) {
+        final KeyCounter priorityList = new KeyCounter();
         for (int x = 0; x < this.Config.getSizeInventory() && x < slotsToUse; x++) {
             final GenericStack gs = this.Config.getGenericStack(x);
             final IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack instanceof IAEItemStack) {
-                priorityList.add((IAEItemStack) stack);
+            if (stack instanceof IAEItemStack && gs != null) {
+                priorityList.add(gs.what(), gs.amount());
             }
         }
         return priorityList;

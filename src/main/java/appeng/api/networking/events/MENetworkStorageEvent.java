@@ -24,8 +24,7 @@
 package appeng.api.networking.events;
 
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 
 /**
  * posted by the network when the networks Storage Changes, you can use the currentItems list to check levels, and
@@ -37,12 +36,11 @@ import appeng.api.storage.data.IAEStackType;
  */
 public class MENetworkStorageEvent extends MENetworkEvent {
 
-    public final IMEMonitor<?> monitor;
-    public final IAEStackType<?> stackType;
+    public final IMEMonitor monitor;
+    public final AEKeyType stackType;
 
-
-    public <T extends IAEStack<T>> MENetworkStorageEvent(final IMEMonitor<T> o, final IAEStackType<T> type) {
-        this.monitor = o;
+    public MENetworkStorageEvent(final IMEMonitor monitor, final AEKeyType type) {
+        this.monitor = monitor;
         this.stackType = type;
     }
 }

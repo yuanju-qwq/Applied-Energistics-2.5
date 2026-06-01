@@ -30,54 +30,41 @@ import java.util.Map.Entry;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 
 /**
  * Common implementation of a simple class that monitors injection/extraction of a inventory to send events to a list of
  * listeners.
- *
- * @param <T> TODO: Needs to be redesigned to solve performance issues.
  */
-public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
+@SuppressWarnings("rawtypes")
+public class MEMonitorHandler implements IMEMonitor {
 
-    private final IMEInventoryHandler<T> internalHandler;
-    private final IItemList<T> cachedList;
-    private final HashMap<IMEMonitorHandlerReceiver<? super T>, Object> listeners = new HashMap<>();
+    private final IMEInventoryHandler internalHandler;
+    private final KeyCounter cachedKeyCounter;
+    private final HashMap<IMEMonitorHandlerReceiver, Object> listeners = new HashMap<>();
 
     protected boolean hasChanged = true;
 
-    @SuppressWarnings("unchecked")
-    public MEMonitorHandler(final IMEInventoryHandler<T> t) {
+    public MEMonitorHandler(final IMEInventoryHandler t) {
         this.internalHandler = t;
-        this.cachedList = (IItemList<T>) (Object) t.getStackType().createList();
-    }
-
-    public MEMonitorHandler(final IMEInventoryHandler<T> t, final IAEStackType<T> type) {
-        this.internalHandler = t;
-        this.cachedList = type.createList();
+        this.cachedKeyCounter = new KeyCounter();
     }
 
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<? super T> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver l, final Object verificationToken) {
         this.listeners.put(l, verificationToken);
     }
 
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<? super T> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver l) {
         this.listeners.remove(l);
-    }
-
-    @Override
-    @Deprecated
-    public T injectItems(final T input, final Actionable mode, final IActionSource src) {
-        return this.getHandler().injectItems(input, mode, src);
     }
 
     @Override
@@ -85,37 +72,30 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
         return this.getHandler().injectItems(input, mode, src);
     }
 
-    protected IMEInventoryHandler<T> getHandler() {
+    protected IMEInventoryHandler getHandler() {
         return this.internalHandler;
     }
 
-    public void postChangesToListeners(final Iterable<T> changes, final IActionSource src) {
+    public void postChangesToListeners(final Iterable<GenericStack> changes, final IActionSource src) {
         this.notifyListenersOfChange(changes, src);
     }
 
-    @SuppressWarnings("unchecked")
-    protected void notifyListenersOfChange(final Iterable<T> diff, final IActionSource src) {
-        this.hasChanged = true;// need to update the cache.
-        final Iterator<Entry<IMEMonitorHandlerReceiver<? super T>, Object>> i = this.getListeners();
+    protected void notifyListenersOfChange(final Iterable<GenericStack> diff, final IActionSource src) {
+        this.hasChanged = true;
+        final Iterator<Entry<IMEMonitorHandlerReceiver, Object>> i = this.getListeners();
         while (i.hasNext()) {
-            final Entry<IMEMonitorHandlerReceiver<? super T>, Object> o = i.next();
-            final IMEMonitorHandlerReceiver<? super T> receiver = o.getKey();
+            final Entry<IMEMonitorHandlerReceiver, Object> o = i.next();
+            final IMEMonitorHandlerReceiver receiver = o.getKey();
             if (receiver.isValid(o.getValue())) {
-                ((IMEMonitorHandlerReceiver) receiver).postChange(this, diff, src);
+                receiver.postChange(this, diff, src);
             } else {
                 i.remove();
             }
         }
     }
 
-    protected Iterator<Entry<IMEMonitorHandlerReceiver<? super T>, Object>> getListeners() {
+    protected Iterator<Entry<IMEMonitorHandlerReceiver, Object>> getListeners() {
         return this.listeners.entrySet().iterator();
-    }
-
-    @Override
-    @Deprecated
-    public T extractItems(final T request, final Actionable mode, final IActionSource src) {
-        return this.getHandler().extractItems(request, mode, src);
     }
 
     @Override
@@ -124,8 +104,8 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
-    public IAEStackType<?> getStackType() {
-        return this.getHandler().getStackType();
+    public AEKeyType getKeyType() {
+        return this.getHandler().getKeyType();
     }
 
     @Override
@@ -134,35 +114,23 @@ public class MEMonitorHandler<T extends IAEStack<T>> implements IMEMonitor<T> {
     }
 
     @Override
-    public IItemList<T> getStorageList() {
-        if (this.hasChanged) {
-            this.hasChanged = false;
-            this.cachedList.resetStatus();
-            return this.getAvailableItems(this.cachedList);
-        }
-
-        return this.cachedList;
-    }
-
-    @Override
-    public boolean isPrioritized(final T input) {
+    public boolean isPrioritized(final AEKey input) {
         return this.getHandler().isPrioritized(input);
     }
 
     @Override
-    public boolean canAccept(final T input) {
+    public boolean canAccept(final AEKey input) {
         return this.getHandler().canAccept(input);
-    }
-
-    @Override
-    @Deprecated
-    public IItemList<T> getAvailableItems(final IItemList<T> out) {
-        return this.getHandler().getAvailableItems(out);
     }
 
     @Override
     public KeyCounter getAvailableKeyCounter() {
         return this.getHandler().getAvailableKeyCounter();
+    }
+
+    @Override
+    public KeyCounter getKeyCounter() {
+        return this.getAvailableKeyCounter();
     }
 
     @Override

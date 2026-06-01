@@ -21,36 +21,29 @@ package appeng.me.storage;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 
-public class MEPassThrough<T extends IAEStack<T>> implements IMEInventoryHandler<T> {
+public class MEPassThrough implements IMEInventoryHandler {
 
-    private final IAEStackType<T> wrappedType;
-    private IMEInventory<T> internal;
+    private final AEKeyType wrappedType;
+    private IMEInventory internal;
 
-    public MEPassThrough(final IMEInventory<T> i, final IAEStackType<T> type) {
+    public MEPassThrough(final IMEInventory i, final AEKeyType type) {
         this.wrappedType = type;
         this.setInternal(i);
     }
 
-    public IMEInventory<T> getInternal() {
+    public IMEInventory getInternal() {
         return this.internal;
     }
 
-    public void setInternal(final IMEInventory<T> i) {
+    public void setInternal(final IMEInventory i) {
         this.internal = i;
-    }
-
-    @Override
-    @Deprecated
-    public T injectItems(final T input, final Actionable type, final IActionSource src) {
-        return this.internal.injectItems(input, type, src);
     }
 
     @Override
@@ -59,20 +52,8 @@ public class MEPassThrough<T extends IAEStack<T>> implements IMEInventoryHandler
     }
 
     @Override
-    @Deprecated
-    public T extractItems(final T request, final Actionable type, final IActionSource src) {
-        return this.internal.extractItems(request, type, src);
-    }
-
-    @Override
     public GenericStack extractItems(final GenericStack request, final Actionable type, final IActionSource src) {
         return this.internal.extractItems(request, type, src);
-    }
-
-    @Override
-    @Deprecated
-    public IItemList<T> getAvailableItems(final IItemList<T> out) {
-        return this.internal.getAvailableItems(out);
     }
 
     @Override
@@ -81,7 +62,7 @@ public class MEPassThrough<T extends IAEStack<T>> implements IMEInventoryHandler
     }
 
     @Override
-    public IAEStackType<?> getStackType() {
+    public AEKeyType getKeyType() {
         return this.wrappedType;
     }
 
@@ -91,12 +72,12 @@ public class MEPassThrough<T extends IAEStack<T>> implements IMEInventoryHandler
     }
 
     @Override
-    public boolean isPrioritized(final T input) {
+    public boolean isPrioritized(final AEKey input) {
         return false;
     }
 
     @Override
-    public boolean canAccept(final T input) {
+    public boolean canAccept(final AEKey input) {
         return true;
     }
 
@@ -115,7 +96,7 @@ public class MEPassThrough<T extends IAEStack<T>> implements IMEInventoryHandler
         return true;
     }
 
-    IAEStackType<T> getWrappedType() {
+    AEKeyType getWrappedType() {
         return this.wrappedType;
     }
 }

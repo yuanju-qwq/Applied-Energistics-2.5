@@ -711,7 +711,7 @@ public class Platform {
     }
 
     public static ItemStack extractItemsByRecipe(final IEnergySource energySrc, final IActionSource mySrc,
-            final IMEMonitor<IAEItemStack> src, final World w, final IRecipe r, final ItemStack output,
+            final IMEMonitor src, final World w, final IRecipe r, final ItemStack output,
             final InventoryCrafting ci, final ItemStack providedTemplate, final int slot,
             final IItemList<IAEItemStack> items, final Actionable realForFake,
             final IPartitionList<IAEItemStack> filter) {

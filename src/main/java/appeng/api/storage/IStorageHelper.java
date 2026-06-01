@@ -26,6 +26,7 @@ package appeng.api.storage;
 import java.util.Collection;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -36,17 +37,16 @@ import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
 
 public interface IStorageHelper {
 
     /**
-     * Returns all registered IAEStackType instances.
+     * Returns all registered AEKeyType instances.
      */
     @Nonnull
-    Collection<IAEStackType<? extends IAEStackBase>> getStackTypes();
+    Collection<AEKeyType> getKeyTypes();
 
     /**
      * load a crafting link from nbt data.
@@ -59,20 +59,21 @@ public interface IStorageHelper {
 
     /**
      * Extracts items from a {@link IMEInventory} respecting power requirements.
-     * 
+     *
      * @param energy  Energy source.
      * @param inv     Inventory to extract from.
      * @param request Requested item and count.
      * @param src     Action source.
      * @param mode    Simulate or modulate
-     * @return extracted items or {@code null} of nothing was extracted.
+     * @return extracted items or {@code null} if nothing was extracted.
      */
-    <T extends IAEStack<T>> T poweredExtraction(final IEnergySource energy, final IMEInventory<T> inv, final T request,
-            final IActionSource src, final Actionable mode);
+    @Nullable
+    GenericStack poweredExtraction(IEnergySource energy, IMEInventory inv, GenericStack request,
+            IActionSource src, Actionable mode);
 
     /**
      * Inserts items into a {@link IMEInventory} respecting power requirements.
-     * 
+     *
      * @param energy Energy source.
      * @param inv    Inventory to insert into.
      * @param input  Items to insert.
@@ -80,18 +81,19 @@ public interface IStorageHelper {
      * @param mode   Simulate or modulate
      * @return items not inserted or {@code null} if everything was inserted.
      */
-    <T extends IAEStack<T>> T poweredInsert(final IEnergySource energy, final IMEInventory<T> inv, final T input,
-            final IActionSource src, final Actionable mode);
+    @Nullable
+    GenericStack poweredInsert(IEnergySource energy, IMEInventory inv, GenericStack input,
+            IActionSource src, Actionable mode);
 
     /**
      * Posts alteration of stored items to the provided {@link IStorageGrid}. This can be used by cell containers to
      * notify the grid of storage cell changes.
-     * 
+     *
      * @param gs          the storage grid.
      * @param removedCell the removed cell itemstack
      * @param addedCell   the added cell itemstack
      * @param src         the action source
      */
-    void postChanges(@Nonnull final IStorageGrid gs, @Nonnull final ItemStack removedCell,
-            @Nonnull final ItemStack addedCell, @Nonnull final IActionSource src);
+    void postChanges(@Nonnull IStorageGrid gs, @Nonnull ItemStack removedCell,
+            @Nonnull ItemStack addedCell, @Nonnull IActionSource src);
 }

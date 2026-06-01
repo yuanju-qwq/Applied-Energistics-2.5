@@ -40,11 +40,13 @@ import appeng.api.networking.IMachineSet;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.DimensionalCoord;
 import appeng.api.util.IConfigManager;
@@ -57,7 +59,6 @@ import appeng.tile.networking.TileWireless;
 import appeng.tile.qnb.TileQuantumBridge;
 import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.InvOperation;
-import appeng.util.item.AEItemStackType;
 
 public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, IInventorySlotAware, IViewCellStorage,
         IAEAppEngInventory, IUpgradeableCellHost {
@@ -69,7 +70,7 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
     private final boolean isBaubleSlot;
     private IGrid targetGrid;
     private IStorageGrid sg;
-    private IMEMonitor<IAEItemStack> itemStorage;
+    private IMEMonitor itemStorage;
     private IWirelessAccessPoint myWap;
     private double sqRange = Double.MAX_VALUE;
     private double myRange = Double.MAX_VALUE;
@@ -105,7 +106,7 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
                     this.sg = this.targetGrid.getCache(IStorageGrid.class);
                     if (this.sg != null) {
                         this.itemStorage = this.sg
-                                .getInventory(AEItemStackType.INSTANCE);
+                                .getInventory(AEKeyType.items());
                     }
                 }
             }
@@ -121,38 +122,43 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
     }
 
     @Override
-    public <T extends IAEStack<T>> IMEMonitor<T> getInventory(IAEStackType<T> type) {
+    public IMEMonitor getInventory(AEKeyType type) {
         return this.sg.getInventory(type);
     }
 
     @Override
-    public void addListener(final IMEMonitorHandlerReceiver<? super IAEItemStack> l, final Object verificationToken) {
+    public void addListener(final IMEMonitorHandlerReceiver l, final Object verificationToken) {
         if (this.itemStorage != null) {
             this.itemStorage.addListener(l, verificationToken);
         }
     }
 
     @Override
-    public void removeListener(final IMEMonitorHandlerReceiver<? super IAEItemStack> l) {
+    public void removeListener(final IMEMonitorHandlerReceiver l) {
         if (this.itemStorage != null) {
             this.itemStorage.removeListener(l);
         }
     }
 
-    @Override
+    @Deprecated
     public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
         if (this.itemStorage != null) {
-            return this.itemStorage.getAvailableItems(out);
+            KeyCounter kc = this.itemStorage.getAvailableKeyCounter();
+            for (var entry : kc) {
+                if (entry.getKey() instanceof appeng.api.stacks.AEItemKey itemKey) {
+                    out.add((IAEItemStack) itemKey.toIAEStack(entry.getLongValue()));
+                }
+            }
         }
         return out;
     }
 
     @Override
-    public IItemList<IAEItemStack> getStorageList() {
+    public KeyCounter getKeyCounter() {
         if (this.itemStorage != null) {
-            return this.itemStorage.getStorageList();
+            return this.itemStorage.getKeyCounter();
         }
-        return null;
+        return new KeyCounter();
     }
 
     @Override
@@ -164,7 +170,7 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
     }
 
     @Override
-    public boolean isPrioritized(final IAEItemStack input) {
+    public boolean isPrioritized(final AEKey input) {
         if (this.itemStorage != null) {
             return this.itemStorage.isPrioritized(input);
         }
@@ -172,7 +178,7 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
     }
 
     @Override
-    public boolean canAccept(final IAEItemStack input) {
+    public boolean canAccept(final AEKey input) {
         if (this.itemStorage != null) {
             return this.itemStorage.canAccept(input);
         }
@@ -201,7 +207,7 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
     }
 
     @Override
-    public IAEItemStack injectItems(final IAEItemStack input, final Actionable type, final IActionSource src) {
+    public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
         if (this.itemStorage != null) {
             return this.itemStorage.injectItems(input, type, src);
         }
@@ -209,7 +215,7 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
     }
 
     @Override
-    public IAEItemStack extractItems(final IAEItemStack request, final Actionable mode, final IActionSource src) {
+    public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
         if (this.itemStorage != null) {
             return this.itemStorage.extractItems(request, mode, src);
         }
@@ -217,11 +223,19 @@ public class WirelessTerminalGuiObject implements IPortableCell, IActionHost, II
     }
 
     @Override
-    public IAEStackType<IAEItemStack> getStackType() {
+    public AEKeyType getKeyType() {
         if (this.itemStorage != null) {
-            return (IAEStackType<IAEItemStack>) this.itemStorage.getStackType();
+            return this.itemStorage.getKeyType();
         }
-        return AEItemStackType.INSTANCE;
+        return AEKeyType.items();
+    }
+
+    @Override
+    public KeyCounter getAvailableKeyCounter() {
+        if (this.itemStorage != null) {
+            return this.itemStorage.getAvailableKeyCounter();
+        }
+        return new KeyCounter();
     }
 
     @Override

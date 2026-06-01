@@ -94,7 +94,7 @@ import appeng.util.item.AEItemStackType;
 
 @SuppressWarnings("unchecked")
 public class ContainerMEMonitorable extends AEBaseContainer
-        implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver<IAEStackBase> {
+        implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver {
 
     protected final SlotRestrictedInput[] cellView = new SlotRestrictedInput[5];
     public final IItemList<IAEItemStack> items = AEItemStackType.INSTANCE.createList();
@@ -103,7 +103,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
      * Multi-type Monitor mapping: each registered IAEStackType corresponds to one IMEMonitor.
      * Items and fluids (and other types extended in the future) are all monitored in the same terminal.
      */
-    private final Map<IAEStackType<?>, IMEMonitor<?>> monitors = new IdentityHashMap<>();
+    private final Map<IAEStackType<?>, IMEMonitor> monitors = new IdentityHashMap<>();
 
     /**
      * KeyCounter-based update buffer: AEKey change notifications are accumulated here,
@@ -174,7 +174,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
             // Iterate all registered IAEStackTypes and register as listeners on their IMEMonitors
             boolean hasAnyMonitor = false;
             for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
-                IMEMonitor<?> mon = monitorable.getInventory(type);
+                IMEMonitor mon = monitorable.getInventory(type);
                 if (mon != null) {
                     mon.addListener(this, null);
                     this.monitors.put(type, mon);
@@ -184,15 +184,15 @@ public class ContainerMEMonitorable extends AEBaseContainer
 
             if (hasAnyMonitor) {
                 // Use item monitor as cell inventory (backward compatibility)
-                IMEMonitor<?> itemMon = this.monitors.get(
+                IMEMonitor itemMon = this.monitors.get(
                         AEStackTypeRegistry.getType("item"));
                 if (itemMon != null) {
-                    this.setCellInventory((IMEInventoryHandler<IAEItemStack>) itemMon);
+                    this.setCellInventory((IMEInventoryHandler) itemMon);
                 }
-                IMEMonitor<?> fluidMon = this.monitors.get(
+                IMEMonitor fluidMon = this.monitors.get(
                         AEStackTypeRegistry.getType("fluid"));
                 if (fluidMon != null) {
-                    this.setFluidCellInventory((IMEInventoryHandler<IAEFluidStack>) fluidMon);
+                    this.setFluidCellInventory((IMEInventoryHandler) fluidMon);
                 }
 
                 if (monitorable instanceof IPortableCell) {
@@ -267,8 +267,8 @@ public class ContainerMEMonitorable extends AEBaseContainer
                         AEFluidStackType.INSTANCE.drainFromContainer(tis.copy(), Integer.MAX_VALUE, true);
                 if (drainResult.isSuccess()) {
                     @SuppressWarnings("unchecked")
-                    final IMEMonitor<IAEFluidStack> fluidMonitor =
-                            (IMEMonitor<IAEFluidStack>) this.monitors.get(AEFluidStackType.INSTANCE);
+                    final IMEMonitor fluidMonitor =
+                            (IMEMonitor) this.monitors.get(AEFluidStackType.INSTANCE);
                     if (fluidMonitor != null) {
                         final IActionSource src = new PlayerSource(playerMP, (IActionHost) this.host);
                         final GenericStack notInserted = fluidMonitor.injectItems(
@@ -340,8 +340,8 @@ public class ContainerMEMonitorable extends AEBaseContainer
         if (Platform.isServer()) {
             // Verify all monitors are still valid
             for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
-                IMEMonitor<?> current = this.host.getInventory(type);
-                IMEMonitor<?> stored = this.monitors.get(type);
+                IMEMonitor current = this.host.getInventory(type);
+                IMEMonitor stored = this.monitors.get(type);
                 if (stored != null && stored != current) {
                     this.setValidContainer(false);
                     return;
@@ -517,7 +517,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
         super.removeListener(c);
 
         if (this.listeners.isEmpty()) {
-            for (IMEMonitor<?> mon : this.monitors.values()) {
+            for (IMEMonitor mon : this.monitors.values()) {
                 mon.removeListener(this);
             }
         }
@@ -526,7 +526,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     @Override
     public void onContainerClosed(final EntityPlayer player) {
         super.onContainerClosed(player);
-        for (IMEMonitor<?> mon : this.monitors.values()) {
+        for (IMEMonitor mon : this.monitors.values()) {
             mon.removeListener(this);
         }
     }
@@ -537,7 +537,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     @Override
-    public void postChange(final IBaseMonitor<IAEStackBase> monitor, final Iterable<IAEStackBase> change,
+    public void postChange(final IBaseMonitor monitor, final Iterable<IAEStackBase> change,
             final IActionSource source) {
         for (final IAEStackBase obj : change) {
             IAEStack<?> aes = (IAEStack<?>) obj;
@@ -671,10 +671,10 @@ public class ContainerMEMonitorable extends AEBaseContainer
      * @return item type Monitor (backward compatibility)
      */
     @SuppressWarnings("unchecked")
-    public IMEMonitor<IAEItemStack> getItemMonitor() {
+    public IMEMonitor getItemMonitor() {
         IAEStackType<?> itemType = AEStackTypeRegistry.getType("item");
         if (itemType != null) {
-            return (IMEMonitor<IAEItemStack>) this.monitors.get(itemType);
+            return (IMEMonitor) this.monitors.get(itemType);
         }
         return null;
     }
@@ -682,7 +682,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
     /**
      * @return multi-type Monitor mapping
      */
-    public Map<IAEStackType<?>, IMEMonitor<?>> getMonitors() {
+    public Map<IAEStackType<?>, IMEMonitor> getMonitors() {
         return this.monitors;
     }
 
@@ -802,8 +802,8 @@ public class ContainerMEMonitorable extends AEBaseContainer
     private void doFluidBucketAction(final EntityPlayerMP player, final InventoryAction action,
             final int slot, final long id) {
         @SuppressWarnings("unchecked")
-        final IMEMonitor<IAEFluidStack> fluidMonitor =
-                (IMEMonitor<IAEFluidStack>) this.monitors.get(AEFluidStackType.INSTANCE);
+        final IMEMonitor fluidMonitor =
+                (IMEMonitor) this.monitors.get(AEFluidStackType.INSTANCE);
         if (fluidMonitor == null) {
             return;
         }

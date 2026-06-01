@@ -53,7 +53,7 @@ import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 
 public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatcherHost, IConfigManagerHost,
-        IIAEStackInventory, IMEMonitorHandlerReceiver<IAEFluidStack>, IConfigurableFluidInventory,
+        IIAEStackInventory, IMEMonitorHandlerReceiver, IConfigurableFluidInventory,
         IConfigurableAEStackInventory {
     @PartModels
     public static final ResourceLocation MODEL_BASE_OFF = new ResourceLocation(AppEng.MOD_ID,
@@ -179,16 +179,16 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     }
 
     @Override
-    public void postChange(final IBaseMonitor<IAEFluidStack> monitor, final Iterable<IAEFluidStack> change,
+    public void postChange(final IBaseMonitor monitor, final Iterable<IAEFluidStack> change,
             final IActionSource actionSource) {
-        this.updateReportingValue((IMEMonitor<IAEFluidStack>) monitor);
+        this.updateReportingValue((IMEMonitor) monitor);
     }
 
     @Override
     public void onListUpdate() {
         try {
             final IAEStackType<IAEFluidStack> channel = AEFluidStackType.INSTANCE;
-            final IMEMonitor<IAEFluidStack> inventory = this.getProxy().getStorage().getInventory(channel);
+            final IMEMonitor inventory = this.getProxy().getStorage().getInventory(channel);
 
             this.updateReportingValue(inventory);
         } catch (final GridAccessException e) {
@@ -227,7 +227,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
                             .addListener(this, this.getProxy().getGrid());
                 }
 
-                final IMEMonitor<IAEFluidStack> inventory = this.getProxy().getStorage().getInventory(channel);
+                final IMEMonitor inventory = this.getProxy().getStorage().getInventory(channel);
 
                 this.updateReportingValue(inventory);
             } catch (GridAccessException e) {
@@ -236,7 +236,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
         }
     }
 
-    private void updateReportingValue(final IMEMonitor<IAEFluidStack> monitor) {
+    private void updateReportingValue(final IMEMonitor monitor) {
         final GenericStack gs = this.config.getGenericStack(0);
         final IAEStack<?> myStack = gs != null ? gs.toIAEStack() : null;
 

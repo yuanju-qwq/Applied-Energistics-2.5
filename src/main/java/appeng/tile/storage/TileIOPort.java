@@ -91,7 +91,7 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
     private final IActionSource mySrc;
     private YesNo lastRedstoneState;
     private ItemStack currentCell;
-    private Map<IAEStackType<?>, IMEInventory<?>> cachedInventories;
+    private Map<IAEStackType<?>, IMEInventory> cachedInventories;
 
     private boolean isActive = false;
 
@@ -353,8 +353,8 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
 
     private <T extends IAEStack<T>> long processType(final IEnergySource energy, final ItemStack is,
             final IAEStackType<T> type, long itemsToMove) throws GridAccessException {
-        final IMEMonitor<T> network = this.getProxy().getStorage().getInventory(type);
-        final IMEInventory<T> inv = this.getInv(is, type);
+        final IMEMonitor network = this.getProxy().getStorage().getInventory(type);
+        final IMEInventory inv = this.getInv(is, type);
 
         if (inv == null) {
             return itemsToMove;
@@ -368,7 +368,7 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> IMEInventory<T> getInv(final ItemStack is, final IAEStackType<T> type) {
+    private <T extends IAEStack<T>> IMEInventory getInv(final ItemStack is, final IAEStackType<T> type) {
         if (this.currentCell != is) {
             this.currentCell = is;
             this.cachedInventories = new IdentityHashMap<>();
@@ -378,11 +378,11 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
             }
         }
 
-        return (IMEInventory<T>) this.cachedInventories.get(type);
+        return (IMEInventory) this.cachedInventories.get(type);
     }
 
-    private <T extends IAEStack<T>> long transferContents(final IEnergySource energy, final IMEInventory<T> src,
-            final IMEInventory<T> destination, long itemsToMove, final IAEStackType<T> type) {
+    private <T extends IAEStack<T>> long transferContents(final IEnergySource energy, final IMEInventory src,
+            final IMEInventory destination, long itemsToMove, final IAEStackType<T> type) {
         final var myList = appeng.util.StorageHelper.getStorageView(src);
         itemsToMove *= type.transferFactor();
 
@@ -438,7 +438,7 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
         return itemsToMove / type.transferFactor();
     }
 
-    private boolean shouldMove(final IMEInventory<?> inv) {
+    private boolean shouldMove(final IMEInventory inv) {
         final FullnessMode fm = (FullnessMode) this.manager.getSetting(Settings.FULLNESS_MODE);
 
         if (inv != null) {
@@ -457,16 +457,16 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
         return false;
     }
 
-    private boolean matches(final FullnessMode fm, final IMEInventory<?> src) {
+    private boolean matches(final FullnessMode fm, final IMEInventory src) {
         return this.matchesCaptured(fm, src);
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> boolean matchesCaptured(final FullnessMode fm, final IMEInventory<?> src) {
-        return this.matchesTyped(fm, (IMEInventory<T>) src);
+    private <T extends IAEStack<T>> boolean matchesCaptured(final FullnessMode fm, final IMEInventory src) {
+        return this.matchesTyped(fm, (IMEInventory) src);
     }
 
-    private <T extends IAEStack<T>> boolean matchesTyped(final FullnessMode fm, final IMEInventory<T> src) {
+    private <T extends IAEStack<T>> boolean matchesTyped(final FullnessMode fm, final IMEInventory src) {
         if (fm == FullnessMode.HALF) {
             return true;
         }

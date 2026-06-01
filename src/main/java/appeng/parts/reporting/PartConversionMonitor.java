@@ -99,7 +99,7 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
         final ItemStack eq = player.getHeldItem(hand);
 
         // Find a handler whose container can interact with the held item (e.g., fluid container)
-        final IConversionMonitorHandler<?> containerHandler = findContainerHandler(eq);
+        final IConversionMonitorHandler containerHandler = findContainerHandler(eq);
 
         if (this.isLocked()) {
             return handleLockedActivate(player, hand, pos, eq, containerHandler);
@@ -113,7 +113,7 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
      * Handle right-click when the monitor is locked.
      */
     private boolean handleLockedActivate(EntityPlayer player, EnumHand hand, Vec3d pos,
-            ItemStack eq, IConversionMonitorHandler<?> containerHandler) {
+            ItemStack eq, IConversionMonitorHandler containerHandler) {
         if (eq.isEmpty()) {
             // Empty hand + locked = insert all matching items from inventory
             insertAllMatching(player);
@@ -142,7 +142,7 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
      * The original onPartActivate continued execution after the locked block.
      */
     private boolean handleUnlockedFallthrough(EntityPlayer player, EnumHand hand, Vec3d pos,
-            ItemStack eq, IConversionMonitorHandler<?> containerHandler) {
+            ItemStack eq, IConversionMonitorHandler containerHandler) {
         if (containerHandler != null) {
             final IAEStack<?> containerStack = containerHandler.getStackFromContainer(eq);
             if (this.getDisplayed() == null || !isSameStackType(this.getDisplayed(), containerHandler)) {
@@ -163,7 +163,7 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
      * Handle right-click when the monitor is unlocked (non-locked path only, no locked block above).
      */
     private boolean handleUnlockedActivate(EntityPlayer player, EnumHand hand, Vec3d pos,
-            ItemStack eq, IConversionMonitorHandler<?> containerHandler) {
+            ItemStack eq, IConversionMonitorHandler containerHandler) {
         if (containerHandler != null) {
             final IAEStack<?> containerStack = containerHandler.getStackFromContainer(eq);
             if (this.getDisplayed() == null || !isSameStackType(this.getDisplayed(), containerHandler)) {
@@ -232,11 +232,11 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
     /**
      * Find a handler that considers the held item as a container (e.g., fluid container).
      */
-    private IConversionMonitorHandler<?> findContainerHandler(ItemStack heldItem) {
+    private IConversionMonitorHandler findContainerHandler(ItemStack heldItem) {
         if (heldItem.isEmpty()) {
             return null;
         }
-        for (IConversionMonitorHandler<?> handler : ConversionMonitorHandlerRegistry.getAllHandlers()) {
+        for (IConversionMonitorHandler handler : ConversionMonitorHandlerRegistry.getAllHandlers()) {
             if (handler.canInteractWithContainer(heldItem)) {
                 return handler;
             }
@@ -247,7 +247,7 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
     /**
      * Check if the displayed stack's type matches the handler's type.
      */
-    private boolean isSameStackType(IAEStack<?> displayed, IConversionMonitorHandler<?> handler) {
+    private boolean isSameStackType(IAEStack<?> displayed, IConversionMonitorHandler handler) {
         return displayed.getStackTypeBase() == handler.getStackType();
     }
 
@@ -274,7 +274,7 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
      */
     @SuppressWarnings("unchecked")
     private <T extends IAEStack<T>> void insertFromContainer(
-            IConversionMonitorHandler<?> rawHandler, EntityPlayer player, EnumHand hand) {
+            IConversionMonitorHandler rawHandler, EntityPlayer player, EnumHand hand) {
         try {
             final IConversionMonitorHandler<T> handler = (IConversionMonitorHandler<T>) rawHandler;
             final IEnergySource energy = this.getProxy().getEnergy();

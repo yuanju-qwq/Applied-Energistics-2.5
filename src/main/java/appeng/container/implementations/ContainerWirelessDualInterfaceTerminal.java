@@ -166,7 +166,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     /**
      * 多类型 Monitor 映射：每种已注册的 IAEStackType 对应一个 IMEMonitor。
      */
-    private final Map<IAEStackType<?>, IMEMonitor<?>> meMonitors = new IdentityHashMap<>();
+    private final Map<IAEStackType<?>, IMEMonitor> meMonitors = new IdentityHashMap<>();
 
     /**
      * 多类型更新队列：服务端收到变化通知后，按类型暂存待发送的变更。
@@ -225,7 +225,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             this.serverCM = gui.getConfigManager();
 
             for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
-                IMEMonitor<?> mon = gui.getInventory(type);
+                IMEMonitor mon = gui.getInventory(type);
                 if (mon != null) {
                     mon.addListener(this, null);
                     this.meMonitors.put(type, mon);
@@ -236,13 +236,13 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             // 设置 ME 物品面板的电力来源和存储，使 SlotME 点击交互生效
             this.setPowerSource(gui);
             @SuppressWarnings("unchecked")
-            IMEMonitor<IAEItemStack> itemMon = (IMEMonitor<IAEItemStack>) gui
+            IMEMonitor itemMon = (IMEMonitor) gui
                     .getInventory(AEStackTypeRegistry.getType("item"));
             if (itemMon != null) {
                 this.setCellInventory(itemMon);
             }
             @SuppressWarnings("unchecked")
-            IMEMonitor<IAEFluidStack> fluidMon = (IMEMonitor<IAEFluidStack>) gui
+            IMEMonitor fluidMon = (IMEMonitor) gui
                     .getInventory(AEStackTypeRegistry.getType("fluid"));
             if (fluidMon != null) {
                 this.setFluidCellInventory(fluidMon);
@@ -1609,7 +1609,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void sendFullList(IAEStackType<?> type, IMEMonitor<?> mon) {
+    private <T extends IAEStack<T>> void sendFullList(IAEStackType<?> type, IMEMonitor mon) {
         try {
             final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
             IItemList<T> list = (IItemList<T>) mon.getStorageList();
