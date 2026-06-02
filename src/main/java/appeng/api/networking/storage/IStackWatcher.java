@@ -36,6 +36,7 @@ public interface IStackWatcher {
      *
      * @param key the key to watch
      * @return true, if successfully added.
+     * @deprecated Use {@link #add(AEKey)} instead.
      */
     boolean add(AEKey key);
 
@@ -44,6 +45,7 @@ public interface IStackWatcher {
      *
      * @param key the key to remove
      * @return true, if successfully removed.
+     * @deprecated Use {@link #remove(AEKey)} instead.
      */
     boolean remove(AEKey key);
 

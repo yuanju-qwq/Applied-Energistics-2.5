@@ -337,7 +337,7 @@ public class ContainerCraftConfirm extends AEBaseContainer {
             if (g == null) {
                 this.setJob(
                         cc.beginCraftingJob(this.getWorld(), grid, this.getActionSrc(),
-                                (IAEStack<?>) this.result.getOutput(), null));
+                                this.result.getOutput(), null));
             } else if (originalGui != null && this.getOpenContext() != null) {
                 final TileEntity te = this.getOpenContext().getTile();
                 if (te != null) {

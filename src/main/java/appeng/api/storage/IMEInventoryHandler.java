@@ -47,6 +47,7 @@ public interface IMEInventoryHandler extends IMEInventory {
      * @param input - key that might be added
      *
      * @return if its prioritized
+     * @deprecated Use {@link #isPrioritized(GenericStack)} instead.
      */
     boolean isPrioritized(AEKey input);
 
@@ -56,6 +57,7 @@ public interface IMEInventoryHandler extends IMEInventory {
      * @param input - key that might be added
      *
      * @return if the item can be added
+     * @deprecated Use {@link #canAccept(GenericStack)} instead.
      */
     boolean canAccept(AEKey input);
 

@@ -793,6 +793,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                                             break;
                                                         }
                                                     }
+                                                    }
                                                 }
                                             }
                                         } else {
@@ -1073,8 +1074,8 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
             return null;
         }
         if (ci.commit(src)) {
-                this.finalOutput = job.getOutput();
-                this.amount = job.getOutput().getStackSize();
+                this.finalOutput = job.getOutput().toIAEStack();
+                this.amount = job.getOutput().amount();
                 this.waiting = false;
                 this.isComplete = false;
 

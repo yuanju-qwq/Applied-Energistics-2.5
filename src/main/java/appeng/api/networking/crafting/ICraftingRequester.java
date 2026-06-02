@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import appeng.api.config.Actionable;
 import appeng.api.networking.IGridNodeService;
 import appeng.api.networking.security.IActionHost;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 
 public interface ICraftingRequester extends IActionHost, IGridNodeService {
@@ -51,6 +52,16 @@ public interface ICraftingRequester extends IActionHost, IGridNodeService {
      */
     default IAEStack<?> injectCraftedItems(ICraftingLink link, IAEStack<?> items, Actionable mode) {
         return null;
+    }
+
+    /**
+     * GenericStack-based variant of {@link #injectCraftedItems(ICraftingLink, IAEStack, Actionable)}.
+     */
+    default GenericStack injectCraftedItems(ICraftingLink link, GenericStack items, Actionable mode) {
+        var ae = items.toIAEStack();
+        if (ae == null) return items;
+        var result = injectCraftedItems(link, ae, mode);
+        return result != null ? GenericStack.fromIAEStack(result) : null;
     }
 
     /**

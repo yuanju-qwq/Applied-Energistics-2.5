@@ -26,6 +26,7 @@ package appeng.api.networking.storage;
 import appeng.api.networking.IGridCache;
 import appeng.api.networking.IGridHost;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.ICellContainer;
 import appeng.api.storage.ICellProvider;
 import appeng.api.storage.IStorageMonitorable;
@@ -52,6 +53,10 @@ public interface IStorageGrid extends IGridCache, IStorageMonitorable {
     void postAlterationOfStoredItems(AEKeyType type, KeyCounter input, IActionSource src);
 
     void postCraftablesChanges(AEKeyType type, KeyCounter input, IActionSource src);
+
+    // Note: GenericStack-based overloads are not possible here because
+    // Iterable<GenericStack> and Iterable<? extends IAEStackBase> have the same erased signature.
+    // Use the IAEStackBase-based methods directly with toIAEStack() conversion at call sites.
 
     /**
      * Used to add a cell provider to the storage system

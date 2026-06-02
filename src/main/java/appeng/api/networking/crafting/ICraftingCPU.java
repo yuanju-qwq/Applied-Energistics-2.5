@@ -64,6 +64,15 @@ public interface ICraftingCPU extends IBaseMonitor {
         return null;
     }
 
+    /**
+     * GenericStack-based variant of {@link #getFinalMultiOutput()}.
+     */
+    @Nullable
+    default GenericStack getFinalMultiOutputGeneric() {
+        var ae = getFinalMultiOutput();
+        return ae != null ? GenericStack.fromIAEStack(ae) : null;
+    }
+
     default boolean isPause() {
         return false;
     }

@@ -428,7 +428,7 @@ public class CraftingGridCache
         }
 
         final CraftingJobV2 job = new CraftingJobV2(
-                craftWhat, grid, actionSrc, cb, world, CraftingMode.STANDARD);
+                GenericStack.fromIAEStack(craftWhat), grid, actionSrc, cb, world, CraftingMode.STANDARD);
         return (Future) job.schedule();
     }
 

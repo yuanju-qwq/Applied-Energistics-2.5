@@ -79,12 +79,14 @@ public interface ICellRegistry {
     /**
      * Get the GUI handler for the given key type.
      */
+    @Deprecated
     @Nullable
     ICellGuiHandler getGuiHandler(AEKeyType type, ItemStack is);
 
     /**
      * Get the cell's inventory handler for the given key type.
      */
+    @Deprecated
     @Nullable
     ICellInventoryHandler getCellInventory(ItemStack is, ISaveProvider host,
             AEKeyType type);

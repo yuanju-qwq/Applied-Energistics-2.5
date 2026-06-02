@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -12,7 +11,6 @@ import javax.annotation.Nonnull;
 import appeng.api.config.Actionable;
 import appeng.api.stacks.GenericStack;
 import appeng.api.config.FuzzyMode;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
@@ -23,14 +21,13 @@ import appeng.crafting.v2.CraftingRequest;
 import appeng.crafting.v2.CraftingTreeSerializer;
 import appeng.crafting.v2.ITreeSerializable;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
-import appeng.util.item.AEItemStack;
 
 public class ExtractItemResolver implements CraftingRequestResolver {
 
-    public static class ExtractItemTask<StackType extends IAEStack> extends CraftingTask {
+    public static class ExtractItemTask extends CraftingTask {
 
-        public final ArrayList<IAEStack<?>> removedFromSystem = new ArrayList<>();
-        public final ArrayList<IAEStack<?>> removedFromByproducts = new ArrayList<>();
+        public final ArrayList<GenericStack> removedFromSystem = new ArrayList<>();
+        public final ArrayList<GenericStack> removedFromByproducts = new ArrayList<>();
 
         public ExtractItemTask(CraftingRequest request) {
             super(request, CraftingTask.PRIORITY_EXTRACT);
@@ -55,7 +52,6 @@ public class ExtractItemResolver implements CraftingRequestResolver {
         public void loadChildren(List<ITreeSerializable> children) throws IOException {}
 
         @Override
-        @SuppressWarnings("unchecked")
         public StepOutput calculateOneStep(CraftingContext context) {
             state = State.SUCCESS;
             if (request.remainingToProcess <= 0) {
@@ -77,39 +73,35 @@ public class ExtractItemResolver implements CraftingRequestResolver {
             return new StepOutput(Collections.emptyList());
         }
 
-        @SuppressWarnings("unchecked")
-        private void extractExact(CraftingContext context, MECraftingInventory source, List<IAEStack<?>> removedList) {
-            StackType exactMatching = (StackType) source.extractAny(request.stack, Actionable.SIMULATE);
+        private void extractExact(CraftingContext context, MECraftingInventory source, List<GenericStack> removedList) {
+            GenericStack hint = new GenericStack(request.what, request.remainingToProcess);
+            IAEStack<?> exactMatching = source.extractAny(hint.toIAEStack(), Actionable.SIMULATE);
             if (exactMatching != null) {
                 final long requestSize = Math.min(request.remainingToProcess, exactMatching.getStackSize());
-                final StackType extracted = (StackType) source
-                        .extractAny(exactMatching.copy().setStackSize(requestSize), Actionable.MODULATE);
+                final IAEStack<?> extracted = source.extractAny(
+                        exactMatching.copy().setStackSize(requestSize), Actionable.MODULATE);
                 if (extracted != null && extracted.getStackSize() > 0) {
                     extracted.setCraftable(false);
-                    request.fulfill(this, extracted, context);
-                    removedList.add(extracted.copy());
+                    request.fulfill(this, GenericStack.fromIAEStack(extracted), context);
+                    removedList.add(GenericStack.fromIAEStack(extracted));
                 }
             }
         }
 
-        @SuppressWarnings("unchecked")
-        private void extractFuzzy(CraftingContext context, MECraftingInventory source, List<IAEStack<?>> removedList) {
-            Collection<StackType> fuzzyMatching = (Collection<StackType>) (Collection<?>) source.findFuzzyAny(
-                    request.stack, FuzzyMode.IGNORE_ALL);
-            for (final StackType candidate : fuzzyMatching) {
-                if (candidate == null) {
-                    continue;
-                }
-                if (request.acceptableSubstituteFn.test(candidate)) {
+        private void extractFuzzy(CraftingContext context, MECraftingInventory source, List<GenericStack> removedList) {
+            Collection<? extends IAEStackBase> fuzzyMatching = source.findFuzzyAny(
+                    new GenericStack(request.what, request.remainingToProcess).toIAEStack(), FuzzyMode.IGNORE_ALL);
+            for (final IAEStackBase candidateBase : fuzzyMatching) {
+                if (candidateBase == null) continue;
+                IAEStack<?> candidate = (IAEStack<?>) candidateBase;
+                if (request.acceptableSubstituteFn.test(candidate.toAEKey())) {
                     final long requestSize = Math.min(request.remainingToProcess, candidate.getStackSize());
-                    final StackType extracted = (StackType) source
-                            .extractAny(candidate.copy().setStackSize(requestSize), Actionable.MODULATE);
-                    if (extracted == null || extracted.getStackSize() <= 0) {
-                        continue;
-                    }
+                    final IAEStack<?> extracted = source.extractAny(
+                            candidate.copy().setStackSize(requestSize), Actionable.MODULATE);
+                    if (extracted == null || extracted.getStackSize() <= 0) continue;
                     extracted.setCraftable(false);
-                    request.fulfill(this, extracted, context);
-                    removedList.add(extracted.copy());
+                    request.fulfill(this, GenericStack.fromIAEStack(extracted), context);
+                    removedList.add(GenericStack.fromIAEStack(extracted));
                 }
             }
         }
@@ -126,19 +118,18 @@ public class ExtractItemResolver implements CraftingRequestResolver {
             return originalAmount - amount;
         }
 
-        @SuppressWarnings("unchecked")
-        private long partialRefundFrom(CraftingContext context, long amount, List<IAEStack<?>> source,
+        private long partialRefundFrom(CraftingContext context, long amount, List<GenericStack> source,
                 MECraftingInventory target) {
-            final Iterator<IAEStack<?>> removedIt = source.iterator();
+            final java.util.ListIterator<GenericStack> removedIt = source.listIterator();
             while (removedIt.hasNext() && amount > 0) {
-                final IAEStack<?> available = removedIt.next();
-                final long availAmount = available.getStackSize();
+                final GenericStack available = removedIt.next();
+                final long availAmount = available.amount();
                 if (availAmount > amount) {
-                    target.injectItems(new GenericStack(available.toAEKey(), amount), Actionable.MODULATE);
-                    available.setStackSize(availAmount - amount);
+                    target.injectItems(new GenericStack(available.what(), amount), Actionable.MODULATE);
+                    removedIt.set(new GenericStack(available.what(), availAmount - amount));
                     amount = 0;
                 } else {
-                    target.injectItems(new GenericStack(available.toAEKey(), availAmount), Actionable.MODULATE);
+                    target.injectItems(new GenericStack(available.what(), availAmount), Actionable.MODULATE);
                     amount -= availAmount;
                     removedIt.remove();
                 }
@@ -148,37 +139,31 @@ public class ExtractItemResolver implements CraftingRequestResolver {
 
         @Override
         public void fullRefund(CraftingContext context) {
-            for (IAEStack<?> removed : removedFromByproducts) {
-                context.byproductsInventory.injectItems(
-                        new GenericStack(removed.toAEKey(), removed.getStackSize()), Actionable.MODULATE);
+            for (GenericStack removed : new ArrayList<>(removedFromByproducts)) {
+                context.byproductsInventory.injectItems(removed, Actionable.MODULATE);
             }
-            for (IAEStack<?> removed : removedFromSystem) {
-                context.itemModel.injectItems(
-                        new GenericStack(removed.toAEKey(), removed.getStackSize()), Actionable.MODULATE);
+            for (GenericStack removed : new ArrayList<>(removedFromSystem)) {
+                context.itemModel.injectItems(removed, Actionable.MODULATE);
             }
             removedFromSystem.clear();
+            removedFromByproducts.clear();
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         public void populatePlan(IItemList<IAEStackBase> targetPlan) {
-            for (IAEStack<?> removed : removedFromSystem) {
-                targetPlan.add(removed.copy());
+            for (GenericStack removed : removedFromSystem) {
+                targetPlan.add(removed.toIAEStack());
             }
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         public void startOnCpu(CraftingContext context, CraftingCPUCluster cpuCluster,
                 MECraftingInventory craftingInv) {
-            for (IAEStack stack : removedFromSystem) {
-                if (stack.getStackSize() > 0) {
-                    IAEStack<?> extracted = craftingInv.extractAny(stack, Actionable.MODULATE);
-                    if (extracted == null || extracted.getStackSize() != stack.getStackSize()) {
-                        final IAEItemStack missing = stack instanceof IAEItemStack itemStack
-                                ? itemStack
-                                : AEItemStack.fromItemStack(stack.asItemStackRepresentation());
-                        throw new IllegalStateException(new CraftBranchFailure(missing, stack.getStackSize()));
+            for (GenericStack stack : removedFromSystem) {
+                if (stack.amount() > 0) {
+                    IAEStack<?> extracted = craftingInv.extractAny(stack.toIAEStack(), Actionable.MODULATE);
+                    if (extracted == null || extracted.getStackSize() != stack.amount()) {
+                        throw new IllegalStateException(new CraftBranchFailure(stack));
                     }
                     cpuCluster.addStorage(extracted);
                 }
