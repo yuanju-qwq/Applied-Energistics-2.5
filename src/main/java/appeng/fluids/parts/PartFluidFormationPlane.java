@@ -41,6 +41,7 @@ import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.IConfigurableAEStackInventory;
 import appeng.fluids.helper.IConfigurableFluidInventory;
+import appeng.api.stacks.AEKeyType;
 import appeng.fluids.util.AEFluidStackType;
 import appeng.items.parts.PartModels;
 import appeng.me.GridAccessException;
@@ -52,7 +53,7 @@ import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.prioritylist.PrecisePriorityList;
 
-public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluidStack>
+public class PartFluidFormationPlane extends PartAbstractFormationPlane
         implements IIAEStackInventory, IConfigurableFluidInventory, IConfigurableAEStackInventory {
     private static final PlaneModels MODELS = new PlaneModels("part/fluid_formation_plane_",
             "part/fluid_formation_plane_on_");
@@ -63,7 +64,7 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
     }
 
     private final MEInventoryHandler myHandler = new MEInventoryHandler(this,
-            AEFluidStackType.INSTANCE);
+            AEKeyType.fluids());
     private final IAEStackInventory config = new IAEStackInventory(this, 63, StorageName.CONFIG);
 
     public PartFluidFormationPlane(final ItemStack is) {
@@ -78,7 +79,7 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
                 this.getInstalledUpgrades(Upgrades.INVERTER) > 0 ? IncludeExclude.BLACKLIST : IncludeExclude.WHITELIST);
         this.myHandler.setPriority(this.getPriority());
 
-        final IItemList<IAEFluidStack> priorityList = AEFluidStackType.INSTANCE.createList();
+        final IItemList<IAEFluidStack> priorityList = new FluidList();
 
         final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
         for (int x = 0; x < this.config.size() && x < slotsToUse; x++) {
@@ -98,8 +99,8 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
     }
 
     @Override
-    public IAEFluidStack injectItems(IAEFluidStack input, Actionable type, IActionSource src) {
-        if (this.blocked || input == null || input.getStackSize() < Fluid.BUCKET_VOLUME) {
+    public GenericStack injectItems(GenericStack input, Actionable type, IActionSource src) {
+        if (this.blocked || input == null || input.amount() < Fluid.BUCKET_VOLUME) {
             // need a full bucket
             return input;
         }
@@ -112,7 +113,9 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
 
         if (this.canReplace(w, state, state.getBlock(), pos)) {
             if (type == Actionable.MODULATE) {
-                final FluidStack fs = input.getFluidStack();
+                IAEFluidStack aeFluid = (IAEFluidStack) input.toIAEStack();
+                if (aeFluid == null) return input;
+                final FluidStack fs = aeFluid.getFluidStack();
                 fs.amount = Fluid.BUCKET_VOLUME;
 
                 final FluidTank tank = new FluidTank(fs, Fluid.BUCKET_VOLUME);
@@ -120,9 +123,8 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
                     return input;
                 }
             }
-            final IAEFluidStack ret = input.copy();
-            ret.setStackSize(input.getStackSize() - Fluid.BUCKET_VOLUME);
-            return ret.getStackSize() == 0 ? null : ret;
+            final long remaining = input.amount() - Fluid.BUCKET_VOLUME;
+            return remaining == 0 ? null : new GenericStack(input.what(), remaining);
         }
         this.blocked = true;
         return input;
@@ -181,14 +183,14 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane<IAEFluid
     }
 
     @Override
-    public IAEStackType<IAEFluidStack> getStackType() {
-        return AEFluidStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.fluids();
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<IMEInventoryHandler> getCellArray(final IAEStackType<?> type) {
-        if (type == AEFluidStackType.INSTANCE) {
+    public List<IMEInventoryHandler> getCellArray(final AEKeyType type) {
+        if (type == AEKeyType.fluids()) {
             final List<IMEInventoryHandler> handler = new ArrayList<>(1);
             handler.add((IMEInventoryHandler) this.myHandler);
             return handler;

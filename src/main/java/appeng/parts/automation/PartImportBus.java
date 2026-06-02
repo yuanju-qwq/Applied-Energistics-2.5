@@ -86,7 +86,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
         try {
             final IMEMonitor inv = this.getProxy()
                     .getStorage()
-                    .getInventory(AEItemStackType.INSTANCE);
+                    .getInventory(AEKeyType.items());
 
             final GenericStack out = inv.injectItems(
                     GenericStack.fromItemStack(stack),
@@ -138,7 +138,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
 
                 final IMEMonitor inv = this.getProxy()
                         .getStorage()
-                        .getInventory(AEItemStackType.INSTANCE);
+                        .getInventory(AEKeyType.items());
                 final IEnergyGrid energy = this.getProxy().getEnergy();
 
                 boolean Configured = false;
@@ -191,8 +191,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
         }
 
         if (!newItems.isEmpty()) {
-            final IAEItemStack aeStack = AEItemStackType.INSTANCE
-                    .createStack(newItems);
+            final IAEItemStack aeStack = AEItemStack.fromItemStack(newItems);
             final GenericStack failed = appeng.util.StorageHelper.poweredInsert(energy, inv,
                     new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()), this.source);
 

@@ -38,6 +38,9 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
@@ -116,7 +119,7 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
         try {
             final InventoryAdaptor destination = this.getHandler();
             final IMEMonitor inv = this.getProxy().getStorage()
-                    .getInventory(AEItemStackType.INSTANCE);
+                    .getInventory(AEKeyType.items());
             final IEnergyGrid energy = this.getProxy().getEnergy();
             final ICraftingGrid cg = this.getProxy().getCrafting();
             final FuzzyMode fzMode = (FuzzyMode) this.getConfigManager().getSetting(Settings.FUZZY_MODE);
@@ -146,18 +149,30 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
                     final long before = this.itemToSend;
 
                     if (this.getInstalledUpgrades(Upgrades.FUZZY) > 0) {
-                        for (final IAEItemStack o : ImmutableList.copyOf(inv.getStorageList().findFuzzy(ais, fzMode))) {
-                            if (o.getStackSize() > 0) {
-                                this.pushItemIntoTarget(destination, energy, inv, o);
-                                if (this.itemToSend <= 0) {
-                                    break;
+                        AEKey searchKey = ais.toAEKey();
+                        if (searchKey instanceof AEItemKey itemKey) {
+                            for (var entry : ImmutableList.copyOf(inv.getKeyCounter().findFuzzy(itemKey, fzMode))) {
+                                if (entry.getLongValue() > 0) {
+                                    IAEItemStack o = (IAEItemStack) entry.getKey().toIAEStack(entry.getLongValue());
+                                    if (o != null) {
+                                        this.pushItemIntoTarget(destination, energy, inv, o);
+                                        if (this.itemToSend <= 0) {
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }
                     } else {
-                        final IAEItemStack o = inv.getStorageList().findPrecise(ais);
-                        if (o != null && o.getStackSize() > 0) {
-                            this.pushItemIntoTarget(destination, energy, inv, o);
+                        AEKey searchKey = ais.toAEKey();
+                        if (searchKey != null) {
+                            long amount = inv.getKeyCounter().get(searchKey);
+                            if (amount > 0) {
+                                IAEItemStack o = (IAEItemStack) searchKey.toIAEStack(amount);
+                                if (o != null) {
+                                    this.pushItemIntoTarget(destination, energy, inv, o);
+                                }
+                            }
                         }
                     }
 

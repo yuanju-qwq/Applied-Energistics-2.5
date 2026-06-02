@@ -60,8 +60,8 @@ public final class ItemConversionMonitorHandler implements IConversionMonitorHan
 
     @Nonnull
     @Override
-    public IAEStackType getStackType() {
-        return AEItemStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     // Items don't have a "container" concept for conversion monitor interactions

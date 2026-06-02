@@ -11,6 +11,7 @@ import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEItemStack;
@@ -37,8 +38,8 @@ public class AppEngNetworkInventory extends AppEngInternalOversizedInventory {
         IStorageGrid storage = supplier.get();
         if (storage != null) {
             int originAmt = stack.getCount();
-            IMEInventory<IAEItemStack> dest = storage
-                    .getInventory(AEItemStackType.INSTANCE);
+            IMEInventory dest = storage
+                    .getInventory(AEKeyType.items());
             GenericStack overflow = dest.injectItems(GenericStack.fromItemStack(stack),
                     simulate ? Actionable.SIMULATE : Actionable.MODULATE, this.source);
             if (overflow != null && overflow.amount() == originAmt) {

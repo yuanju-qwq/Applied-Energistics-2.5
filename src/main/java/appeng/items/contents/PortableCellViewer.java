@@ -48,7 +48,7 @@ public class PortableCellViewer extends MEMonitorHandler implements IPortableCel
 
     public PortableCellViewer(final ItemStack is, final int slot) {
         super(AEApi.instance().registries().cell().getCellInventory(is, null,
-                AEItemStackType.INSTANCE));
+                AEKeyType.items()));
         this.ips = (IAEItemPowerStorage) is.getItem();
         this.target = is;
         this.inventorySlot = slot;
@@ -141,7 +141,7 @@ public class PortableCellViewer extends MEMonitorHandler implements IPortableCel
 
     @Override
     public IMEMonitor getInventory(AEKeyType type) {
-        if (type == AEItemStackType.INSTANCE) {
+        if (type == AEKeyType.items()) {
             return this;
         }
         return null;

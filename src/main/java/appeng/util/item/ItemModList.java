@@ -28,7 +28,7 @@ import appeng.util.item.AEItemStackType;
 public class ItemModList implements IItemContainer<IAEItemStack> {
 
     private final IItemContainer<IAEItemStack> backingStore;
-    private final IItemContainer<IAEItemStack> overrides = AEItemStackType.INSTANCE.createList();
+    private final IItemContainer<IAEItemStack> overrides = new ItemList();
 
     public ItemModList(final IItemContainer<IAEItemStack> backend) {
         this.backingStore = backend;

@@ -50,7 +50,7 @@ public class SlotPatternTerm extends SlotCraftingTerm {
     public AppEngPacket getRequest(final boolean shift) throws IOException {
         return new PacketPatternSlot(this
                 .getPattern(),
-                AEItemStackType.INSTANCE.createStack(this.getStack()),
+                AEItemStack.fromItemStack(this.getStack()),
                 shift);
     }
 

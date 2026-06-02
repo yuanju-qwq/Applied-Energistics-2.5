@@ -27,8 +27,7 @@ import com.google.common.base.Verify;
 import net.minecraft.item.ItemStack;
 
 import appeng.api.storage.*;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 
 public class CellRegistry implements ICellRegistry {
 
@@ -79,8 +78,8 @@ public class CellRegistry implements ICellRegistry {
     }
 
     @Override
-    public <T extends IAEStack<T>> ICellInventoryHandler getCellInventory(final ItemStack is,
-            final ISaveProvider container, final IAEStackType<T> type) {
+    public ICellInventoryHandler getCellInventory(final ItemStack is,
+            final ISaveProvider container, final AEKeyType type) {
         if (is.isEmpty()) {
             return null;
         }
@@ -98,7 +97,7 @@ public class CellRegistry implements ICellRegistry {
     }
 
     @Override
-    public <T extends IAEStack<T>> ICellGuiHandler getGuiHandler(final IAEStackType<T> type, final ItemStack is) {
+    public ICellGuiHandler getGuiHandler(final AEKeyType type, final ItemStack is) {
         ICellGuiHandler fallBack = null;
 
         for (final ICellGuiHandler ch : this.guiHandlers) {

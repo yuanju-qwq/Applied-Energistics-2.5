@@ -21,8 +21,7 @@ package appeng.core.features.registries.cell;
 import net.minecraft.item.ItemStack;
 
 import appeng.api.storage.*;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 import appeng.me.storage.BasicCellInventory;
 import appeng.me.storage.BasicCellInventoryHandler;
 
@@ -34,13 +33,13 @@ public class BasicCellHandler implements ICellHandler {
     }
 
     @Override
-    public <T extends IAEStack<T>> ICellInventoryHandler getCellInventory(final ItemStack is,
-            final ISaveProvider container, final IAEStackType<T> type) {
+    public ICellInventoryHandler getCellInventory(final ItemStack is,
+            final ISaveProvider container, final AEKeyType type) {
         final ICellInventory inv = BasicCellInventory.createInventory(is, container);
-        if (inv == null || inv.getStackType() != type) {
+        if (inv == null || inv.getKeyType() != type) {
             return null;
         }
-        return new BasicCellInventoryHandler<>(inv, type);
+        return new BasicCellInventoryHandler(inv, type);
     }
 
 }

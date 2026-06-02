@@ -29,6 +29,7 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEInventoryHandler;
+import appeng.api.storage.data.IAEStack;
 import appeng.util.prioritylist.DefaultPriorityList;
 import appeng.util.prioritylist.IPartitionList;
 
@@ -151,7 +152,7 @@ public class MEInventoryHandler implements IMEInventoryHandler {
     @Override
     public boolean isPrioritized(final AEKey input) {
         if (this.myWhitelist == IncludeExclude.WHITELIST) {
-            return this.myPartitionList.isListed(input) || this.internal.isPrioritized(input);
+            return this.myPartitionList.isListed((IAEStack) input.toIAEStack(1)) || this.internal.isPrioritized(input);
         }
         return false;
     }
@@ -215,8 +216,8 @@ public class MEInventoryHandler implements IMEInventoryHandler {
         }
 
         return switch (this.myWhitelist) {
-            case WHITELIST -> this.myPartitionList.isListed(input);
-            case BLACKLIST -> !this.myPartitionList.isListed(input);
+            case WHITELIST -> this.myPartitionList.isListed((IAEStack) input.toIAEStack(1));
+            case BLACKLIST -> !this.myPartitionList.isListed((IAEStack) input.toIAEStack(1));
         };
     }
 

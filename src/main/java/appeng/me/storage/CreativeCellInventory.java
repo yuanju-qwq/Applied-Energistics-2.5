@@ -23,18 +23,22 @@ import net.minecraft.item.ItemStack;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.items.contents.CellConfig;
 import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
-public class CreativeCellInventory implements IMEInventoryHandler<IAEItemStack> {
+@SuppressWarnings("rawtypes")
+public class CreativeCellInventory implements IMEInventoryHandler {
 
-    private final IItemList<IAEItemStack> itemListCache = AEItemStackType.INSTANCE.createList();
+    private final IItemList itemListCache = new ItemList();
 
     protected CreativeCellInventory(final ItemStack o) {
         final CellConfig cc = new CellConfig(o);
@@ -47,42 +51,46 @@ public class CreativeCellInventory implements IMEInventoryHandler<IAEItemStack> 
         }
     }
 
-    public static ICellInventoryHandler<IAEItemStack> getCell(final ItemStack o) {
-        return new BasicCellInventoryHandler<>(new CreativeCellInventory(o),
-                AEItemStackType.INSTANCE);
+    public static ICellInventoryHandler getCell(final ItemStack o) {
+        return new BasicCellInventoryHandler(new CreativeCellInventory(o),
+                AEKeyType.items());
     }
 
     @Override
-    public IAEItemStack injectItems(final IAEItemStack input, final Actionable mode, final IActionSource src) {
-        final IAEItemStack local = this.itemListCache.findPrecise(input);
-        if (local == null) {
-            return input;
+    public GenericStack injectItems(final GenericStack input, final Actionable mode, final IActionSource src) {
+        if (input == null) return null;
+        if (this.itemListCache.findPreciseGeneric(input.what()) != null) {
+            return null; // accepted
         }
-
-        return null;
+        return input; // rejected
     }
 
     @Override
-    public IAEItemStack extractItems(final IAEItemStack request, final Actionable mode, final IActionSource src) {
-        final IAEItemStack local = this.itemListCache.findPrecise(request);
-        if (local == null) {
+    public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
+        if (request == null) return null;
+        if (this.itemListCache.findPreciseGeneric(request.what()) == null) {
             return null;
         }
-
-        return request.copy();
+        return request;
     }
 
     @Override
-    public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
-        for (final IAEItemStack ais : this.itemListCache) {
-            out.add(ais);
+    public KeyCounter getAvailableKeyCounter() {
+        KeyCounter kc = new KeyCounter();
+        for (final Object ais : this.itemListCache) {
+            if (ais instanceof IAEItemStack itemStack) {
+                AEItemKey key = (AEItemKey) itemStack.toAEKey();
+                if (key != null) {
+                    kc.add(key, itemStack.getStackSize());
+                }
+            }
         }
-        return out;
+        return kc;
     }
 
     @Override
-    public IAEStackType<IAEItemStack> getStackType() {
-        return AEItemStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     @Override
@@ -91,13 +99,13 @@ public class CreativeCellInventory implements IMEInventoryHandler<IAEItemStack> 
     }
 
     @Override
-    public boolean isPrioritized(final IAEItemStack input) {
-        return this.itemListCache.findPrecise(input) != null;
+    public boolean isPrioritized(final AEKey input) {
+        return this.itemListCache.findPreciseGeneric(input) != null;
     }
 
     @Override
-    public boolean canAccept(final IAEItemStack input) {
-        return this.itemListCache.findPrecise(input) != null;
+    public boolean canAccept(final AEKey input) {
+        return this.itemListCache.findPreciseGeneric(input) != null;
     }
 
     @Override

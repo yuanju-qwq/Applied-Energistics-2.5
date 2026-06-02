@@ -39,9 +39,9 @@ public class JEIMissingItem implements IRecipeTransferError {
     private final List<Integer> craftableSlots = new ArrayList<>();
     private final List<Integer> foundSlots = new ArrayList<>();
 
-    IItemList<IAEItemStack> available = AEItemStackType.INSTANCE.createList();
+    IItemList<IAEItemStack> available = new ItemList();
 
-    IItemList<IAEItemStack> used = AEItemStackType.INSTANCE.createList();
+    IItemList<IAEItemStack> used = new ItemList();
 
     JEIMissingItem(Container container, @Nonnull IRecipeLayout recipeLayout) {
         if (container instanceof ContainerMEMonitorable) {
@@ -53,7 +53,7 @@ public class JEIMissingItem implements IRecipeTransferError {
             this.errored = false;
             recipeLayout.getItemStacks().addTooltipCallback(new CraftableCallBack(container, available));
 
-            IItemList<IAEItemStack> used = AEItemStackType.INSTANCE.createList();
+            IItemList<IAEItemStack> used = new ItemList();
             for (IGuiIngredient<?> i : recipeLayout.getItemStacks().getGuiIngredients().values()) {
                 found = false;
                 if (i.isInput() && !i.getAllIngredients().isEmpty()) {
@@ -148,7 +148,7 @@ public class JEIMissingItem implements IRecipeTransferError {
             for (IGuiIngredient<?> i : recipeLayout.getItemStacks().getGuiIngredients().values()) {
                 found = false;
                 craftable = false;
-                IItemList<IAEItemStack> valid = AEItemStackType.INSTANCE.createList();
+                IItemList<IAEItemStack> valid = new ItemList();
                 if (i.isInput()) {
                     List<?> allIngredients = i.getAllIngredients();
                     for (Object allIngredient : allIngredients) {
@@ -251,7 +251,7 @@ public class JEIMissingItem implements IRecipeTransferError {
 
     IItemList<IAEItemStack> mergeInventories(IItemList<IAEItemStack> repo,
             ContainerMEMonitorable containerCraftingTerm) {
-        IItemList<IAEItemStack> itemList = AEItemStackType.INSTANCE.createList();
+        IItemList<IAEItemStack> itemList = new ItemList();
         for (IAEItemStack i : repo) {
             itemList.addStorage(i);
         }

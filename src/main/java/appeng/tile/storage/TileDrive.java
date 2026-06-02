@@ -38,8 +38,7 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.*;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
@@ -63,7 +62,7 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
     private final DriveWatcher[] invBySlot = new DriveWatcher[10];
     private final IActionSource mySrc;
     private boolean isCached = false;
-    private final Map<IAEStackType<?>, List<IMEInventoryHandler>> inventoryHandlers;
+    private final Map<AEKeyType, List<IMEInventoryHandler>> inventoryHandlers;
     private int priority = 0;
     private boolean wasActive = false;
     private final DriveCellManager cellManager;
@@ -239,14 +238,8 @@ public class TileDrive extends AENetworkInvTile implements IChestOrDrive, IPrior
     }
 
     @Override
-    public void onReady() {
-        super.onReady();
-        this.updateState();
-    }
-
-    @Override
     @SuppressWarnings("unchecked")
-    public <T extends IAEStack<T>> List<IMEInventoryHandler> getCellArray(final IAEStackType<T> type) {
+    public List<IMEInventoryHandler> getCellArray(final AEKeyType type) {
         this.updateState();
         final List<IMEInventoryHandler> handlers = this.inventoryHandlers.get(type);
         if (handlers == null) {

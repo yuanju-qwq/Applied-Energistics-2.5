@@ -30,12 +30,12 @@ import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IUpgradeModule;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.ICellInventory;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
@@ -47,16 +47,17 @@ import appeng.util.prioritylist.PrecisePriorityList;
  * @version rv6 - 2018-01-23
  * @since rv6 2018-01-23
  */
-public class BasicCellInventoryHandler<T extends IAEStack<T>> extends MEInventoryHandler<T>
-        implements ICellInventoryHandler<T> {
+@SuppressWarnings("rawtypes")
+public class BasicCellInventoryHandler extends MEInventoryHandler
+        implements ICellInventoryHandler {
 
     @SuppressWarnings("unchecked")
-    public BasicCellInventoryHandler(final IMEInventory<T> c, final IAEStackType<T> type) {
+    public BasicCellInventoryHandler(final IMEInventory c, final AEKeyType type) {
         super(c, type);
 
         final ICellInventory ci = this.getCellInv();
         if (ci != null) {
-            final IItemList<T> priorityList = type.createList();
+            final IItemList priorityList = ci.getStackType().createList();
 
             final IItemHandler upgrades = ci.getUpgradesInventory();
             final IAEStackInventory config = ci.getConfigAEInventory();
@@ -103,7 +104,7 @@ public class BasicCellInventoryHandler<T extends IAEStack<T>> extends MEInventor
                 for (int x = 0; x < config.getSizeInventory(); x++) {
                     final GenericStack gs = config.getGenericStack(x);
                     if (gs != null && gs.what() instanceof AEItemKey itemKey) {
-                        final T configItem = type.createStack(itemKey.toStack());
+                        final IAEStack configItem = ci.getStackType().createStack(itemKey.toStack());
                         if (configItem != null) {
                             priorityList.add(configItem);
                         }
@@ -158,12 +159,12 @@ public class BasicCellInventoryHandler<T extends IAEStack<T>> extends MEInventor
     }
 
     @Override
-    protected boolean canExtract(T request) {
+    protected boolean canExtract(AEKey request) {
         return this.hasReadAccess();
     }
 
     @Override
-    protected boolean shouldItemBeAvailable(T request) {
+    protected boolean shouldItemBeAvailable(AEKey request) {
         return this.hasReadAccess();
     }
 }

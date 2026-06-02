@@ -81,7 +81,7 @@ public class ToolPortableCell extends AEBasePoweredItem implements IStorageCell<
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,
-                        AEItemStackType.INSTANCE);
+                        AEKeyType.items());
 
         AEApi.instance().client().addCellInformation(cdi, lines);
     }

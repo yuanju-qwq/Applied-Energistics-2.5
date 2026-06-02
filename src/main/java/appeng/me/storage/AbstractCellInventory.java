@@ -28,13 +28,13 @@ import java.util.Set;
 import appeng.api.config.FuzzyMode;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.api.storage.AEKeyFilter;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ISaveProvider;
-import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IItemList;
 import appeng.util.Platform;
@@ -44,7 +44,8 @@ import appeng.util.Platform;
  * @version rv6 - 2018-01-17
  * @since rv6 2018-01-17
  */
-public abstract class AbstractCellInventory<T extends IAEStack<T>> implements ICellInventory<T> {
+@SuppressWarnings("rawtypes")
+public abstract class AbstractCellInventory implements ICellInventory {
     private static final int MAX_ITEM_TYPES = 63;
     private static final String ITEM_TYPE_TAG = "it";
     private static final String ITEM_COUNT_TAG = "ic";
@@ -61,7 +62,7 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
     private int maxItemTypes = MAX_ITEM_TYPES;
     private short storedItemTypes = 0;
     private long storedItemCount = 0;
-    protected IItemList<T> cellItems;
+    protected IItemList cellItems;
 
     /**
      * AEKey-based primary storage. All mutating operations go through this counter.
@@ -76,7 +77,7 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
     private boolean cellItemsDirty = false;
 
     private final ItemStack i;
-    protected final IStorageCell<T> cellType;
+    protected final IStorageCell<?> cellType;
     protected final int itemsPerByte;
     private boolean isPersisted = true;
 
@@ -87,7 +88,7 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
         }
     }
 
-    protected AbstractCellInventory(final IStorageCell<T> cellType, final ItemStack o, final ISaveProvider container) {
+    protected AbstractCellInventory(final IStorageCell<?> cellType, final ItemStack o, final ISaveProvider container) {
         this.i = o;
         this.cellType = cellType;
         this.itemsPerByte = this.cellType.getStackType().getUnitsPerByte();
@@ -149,10 +150,12 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
             this.cellKeyCounter = new KeyCounter();
             // Populate from cellItems if already loaded
             if (this.cellItems != null) {
-                for (final T v : this.cellItems) {
-                    AEKey key = v.toAEKey();
-                    if (key != null) {
-                        this.cellKeyCounter.set(key, v.getStackSize());
+                for (final Object v : this.cellItems) {
+                    if (v instanceof IAEStack stack) {
+                        AEKey key = stack.toAEKey();
+                        if (key != null) {
+                            this.cellKeyCounter.set(key, stack.getStackSize());
+                        }
                     }
                 }
             }
@@ -172,8 +175,7 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
             if (amount <= 0) {
                 continue;
             }
-            @SuppressWarnings("unchecked")
-            T stack = (T) key.toIAEStack(amount);
+            IAEStack stack = (IAEStack) key.toIAEStack(amount);
             if (stack != null) {
                 this.cellItems.add(stack);
             }
@@ -181,7 +183,7 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
         this.cellItemsDirty = false;
     }
 
-    protected IItemList<T> getCellItems() {
+    protected IItemList getCellItems() {
         if (this.cellItems == null) {
             this.cellItems = this.getStackType().createList();
             this.loadCellItems();
@@ -303,7 +305,9 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
     protected abstract boolean loadCellItem(NBTTagCompound compoundTag, long stackSize);
 
     @Override
-    public abstract IAEStackType<T> getStackType();
+    public AEKeyType getKeyType() {
+        return AEKeyType.fromLegacyType(this.cellType.getStackType());
+    }
 
     /**
      * @return the AEKey-based {@link KeyCounter} of all stored items
@@ -316,17 +320,15 @@ public abstract class AbstractCellInventory<T extends IAEStack<T>> implements IC
      * @deprecated Use {@link #getAvailableKeyCounter()} instead.
      * Fills the provided legacy IItemList from the internal KeyCounter.
      */
-    @Override
     @Deprecated
-    public IItemList<T> getAvailableItems(final IItemList<T> out) {
+    public IItemList getAvailableItems(final IItemList out) {
         for (var entry : this.getKeyCounter()) {
             AEKey key = entry.getKey();
             long amount = entry.getLongValue();
             if (amount <= 0) {
                 continue;
             }
-            @SuppressWarnings("unchecked")
-            T stack = (T) key.toIAEStack(amount);
+            IAEStack stack = (IAEStack) key.toIAEStack(amount);
             if (stack != null) {
                 out.add(stack);
             }

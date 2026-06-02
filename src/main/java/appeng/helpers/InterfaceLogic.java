@@ -141,9 +141,9 @@ public class InterfaceLogic
 
     // --- ME 网络存储代理 ---
     private final MEMonitorPassThrough items = new MEMonitorPassThrough(
-            new NullInventory(), AEItemStackType.INSTANCE);
+            new NullInventory(), AEKeyType.items());
     private final MEMonitorPassThrough fluids = new MEMonitorPassThrough(
-            new NullInventory(), AEFluidStackType.INSTANCE);
+            new NullInventory(), AEKeyType.fluids());
 
     // --- Capability ---
     private final IStorageMonitorableAccessor accessor = this::getMonitorable;
@@ -296,7 +296,7 @@ public class InterfaceLogic
             for (int x = 0; x < NUMBER_OF_CONFIG_SLOTS; x++) {
                 GenericStack gs = this.config.getGenericStack(x);
                 IAEStack<?> cfg = gs != null ? gs.toIAEStack() : null;
-                if (cfg != null && InterfaceSlotHandlerRegistry.hasHandler(cfg.getStackTypeBase())) {
+                if (cfg != null && InterfaceSlotHandlerRegistry.hasHandler(AEKeyType.fromLegacyType(cfg.getStackType()))) {
                     this.updatePlan(x);
                 }
             }
@@ -363,9 +363,10 @@ public class InterfaceLogic
             if (cfg != null) {
                 IAEStackType<?> type = cfg.getStackTypeBase();
                 this.configuredTypes.add(type);
-                if (type == AEItemStackType.INSTANCE) {
+                AEKeyType keyType = AEKeyType.fromLegacyType(type);
+                if (keyType == AEKeyType.items()) {
                     this.hasItemConfig = true;
-                } else if (type == AEFluidStackType.INSTANCE) {
+                } else if (keyType == AEKeyType.fluids()) {
                     this.hasFluidConfig = true;
                 }
             }
@@ -399,7 +400,7 @@ public class InterfaceLogic
 
         if (cfg != null) {
             // Dispatch to the registered handler for this type
-            IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(cfg);
+            IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(AEKeyType.fromLegacyType(cfg.getStackType()));
             if (handler != null) {
                 this.requireWork[slot] = handler.computePlan(slot, cfg, this);
             } else {
@@ -411,7 +412,7 @@ public class InterfaceLogic
             final IAEFluidStack storedFluid = this.fluidTanks.getFluidInSlot(slot);
 
             if (!storedItem.isEmpty()) {
-                final IAEItemStack work = AEItemStackType.INSTANCE.createStack(storedItem);
+                final IAEItemStack work = AEItemStack.fromItemStack(storedItem);
                 this.requireWork[slot] = work.setStackSize(-work.getStackSize());
             } else if (storedFluid != null && storedFluid.getStackSize() > 0) {
                 final IAEFluidStack work = storedFluid.copy();
@@ -434,7 +435,7 @@ public class InterfaceLogic
 
         for (int x = 0; x < NUMBER_OF_CONFIG_SLOTS; x++) {
             if (this.requireWork[x] != null) {
-                IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(this.requireWork[x]);
+                IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(AEKeyType.fromLegacyType(this.requireWork[x].getStackType()));
                 if (handler != null) {
                     this.isWorkingSlot = x;
                     boolean changed = handler.executePlan(x, this.requireWork[x], this);
@@ -540,9 +541,8 @@ public class InterfaceLogic
         try {
             return this.gridProxy.getStorage().getInventory(type);
         } catch (final GridAccessException e) {
-            return (IMEMonitor) new NullInventory();
+            return null;
         }
-    }
     }
 
     // ========== IGridTickable ==========
@@ -581,29 +581,29 @@ public class InterfaceLogic
         // Check if there's a config for this type and use handler-provided monitor
         IAEStackType<?> legacyType = AEStackTypeRegistry.getType(type.getId());
         if (legacyType != null && this.configuredTypes.contains(legacyType)) {
-            IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(legacyType);
+            IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(type);
             if (handler != null) {
-                if (type == AEItemStackType.INSTANCE) {
+                if (type == AEKeyType.items()) {
                     if (resetItemConfigCache) {
                         resetItemConfigCache = false;
-                        itemConfigCachedHandler = (IMEMonitor) handler.createConfiguredMonitor(this);
+                        itemConfigCachedHandler = handler.createConfiguredMonitor(this);
                     }
-                    return (IMEMonitor) itemConfigCachedHandler;
-                } else if (type == AEFluidStackType.INSTANCE) {
+                    return itemConfigCachedHandler;
+                } else if (type == AEKeyType.fluids()) {
                     if (resetFluidConfigCache) {
                         resetFluidConfigCache = false;
-                        fluidConfigCachedHandler = (IMEMonitor) handler.createConfiguredMonitor(this);
+                        fluidConfigCachedHandler = handler.createConfiguredMonitor(this);
                     }
-                    return (IMEMonitor) fluidConfigCachedHandler;
+                    return fluidConfigCachedHandler;
                 }
             }
         }
 
         // No config for this type: pass through to network
-        if (type == AEItemStackType.INSTANCE) {
-            return (IMEMonitor) this.items;
-        } else if (type == AEFluidStackType.INSTANCE) {
-            return (IMEMonitor) this.fluids;
+        if (type == AEKeyType.items()) {
+            return this.items;
+        } else if (type == AEKeyType.fluids()) {
+            return this.fluids;
         }
         return null;
     }
@@ -648,8 +648,8 @@ public class InterfaceLogic
 
     public void gridChanged() {
         try {
-            this.items.setInternal(this.gridProxy.getStorage().getInventory(AEItemStackType.INSTANCE));
-            this.fluids.setInternal(this.gridProxy.getStorage().getInventory(AEFluidStackType.INSTANCE));
+            this.items.setInternal(this.gridProxy.getStorage().getInventory(AEKeyType.items()));
+            this.fluids.setInternal(this.gridProxy.getStorage().getInventory(AEKeyType.fluids()));
         } catch (final GridAccessException gae) {
             this.items.setInternal(new NullInventory());
             this.fluids.setInternal(new NullInventory());

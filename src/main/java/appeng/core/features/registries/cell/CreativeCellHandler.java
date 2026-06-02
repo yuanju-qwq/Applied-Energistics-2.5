@@ -20,14 +20,12 @@ package appeng.core.features.registries.cell;
 
 import net.minecraft.item.ItemStack;
 
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.ICellHandler;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.ISaveProvider;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.items.storage.ItemCreativeStorageCell;
 import appeng.me.storage.CreativeCellInventory;
-import appeng.util.item.AEItemStackType;
 
 public final class CreativeCellHandler implements ICellHandler {
 
@@ -37,22 +35,12 @@ public final class CreativeCellHandler implements ICellHandler {
     }
 
     @Override
-    public <T extends IAEStack<T>> ICellInventoryHandler getCellInventory(final ItemStack is, final ISaveProvider container,
-            final IAEStackType<T> type) {
-        if (type == AEItemStackType.INSTANCE && !is.isEmpty() && is
+    public ICellInventoryHandler getCellInventory(final ItemStack is, final ISaveProvider container,
+            final AEKeyType type) {
+        if (type == AEKeyType.items() && !is.isEmpty() && is
                 .getItem() instanceof ItemCreativeStorageCell) {
             return (ICellInventoryHandler) CreativeCellInventory.getCell(is);
         }
         return null;
-    }
-
-    @Override
-    public <T extends IAEStack<T>> int getStatusForCell(final ItemStack is, final ICellInventoryHandler handler) {
-        return 2;
-    }
-
-    @Override
-    public <T extends IAEStack<T>> double cellIdleDrain(final ItemStack is, final ICellInventoryHandler handler) {
-        return 0;
     }
 }

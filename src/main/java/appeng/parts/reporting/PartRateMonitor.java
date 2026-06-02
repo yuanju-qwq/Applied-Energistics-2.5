@@ -47,6 +47,9 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
@@ -300,14 +303,17 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     /**
      * Update current inventory amount.
      */
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void updateCurrentAmount() {
+    private void updateCurrentAmount() {
         try {
             if (this.configured != null) {
-                final IAEStackType<?> stackType = this.configured.getStackTypeBase();
-                final IMEMonitor<T> inv = (IMEMonitor<T>) this.getProxy().getStorage().getInventory(stackType);
-                final T found = inv.getStorageList().findPrecise((T) this.configured);
-                this.currentAmount = found != null ? found.getStackSize() : 0;
+                final AEKeyType keyType = AEKeyType.fromLegacyType(this.configured.getStackType());
+                final IMEMonitor inv = this.getProxy().getStorage().getInventory(keyType);
+                AEKey searchKey = this.configured.toAEKey();
+                if (searchKey != null) {
+                    this.currentAmount = inv.getKeyCounter().get(searchKey);
+                } else {
+                    this.currentAmount = 0;
+                }
             }
         } catch (final GridAccessException e) {
             this.currentAmount = 0;
@@ -315,12 +321,14 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     }
 
     @Override
-    public void onStackChange(IItemList<?> o, IAEStack<?> fullStack, IAEStack<?> diffStack, IActionSource src,
-                              IAEStackType<?> type) {
-        if (this.configured != null && fullStack != null) {
-            this.currentAmount = fullStack.getStackSize();
-        } else if (this.configured != null) {
-            this.currentAmount = 0;
+    public void onStackChange(KeyCounter fullStack, KeyCounter diffStack, IActionSource src) {
+        if (this.configured != null) {
+            AEKey searchKey = this.configured.toAEKey();
+            if (searchKey != null) {
+                this.currentAmount = fullStack.get(searchKey);
+            } else {
+                this.currentAmount = 0;
+            }
         }
 
         this.updateSnapshots();

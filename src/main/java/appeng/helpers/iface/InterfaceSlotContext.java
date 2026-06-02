@@ -27,7 +27,7 @@ import appeng.api.config.Upgrades;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.fluids.util.IAEFluidTank;
 import appeng.me.helpers.AENetworkProxy;
@@ -122,5 +122,5 @@ public interface InterfaceSlotContext {
      * Get the ME network inventory for the given stack type.
      */
     @Nonnull
-    IMEMonitor getNetworkInventory(IAEStackType type);
+    IMEMonitor getNetworkInventory(AEKeyType type);
 }

@@ -24,6 +24,7 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.Vec3d;
 
 import appeng.api.parts.IPartCollisionHelper;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AECableType;
@@ -80,6 +81,10 @@ public abstract class PartSharedFluidBus extends AbstractPartIOBus
 
     protected IAEStackType<IAEFluidStack> getStackType() {
         return AEFluidStackType.INSTANCE;
+    }
+
+    protected AEKeyType getKeyType() {
+        return AEKeyType.fluids();
     }
 
     @Override

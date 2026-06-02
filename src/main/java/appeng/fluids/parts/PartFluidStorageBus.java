@@ -109,7 +109,7 @@ public class PartFluidStorageBus extends AbstractPartStorageBus
         if (accessor != null) {
             IStorageMonitorable inventory = accessor.getInventory(this.mySrc);
             if (inventory != null) {
-                return inventory.getInventory(AEFluidStackType.INSTANCE);
+                return inventory.getInventory(AEKeyType.fluids());
             }
 
             // So this could / can be a design decision. If the tile does support our custom capability,

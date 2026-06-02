@@ -27,6 +27,7 @@ import javax.annotation.Nonnull;
 
 import net.minecraft.item.ItemStack;
 
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.ICellWorkbenchItem;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
@@ -103,8 +104,16 @@ public interface IStorageCell<T extends IAEStack<T>> extends ICellWorkbenchItem 
     double getIdleDrain();
 
     /**
-     * @return 此 cell 对应的 {@link IAEStackType}
+     * @return the stack type for this cell
      */
     @Nonnull
     IAEStackType<T> getStackType();
+
+    /**
+     * @return the AEKeyType for this cell
+     */
+    @Nonnull
+    default AEKeyType getKeyType() {
+        return AEKeyType.fromLegacyType(getStackType());
+    }
 }

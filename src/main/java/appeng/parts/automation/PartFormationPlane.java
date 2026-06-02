@@ -69,9 +69,10 @@ import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.prioritylist.FuzzyPriorityList;
 import appeng.util.prioritylist.PrecisePriorityList;
+import appeng.api.stacks.AEKeyType;
 import appeng.util.item.AEItemStackType;
 
-public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
+public class PartFormationPlane extends PartAbstractFormationPlane
         implements IIAEStackInventory, IConfigurableAEStackInventory {
 
     private static final PlaneModels MODELS = new PlaneModels("part/formation_plane_", "part/formation_plane_on_");
@@ -82,7 +83,7 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
     }
 
     private final MEInventoryHandler myHandler = new MEInventoryHandler(this,
-            AEItemStackType.INSTANCE);
+            AEKeyType.items());
     private final IAEStackInventory Config = new IAEStackInventory(this, 63, StorageName.CONFIG);
 
     public PartFormationPlane(final ItemStack is) {
@@ -100,7 +101,7 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
                 this.getInstalledUpgrades(Upgrades.INVERTER) > 0 ? IncludeExclude.BLACKLIST : IncludeExclude.WHITELIST);
         this.myHandler.setPriority(this.getPriority());
 
-        final IItemList<IAEItemStack> priorityList = AEItemStackType.INSTANCE.createList();
+        final IItemList<IAEItemStack> priorityList = new ItemList();
 
         final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
         for (int x = 0; x < this.Config.getSizeInventory() && x < slotsToUse; x++) {
@@ -191,8 +192,8 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<IMEInventoryHandler> getCellArray(final IAEStackType<?> type) {
-        if (type == AEItemStackType.INSTANCE) {
+    public List<IMEInventoryHandler> getCellArray(final AEKeyType type) {
+        if (type == AEKeyType.items()) {
             final List<IMEInventoryHandler> handler = new ArrayList<>(1);
             handler.add((IMEInventoryHandler) this.myHandler);
             return handler;
@@ -201,17 +202,20 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
     }
 
     @Override
-    public IAEItemStack injectItems(final IAEItemStack input, final Actionable type, final IActionSource src) {
-        if (this.blocked || input == null || input.getStackSize() <= 0) {
+    public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
+        if (this.blocked || input == null || input.amount() <= 0) {
             return input;
         }
 
         final YesNo placeBlock = (YesNo) this.getConfigManager().getSetting(Settings.PLACE_BLOCK);
 
-        final ItemStack is = input.createItemStack();
+        final IAEStack<?> aeStack = input.toIAEStack();
+        if (!(aeStack instanceof IAEItemStack)) return input;
+        final IAEItemStack inputItem = (IAEItemStack) aeStack;
+        final ItemStack is = inputItem.createItemStack();
         final Item i = is.getItem();
 
-        long maxStorage = Math.min(input.getStackSize(), is.getMaxStackSize());
+        long maxStorage = Math.min(input.amount(), is.getMaxStackSize());
         boolean worked = false;
 
         final TileEntity te = this.getHost().getTile();
@@ -317,20 +321,19 @@ public class PartFormationPlane extends PartAbstractFormationPlane<IAEItemStack>
         this.blocked = !w.getBlockState(tePos).getBlock().isReplaceable(w, tePos);
 
         if (worked) {
-            final IAEItemStack out = input.copy();
-            out.decStackSize(maxStorage);
-            if (out.getStackSize() == 0) {
+            final long remaining = input.amount() - maxStorage;
+            if (remaining == 0) {
                 return null;
             }
-            return out;
+            return new GenericStack(input.what(), remaining);
         }
 
         return input;
     }
 
     @Override
-    public IAEStackType<IAEItemStack> getStackType() {
-        return AEItemStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     @Override

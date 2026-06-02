@@ -28,12 +28,12 @@ import net.minecraftforge.fluids.FluidStack;
 
 import appeng.api.config.*;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.fluids.util.AEFluidStackType;
 import appeng.fluids.util.IAEFluidTank;
 import appeng.me.GridAccessException;
@@ -47,7 +47,7 @@ import appeng.util.StorageHelper;
  * Handles fluid tank storage, plan computation, and plan execution for slots
  * configured with fluid stacks.
  */
-public final class FluidInterfaceSlotHandler implements IInterfaceSlotHandler<IAEFluidStack> {
+public final class FluidInterfaceSlotHandler implements IInterfaceSlotHandler {
 
     public static final FluidInterfaceSlotHandler INSTANCE = new FluidInterfaceSlotHandler();
 
@@ -55,8 +55,8 @@ public final class FluidInterfaceSlotHandler implements IInterfaceSlotHandler<IA
 
     @Nonnull
     @Override
-    public IAEStackType<IAEFluidStack> getStackType() {
-        return AEFluidStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.fluids();
     }
 
     @Override
@@ -103,15 +103,15 @@ public final class FluidInterfaceSlotHandler implements IInterfaceSlotHandler<IA
 
         boolean changed = false;
         try {
-            final IMEInventory<IAEFluidStack> dest = context.getNetworkInventory(AEFluidStackType.INSTANCE);
+            final IMEMonitor dest = context.getNetworkInventory(AEKeyType.fluids());
             final appeng.api.networking.energy.IEnergySource src = context.getProxy().getEnergy();
 
             // --- Positive: pull fluid from network into tank ---
             if (plan.getStackSize() > 0) {
                 if (tanks.fill(slot, plan.getFluidStack(), false) != plan.getStackSize()) {
                     changed = true;
-                } else if (context.getNetworkInventory(AEFluidStackType.INSTANCE)
-                        .getStorageList().findPrecise(plan) != null) {
+                } else if (context.getNetworkInventory(AEKeyType.fluids())
+                        .getKeyCounter().get(plan.toAEKey()) > 0) {
                     final IAEFluidStack acquired = StorageHelper.poweredExtraction(
                             src, dest, plan, context.getRequestSource());
                     if (acquired != null) {

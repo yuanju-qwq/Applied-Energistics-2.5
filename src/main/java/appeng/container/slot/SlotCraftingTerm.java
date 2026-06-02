@@ -43,7 +43,6 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IItemList;
 import appeng.container.ContainerNull;
 import appeng.container.implementations.ContainerCraftingTerm;
 import appeng.helpers.IContainerCraftingPacket;
@@ -56,6 +55,7 @@ import appeng.util.inv.AdaptorItemHandler;
 import appeng.util.inv.WrapperCursorItemHandler;
 import appeng.util.inv.WrapperInvItemHandler;
 import appeng.util.item.AEItemStack;
+import appeng.api.stacks.AEKeyType;
 import appeng.util.item.AEItemStackType;
 
 public class SlotCraftingTerm extends AppEngCraftingSlot {
@@ -108,7 +108,7 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
         }
 
         final IMEMonitor inv = this.storage
-                .getInventory(AEItemStackType.INSTANCE);
+                .getInventory(AEKeyType.items());
         final int howManyPerCraft = this.getStack().getCount();
         int maxTimesToCraft = 0;
 
@@ -141,8 +141,7 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
 
         for (int x = 0; x < maxTimesToCraft; x++) {
             if (ia.simulateAdd(rs).isEmpty()) {
-                final IItemList<IAEItemStack> all = inv.getStorageList();
-                final ItemStack extra = ia.addItems(this.craftItem(who, rs, inv, all));
+                final ItemStack extra = ia.addItems(this.craftItem(who, rs, inv));
                 if (!extra.isEmpty()) {
                     final List<ItemStack> drops = new ArrayList<>();
                     drops.add(extra);
@@ -196,8 +195,7 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
         return maxTimesToCraft;
     }
 
-    private ItemStack craftItem(final EntityPlayer p, final ItemStack request, final IMEMonitor inv,
-            final IItemList<IAEItemStack> all) {
+    private ItemStack craftItem(final EntityPlayer p, final ItemStack request, final IMEMonitor inv) {
         // update crafting matrix...
         ItemStack is = this.getStack();
 
@@ -245,7 +243,7 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
                         if (!this.getPattern().getStackInSlot(x).isEmpty()) {
                             set[x] = Platform.extractItemsByRecipe(this.energySrc, this.mySrc, inv, p.world, r, is, ic,
                                     this.getPattern().getStackInSlot(x),
-                                    x, all, Actionable.MODULATE,
+                                    x, null, Actionable.MODULATE,
                                     ItemViewCell.createFilter(this.container.getViewCells()));
                             ic.setInventorySlotContents(x, set[x]);
                         }

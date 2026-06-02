@@ -26,27 +26,25 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 
 /**
  * Registry for {@link IInterfaceSlotHandler} implementations.
  * <p>
- * Each {@link IAEStackType} should register its handler during mod initialization.
+ * Each {@link AEKeyType} should register its handler during mod initialization.
  * The {@link appeng.helpers.InterfaceLogic} uses this registry to dispatch
  * slot operations to the correct handler based on stack type.
  */
 public final class InterfaceSlotHandlerRegistry {
 
-    private static final Map<IAEStackType<?>, IInterfaceSlotHandler<?>> REGISTRY = new IdentityHashMap<>();
+    private static final Map<AEKeyType, IInterfaceSlotHandler> REGISTRY = new IdentityHashMap<>();
 
     private InterfaceSlotHandlerRegistry() {}
 
     /**
      * Register a slot handler for the given stack type.
      */
-    public static <T extends IAEStack<T>> void register(
-            @Nonnull IAEStackType<T> type, @Nonnull IInterfaceSlotHandler<T> handler) {
+    public static void register(@Nonnull AEKeyType type, @Nonnull IInterfaceSlotHandler handler) {
         REGISTRY.put(type, handler);
     }
 
@@ -56,9 +54,8 @@ public final class InterfaceSlotHandlerRegistry {
      * @return the handler, or null if no handler is registered for this type
      */
     @Nullable
-    @SuppressWarnings("unchecked")
-    public static <T extends IAEStack<T>> IInterfaceSlotHandler<T> getHandler(@Nonnull IAEStackType<T> type) {
-        return (IInterfaceSlotHandler<T>) REGISTRY.get(type);
+    public static IInterfaceSlotHandler getHandler(@Nonnull AEKeyType type) {
+        return REGISTRY.get(type);
     }
 
     /**
@@ -66,22 +63,22 @@ public final class InterfaceSlotHandlerRegistry {
      */
     @Nullable
     @SuppressWarnings("unchecked")
-    public static <T extends IAEStack<T>> IInterfaceSlotHandler<T> getHandler(@Nonnull IAEStack<?> stack) {
-        return (IInterfaceSlotHandler<T>) REGISTRY.get(stack.getStackTypeBase());
+    public static IInterfaceSlotHandler getHandler(@Nonnull appeng.api.stacks.AEKey key) {
+        return REGISTRY.get(key.getType());
     }
 
     /**
      * @return all registered handlers
      */
     @Nonnull
-    public static Collection<IInterfaceSlotHandler<?>> getAllHandlers() {
+    public static Collection<IInterfaceSlotHandler> getAllHandlers() {
         return Collections.unmodifiableCollection(REGISTRY.values());
     }
 
     /**
      * @return true if a handler is registered for the given type
      */
-    public static boolean hasHandler(@Nullable IAEStackType<?> type) {
+    public static boolean hasHandler(@Nullable AEKeyType type) {
         return type != null && REGISTRY.containsKey(type);
     }
 }

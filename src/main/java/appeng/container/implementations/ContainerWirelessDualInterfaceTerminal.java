@@ -61,6 +61,8 @@ import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.StorageName;
@@ -69,6 +71,7 @@ import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
@@ -224,8 +227,10 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         if (Platform.isServer()) {
             this.serverCM = gui.getConfigManager();
 
-            for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
-                IMEMonitor mon = gui.getInventory(type);
+            for (AEKeyType keyType : AEKeyType.getAllTypes()) {
+                IAEStackType<?> type = AEStackTypeRegistry.getType(keyType.getId());
+                if (type == null) continue;
+                IMEMonitor mon = gui.getInventory(keyType);
                 if (mon != null) {
                     mon.addListener(this, null);
                     this.meMonitors.put(type, mon);
@@ -237,13 +242,13 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             this.setPowerSource(gui);
             @SuppressWarnings("unchecked")
             IMEMonitor itemMon = (IMEMonitor) gui
-                    .getInventory(AEStackTypeRegistry.getType("item"));
+                    .getInventory(AEKeyType.items());
             if (itemMon != null) {
                 this.setCellInventory(itemMon);
             }
             @SuppressWarnings("unchecked")
             IMEMonitor fluidMon = (IMEMonitor) gui
-                    .getInventory(AEStackTypeRegistry.getType("fluid"));
+                    .getInventory(AEKeyType.fluids());
             if (fluidMon != null) {
                 this.setFluidCellInventory(fluidMon);
             }
@@ -286,14 +291,17 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     @Override
     @SuppressWarnings("unchecked")
-    public void postChange(final IBaseMonitor monitor, final Iterable change,
+    public void postChange(final IBaseMonitor monitor, final Iterable<GenericStack> change,
             final IActionSource source) {
-        for (final Object obj : change) {
-            IAEStack<?> aes = (IAEStack<?>) obj;
-            IAEStackType<?> type = aes.getStackType();
-            Set<IAEStack<?>> queue = this.meUpdateQueue.get(type);
-            if (queue != null) {
-                queue.add(aes);
+        for (final GenericStack gs : change) {
+            if (gs == null) continue;
+            IAEStack<?> aes = gs.toIAEStack();
+            if (aes != null) {
+                IAEStackType<?> type = aes.getStackType();
+                Set<IAEStack<?>> queue = this.meUpdateQueue.get(type);
+                if (queue != null) {
+                    queue.add(aes);
+                }
             }
         }
     }
@@ -1609,12 +1617,14 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void sendFullList(IAEStackType<?> type, IMEMonitor mon) {
+    private void sendFullList(IAEStackType<?> type, IMEMonitor mon) {
         try {
             final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
-            IItemList<T> list = (IItemList<T>) mon.getStorageList();
-            for (final T stack : list) {
-                piu.appendStack(stack);
+            for (final it.unimi.dsi.fastutil.objects.Object2LongMap.Entry<AEKey> entry : mon.getAvailableKeyCounter()) {
+                IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
+                if (stack != null) {
+                    piu.appendStack(stack);
+                }
             }
 
             for (final IContainerListener c : this.listeners) {

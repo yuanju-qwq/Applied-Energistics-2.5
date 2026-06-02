@@ -18,8 +18,6 @@
 
 package appeng.me.storage;
 
-import java.util.Collections;
-
 import net.minecraft.item.ItemStack;
 
 import appeng.api.config.Actionable;
@@ -73,8 +71,10 @@ public class DriveWatcher extends MEInventoryHandler {
                     if (aeStack != null) {
                         var change = aeStack.copy().setStackSize(
                                 size - (remainder == null ? 0 : remainder.amount()));
-                        this.drive.getProxy().getStorage().postAlterationOfStoredItems(this.getStackType(),
-                                Collections.singletonList(change), this.source);
+                        KeyCounter kc = new KeyCounter();
+                        kc.add(change.toAEKey(), change.getStackSize());
+                        this.drive.getProxy().getStorage().postAlterationOfStoredItems(this.getKeyType(),
+                                kc, this.source);
                     }
                 } catch (GridAccessException e) {
                     e.printStackTrace();
@@ -101,8 +101,10 @@ public class DriveWatcher extends MEInventoryHandler {
                     var aeStack = request.toIAEStack();
                     if (aeStack != null) {
                         var change = aeStack.copy().setStackSize(-extractable.amount());
-                        this.drive.getProxy().getStorage().postAlterationOfStoredItems(this.getStackType(),
-                                Collections.singletonList(change), this.source);
+                        KeyCounter kc = new KeyCounter();
+                        kc.add(change.toAEKey(), change.getStackSize());
+                        this.drive.getProxy().getStorage().postAlterationOfStoredItems(this.getKeyType(),
+                                kc, this.source);
                     }
                 } catch (GridAccessException e) {
                     e.printStackTrace();

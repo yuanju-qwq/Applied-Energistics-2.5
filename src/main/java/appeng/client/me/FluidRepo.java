@@ -45,7 +45,7 @@ import appeng.fluids.util.AEFluidStackType;
  * @since rv6 22/05/2018
  */
 public class FluidRepo {
-    private final IItemList<IAEFluidStack> list = AEFluidStackType.INSTANCE.createList();
+    private final IItemList<IAEFluidStack> list = new FluidList();
     private final ArrayList<IAEFluidStack> view = new ArrayList<>();
     private final IScrollSource src;
     private final ISortSource sortSrc;

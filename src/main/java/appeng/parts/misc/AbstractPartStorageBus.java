@@ -49,7 +49,6 @@ import appeng.api.storage.*;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AECableType;
 import appeng.api.util.IConfigManager;
 import appeng.core.settings.TickRates;
@@ -506,12 +505,11 @@ public abstract class AbstractPartStorageBus extends PartUpgradeable
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public List<IMEInventoryHandler> getCellArray(final IAEStackType<?> type) {
-        if (type == this.getStackType() || type.getStackTypeBase() == this.getStackType()) {
+    public List<IMEInventoryHandler> getCellArray(final AEKeyType type) {
+        if (type == this.getStackType()) {
             final IMEInventoryHandler out = this.getInternalHandler();
             if (out != null) {
-                return Collections.singletonList((IMEInventoryHandler) out);
+                return Collections.singletonList(out);
             }
         }
         return Collections.emptyList();

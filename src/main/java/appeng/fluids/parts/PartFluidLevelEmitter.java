@@ -16,7 +16,10 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 
 import appeng.api.config.RedstoneMode;
 import appeng.api.config.Settings;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.networking.events.MENetworkChannelsChanged;
 import appeng.api.networking.events.MENetworkEventSubscribe;
 import appeng.api.networking.events.MENetworkPowerStatusChange;
@@ -31,8 +34,6 @@ import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
@@ -113,12 +114,12 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     }
 
     @Override
-    public void onStackChange(IItemList<?> o, IAEStack<?> fullStack, IAEStack<?> diffStack, IActionSource src,
-            IAEStackType<?> type) {
+    public void onStackChange(KeyCounter fullStack, KeyCounter diffStack, IActionSource src) {
         final GenericStack gs = this.config.getGenericStack(0);
-        if (type == AEFluidStackType.INSTANCE
-                && fullStack.equals(gs != null ? gs.toIAEStack() : null)) {
-            this.lastReportedValue = fullStack.getStackSize();
+        if (gs != null) {
+            AEKey key = gs.what();
+            long count = fullStack.get(key);
+            this.lastReportedValue = count;
             this.updateState();
         }
     }
@@ -179,7 +180,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     }
 
     @Override
-    public void postChange(final IBaseMonitor monitor, final Iterable<IAEFluidStack> change,
+    public void postChange(final IBaseMonitor monitor, final Iterable<GenericStack> change,
             final IActionSource actionSource) {
         this.updateReportingValue((IMEMonitor) monitor);
     }
@@ -187,7 +188,7 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     @Override
     public void onListUpdate() {
         try {
-            final IAEStackType<IAEFluidStack> channel = AEFluidStackType.INSTANCE;
+            final AEKeyType channel = AEKeyType.fluids();
             final IMEMonitor inventory = this.getProxy().getStorage().getInventory(channel);
 
             this.updateReportingValue(inventory);
@@ -208,18 +209,18 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
     }
 
     private void configureWatchers() {
-        final IAEStackType<IAEFluidStack> channel = AEFluidStackType.INSTANCE;
+        final AEKeyType channel = AEKeyType.fluids();
 
         if (this.stackWatcher != null) {
             this.stackWatcher.reset();
 
             final GenericStack gs = this.config.getGenericStack(0);
-            final IAEStack<?> myStack = gs != null ? gs.toIAEStack() : null;
+            final AEKey watchKey = gs != null ? gs.what() : null;
 
             try {
-                if (myStack != null) {
+                if (watchKey != null) {
                     this.getProxy().getStorage().getInventory(channel).removeListener(this);
-                    this.stackWatcher.add(myStack);
+                    this.stackWatcher.add(watchKey);
                 } else {
                     this.getProxy()
                             .getStorage()
@@ -242,16 +243,19 @@ public class PartFluidLevelEmitter extends PartUpgradeable implements IStackWatc
 
         if (myStack == null) {
             if (monitor instanceof NetworkMonitor) {
-                this.lastReportedValue = ((NetworkMonitor<IAEFluidStack>) monitor).getGridCurrentCount();
+                this.lastReportedValue = ((NetworkMonitor) monitor).getGridCurrentCount();
             }
         } else {
-            final IAEFluidStack r = myStack instanceof IAEFluidStack fs
-                    ? monitor.getStorageList().findPrecise(fs)
-                    : null;
-            if (r == null) {
-                this.lastReportedValue = 0;
-            } else {
-                this.lastReportedValue = r.getStackSize();
+            final AEKey targetKey = myStack.toAEKey();
+            if (targetKey != null) {
+                long count = 0;
+                for (it.unimi.dsi.fastutil.objects.Object2LongMap.Entry<AEKey> entry : monitor.getAvailableKeyCounter()) {
+                    if (entry.getKey().equals(targetKey)) {
+                        count = entry.getLongValue();
+                        break;
+                    }
+                }
+                this.lastReportedValue = count;
             }
         }
         this.updateState();

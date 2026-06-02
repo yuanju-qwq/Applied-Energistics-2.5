@@ -96,7 +96,7 @@ public final class DisassembleRecipe extends net.minecraftforge.registries.IForg
                             .registries()
                             .cell()
                             .getCellInventory(stackInSlot, null,
-                                    AEItemStackType.INSTANCE);
+                                    AEKeyType.items());
                     if (cellInv != null) {
                         if (!cellInv.getAvailableKeyCounter().isEmpty()) {
                             return ItemStack.EMPTY;

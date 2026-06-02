@@ -73,6 +73,7 @@ import appeng.tile.misc.TilePaint;
 import appeng.util.LookDirection;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
+import appeng.util.item.ItemList;
 
 public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<IAEItemStack> {
     private static final double INITIAL_CLOSEST_DISTANCE = 9999999.0D;
@@ -145,7 +146,7 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,
-                        AEItemStackType.INSTANCE);
+                        AEKeyType.items());
 
         AEApi.instance().client().addCellInformation(cdi, lines);
     }
@@ -165,11 +166,11 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
                     .registries()
                     .cell()
                     .getCellInventory(p.getHeldItem(hand), null,
-                            AEItemStackType.INSTANCE);
+                            AEKeyType.items());
             if (inv != null) {
                 final IItemList<IAEItemStack> itemList = inv
                         .getAvailableItems(
-                                AEItemStackType.INSTANCE.createList());
+                                new ItemList());
                 IAEItemStack req = itemList.getFirstItem();
                 if (req instanceof IAEItemStack) {
                     shots = Math.min(shots, (int) req.getStackSize());

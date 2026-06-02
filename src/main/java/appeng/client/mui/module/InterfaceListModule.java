@@ -1032,7 +1032,7 @@ public class InterfaceListModule {
 
         boolean foundMatchingItemStack = false;
         final String displayName = appeng.util.Platform
-                .getItemDisplayName(AEItemStackType.INSTANCE.createStack(itemStack))
+                .getItemDisplayName(AEItemStack.fromItemStack(itemStack))
                 .toLowerCase();
 
         for (String term : searchTerm.split(" ")) {
@@ -1075,7 +1075,7 @@ public class InterfaceListModule {
             final ItemStack parsedItemStack = new ItemStack(tag.getCompoundTagAt(i));
             if (!parsedItemStack.isEmpty()) {
                 final String displayName = Platform
-                        .getItemDisplayName(AEItemStackType.INSTANCE.createStack(parsedItemStack))
+                        .getItemDisplayName(AEItemStack.fromItemStack(parsedItemStack))
                         .toLowerCase();
 
                 for (String term : splitTerm) {

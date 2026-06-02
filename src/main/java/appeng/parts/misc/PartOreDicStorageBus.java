@@ -14,6 +14,7 @@ import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.networking.ticking.ITickManager;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEInventory;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.core.AppEng;
 import appeng.core.sync.AEGuiKeys;
@@ -113,7 +114,7 @@ public class PartOreDicStorageBus extends PartStorageBus {
 
             if (inv != null) {
                 this.handler = new MEInventoryHandler(inv,
-                        AEItemStackType.INSTANCE);
+                        AEKeyType.items());
 
                 this.handler.setBaseAccess((AccessRestriction) this.getConfigManager().getSetting(Settings.ACCESS));
                 this.handler.setWhitelist(this.getInstalledUpgrades(Upgrades.INVERTER) > 0 ? IncludeExclude.BLACKLIST

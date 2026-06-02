@@ -54,6 +54,7 @@ import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageMonitorable;
@@ -585,8 +586,8 @@ public class TileMolecularAssembler extends AENetworkInvTile
             // Prioritize a handler to directly link to another ME network
             IStorageMonitorable inventory = (IStorageMonitorable) capability;
             IAEItemStack toInsert = AEItemStack.fromItemStack(output);
-            IMEMonitor<IAEItemStack> inv = inventory
-                    .getInventory(AEItemStackType.INSTANCE);
+            IMEMonitor inv = inventory
+                    .getInventory(AEKeyType.items());
             GenericStack remainder = inv.injectItems(new GenericStack(toInsert.toAEKey(), toInsert.getStackSize()), Actionable.SIMULATE, this.mySrc);
             if (remainder == null) {
                 inv.injectItems(new GenericStack(toInsert.toAEKey(), toInsert.getStackSize()), Actionable.MODULATE, this.mySrc);

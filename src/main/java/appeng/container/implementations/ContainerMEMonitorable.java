@@ -58,10 +58,10 @@ import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.util.AEPartLocation;
@@ -91,13 +91,15 @@ import appeng.util.ConfigManager;
 import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
+import appeng.util.item.ItemList;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 @SuppressWarnings("unchecked")
 public class ContainerMEMonitorable extends AEBaseContainer
         implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver {
 
     protected final SlotRestrictedInput[] cellView = new SlotRestrictedInput[5];
-    public final IItemList<IAEItemStack> items = AEItemStackType.INSTANCE.createList();
+    public final IItemList<IAEItemStack> items = new ItemList();
 
     /**
      * Multi-type Monitor mapping: each registered IAEStackType corresponds to one IMEMonitor.
@@ -173,11 +175,14 @@ public class ContainerMEMonitorable extends AEBaseContainer
 
             // Iterate all registered IAEStackTypes and register as listeners on their IMEMonitors
             boolean hasAnyMonitor = false;
-            for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
-                IMEMonitor mon = monitorable.getInventory(type);
+            for (AEKeyType keyType : AEKeyType.getAllTypes()) {
+                IMEMonitor mon = monitorable.getInventory(keyType);
                 if (mon != null) {
                     mon.addListener(this, null);
-                    this.monitors.put(type, mon);
+                    IAEStackType<?> stackType = AEStackTypeRegistry.getType(keyType.getId());
+                    if (stackType != null) {
+                        this.monitors.put(stackType, mon);
+                    }
                     hasAnyMonitor = true;
                 }
             }
@@ -339,8 +344,10 @@ public class ContainerMEMonitorable extends AEBaseContainer
     public void detectAndSendChanges() {
         if (Platform.isServer()) {
             // Verify all monitors are still valid
-            for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
-                IMEMonitor current = this.host.getInventory(type);
+            for (AEKeyType keyType : AEKeyType.getAllTypes()) {
+                IMEMonitor current = this.host.getInventory(keyType);
+                IAEStackType<?> type = AEStackTypeRegistry.getType(keyType.getId());
+                if (type == null) continue;
                 IMEMonitor stored = this.monitors.get(type);
                 if (stored != null && stored != current) {
                     this.setValidContainer(false);
@@ -490,18 +497,16 @@ public class ContainerMEMonitorable extends AEBaseContainer
             PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
             for (var monitor : this.monitors.values()) {
-                for (final IAEStackBase stackBase : (Iterable<IAEStackBase>) monitor.getStorageList()) {
-                    final IAEStack<?> send = (IAEStack<?>) stackBase;
-                    AEKey key = send.toAEKey();
-                    if (key == null) {
-                        continue;
-                    }
+                for (final Object2LongMap.Entry<AEKey> entry : monitor.getAvailableKeyCounter()) {
+                    AEKey key = entry.getKey();
+                    long amount = entry.getLongValue();
+                    boolean craftable = false; // default: not craftable for full resync
                     try {
-                        piu.appendStack(new GenericStack(key, send.getStackSize()), send.isCraftable());
+                        piu.appendStack(new GenericStack(key, amount), craftable);
                     } catch (final BufferOverflowException boe) {
                         NetworkHandler.instance().sendTo(piu, player);
                         piu = new PacketMEInventoryUpdate();
-                        piu.appendStack(new GenericStack(key, send.getStackSize()), send.isCraftable());
+                        piu.appendStack(new GenericStack(key, amount), craftable);
                     }
                 }
             }
@@ -537,18 +542,16 @@ public class ContainerMEMonitorable extends AEBaseContainer
     }
 
     @Override
-    public void postChange(final IBaseMonitor monitor, final Iterable<IAEStackBase> change,
+    public void postChange(final IBaseMonitor monitor, final Iterable<GenericStack> change,
             final IActionSource source) {
-        for (final IAEStackBase obj : change) {
-            IAEStack<?> aes = (IAEStack<?>) obj;
-            AEKey key = aes.toAEKey();
-            if (key != null) {
-                this.updateKeyCounter.set(key, aes.getStackSize());
-                if (aes.isCraftable()) {
-                    this.craftableChangeSet.add(key);
-                } else {
-                    this.craftableChangeSet.remove(key);
-                }
+        for (final GenericStack gs : change) {
+            if (gs != null) {
+                AEKey key = gs.what();
+                long amount = gs.amount();
+                this.updateKeyCounter.set(key, amount);
+                // Craftable tracking: GenericStack no longer carries craftable flag,
+                // so remove from set when amount changes (handled by caller if needed)
+                this.craftableChangeSet.remove(key);
             }
         }
     }
@@ -818,11 +821,12 @@ public class ContainerMEMonitorable extends AEBaseContainer
 
         if (action == InventoryAction.FILL_ITEM) {
             if (targetFluid != null) {
-                final IAEFluidStack extracted = fluidMonitor.extractItems(
-                        targetFluid, Actionable.SIMULATE, src);
+                final GenericStack extracted = fluidMonitor.extractItems(
+                        GenericStack.fromFluidStack(targetFluid.getFluidStack()), Actionable.SIMULATE, src);
                 if (extracted != null) {
+                    final IAEFluidStack extractedFluid = (IAEFluidStack) extracted.toIAEStack();
                     final ContainerInteractionResult<IAEFluidStack> fillResult =
-                            AEFluidStackType.INSTANCE.fillToContainer(held, extracted, false);
+                            AEFluidStackType.INSTANCE.fillToContainer(held, extractedFluid, false);
                     if (fillResult.isSuccess()) {
                         fluidMonitor.extractItems(
                                 new GenericStack(targetFluid.toAEKey(), fillResult.getTransferredAmount()),

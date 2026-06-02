@@ -219,7 +219,7 @@ public class FluidHandlerAdapter implements IMEInventory, IBaseMonitor, ITicking
     private static class InventoryCache {
         private final IFluidHandler fluidHandler;
         private final StorageFilter mode;
-        IItemList<IAEFluidStack> currentlyCached = AEFluidStackType.INSTANCE.createList();
+        IItemList<IAEFluidStack> currentlyCached = new FluidList();
 
         public InventoryCache(IFluidHandler fluidHandler, StorageFilter mode) {
             this.mode = mode;
@@ -230,7 +230,7 @@ public class FluidHandlerAdapter implements IMEInventory, IBaseMonitor, ITicking
             final List<IAEFluidStack> changes = new ArrayList<>();
             final IFluidTankProperties[] tankProperties = this.fluidHandler.getTankProperties();
 
-            IItemList<IAEFluidStack> currentlyOnStorage = AEFluidStackType.INSTANCE.createList();
+            IItemList<IAEFluidStack> currentlyOnStorage = new FluidList();
 
             for (IFluidTankProperties tankProperty : tankProperties) {
                 var contents = tankProperty.getContents();

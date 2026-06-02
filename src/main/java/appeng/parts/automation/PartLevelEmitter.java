@@ -48,7 +48,10 @@ import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.StorageName;
@@ -114,7 +117,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     private IEnergyWatcher myEnergyWatcher;
     private ICraftingWatcher myCraftingWatcher;
     // Tracks which IAEStackType the listener is currently registered on (null = none)
-    private IAEStackType<?> monitoredType;
+    private AEKeyType monitoredType;
     private double centerX;
     private double centerY;
     private double centerZ;
@@ -264,7 +267,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
         }
 
         // Determine the stack type to monitor from the configured stack
-        final IAEStackType<?> targetType = myStack != null ? myStack.getStackTypeBase() : null;
+        final AEKeyType targetType = myStack != null ? AEKeyType.fromLegacyType(myStack.getStackType()) : null;
 
         try {
             // Remove listener from old type if it changed
@@ -295,11 +298,11 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
                 // No configured stack — monitor all items (legacy behavior for total count)
                 this.getProxy()
                         .getStorage()
-                        .getInventory(AEItemStackType.INSTANCE)
+                        .getInventory(AEKeyType.items())
                         .addListener(this, this.getProxy().getGrid());
-                this.monitoredType = AEItemStackType.INSTANCE;
+                this.monitoredType = AEKeyType.items();
 
-                this.updateReportingValue(this.getProxy().getStorage().getInventory(AEItemStackType.INSTANCE));
+                this.updateReportingValue(this.getProxy().getStorage().getInventory(AEKeyType.items()));
             }
         } catch (final GridAccessException e) {
             // >.>
@@ -337,14 +340,19 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
             final FuzzyMode fzMode = (FuzzyMode) this.getConfigManager().getSetting(Settings.FUZZY_MODE);
 
             this.lastReportedValue = 0;
-            monitor.getStorageList().findFuzzyGeneric(myStack, fzMode)
-                    .forEach(stack -> lastReportedValue += stack.getStackSize());
+            AEKey searchKey = myStack.toAEKey();
+            if (searchKey != null) {
+                for (var entry : monitor.getKeyCounter().findFuzzy(searchKey, fzMode)) {
+                    lastReportedValue += entry.getLongValue();
+                }
+            }
         } else {
             // Precise match: works for any stack type
             this.lastReportedValue = 0;
-            final IAEStack<?> precise = monitor.getStorageList().findPreciseGeneric(myStack);
-            if (precise != null) {
-                lastReportedValue = precise.getStackSize();
+            AEKey searchKey = myStack.toAEKey();
+            if (searchKey != null) {
+                long amount = monitor.getKeyCounter().get(searchKey);
+                lastReportedValue = amount;
             }
         }
         this.updateState();
@@ -357,12 +365,17 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     }
 
     @Override
-    public void onStackChange(final IItemList<?> o, final IAEStack<?> fullStack, final IAEStack<?> diffStack,
-            final IActionSource src, final IAEStackType<?> type) {
+    public void onStackChange(final KeyCounter fullStack, final KeyCounter diffStack,
+            final IActionSource src) {
         final GenericStack gs = this.config.getGenericStack(0);
-        if (fullStack.equals(gs != null ? gs.toIAEStack() : null)
-                && this.getInstalledUpgrades(Upgrades.FUZZY) == 0) {
-            this.lastReportedValue = fullStack.getStackSize();
+        AEKey configKey = gs != null ? gs.toAEKey() : null;
+        if (configKey != null && this.getInstalledUpgrades(Upgrades.FUZZY) == 0) {
+            long amount = fullStack.get(configKey);
+            if (amount > 0) {
+                this.lastReportedValue = amount;
+            } else if (diffStack.get(configKey) > 0) {
+                this.lastReportedValue = 0;
+            }
             this.updateState();
         }
     }
@@ -397,7 +410,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     @Override
     public void onListUpdate() {
         try {
-            final IAEStackType<?> type = this.monitoredType != null ? this.monitoredType : AEItemStackType.INSTANCE;
+            final AEKeyType type = this.monitoredType != null ? this.monitoredType : AEKeyType.items();
             this.updateReportingValue(this.getProxy().getStorage().getInventory(type));
         } catch (final GridAccessException e) {
             // ;P

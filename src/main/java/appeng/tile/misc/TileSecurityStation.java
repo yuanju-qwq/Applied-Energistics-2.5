@@ -242,7 +242,7 @@ public class TileSecurityStation extends AENetworkTile implements ITerminalHost,
 
     @Override
     public IMEMonitor getInventory(IAEStackType<?> type) {
-        if (type == AEItemStackType.INSTANCE) {
+        if (AEKeyType.fromLegacyType(type) == AEKeyType.items()) {
             return (IMEMonitor) this.securityMonitor;
         }
         return null;

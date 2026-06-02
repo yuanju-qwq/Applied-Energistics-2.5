@@ -47,9 +47,10 @@ import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.AEStackTypeRegistry;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
@@ -91,7 +92,7 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
     private final IActionSource mySrc;
     private YesNo lastRedstoneState;
     private ItemStack currentCell;
-    private Map<IAEStackType<?>, IMEInventory> cachedInventories;
+    private Map<AEKeyType, IMEInventory> cachedInventories;
 
     private boolean isActive = false;
 
@@ -317,7 +318,7 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
                 if (!is.isEmpty()) {
                     boolean shouldMove = true;
 
-                    for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
+                    for (AEKeyType type : AEKeyType.getAllTypes()) {
                         if (itemsToMove > 0) {
                             itemsToMove = this.processType(energy, is, type, itemsToMove);
 
@@ -351,8 +352,8 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
         return this.upgrades.getInstalledUpgrades(u);
     }
 
-    private <T extends IAEStack<T>> long processType(final IEnergySource energy, final ItemStack is,
-            final IAEStackType<T> type, long itemsToMove) throws GridAccessException {
+    private long processType(final IEnergySource energy, final ItemStack is,
+            final AEKeyType type, long itemsToMove) throws GridAccessException {
         final IMEMonitor network = this.getProxy().getStorage().getInventory(type);
         final IMEInventory inv = this.getInv(is, type);
 
@@ -368,12 +369,12 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> IMEInventory getInv(final ItemStack is, final IAEStackType<T> type) {
+    private IMEInventory getInv(final ItemStack is, final AEKeyType type) {
         if (this.currentCell != is) {
             this.currentCell = is;
             this.cachedInventories = new IdentityHashMap<>();
 
-            for (IAEStackType<?> t : AEStackTypeRegistry.getAllTypes()) {
+            for (AEKeyType t : AEKeyType.getAllTypes()) {
                 this.cachedInventories.put(t, AEApi.instance().registries().cell().getCellInventory(is, null, t));
             }
         }
@@ -381,9 +382,9 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
         return (IMEInventory) this.cachedInventories.get(type);
     }
 
-    private <T extends IAEStack<T>> long transferContents(final IEnergySource energy, final IMEInventory src,
-            final IMEInventory destination, long itemsToMove, final IAEStackType<T> type) {
-        final var myList = appeng.util.StorageHelper.getStorageView(src);
+    private long transferContents(final IEnergySource energy, final IMEInventory src,
+            final IMEInventory destination, long itemsToMove, final AEKeyType type) {
+        final KeyCounter myList = src.getAvailableKeyCounter();
         itemsToMove *= type.transferFactor();
 
         boolean didStuff;
@@ -391,36 +392,35 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
         do {
             didStuff = false;
 
-            for (final T s : myList) {
-                final long totalStackSize = s.getStackSize();
+            for (final var entry : myList) {
+                final AEKey key = entry.getKey();
+                final long totalStackSize = entry.getLongValue();
                 if (totalStackSize > 0) {
-                    final T stack = appeng.util.StorageHelper.injectTyped(destination, s, Actionable.SIMULATE,
+                    GenericStack input = new GenericStack(key, totalStackSize);
+                    final GenericStack stack = destination.injectItems(input, Actionable.SIMULATE,
                             this.mySrc);
 
                     long possible = 0;
                     if (stack == null) {
                         possible = totalStackSize;
                     } else {
-                        possible = totalStackSize - stack.getStackSize();
+                        possible = totalStackSize - stack.amount();
                     }
 
                     if (possible > 0) {
-                        T injectable = s.copy();
-
                         possible = Math.min(possible, itemsToMove);
-                        injectable.setStackSize(possible);
+                        GenericStack toExtract = new GenericStack(key, possible);
 
-                        final T extracted = appeng.util.StorageHelper.extractTyped(src, injectable,
+                        final GenericStack extracted = src.extractItems(toExtract,
                                 Actionable.MODULATE, this.mySrc);
                         if (extracted != null) {
-                            possible = extracted.getStackSize();
-                            extracted.setCraftable(false);
-                            final T failed = appeng.util.StorageHelper.poweredInsert(energy, destination, extracted,
+                            possible = extracted.amount();
+                            final GenericStack failed = appeng.util.StorageHelper.poweredInsert(energy, destination, extracted,
                                     this.mySrc);
 
                             if (failed != null) {
-                                possible -= failed.getStackSize();
-                                appeng.util.StorageHelper.injectTyped(src, failed, Actionable.MODULATE, this.mySrc);
+                                possible -= failed.amount();
+                                src.injectItems(failed, Actionable.MODULATE, this.mySrc);
                             }
 
                             if (possible > 0) {
@@ -458,30 +458,21 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
     }
 
     private boolean matches(final FullnessMode fm, final IMEInventory src) {
-        return this.matchesCaptured(fm, src);
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> boolean matchesCaptured(final FullnessMode fm, final IMEInventory src) {
-        return this.matchesTyped(fm, (IMEInventory) src);
-    }
-
-    private <T extends IAEStack<T>> boolean matchesTyped(final FullnessMode fm, final IMEInventory src) {
         if (fm == FullnessMode.HALF) {
             return true;
         }
 
-        final var myList = appeng.util.StorageHelper.getStorageView(src);
+        final KeyCounter kc = src.getAvailableKeyCounter();
 
         if (fm == FullnessMode.EMPTY) {
-            return myList.isEmpty();
+            return kc.isEmpty();
         }
 
-        final T test = myList.getFirstItem();
-        if (test != null) {
-            T testCopy = test.copy();
-            testCopy.setStackSize(1);
-            return appeng.util.StorageHelper.injectTyped(src, testCopy, Actionable.SIMULATE, this.mySrc) != null;
+        for (var entry : kc) {
+            if (entry.getLongValue() > 0) {
+                GenericStack test = new GenericStack(entry.getKey(), 1);
+                return src.injectItems(test, Actionable.SIMULATE, this.mySrc) != null;
+            }
         }
         return false;
     }

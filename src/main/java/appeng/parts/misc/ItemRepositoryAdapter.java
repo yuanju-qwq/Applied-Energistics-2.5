@@ -167,8 +167,8 @@ class ItemRepositoryAdapter implements IMEInventory, IBaseMonitor, ITickingMonit
     }
 
     @Override
-    public IAEStackType<IAEItemStack> getStackType() {
-        return AEItemStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     @Override
@@ -213,7 +213,7 @@ class ItemRepositoryAdapter implements IMEInventory, IBaseMonitor, ITickingMonit
     }
 
     private static class InventoryCache {
-        private IItemList<IAEItemStack> currentlyCached = AEItemStackType.INSTANCE.createList();
+        private IItemList<IAEItemStack> currentlyCached = new ItemList();
         private final IItemRepository iItemRepository;
 
         public InventoryCache(IItemRepository iItemRepository) {
@@ -236,7 +236,7 @@ class ItemRepositoryAdapter implements IMEInventory, IBaseMonitor, ITickingMonit
         public List<IAEItemStack> update() {
             final List<IAEItemStack> changes = new ArrayList<>();
 
-            IItemList<IAEItemStack> currentlyOnStorage = AEItemStackType.INSTANCE.createList();
+            IItemList<IAEItemStack> currentlyOnStorage = new ItemList();
             this.iItemRepository.getAllItems().stream()
                     .map(s -> AEItemStack.fromItemStack(s.itemPrototype).setStackSize(s.count))
                     .forEach(currentlyOnStorage::add);

@@ -31,6 +31,7 @@ import appeng.api.parts.ConversionMonitorHandlerRegistry;
 import appeng.api.parts.IConversionMonitorHandler;
 import appeng.api.parts.IConversionMonitorHost;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
@@ -272,13 +273,11 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
     /**
      * Insert from a container (e.g., drain fluid from a bucket into the network).
      */
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void insertFromContainer(
-            IConversionMonitorHandler rawHandler, EntityPlayer player, EnumHand hand) {
+    private void insertFromContainer(
+            IConversionMonitorHandler handler, EntityPlayer player, EnumHand hand) {
         try {
-            final IConversionMonitorHandler<T> handler = (IConversionMonitorHandler<T>) rawHandler;
             final IEnergySource energy = this.getProxy().getEnergy();
-            final IMEMonitor<T> monitor = this.getProxy().getStorage().getInventory(handler.getStackType());
+            final IMEMonitor monitor = this.getProxy().getStorage().getInventory(handler.getKeyType());
             handler.insertFromPlayer(player, hand, energy, monitor, new PlayerSource(player, this));
         } catch (GridAccessException e) {
             // :P
@@ -297,15 +296,14 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void doInsertSingle(IAEStack<?> displayed, EntityPlayer player, EnumHand hand) {
+    private void doInsertSingle(IAEStack<?> displayed, EntityPlayer player, EnumHand hand) {
         try {
-            final IAEStackType<T> stackType = (IAEStackType<T>) displayed.getStackTypeBase();
-            final IConversionMonitorHandler<T> handler = ConversionMonitorHandlerRegistry.getHandler(stackType);
+            final IConversionMonitorHandler handler = ConversionMonitorHandlerRegistry.getHandler(displayed);
             if (handler == null) {
                 return;
             }
             final IEnergySource energy = this.getProxy().getEnergy();
-            final IMEMonitor<T> monitor = this.getProxy().getStorage().getInventory(stackType);
+            final IMEMonitor monitor = this.getProxy().getStorage().getInventory(handler.getKeyType());
             handler.insertFromPlayer(player, hand, energy, monitor, new PlayerSource(player, this));
         } catch (GridAccessException e) {
             // :P
@@ -324,16 +322,16 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void doInsertAll(IAEStack<?> displayed, EntityPlayer player) {
+    private void doInsertAll(IAEStack<?> displayed, EntityPlayer player) {
         try {
-            final IAEStackType<T> stackType = (IAEStackType<T>) displayed.getStackTypeBase();
-            final IConversionMonitorHandler<T> handler = ConversionMonitorHandlerRegistry.getHandler(stackType);
+            final IConversionMonitorHandler handler = ConversionMonitorHandlerRegistry.getHandler(displayed);
             if (handler == null) {
                 return;
             }
             final IEnergySource energy = this.getProxy().getEnergy();
-            final IMEMonitor<T> monitor = this.getProxy().getStorage().getInventory(stackType);
-            handler.insertAllFromPlayer(player, (T) displayed, energy, monitor, new PlayerSource(player, this));
+            final IMEMonitor monitor = this.getProxy().getStorage().getInventory(handler.getKeyType());
+            GenericStack gs = new GenericStack(displayed.toAEKey(), displayed.getStackSize());
+            handler.insertAllFromPlayer(player, gs, energy, monitor, new PlayerSource(player, this));
         } catch (GridAccessException e) {
             // :P
         }
@@ -343,11 +341,10 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
      * Extract displayed stack to the player (left-click / shift-click).
      */
     @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void extractDisplayed(
+    private void extractDisplayed(
             EntityPlayer player, EnumHand hand, IAEStack<?> displayed, long count) {
         try {
-            final IAEStackType<T> stackType = (IAEStackType<T>) displayed.getStackTypeBase();
-            final IConversionMonitorHandler<T> handler = ConversionMonitorHandlerRegistry.getHandler(stackType);
+            final IConversionMonitorHandler handler = ConversionMonitorHandlerRegistry.getHandler(displayed);
             if (handler == null) {
                 return;
             }
@@ -355,9 +352,10 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
                 return;
             }
             final IEnergySource energy = this.getProxy().getEnergy();
-            final IMEMonitor<T> monitor = this.getProxy().getStorage().getInventory(stackType);
+            final IMEMonitor monitor = this.getProxy().getStorage().getInventory(handler.getKeyType());
+            GenericStack gs = new GenericStack(displayed.toAEKey(), displayed.getStackSize());
             handler.extractToPlayer(
-                    player, hand, (T) displayed, count, energy, monitor, new PlayerSource(player, this), this);
+                    player, hand, gs, count, energy, monitor, new PlayerSource(player, this), this);
         } catch (GridAccessException e) {
             // :P
         }

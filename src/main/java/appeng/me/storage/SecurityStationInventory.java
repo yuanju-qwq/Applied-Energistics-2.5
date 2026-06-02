@@ -28,19 +28,19 @@ import appeng.api.config.Actionable;
 import appeng.api.config.SecurityPermissions;
 import appeng.api.implementations.items.IBiometricCard;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.MEMonitorHandler;
 import appeng.me.helpers.MachineSource;
 import appeng.tile.misc.TileSecurityStation;
-import appeng.util.item.AEItemStackType;
+import appeng.util.item.ItemList;
 
 public class SecurityStationInventory implements IMEInventoryHandler {
 
-    private final IItemList<IAEItemStack> storedItems = AEItemStackType.INSTANCE.createList();
+    private final IItemList<IAEItemStack> storedItems = new ItemList();
     private final TileSecurityStation securityTile;
     private final MachineSource src;
 
@@ -60,7 +60,7 @@ public class SecurityStationInventory implements IMEInventoryHandler {
 
                     if (securityTile.getProxy().isActive()) {
                         ((MEMonitorHandler<IAEItemStack>) securityTile
-                                .getInventory(AEItemStackType.INSTANCE))
+                                .getInventory(AEKeyType.items()))
                                 .postChangesToListeners(Collections.singletonList(input.copy()), this.src);
                     }
 
@@ -98,7 +98,7 @@ public class SecurityStationInventory implements IMEInventoryHandler {
 
                 if (securityTile.getProxy().isActive()) {
                     ((MEMonitorHandler<IAEItemStack>) securityTile
-                            .getInventory(AEItemStackType.INSTANCE))
+                            .getInventory(AEKeyType.items()))
                             .postChangesToListeners(
                                     Collections.singletonList(target.copy().setStackSize(-target.getStackSize())),
                                     this.src);
@@ -122,8 +122,8 @@ public class SecurityStationInventory implements IMEInventoryHandler {
     }
 
     @Override
-    public IAEStackType<IAEItemStack> getStackType() {
-        return AEItemStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     @Override

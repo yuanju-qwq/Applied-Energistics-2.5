@@ -114,7 +114,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
                     inItems.add(null);
                     inGeneric.add(null);
                 } else {
-                    IAEItemStack aeItem = AEItemStackType.INSTANCE.createStack(gs);
+                    IAEItemStack aeItem = AEItemStack.fromItemStack(gs);
                     inItems.add(aeItem);
                     inGeneric.add(aeItem);
                 }
@@ -146,7 +146,7 @@ public class SpecialPatternHelper implements ICraftingPatternDetails, Comparable
                     throw new IllegalArgumentException("Invalid output at slot " + x);
                 }
                 if (!gs.isEmpty()) {
-                    IAEItemStack aeItem = AEItemStackType.INSTANCE.createStack(gs);
+                    IAEItemStack aeItem = AEItemStack.fromItemStack(gs);
                     if (aeItem != null) {
                         outItems.add(aeItem);
                         outGeneric.add(aeItem);

@@ -42,6 +42,7 @@ import net.minecraftforge.fml.common.network.NetworkRegistry;
 import team.chisel.ctm.CTM;
 
 import appeng.api.AEApi;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.core.crash.CrashInfo;
 import appeng.core.crash.IntegrationCrashEnhancement;
@@ -149,15 +150,15 @@ public final class AppEng {
 
         // Register interface slot handlers for each stack type
         appeng.helpers.iface.InterfaceSlotHandlerRegistry.register(
-                AEItemStackType.INSTANCE, appeng.helpers.iface.ItemInterfaceSlotHandler.INSTANCE);
+                appeng.api.stacks.AEKeyType.items(), appeng.helpers.iface.ItemInterfaceSlotHandler.INSTANCE);
         appeng.helpers.iface.InterfaceSlotHandlerRegistry.register(
-                AEFluidStackType.INSTANCE, appeng.helpers.iface.FluidInterfaceSlotHandler.INSTANCE);
+                appeng.api.stacks.AEKeyType.fluids(), appeng.helpers.iface.FluidInterfaceSlotHandler.INSTANCE);
 
         // Register conversion monitor handlers for each stack type
         appeng.api.parts.ConversionMonitorHandlerRegistry.register(
-                AEItemStackType.INSTANCE, appeng.parts.reporting.ItemConversionMonitorHandler.INSTANCE);
+                AEKeyType.items(), appeng.parts.reporting.ItemConversionMonitorHandler.INSTANCE);
         appeng.api.parts.ConversionMonitorHandlerRegistry.register(
-                AEFluidStackType.INSTANCE, appeng.parts.reporting.FluidConversionMonitorHandler.INSTANCE);
+                AEKeyType.fluids(), appeng.parts.reporting.FluidConversionMonitorHandler.INSTANCE);
 
         final VersionCheckerConfig versionCheckerConfig = new VersionCheckerConfig(versionFile);
         this.exportConfig = new ForgeExportConfig(recipeConfiguration);

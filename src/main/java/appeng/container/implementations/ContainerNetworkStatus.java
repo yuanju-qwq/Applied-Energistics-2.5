@@ -128,7 +128,7 @@ public class ContainerNetworkStatus extends AEBaseContainer {
                 final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
                 for (final Class<? extends IGridHost> machineClass : this.network.getMachinesClasses()) {
-                    final IItemList<IAEItemStack> list = AEItemStackType.INSTANCE.createList();
+                    final IItemList<IAEItemStack> list = new ItemList();
                     for (final IGridNode machine : this.network.getMachines(machineClass)) {
                         final IGridBlock blk = machine.getGridBlock();
                         final ItemStack is = blk.getMachineRepresentation();

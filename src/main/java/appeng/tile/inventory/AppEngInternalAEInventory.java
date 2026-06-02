@@ -188,8 +188,7 @@ public class AppEngInternalAEInventory implements IItemHandlerModifiable, Iterab
     @Override
     public void setStackInSlot(final int slot, final ItemStack newItemStack) {
         ItemStack oldStack = this.getStackInSlot(slot).copy();
-        this.inv[slot] = AEItemStackType.INSTANCE
-                .createStack(newItemStack);
+        this.inv[slot] = AEItemStack.fromItemStack(newItemStack);
 
         if (this.te != null && Platform.isServer()) {
             ItemStack newStack = newItemStack.copy();

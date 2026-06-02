@@ -101,6 +101,7 @@ import appeng.util.Platform;
 import appeng.util.inv.*;
 import appeng.util.item.AEItemStack;
 import appeng.fluids.util.AEFluidStack;
+import appeng.api.stacks.AEKeyType;
 import appeng.util.item.AEItemStackType;
 import appeng.fluids.util.AEFluidStackType;
 import appeng.api.storage.IMEMonitor;
@@ -593,7 +594,7 @@ public class PatternProviderLogic
                     if (mon != null) {
                         IStorageMonitorable sm = mon.getInventory(this.mySource);
                         if (sm != null && Platform.canAccess(targetTE.getInterfaceLogic().getProxy(), this.mySource)) {
-                            IMEMonitor<IAEItemStack> inv = sm.getInventory(AEItemStackType.INSTANCE);
+                            IMEMonitor inv = sm.getInventory(AEKeyType.items());
                             if (inv != null) {
                                 final Iterator<ItemStack> iter = facingQueue.iterator();
                                 while (iter.hasNext()) {
@@ -693,11 +694,11 @@ public class PatternProviderLogic
                     IStorageMonitorable sm = mon.getInventory(this.mySource);
                     if (sm != null && Platform.canAccess(proxyable.getProxy(), this.mySource)) {
                         if (this.isBlocking() && !sm
-                                .getInventory(AEItemStackType.INSTANCE)
-                                .getStorageList().isEmpty()) {
+                                .getInventory(AEKeyType.items())
+                                .getKeyCounter().isEmpty()) {
                             continue;
                         } else {
-                            IMEMonitor<IAEItemStack> inv = sm.getInventory(AEItemStackType.INSTANCE);
+                            IMEMonitor inv = sm.getInventory(AEKeyType.items());
 
                             var allItemsCanBeInserted = true;
                             for (int x = 0; x < table.getSizeInventory(); x++) {
@@ -871,8 +872,8 @@ public class PatternProviderLogic
                                 IStorageMonitorable sm = monAccessor.getInventory(this.mySource);
                                 if (sm != null && Platform.canAccess(targetTE.getInterfaceLogic().getProxy(),
                                         this.mySource)) {
-                                    if (sm.getInventory(AEItemStackType.INSTANCE)
-                                            .getStorageList().isEmpty()) {
+                                    if (sm.getInventory(AEKeyType.items())
+                                            .getKeyCounter().isEmpty()) {
                                         allAreBusy = false;
                                         break;
                                     }
@@ -1409,7 +1410,7 @@ public class PatternProviderLogic
                 final GenericStack aeStack = GenericStack.fromItemStack(stack);
 
                 final GenericStack remaining = appeng.util.StorageHelper.poweredInsert(
-                        src, storage.getInventory(AEItemStackType.INSTANCE), aeStack,
+                        src, storage.getInventory(AEKeyType.items()), aeStack,
                         mySource, simulate ? Actionable.SIMULATE : Actionable.MODULATE);
 
                 if (remaining == null) {
@@ -1462,7 +1463,7 @@ public class PatternProviderLogic
                 final GenericStack aeStack = GenericStack.fromFluidStack(resource);
 
                 final GenericStack remaining = appeng.util.StorageHelper.poweredInsert(
-                        src, storage.getInventory(AEFluidStackType.INSTANCE), aeStack,
+                        src, storage.getInventory(AEKeyType.fluids()), aeStack,
                         mySource, doFill ? Actionable.MODULATE : Actionable.SIMULATE);
 
                 final long inserted;

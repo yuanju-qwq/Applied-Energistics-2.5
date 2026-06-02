@@ -73,25 +73,8 @@ public class MEMonitorPassThrough extends MEPassThrough
             this.monitor.addListener(this, this.monitor);
         }
 
-        // Convert KeyCounter diffs to IItemList for postListChanges
-        var legacyType = AEStackTypeRegistry.getType(getKeyType().getId());
-        if (legacyType != null) {
-            var before = new ItemListIgnoreCrafting(legacyType.createList());
-            for (var entry : kcBefore) {
-                var stack = entry.getKey().toIAEStack(entry.getLongValue());
-                if (stack != null) {
-                    before.addGeneric(stack);
-                }
-            }
-            var after = new ItemListIgnoreCrafting(legacyType.createList());
-            for (var entry : kcAfter) {
-                var stack = entry.getKey().toIAEStack(entry.getLongValue());
-                if (stack != null) {
-                    after.addGeneric(stack);
-                }
-            }
-            appeng.util.StorageHelper.postListChanges(before, after, this, this.getChangeSource());
-        }
+        // Post changes directly using KeyCounter diffs
+        appeng.util.StorageHelper.postListChanges(kcBefore, kcAfter, this, this.getChangeSource());
     }
 
     @Override
@@ -122,23 +105,24 @@ public class MEMonitorPassThrough extends MEPassThrough
         this.listeners.remove(l);
     }
 
+    /**
+     * Backward-compatible method that converts KeyCounter to IItemList.
+     * New code should use {@link #getKeyCounter()} instead.
+     */
     public IItemList getStorageList() {
-        if (this.monitor == null) {
-            var legacyType = AEStackTypeRegistry.getType(getKeyType().getId());
-            if (legacyType == null) {
-                return null;
-            }
-            final IItemList out = legacyType.createList();
-            var kc = this.getInternal().getAvailableKeyCounter();
-            for (var entry : kc) {
-                var stack = entry.getKey().toIAEStack(entry.getLongValue());
-                if (stack != null) {
-                    out.addGeneric(stack);
-                }
-            }
-            return out;
+        var legacyType = AEStackTypeRegistry.getType(getKeyType().getId());
+        if (legacyType == null) {
+            return null;
         }
-        return this.monitor.getStorageList();
+        final IItemList out = legacyType.createList();
+        KeyCounter kc = (this.monitor != null) ? this.monitor.getKeyCounter() : this.getInternal().getAvailableKeyCounter();
+        for (var entry : kc) {
+            var stack = entry.getKey().toIAEStack(entry.getLongValue());
+            if (stack != null) {
+                out.addGeneric(stack);
+            }
+        }
+        return out;
     }
 
     @Override

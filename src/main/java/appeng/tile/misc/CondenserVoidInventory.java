@@ -34,9 +34,9 @@ class CondenserVoidInventory implements IMEMonitor {
     private final TileCondenser target;
     private final AEKeyType keyType;
 
-    CondenserVoidInventory(final TileCondenser te, final IAEStackType<?> stackType) {
+    CondenserVoidInventory(final TileCondenser te, final AEKeyType keyType) {
         this.target = te;
-        this.keyType = AEKeyType.fromLegacyType(stackType);
+        this.keyType = keyType;
     }
 
     @Override

@@ -88,7 +88,7 @@ public class PartStorageBus extends AbstractPartStorageBus
 
     @Override
     public AEKeyType getStackType() {
-        return AEItemStackType.INSTANCE;
+        return AEKeyType.items();
     }
 
     @Override
@@ -112,7 +112,7 @@ public class PartStorageBus extends AbstractPartStorageBus
         if (accessor != null) {
             IStorageMonitorable inventory = accessor.getInventory(this.mySrc);
             if (inventory != null) {
-                return inventory.getInventory(AEItemStackType.INSTANCE);
+                return inventory.getInventory(AEKeyType.items());
             }
 
             // So this could / can be a design decision. If the tile does support our custom capability,
@@ -153,7 +153,7 @@ public class PartStorageBus extends AbstractPartStorageBus
                 IStorageMonitorable inventory = accessor.getInventory(this.mySrc);
                 if (inventory != null) {
                     return Objects.hash(target, inventory
-                            .getInventory(AEItemStackType.INSTANCE));
+                            .getInventory(AEKeyType.items()));
                 }
             }
             return Objects.hash(target, target.getCapability(Capabilities.STORAGE_MONITORABLE_ACCESSOR, targetSide));

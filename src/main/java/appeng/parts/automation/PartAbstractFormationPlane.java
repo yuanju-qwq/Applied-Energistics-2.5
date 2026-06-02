@@ -9,6 +9,10 @@ import net.minecraft.world.IBlockAccess;
 
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.parts.IPart;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartHost;
@@ -22,7 +26,7 @@ import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
 import appeng.helpers.IPriorityHost;
 
-public abstract class PartAbstractFormationPlane<T extends IAEStack<T>> extends PartUpgradeable
+public abstract class PartAbstractFormationPlane extends PartUpgradeable
         implements ICellContainer, IPriorityHost, IMEInventory {
 
     private boolean wasActive = false;
@@ -187,13 +191,18 @@ public abstract class PartAbstractFormationPlane<T extends IAEStack<T>> extends 
     }
 
     @Override
-    public T extractItems(final T request, final Actionable mode, final IActionSource src) {
+    public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
         return null;
     }
 
     @Override
-    public IItemList<T> getAvailableItems(final IItemList<T> out) {
-        return out;
+    public KeyCounter getAvailableKeyCounter() {
+        return new KeyCounter();
+    }
+
+    @Override
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     @Override

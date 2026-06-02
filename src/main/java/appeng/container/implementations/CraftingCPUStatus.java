@@ -10,6 +10,7 @@ import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 
 import appeng.api.networking.crafting.ICraftingCPU;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.util.ItemSorters;
@@ -46,8 +47,8 @@ public class CraftingCPUStatus implements Comparable<CraftingCPUStatus> {
         this.name = cluster.getName();
         this.serial = serial;
         if (cluster.isBusy()) {
-            IAEStack<?> output = cluster.getFinalMultiOutput();
-            crafting = output instanceof IAEItemStack ? (IAEItemStack) output : null;
+            GenericStack output = cluster.getFinalMultiOutput();
+            crafting = output != null && output.toIAEStack() instanceof IAEItemStack ais ? ais : null;
             totalItems = cluster.getStartItemCount();
             remainingItems = cluster.getRemainingItemCount();
         } else {

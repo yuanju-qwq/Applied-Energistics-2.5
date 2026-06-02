@@ -258,8 +258,8 @@ class ItemHandlerAdapter implements IMEInventory, IBaseMonitor, ITickingMonitor 
     }
 
     @Override
-    public IAEStackType<IAEItemStack> getStackType() {
-        return AEItemStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     @Override
@@ -290,7 +290,7 @@ class ItemHandlerAdapter implements IMEInventory, IBaseMonitor, ITickingMonitor 
     private static class InventoryCache implements Iterable<ItemSlot> {
         private final IItemHandler itemHandler;
         private final StorageFilter mode;
-        IItemList<IAEItemStack> currentlyCached = AEItemStackType.INSTANCE.createList();
+        IItemList<IAEItemStack> currentlyCached = new ItemList();
 
         public InventoryCache(IItemHandler itemHandler, StorageFilter mode) {
             this.mode = mode;
@@ -317,7 +317,7 @@ class ItemHandlerAdapter implements IMEInventory, IBaseMonitor, ITickingMonitor 
         public List<IAEItemStack> update() {
             final List<IAEItemStack> changes = new ArrayList<>();
 
-            IItemList<IAEItemStack> currentlyOnStorage = AEItemStackType.INSTANCE.createList();
+            IItemList<IAEItemStack> currentlyOnStorage = new ItemList();
 
             for (final ItemSlot is : this) {
                 if (this.mode == StorageFilter.EXTRACTABLE_ONLY && !is.isExtractable()) {

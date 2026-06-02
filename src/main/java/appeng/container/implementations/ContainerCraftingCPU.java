@@ -204,14 +204,11 @@ public class ContainerCraftingCPU extends AEBaseContainer
     }
 
     @Override
-    public void postChange(final IBaseMonitor monitor, final Iterable<IAEStackBase> change,
+    public void postChange(final IBaseMonitor monitor, final Iterable<GenericStack> change,
             final IActionSource actionSource) {
-        for (IAEStackBase is : change) {
-            if (is instanceof IAEStack<?> aeStack) {
-                var key = aeStack.toAEKey();
-                if (key != null) {
-                    this.changed.add(key, 1);
-                }
+        for (GenericStack gs : change) {
+            if (gs != null) {
+                this.changed.add(gs.what(), gs.amount());
             }
         }
     }

@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -49,7 +51,9 @@ import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
@@ -155,8 +159,8 @@ public class PacketJEIRecipe extends AppEngPacket {
         }
 
         if (inv != null && this.recipe != null && security != null) {
-            final IMEMonitor<IAEItemStack> storage = inv
-                    .getInventory(AEItemStackType.INSTANCE);
+            final IMEMonitor storage = inv
+                    .getInventory(AEKeyType.items());
             final IPartitionList<IAEItemStack> filter = ItemViewCell.createFilter(cct.getViewCells());
 
             final boolean overwriteGhostSlots = !cct.useRealItems()
@@ -216,21 +220,22 @@ public class PacketJEIRecipe extends AppEngPacket {
                                     if (out == null) {
                                         if (request.getItem().isDamageable()
                                                 || Platform.isGTDamageableItem(request.getItem())) {
-                                            Collection<IAEItemStack> outList = inv
-                                                    .getInventory(AEItemStackType.INSTANCE)
-                                                    .getStorageList().findFuzzy(request, FuzzyMode.IGNORE_ALL);
-                                            for (IAEItemStack is : outList) {
-                                                if (is.getStackSize() == 0) {
+                                            Collection<Object2LongMap.Entry<AEKey>> outList = inv
+                                                    .getInventory(AEKeyType.items())
+                                                    .getKeyCounter().findFuzzy(request, FuzzyMode.IGNORE_ALL);
+                                            for (var is : outList) {
+                                                if (is.getLongValue() == 0) {
                                                     continue;
                                                 }
                                                 if (Platform.isGTDamageableItem(request.getItem())) {
-                                                    if (!(is.getDefinition().getMetadata() == request.getDefinition()
+                                                    if (is.getKey() instanceof AEItemKey itemKey
+                                                            && !(itemKey.getDefinition().getMetadata() == request.getDefinition()
                                                             .getMetadata())) {
                                                         continue;
                                                     }
                                                 }
                                                 out = appeng.util.StorageHelper.poweredExtraction(energy, storage,
-                                                        new GenericStack(is.toAEKey(), 1),
+                                                        new GenericStack(is.getKey(), 1),
                                                         cct.getActionSource());
                                                 if (out != null) {
                                                     break;

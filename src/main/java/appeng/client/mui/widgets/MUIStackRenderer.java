@@ -77,7 +77,7 @@ public final class MUIStackRenderer {
     public static void renderItemIcon(Minecraft mc, ItemStack itemStack, int x, int y) {
         appeng.client.render.stack.AEItemStackRenderer.INSTANCE.renderIcon(
                 mc,
-                appeng.util.item.AEItemStackType.INSTANCE.createStack(itemStack),
+                AEItemStack.fromItemStack(itemStack),
                 x, y);
     }
 

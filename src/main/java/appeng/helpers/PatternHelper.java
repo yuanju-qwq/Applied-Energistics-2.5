@@ -113,7 +113,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
                 this.markItemAs(x, gs, TestStatus.ACCEPT);
             }
 
-            in.add(AEItemStackType.INSTANCE.createStack(gs));
+            in.add(AEItemStack.fromItemStack(gs));
             this.testFrame.setInventorySlotContents(x, gs);
         }
 
@@ -122,8 +122,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
 
             if (this.standardRecipe != null) {
                 this.correctOutput = this.standardRecipe.getCraftingResult(this.crafting);
-                out.add(AEItemStackType.INSTANCE
-                        .createStack(this.correctOutput));
+                out.add(AEItemStack.fromItemStack(this.correctOutput));
             } else {
                 throw new IllegalStateException("No pattern here!");
             }
@@ -144,7 +143,7 @@ public class PatternHelper implements ICraftingPatternDetails, Comparable<Patter
                 }
 
                 if (!gs.isEmpty()) {
-                    out.add(AEItemStackType.INSTANCE.createStack(gs));
+                    out.add(AEItemStack.fromItemStack(gs));
                 } else {
                     out.add(null);
                 }

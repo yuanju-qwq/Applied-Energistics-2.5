@@ -26,7 +26,7 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 
 /**
@@ -43,16 +43,14 @@ import appeng.api.stacks.GenericStack;
  * <p>
  * This abstraction replaces all {@code instanceof IAEItemStack / IAEFluidStack}
  * dispatching in {@link appeng.helpers.InterfaceLogic}.
- *
- * @param <T> the concrete stack type
  */
 public interface IInterfaceSlotHandler {
 
     /**
-     * @return the stack type this handler manages
+     * @return the key type this handler manages
      */
     @Nonnull
-    IAEStackType getStackType();
+    AEKeyType getKeyType();
 
     // ========== Slot Storage Init ==========
 

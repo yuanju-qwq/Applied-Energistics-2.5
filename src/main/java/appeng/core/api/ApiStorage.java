@@ -18,9 +18,7 @@
 
 package appeng.core.api;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import javax.annotation.Nonnull;
 
@@ -35,14 +33,11 @@ import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IStorageHelper;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IAEStackType;
 import appeng.crafting.CraftingLink;
-import appeng.fluids.util.AEFluidStackType;
-import appeng.util.item.AEItemStackType;
 
 public class ApiStorage implements IStorageHelper {
 
@@ -58,13 +53,13 @@ public class ApiStorage implements IStorageHelper {
     }
 
     @Override
-    public <T extends IAEStack<T>> T poweredInsert(IEnergySource energy, IMEInventory inv, T input,
+    public GenericStack poweredInsert(IEnergySource energy, IMEInventory inv, GenericStack input,
             IActionSource src, Actionable mode) {
         return appeng.util.StorageHelper.poweredInsert(energy, inv, input, src, mode);
     }
 
     @Override
-    public <T extends IAEStack<T>> T poweredExtraction(IEnergySource energy, IMEInventory inv, T request,
+    public GenericStack poweredExtraction(IEnergySource energy, IMEInventory inv, GenericStack request,
             IActionSource src, Actionable mode) {
         return appeng.util.StorageHelper.poweredExtraction(energy, inv, request, src, mode);
     }
@@ -81,8 +76,7 @@ public class ApiStorage implements IStorageHelper {
 
     @Override
     @Nonnull
-    public Collection<IAEStackType<? extends IAEStackBase>> getStackTypes() {
-        return Collections.unmodifiableList(
-                Arrays.asList(AEItemStackType.INSTANCE, AEFluidStackType.INSTANCE));
+    public Collection<AEKeyType> getKeyTypes() {
+        return AEKeyType.getAllTypes();
     }
 }

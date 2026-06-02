@@ -19,8 +19,6 @@
 package appeng.tile.misc;
 
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map.Entry;
 
 import net.minecraft.item.ItemStack;
 
@@ -29,26 +27,19 @@ import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.me.helpers.BaseActionSource;
 import appeng.me.storage.ITickingMonitor;
-import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
-import appeng.util.item.ItemList;
 
 class CondenserItemInventory implements IMEMonitor, ITickingMonitor {
     private final HashMap<IMEMonitorHandlerReceiver, Object> listeners = new HashMap<>();
     private final TileCondenser target;
-    private boolean hasChanged = true;
-    private final ItemList cachedList = new ItemList();
     private IActionSource actionSource = new BaseActionSource();
-    private ItemList changeSet = new ItemList();
 
     CondenserItemInventory(final TileCondenser te) {
         this.target = te;
@@ -60,13 +51,6 @@ class CondenserItemInventory implements IMEMonitor, ITickingMonitor {
             this.target.addPower(input.amount());
         }
         return null;
-    }
-
-    @Override
-    @Deprecated
-    public IAEItemStack injectItems(final IAEItemStack input, final Actionable mode, final IActionSource src) {
-        GenericStack result = injectItems(GenericStack.fromIAEStack(input), mode, src);
-        return result != null ? (IAEItemStack) result.toIAEStack() : null;
     }
 
     @Override
@@ -85,13 +69,6 @@ class CondenserItemInventory implements IMEMonitor, ITickingMonitor {
     }
 
     @Override
-    @Deprecated
-    public IAEItemStack extractItems(final IAEItemStack request, final Actionable mode, final IActionSource src) {
-        GenericStack result = extractItems(GenericStack.fromIAEStack(request), mode, src);
-        return result != null ? (IAEItemStack) result.toIAEStack() : null;
-    }
-
-    @Override
     public KeyCounter getAvailableKeyCounter() {
         KeyCounter kc = new KeyCounter();
         if (!this.target.getOutputSlot().getStackInSlot(0).isEmpty()) {
@@ -101,30 +78,13 @@ class CondenserItemInventory implements IMEMonitor, ITickingMonitor {
     }
 
     @Override
-    @Deprecated
-    public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
-        KeyCounter kc = getAvailableKeyCounter();
-        for (var entry : kc) {
-            if (entry.getKey() instanceof AEItemKey itemKey) {
-                out.add((IAEItemStack) itemKey.toIAEStack(entry.getLongValue()));
-            }
-        }
-        return out;
+    public KeyCounter getKeyCounter() {
+        return getAvailableKeyCounter();
     }
 
     @Override
-    public IItemList<IAEItemStack> getStorageList() {
-        if (this.hasChanged) {
-            this.hasChanged = false;
-            this.cachedList.resetStatus();
-            return this.getAvailableItems(this.cachedList);
-        }
-        return this.cachedList;
-    }
-
-    @Override
-    public IAEStackType<IAEItemStack> getStackType() {
-        return AEItemStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     @Override
@@ -133,12 +93,12 @@ class CondenserItemInventory implements IMEMonitor, ITickingMonitor {
     }
 
     @Override
-    public boolean isPrioritized(final IAEItemStack input) {
+    public boolean isPrioritized(final AEKey input) {
         return false;
     }
 
     @Override
-    public boolean canAccept(final IAEItemStack input) {
+    public boolean canAccept(final AEKey input) {
         return true;
     }
 
@@ -168,37 +128,13 @@ class CondenserItemInventory implements IMEMonitor, ITickingMonitor {
     }
 
     public void updateOutput(ItemStack added, ItemStack removed) {
-        this.hasChanged = true;
-        if (!added.isEmpty()) {
-            this.changeSet.add(AEItemStack.fromItemStack(added));
-        }
-        if (!removed.isEmpty()) {
-            this.changeSet.add(AEItemStack.fromItemStack(removed).setStackSize(-removed.getCount()));
-        }
+        // No-op: listener-based change tracking removed
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public TickRateModulation onTick() {
-        final ItemList currentChanges = this.changeSet;
-
-        if (currentChanges.isEmpty()) {
-            return TickRateModulation.IDLE;
-        }
-
-        this.changeSet = new ItemList();
-        final Iterator<Entry<IMEMonitorHandlerReceiver, Object>> i = this.listeners.entrySet().iterator();
-        while (i.hasNext()) {
-            final Entry<IMEMonitorHandlerReceiver, Object> l = i.next();
-            final IMEMonitorHandlerReceiver key = l.getKey();
-            if (key.isValid(l.getValue())) {
-                ((IMEMonitorHandlerReceiver) key).postChange(this, currentChanges, this.actionSource);
-            } else {
-                i.remove();
-            }
-        }
-
-        return TickRateModulation.URGENT;
+        return TickRateModulation.IDLE;
     }
 
     @Override

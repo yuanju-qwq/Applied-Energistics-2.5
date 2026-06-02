@@ -118,8 +118,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                             NBTTagCompound nestedIngredient = nestedIn.getCompoundTagAt(i);
                             ItemStack nestedGs = stackFromNBT(nestedIngredient);
                             if (!nestedIngredient.isEmpty() && !nestedGs.isEmpty()) {
-                                in.add(AEItemStackType.INSTANCE
-                                        .createStack(nestedGs));
+                                in.add(AEItemStack.fromItemStack(nestedGs));
                             }
                         }
 
@@ -130,8 +129,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                                 NBTTagCompound nestedResult = nestedOut.getCompoundTagAt(i);
                                 ItemStack nestedGs = stackFromNBT(nestedResult);
                                 if (!nestedResult.isEmpty() && !nestedGs.isEmpty()) {
-                                    out.add(AEItemStackType.INSTANCE
-                                            .createStack(nestedGs));
+                                    out.add(AEItemStack.fromItemStack(nestedGs));
                                 }
                             }
                         }
@@ -141,7 +139,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
 
                 // Normal items added to inputs
                 if (!gs.isEmpty()) {
-                    in.add(AEItemStackType.INSTANCE.createStack(gs));
+                    in.add(AEItemStack.fromItemStack(gs));
                 }
             }
         } else {
@@ -160,7 +158,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                     this.markItemAs(x, gs, TestStatus.ACCEPT);
                 }
 
-                in.add(AEItemStackType.INSTANCE.createStack(gs));
+                in.add(AEItemStack.fromItemStack(gs));
                 this.testFrame.setInventorySlotContents(x, gs);
             }
         }
@@ -171,8 +169,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
             this.standardRecipe = CraftingManager.findMatchingRecipe(this.crafting, w);
             if (this.standardRecipe != null) {
                 this.correctOutput = this.standardRecipe.getCraftingResult(this.crafting);
-                out.add(AEItemStackType.INSTANCE
-                        .createStack(this.correctOutput));
+                out.add(AEItemStack.fromItemStack(this.correctOutput));
             } else {
                 throw new IllegalStateException("No pattern here!");
             }
@@ -191,7 +188,7 @@ public class PatternNestHelper implements ICraftingPatternDetails, Comparable<Pa
                 }
 
                 if (!gs.isEmpty()) {
-                    out.add(AEItemStackType.INSTANCE.createStack(gs));
+                    out.add(AEItemStack.fromItemStack(gs));
                 }
             }
         }

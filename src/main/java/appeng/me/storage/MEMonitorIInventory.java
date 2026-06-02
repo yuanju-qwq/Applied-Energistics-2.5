@@ -45,7 +45,7 @@ import appeng.util.item.AEItemStackType;
 public class MEMonitorIInventory implements IMEMonitor, ITickingMonitor {
 
     private final InventoryAdaptor adaptor;
-    private IItemList<IAEItemStack> cache = AEItemStackType.INSTANCE.createList();
+    private IItemList<IAEItemStack> cache = new ItemList();
 
     private final HashMap<IMEMonitorHandlerReceiver, Object> listeners = new HashMap<>();
     private IActionSource mySource;
@@ -170,7 +170,7 @@ public class MEMonitorIInventory implements IMEMonitor, ITickingMonitor {
 
         final List<IAEItemStack> changes = new ArrayList<>();
 
-        IItemList<IAEItemStack> currentlyOnStorage = AEItemStackType.INSTANCE.createList();
+        IItemList<IAEItemStack> currentlyOnStorage = new ItemList();
 
         for (final ItemSlot is : adaptor) {
             if (this.mode == StorageFilter.EXTRACTABLE_ONLY && !is.isExtractable()) {
@@ -266,7 +266,6 @@ public class MEMonitorIInventory implements IMEMonitor, ITickingMonitor {
         return out;
     }
 
-    @Override
     @Deprecated
     public IItemList<IAEItemStack> getStorageList() {
         return this.cache;

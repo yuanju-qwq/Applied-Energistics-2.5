@@ -45,7 +45,7 @@ import appeng.fluids.util.AEFluidStackType;
 
 public class MEMonitorIFluidHandler implements IMEMonitor, ITickingMonitor {
     private final IFluidHandler handler;
-    private IItemList<IAEFluidStack> cache = AEFluidStackType.INSTANCE.createList();
+    private IItemList<IAEFluidStack> cache = new FluidList();
     private final HashMap<IMEMonitorHandlerReceiver, Object> listeners = new HashMap<>();
     private IActionSource mySource;
     private StorageFilter mode = StorageFilter.EXTRACTABLE_ONLY;
@@ -158,7 +158,7 @@ public class MEMonitorIFluidHandler implements IMEMonitor, ITickingMonitor {
         final List<IAEFluidStack> changes = new ArrayList<>();
         final IFluidTankProperties[] tankProperties = this.handler.getTankProperties();
 
-        IItemList<IAEFluidStack> currentlyOnStorage = AEFluidStackType.INSTANCE.createList();
+        IItemList<IAEFluidStack> currentlyOnStorage = new FluidList();
 
         for (IFluidTankProperties tankProperty : tankProperties) {
             if (this.mode == StorageFilter.EXTRACTABLE_ONLY && this.handler.drain(1, false) == null) {
@@ -254,7 +254,6 @@ public class MEMonitorIFluidHandler implements IMEMonitor, ITickingMonitor {
         return out;
     }
 
-    @Override
     @Deprecated
     public IItemList<IAEFluidStack> getStorageList() {
         return this.cache;

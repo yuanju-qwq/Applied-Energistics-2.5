@@ -39,6 +39,7 @@ import appeng.api.config.Settings;
 import appeng.api.definitions.IMaterials;
 import appeng.api.implementations.items.IStorageComponent;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.IStorageMonitorableAccessor;
@@ -323,8 +324,8 @@ public class TileCondenser extends AEBaseInvTile implements IConfigManagerHost, 
         }
 
         @Override
-        public <T extends IAEStack<T>> IMEMonitor getInventory(IAEStackType<T> type) {
-            if (type == AEItemStackType.INSTANCE) {
+        public IMEMonitor getInventory(AEKeyType type) {
+            if (type == AEKeyType.items()) {
                 return (IMEMonitor) this.itemInventory;
             } else {
                 return new CondenserVoidInventory(TileCondenser.this, type);

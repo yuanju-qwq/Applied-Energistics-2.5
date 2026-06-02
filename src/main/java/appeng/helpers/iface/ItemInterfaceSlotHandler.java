@@ -31,16 +31,16 @@ import net.minecraft.util.EnumFacing;
 
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.*;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.me.GridAccessException;
 import appeng.me.storage.MEMonitorIInventory;
 import appeng.util.Platform;
 import appeng.util.StorageHelper;
-import appeng.util.helpers.ItemComparisonHelper;
 import appeng.util.inv.AdaptorItemHandler;
 import appeng.util.item.AEItemStackType;
 
@@ -50,7 +50,7 @@ import appeng.util.item.AEItemStackType;
  * Handles item storage, plan computation, and plan execution for slots
  * configured with item stacks.
  */
-public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler<IAEItemStack> {
+public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler {
 
     public static final ItemInterfaceSlotHandler INSTANCE = new ItemInterfaceSlotHandler();
 
@@ -58,8 +58,8 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler<IAE
 
     @Nonnull
     @Override
-    public IAEStackType<IAEItemStack> getStackType() {
-        return AEItemStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     @Override
@@ -91,7 +91,7 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler<IAE
             }
         } else {
             // Type mismatch: return old items first (negative = push back to network)
-            final IAEItemStack work = AEItemStackType.INSTANCE.createStack(stored);
+            final IAEItemStack work = AEItemStack.fromItemStack(stored);
             work.setStackSize(-work.getStackSize());
             return work;
         }
@@ -106,7 +106,7 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler<IAE
 
         boolean changed = false;
         try {
-            final IMEMonitor<IAEItemStack> dest = context.getNetworkInventory(AEItemStackType.INSTANCE);
+            final IMEMonitor dest = context.getNetworkInventory(AEKeyType.items());
             final appeng.api.networking.energy.IEnergySource src = context.getProxy().getEnergy();
 
             // --- Negative: push items back to network ---
@@ -150,9 +150,11 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler<IAE
                     throw new GridAccessException();
                 }
 
-                IAEItemStack storedInNetwork = context.getNetworkInventory(AEItemStackType.INSTANCE)
-                        .getStorageList().findPrecise(plan);
-                if (storedInNetwork != null) {
+                AEItemKey planKey = plan.toAEKey() instanceof AEItemKey k ? k : null;
+                long storedAmount = planKey != null
+                        ? context.getNetworkInventory(AEKeyType.items()).getKeyCounter().get(planKey)
+                        : 0;
+                if (storedAmount > 0) {
                     final IAEItemStack acquired = StorageHelper.poweredExtraction(
                             src, dest, plan, context.getRequestSource());
                     if (acquired != null) {
@@ -162,13 +164,13 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler<IAE
                         if (!issue.isEmpty()) {
                             throw new IllegalStateException("bad attempt at managing inventory. ( addItems )");
                         }
-                    } else if (storedInNetwork.isCraftable()) {
+                    } else {
                         plan.setCachedItemStack(inputStack);
                         changed = context.handleCrafting(slot, plan) || changed;
                     }
-                    if (acquired == null) {
-                        plan.setCachedItemStack(inputStack);
-                    }
+                } else {
+                    plan.setCachedItemStack(inputStack);
+                    changed = context.handleCrafting(slot, plan) || changed;
                 }
             }
         } catch (final GridAccessException e) {

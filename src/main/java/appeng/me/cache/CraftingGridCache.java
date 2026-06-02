@@ -56,7 +56,6 @@ import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.crafting.CraftingLink;
 import appeng.crafting.CraftingLinkNexus;
@@ -393,7 +392,7 @@ public class CraftingGridCache
     @Override
     public void setEmitable(final IAEStack<?> someItem) {
         this.emitableItems.add(someItem.copy());
-        this.ensureHandlerForType(someItem.getStackType());
+        this.ensureHandlerForType(AEKeyType.fromLegacyType(someItem.getStackType()));
     }
 
     private void ensureHandlerForType(AEKeyType keyType) {

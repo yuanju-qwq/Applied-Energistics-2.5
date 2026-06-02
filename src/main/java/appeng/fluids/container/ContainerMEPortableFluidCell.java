@@ -36,7 +36,10 @@ import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
@@ -76,7 +79,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
 
     private final IConfigManager clientCM;
     private final IMEMonitor monitor;
-    private final IItemList<IAEFluidStack> fluids = AEFluidStackType.INSTANCE.createList();
+    private final IItemList<IAEFluidStack> fluids = new FluidList();
     @GuiSync(99)
     public boolean hasPower = false;
     private final ITerminalHost terminal;
@@ -109,7 +112,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
         if (Platform.isServer()) {
             this.serverCM = terminal.getConfigManager();
             this.monitor = terminal
-                    .getInventory(AEFluidStackType.INSTANCE);
+                    .getInventory(AEKeyType.fluids());
 
             if (this.monitor != null) {
                 this.monitor.addListener(this, null);
@@ -147,7 +150,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
             this.wirelessHelper.tickWirelessStatus(this);
 
             if (this.monitor != this.terminal
-                    .getInventory(AEFluidStackType.INSTANCE)) {
+                    .getInventory(AEKeyType.fluids())) {
                 this.setValidContainer(false);
             }
 
@@ -172,17 +175,19 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
 
             if (!this.fluids.isEmpty()) {
                 try {
-                    final IItemList<IAEFluidStack> monitorCache = this.monitor.getStorageList();
+                    final KeyCounter monitorCache = this.monitor.getKeyCounter();
 
                     final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
                     for (final IAEFluidStack is : this.fluids) {
-                        final IAEFluidStack send = monitorCache.findPrecise(is);
-                        if (send == null) {
+                        AEKey searchKey = is.toAEKey();
+                        long sendAmount = searchKey != null ? monitorCache.get(searchKey) : 0;
+                        if (sendAmount == 0) {
                             is.setStackSize(0);
                             piu.appendStack(is);
                         } else {
-                            piu.appendStack(send);
+                            is.setStackSize(sendAmount);
+                            piu.appendStack(is);
                         }
                     }
 
@@ -438,16 +443,22 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
         if (Platform.isServer() && c instanceof EntityPlayer && this.monitor != null) {
             try {
                 PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
-                final IItemList<IAEFluidStack> monitorCache = this.monitor.getStorageList();
+                final KeyCounter monitorCache = this.monitor.getKeyCounter();
 
-                for (final IAEFluidStack send : monitorCache) {
+                for (var entry : monitorCache) {
                     try {
-                        piu.appendStack(send);
+                        IAEFluidStack send = (IAEFluidStack) entry.getKey().toIAEStack(entry.getLongValue());
+                        if (send != null) {
+                            piu.appendStack(send);
+                        }
                     } catch (final BufferOverflowException boe) {
                         NetworkHandler.instance().sendTo(piu, (EntityPlayerMP) c);
 
                         piu = new PacketMEInventoryUpdate();
-                        piu.appendStack(send);
+                        IAEFluidStack send = (IAEFluidStack) entry.getKey().toIAEStack(entry.getLongValue());
+                        if (send != null) {
+                            piu.appendStack(send);
+                        }
                     }
                 }
 

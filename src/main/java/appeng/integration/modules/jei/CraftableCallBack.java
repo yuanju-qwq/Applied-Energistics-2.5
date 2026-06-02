@@ -112,7 +112,7 @@ public class CraftableCallBack implements ITooltipCallback<ItemStack> {
 
     IItemList<IAEItemStack> mergeInventories(IItemList<IAEItemStack> repo,
             ContainerMEMonitorable containerCraftingTerm) {
-        IItemList<IAEItemStack> itemList = AEItemStackType.INSTANCE.createList();
+        IItemList<IAEItemStack> itemList = new ItemList();
         for (IAEItemStack i : repo) {
             itemList.addStorage(i);
         }

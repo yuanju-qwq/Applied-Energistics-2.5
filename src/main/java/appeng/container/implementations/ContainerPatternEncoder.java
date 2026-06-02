@@ -66,6 +66,7 @@ import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.InvOperation;
 import appeng.util.inv.WrapperCursorItemHandler;
 import appeng.util.item.AEItemStack;
+import appeng.api.stacks.AEKeyType;
 import appeng.util.item.AEItemStackType;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
@@ -949,16 +950,16 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                 return;
             }
 
-            IMEMonitor<IAEItemStack> storage = null;
+            IMEMonitor storage = null;
             if (getPart() != null) {
                 storage = this.getPart()
-                        .getInventory(AEItemStackType.INSTANCE);
+                        .getInventory(AEKeyType.items());
             } else if (iGuiItemObject != null) {
                 storage = ((ITerminalHost) iGuiItemObject)
-                        .getInventory(AEItemStackType.INSTANCE);
+                        .getInventory(AEKeyType.items());
             }
 
-            final IItemList<IAEItemStack> all = storage.getStorageList();
+            final IItemList<IAEItemStack> all = ((appeng.me.cache.NetworkMonitor) storage).getStorageList();
 
             final ItemStack is = r.getCraftingResult(ic);
 

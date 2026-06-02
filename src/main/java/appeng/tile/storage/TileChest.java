@@ -190,9 +190,9 @@ public class TileChest extends AENetworkPowerTile
                 if (cellHandler != null) {
                     double power = 1.0;
 
-                    for (IAEStackType<?> stackType : AEApi.instance().storage().getStackTypes()) {
+                    for (AEKeyType keyType : AEKeyType.getAllTypes()) {
                         final ICellInventoryHandler newCell = cellHandler.getCellInventory(is, this,
-                                stackType);
+                                keyType);
                         if (newCell != null) {
                             power += cellHandler.cellIdleDrain(is, newCell);
                             this.cellHandler = this.wrap(newCell);
@@ -203,8 +203,8 @@ public class TileChest extends AENetworkPowerTile
                     this.getProxy().setIdlePowerUsage(power);
                     this.accessor = new Accessor();
 
-                    if (this.cellHandler != null && this.cellHandler
-                            .getStackType() == AEFluidStackType.INSTANCE) {
+                    if (this.cellHandler != null && AEKeyType.fromLegacyType(
+                            this.cellHandler.getStackType()) == AEKeyType.fluids()) {
                         this.fluidHandler = new FluidHandler();
                     }
                 }
@@ -395,10 +395,10 @@ public class TileChest extends AENetworkPowerTile
 
     @SuppressWarnings("unchecked")
     @Override
-    public IMEMonitor getInventory(IAEStackType<?> type) {
+    public IMEMonitor getInventory(AEKeyType type) {
         this.updateHandler();
 
-        if (this.cellHandler != null && this.cellHandler.getStackType() == type) {
+        if (this.cellHandler != null && AEKeyType.fromLegacyType(this.cellHandler.getStackType()) == type) {
             return this.cellHandler;
         }
         return null;
@@ -449,7 +449,7 @@ public class TileChest extends AENetworkPowerTile
         if (!ItemHandlerUtil.isEmpty(this.inputInventory)) {
             this.updateHandler();
 
-            if (this.cellHandler != null && this.cellHandler.getStackType() == AEItemStackType.INSTANCE) {
+            if (this.cellHandler != null && AEKeyType.fromLegacyType(this.cellHandler.getStackType()) == AEKeyType.items()) {
                 final GenericStack returns = appeng.util.StorageHelper.poweredInsert(this, this.cellHandler,
                         GenericStack.fromItemStack(this.inputInventory.getStackInSlot(0)), this.mySrc);
 
@@ -464,9 +464,9 @@ public class TileChest extends AENetworkPowerTile
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<IMEInventoryHandler> getCellArray(final IAEStackType<?> type) {
+    public List<IMEInventoryHandler> getCellArray(final AEKeyType type) {
         this.updateHandler();
-        if (this.cellHandler != null && this.cellHandler.getStackType() == type) {
+        if (this.cellHandler != null && AEKeyType.fromLegacyType(this.cellHandler.getStackType()) == type) {
             return Collections.singletonList((IMEInventoryHandler) this.cellHandler);
         }
         return Collections.emptyList();
@@ -522,9 +522,9 @@ public class TileChest extends AENetworkPowerTile
 
             if (ch != null) {
                 final ICellGuiHandler chg = AEApi.instance().registries().cell()
-                        .getGuiHandler(this.cellHandler.getStackType(), this.getCell());
+                        .getGuiHandler(AEKeyType.fromLegacyType(this.cellHandler.getStackType()), this.getCell());
                 if (chg != null) {
-                    chg.openChestGui(p, this, ch, this.cellHandler, this.getCell(), this.cellHandler.getStackType());
+                    chg.openChestGui(p, this, ch, this.cellHandler, this.getCell(), AEKeyType.fromLegacyType(this.cellHandler.getStackType()));
                     return true;
                 }
             }
@@ -624,13 +624,10 @@ public class TileChest extends AENetworkPowerTile
             GenericStack injected = super.injectItems(input, mode, src);
             if (mode == Actionable.MODULATE && (injected == null || injected.amount() != input.amount())) {
                 if (TileChest.this.isPowered() && this.getInternalHandler().getCellInv() != null) {
-                    IAEStack<?> aeInput = input.toIAEStack();
-                    if (aeInput != null) {
-                        TileChest.this.cellHandler.postChangesToListeners(
-                                Collections.singletonList(aeInput.copy().setStackSize(
-                                        input.amount() - (injected == null ? 0 : injected.amount()))),
-                                TileChest.this.mySrc);
-                    }
+                    long diff = input.amount() - (injected == null ? 0 : injected.amount());
+                    TileChest.this.cellHandler.postChangesToListeners(
+                            Collections.singletonList(new GenericStack(input.what(), diff)),
+                            TileChest.this.mySrc);
                 }
             }
             return injected;
@@ -670,12 +667,9 @@ public class TileChest extends AENetworkPowerTile
             GenericStack extracted = super.extractItems(request, mode, src);
             if (mode == Actionable.MODULATE && extracted != null) {
                 if (TileChest.this.isPowered() && this.getInternalHandler().getCellInv() != null) {
-                    IAEStack<?> aeRequest = request.toIAEStack();
-                    if (aeRequest != null) {
-                        TileChest.this.cellHandler.postChangesToListeners(
-                                Collections.singletonList(aeRequest.copy().setStackSize(-extracted.amount())),
-                                TileChest.this.mySrc);
-                    }
+                    TileChest.this.cellHandler.postChangesToListeners(
+                            Collections.singletonList(new GenericStack(request.what(), -extracted.amount())),
+                            TileChest.this.mySrc);
                 }
             }
             return extracted;
@@ -729,8 +723,8 @@ public class TileChest extends AENetworkPowerTile
         @Override
         public int fill(final FluidStack resource, final boolean doFill) {
             TileChest.this.updateHandler();
-            if (TileChest.this.cellHandler != null && TileChest.this.cellHandler
-                    .getStackType() == AEFluidStackType.INSTANCE) {
+            if (TileChest.this.cellHandler != null && AEKeyType.fromLegacyType(
+                    TileChest.this.cellHandler.getStackType()) == AEKeyType.fluids()) {
                 final GenericStack results = appeng.util.StorageHelper.poweredInsert(TileChest.this, TileChest.this.cellHandler,
                         GenericStack.fromFluidStack(resource),
                         TileChest.this.mySrc, doFill ? Actionable.MODULATE : Actionable.SIMULATE);
@@ -775,8 +769,8 @@ public class TileChest extends AENetworkPowerTile
         public boolean allowInsert(IItemHandler inv, int slot, ItemStack stack) {
             if (TileChest.this.isPowered()) {
                 TileChest.this.updateHandler();
-                return TileChest.this.cellHandler != null && TileChest.this.cellHandler
-                        .getStackType() == AEItemStackType.INSTANCE;
+                return TileChest.this.cellHandler != null && AEKeyType.fromLegacyType(
+                        TileChest.this.cellHandler.getStackType()) == AEKeyType.items();
             }
             return false;
         }
@@ -805,10 +799,10 @@ public class TileChest extends AENetworkPowerTile
     public AEGuiKey getGuiKey() {
         this.updateHandler();
         if (this.cellHandler != null) {
-            if (this.cellHandler.getStackType() == AEItemStackType.INSTANCE) {
+            if (AEKeyType.fromLegacyType(this.cellHandler.getStackType()) == AEKeyType.items()) {
                 return AEGuiKeys.ME_TERMINAL;
             }
-            if (this.cellHandler.getStackType() == AEFluidStackType.INSTANCE) {
+            if (AEKeyType.fromLegacyType(this.cellHandler.getStackType()) == AEKeyType.fluids()) {
                 return AEGuiKeys.ME_TERMINAL;
             }
         }

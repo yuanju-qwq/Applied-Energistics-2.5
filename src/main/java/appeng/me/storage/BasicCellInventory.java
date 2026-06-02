@@ -9,25 +9,27 @@ import appeng.api.exceptions.AppEngException;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ISaveProvider;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
 import appeng.util.item.AEStack;
 
-public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInventory<T> {
-    private final IAEStackType<T> stackType;
+@SuppressWarnings("rawtypes")
+public class BasicCellInventory extends AbstractCellInventory {
+    private final IAEStackType stackType;
 
-    private BasicCellInventory(final IStorageCell<T> cellType, final ItemStack o, final ISaveProvider container) {
+    private BasicCellInventory(final IStorageCell cellType, final ItemStack o, final ISaveProvider container) {
         super(cellType, o, container);
         this.stackType = cellType.getStackType();
     }
 
-    public static <T extends IAEStack<T>> ICellInventory<T> createInventory(final ItemStack o,
+    public static ICellInventory createInventory(final ItemStack o,
             final ISaveProvider container) {
         try {
             if (o == null) {
@@ -35,9 +37,9 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
             }
 
             final Item type = o.getItem();
-            final IStorageCell<T> cellType;
+            final IStorageCell cellType;
             if (type instanceof IStorageCell) {
-                cellType = (IStorageCell<T>) type;
+                cellType = (IStorageCell) type;
             } else {
                 throw new AppEngException("ItemStack was used as a cell, but was not a cell!");
             }
@@ -46,14 +48,14 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
                 throw new AppEngException("ItemStack was used as a cell, but was not a cell!");
             }
 
-            return new BasicCellInventory<T>(cellType, o, container);
+            return new BasicCellInventory(cellType, o, container);
         } catch (final AppEngException e) {
             AELog.error(e);
             return null;
         }
     }
 
-    public static <T extends AEStack<T>> boolean isCellOfType(final ItemStack input, IAEStackType<?> channel) {
+    public static boolean isCellOfType(final ItemStack input, IAEStackType<?> channel) {
         final IStorageCell<?> type = getStorageCell(input);
 
         return type != null && type.getStackType() == channel;
@@ -70,15 +72,11 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
      * Fluids and other non-item types cannot be storage cells, so this check only applies
      * to IAEItemStack. This prevents storing a non-empty cell inside another cell.
      */
-    private boolean isStorageCell(final T input) {
-        // MC limitation: only ItemStack-based storage cells exist
-        if (input instanceof IAEItemStack) {
-            final IAEItemStack stack = (IAEItemStack) input;
-            final IStorageCell<?> type = getStorageCell(stack.getDefinition());
-
+    private boolean isStorageCell(final GenericStack input) {
+        if (input != null && input.what() instanceof AEItemKey itemKey) {
+            final IStorageCell<?> type = getStorageCell(itemKey.toStack());
             return type != null && !type.storableInStorageCell();
         }
-
         return false;
     }
 
@@ -102,32 +100,23 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
     }
 
     @Override
-    public T injectItems(T input, Actionable mode, IActionSource src) {
+    public GenericStack injectItems(GenericStack input, Actionable mode, IActionSource src) {
         if (input == null) {
             return null;
         }
-        if (input.getStackSize() == 0) {
+        if (input.amount() == 0) {
             return null;
         }
 
-        if (this.cellType.isBlackListed(this.getItemStack(), input)) {
-            return input;
-        }
-        // This is slightly hacky as it expects a read-only access, but fine for now.
-        // TODO: Guarantee a read-only access. E.g. provide an isEmpty() method and ensure CellInventory does not write
-        // any NBT data for empty cells instead of relying on an empty IItemContainer
         if (this.isStorageCell(input)) {
-            final ICellInventory<?> meInventory = createInventory(((IAEItemStack) input).createItemStack(), null);
-            if (!isCellEmpty(meInventory)) {
+            final ICellInventory meInventory = createInventory(
+                    input.what() instanceof AEItemKey itemKey ? itemKey.toStack() : ItemStack.EMPTY, null);
+            if (meInventory != null && !meInventory.getAvailableKeyCounter().isEmpty()) {
                 return input;
             }
         }
 
-        final AEKey key = input.toAEKey();
-        if (key == null) {
-            return input;
-        }
-
+        final AEKey key = input.what();
         final KeyCounter kc = this.getKeyCounter();
         final long existing = kc.get(key);
 
@@ -137,17 +126,15 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
                 return input;
             }
 
-            if (input.getStackSize() > remainingItemCount) {
-                final T r = input.copy();
-                r.setStackSize(r.getStackSize() - remainingItemCount);
+            if (input.amount() > remainingItemCount) {
                 if (mode == Actionable.MODULATE) {
                     kc.set(key, existing + remainingItemCount);
                     this.saveChanges();
                 }
-                return r;
+                return new GenericStack(key, input.amount() - remainingItemCount);
             } else {
                 if (mode == Actionable.MODULATE) {
-                    kc.set(key, existing + input.getStackSize());
+                    kc.set(key, existing + input.amount());
                     this.saveChanges();
                 }
                 return null;
@@ -159,18 +146,16 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
             final long remainingItemCount = this.getRemainingItemCount()
                     - (long) this.getBytesPerType() * this.itemsPerByte;
             if (remainingItemCount > 0) {
-                if (input.getStackSize() > remainingItemCount) {
-                    final T toReturn = input.copy();
-                    toReturn.setStackSize(input.getStackSize() - remainingItemCount);
+                if (input.amount() > remainingItemCount) {
                     if (mode == Actionable.MODULATE) {
                         kc.set(key, remainingItemCount);
                         this.saveChanges();
                     }
-                    return toReturn;
+                    return new GenericStack(key, input.amount() - remainingItemCount);
                 }
 
                 if (mode == Actionable.MODULATE) {
-                    kc.set(key, input.getStackSize());
+                    kc.set(key, input.amount());
                     this.saveChanges();
                 }
 
@@ -182,18 +167,14 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
     }
 
     @Override
-    public T extractItems(T request, Actionable mode, IActionSource src) {
+    public GenericStack extractItems(GenericStack request, Actionable mode, IActionSource src) {
         if (request == null) {
             return null;
         }
 
-        final long size = Math.min(Integer.MAX_VALUE, request.getStackSize());
+        final long size = Math.min(Integer.MAX_VALUE, request.amount());
 
-        final AEKey key = request.toAEKey();
-        if (key == null) {
-            return null;
-        }
-
+        final AEKey key = request.what();
         final KeyCounter kc = this.getKeyCounter();
         final long existing = kc.get(key);
 
@@ -201,34 +182,25 @@ public class BasicCellInventory<T extends IAEStack<T>> extends AbstractCellInven
             return null;
         }
 
-        T Results = request.copy();
-
         if (existing <= size) {
-            Results.setStackSize(existing);
             if (mode == Actionable.MODULATE) {
                 kc.set(key, 0);
                 this.saveChanges();
             }
+            return new GenericStack(key, existing);
         } else {
-            Results.setStackSize(size);
             if (mode == Actionable.MODULATE) {
                 kc.set(key, existing - size);
                 this.saveChanges();
             }
+            return new GenericStack(key, size);
         }
-
-        return Results;
-    }
-
-    @Override
-    public IAEStackType<T> getStackType() {
-        return this.stackType;
     }
 
     @Override
     protected boolean loadCellItem(NBTTagCompound compoundTag, long stackSize) {
         // Now load the item stack
-        final T t;
+        final IAEStack t;
         try {
             t = this.getStackType().createFromNBT(compoundTag);
             if (t == null) {

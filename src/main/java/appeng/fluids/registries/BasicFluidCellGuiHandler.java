@@ -23,21 +23,19 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 
 import appeng.api.implementations.tiles.IChestOrDrive;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.ICellGuiHandler;
 import appeng.api.storage.ICellHandler;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEPartLocation;
 import appeng.core.sync.AEGuiKeys;
 import appeng.util.Platform;
-import appeng.fluids.util.AEFluidStackType;
 
 public class BasicFluidCellGuiHandler implements ICellGuiHandler {
 
     @Override
     public boolean isHandlerFor(final AEKeyType type) {
-        return type == AEFluidStackType.INSTANCE;
+        return type == AEKeyType.fluids();
     }
 
     @Override

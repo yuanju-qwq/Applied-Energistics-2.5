@@ -447,7 +447,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,
-                        AEItemStackType.INSTANCE);
+                        AEKeyType.items());
 
         AEApi.instance().client().addCellInformation(cdi, lines);
     }

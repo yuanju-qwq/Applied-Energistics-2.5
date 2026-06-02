@@ -39,7 +39,7 @@ public class ApiClientHelper implements IClientHelper {
     private static final String[] NUMBER_FORMATS = new String[] { "#.000", "#.00", "#.0", "#" };
 
     @Override
-    public <T extends IAEStack<T>> void addCellInformation(ICellInventoryHandler handler, List<String> lines) {
+    public void addCellInformation(ICellInventoryHandler handler, List<String> lines) {
         if (handler == null) {
             return;
         }
@@ -55,7 +55,7 @@ public class ApiClientHelper implements IClientHelper {
         }
 
         @SuppressWarnings("unchecked")
-        IItemList<T> itemList = (IItemList<T>) (Object) cellInventory.getStackType().createList();
+        IItemList itemList = (IItemList) cellInventory.getStackType().createList();
 
         if (handler.isPreformatted()) {
             final String list = (handler.getIncludeExcludeMode() == IncludeExclude.WHITELIST ? GuiText.Included
@@ -83,7 +83,7 @@ public class ApiClientHelper implements IClientHelper {
                     AEKey key = gs.what();
                     if (key instanceof AEItemKey itemKey) {
                         final ItemStack is = itemKey.toStack();
-                        if (cellInventory.getStackType() == AEItemStackType.INSTANCE) {
+                        if (AEKeyType.fromLegacyType(cellInventory.getStackType()) == AEKeyType.items()) {
                             @SuppressWarnings("unchecked")
                             IItemList<IAEItemStack> itemItemList = (IItemList<IAEItemStack>) (IItemList<?>) itemList;
                             if (!handler.isFuzzy()) {
@@ -115,7 +115,7 @@ public class ApiClientHelper implements IClientHelper {
                             }
                         }
                     } else if (key instanceof AEFluidKey fluidKey) {
-                        if (cellInventory.getStackType() == AEFluidStackType.INSTANCE) {
+                        if (AEKeyType.fromLegacyType(cellInventory.getStackType()) == AEKeyType.fluids()) {
                             @SuppressWarnings("unchecked")
                             IItemList<IAEFluidStack> fluidItemList = (IItemList<IAEFluidStack>) (IItemList<?>) itemList;
                             AEFluidStack ais = (AEFluidStack) fluidKey.toIAEStack(gs.amount());
@@ -132,13 +132,13 @@ public class ApiClientHelper implements IClientHelper {
             if (Minecraft.getMinecraft().gameSettings.advancedItemTooltips
                     || Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)) {
                 cellInventory.getAvailableItems(itemList);
-                for (T s : itemList) {
+                for (Object s : itemList) {
                     if (s instanceof IAEItemStack) {
                         lines.add(((IAEItemStack) s).getDefinition().getDisplayName() + ": "
-                                + ReadableNumberConverter.INSTANCE.toWideReadableForm(s.getStackSize()));
+                                + ReadableNumberConverter.INSTANCE.toWideReadableForm(((IAEStack<?>) s).getStackSize()));
                     } else if (s instanceof IAEFluidStack) {
                         lines.add(((IAEFluidStack) s).getFluidStack().getLocalizedName() + ": "
-                                + fluidStackSize(s.getStackSize()));
+                                + fluidStackSize(((IAEStack<?>) s).getStackSize()));
                     }
                 }
             }
