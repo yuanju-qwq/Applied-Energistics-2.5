@@ -35,14 +35,11 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.*;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.me.GridAccessException;
 import appeng.me.storage.MEMonitorIInventory;
 import appeng.util.Platform;
 import appeng.util.StorageHelper;
 import appeng.util.inv.AdaptorItemHandler;
-import appeng.util.item.AEItemStackType;
 
 /**
  * Item-specific slot handler for the ME Interface.
@@ -71,38 +68,36 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler {
 
     @Nullable
     @Override
-    public IAEStack<?> computePlan(int slot, @Nonnull IAEItemStack desired,
+    public GenericStack computePlan(int slot, @Nonnull GenericStack desired,
             @Nonnull InterfaceSlotContext context) {
-        if (desired.getStackSize() <= 0) {
+        if (desired.amount() <= 0) {
             return null;
         }
 
         final ItemStack stored = context.getItemStorage().getStackInSlot(slot);
 
         if (stored.isEmpty()) {
-            return desired.copy();
-        } else if (desired.isSameType(stored)) {
-            if (desired.getStackSize() == stored.getCount()) {
+            return new GenericStack(desired.what(), desired.amount());
+        } else if (desired.what().equals(AEItemKey.of(stored))) {
+            if (desired.amount() == stored.getCount()) {
                 return null;
             } else {
-                IAEItemStack work = desired.copy();
-                work.setStackSize(desired.getStackSize() - stored.getCount());
-                return work;
+                return new GenericStack(desired.what(), desired.amount() - stored.getCount());
             }
         } else {
             // Type mismatch: return old items first (negative = push back to network)
-            final IAEItemStack work = AEItemStack.fromItemStack(stored);
-            work.setStackSize(-work.getStackSize());
-            return work;
+            final GenericStack work = GenericStack.fromItemStack(stored);
+            return new GenericStack(work.what(), -work.amount());
         }
     }
 
     // ========== Plan Execution ==========
 
     @Override
-    public boolean executePlan(int slot, @Nonnull IAEItemStack plan,
+    public boolean executePlan(int slot, @Nonnull GenericStack plan,
             @Nonnull InterfaceSlotContext context) {
         final AdaptorItemHandler adaptor = context.getItemAdaptor(slot);
+        final AEItemKey itemKey = (AEItemKey) plan.what();
 
         boolean changed = false;
         try {
@@ -110,20 +105,19 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler {
             final appeng.api.networking.energy.IEnergySource src = context.getProxy().getEnergy();
 
             // --- Negative: push items back to network ---
-            if (plan.getStackSize() < 0) {
-                IAEItemStack toStore = plan.copy();
-                toStore.setStackSize(-toStore.getStackSize());
-                long diff = toStore.getStackSize();
+            if (plan.amount() < 0) {
+                GenericStack toStore = new GenericStack(plan.what(), -plan.amount());
+                long diff = toStore.amount();
 
-                final ItemStack canExtract = adaptor.simulateRemove((int) diff, toStore.getDefinition(), null);
+                final ItemStack canExtract = adaptor.simulateRemove((int) diff, itemKey.toStack(), null);
                 if (canExtract.isEmpty()) {
                     changed = true;
                     throw new GridAccessException();
                 }
 
-                toStore = StorageHelper.poweredInsert(src, dest, toStore, context.getRequestSource());
-                if (toStore != null) {
-                    diff -= toStore.getStackSize();
+                GenericStack notStored = StorageHelper.poweredInsert(src, dest, toStore, context.getRequestSource());
+                if (notStored != null) {
+                    diff -= notStored.amount();
                 }
 
                 if (diff != 0) {
@@ -137,40 +131,34 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler {
 
             // --- Crafting busy: check if crafting result arrived ---
             if (context.isCraftingBusy(slot)) {
-                changed = context.handleCrafting(slot, plan) || changed;
+                changed = context.handleCrafting(slot, plan.toIAEStack()) || changed;
             }
             // --- Positive: pull items from network ---
-            else if (plan.getStackSize() > 0) {
-                ItemStack inputStack = plan.getCachedItemStack(plan.getStackSize());
+            else if (plan.amount() > 0) {
+                ItemStack inputStack = itemKey.toStack((int) plan.amount());
                 ItemStack remaining = adaptor.simulateAdd(inputStack);
 
                 if (!remaining.isEmpty()) {
-                    plan.setCachedItemStack(remaining);
                     changed = true;
                     throw new GridAccessException();
                 }
 
-                AEItemKey planKey = plan.toAEKey() instanceof AEItemKey k ? k : null;
-                long storedAmount = planKey != null
-                        ? context.getNetworkInventory(AEKeyType.items()).getKeyCounter().get(planKey)
-                        : 0;
+                long storedAmount = context.getNetworkInventory(AEKeyType.items()).getKeyCounter().get(plan.what());
                 if (storedAmount > 0) {
-                    final IAEItemStack acquired = StorageHelper.poweredExtraction(
+                    final GenericStack acquired = StorageHelper.poweredExtraction(
                             src, dest, plan, context.getRequestSource());
                     if (acquired != null) {
                         changed = true;
-                        inputStack.setCount(Ints.saturatedCast(acquired.getStackSize()));
+                        inputStack.setCount(Ints.saturatedCast(acquired.amount()));
                         final ItemStack issue = adaptor.addItems(inputStack);
                         if (!issue.isEmpty()) {
                             throw new IllegalStateException("bad attempt at managing inventory. ( addItems )");
                         }
                     } else {
-                        plan.setCachedItemStack(inputStack);
-                        changed = context.handleCrafting(slot, plan) || changed;
+                        changed = context.handleCrafting(slot, plan.toIAEStack()) || changed;
                     }
                 } else {
-                    plan.setCachedItemStack(inputStack);
-                    changed = context.handleCrafting(slot, plan) || changed;
+                    changed = context.handleCrafting(slot, plan.toIAEStack()) || changed;
                 }
             }
         } catch (final GridAccessException e) {
@@ -212,17 +200,6 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler {
         }
 
         @Override
-        @Deprecated
-        public IAEItemStack injectItems(final IAEItemStack input, final Actionable type, final IActionSource src) {
-            @SuppressWarnings({"unchecked", "rawtypes"})
-            final Optional<Comparable> ctx = src.context(Comparable.class);
-            if (ctx.isPresent()) {
-                return input;
-            }
-            return super.injectItems(input, type, src);
-        }
-
-        @Override
         public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
             if (input == null) return null;
             @SuppressWarnings({"unchecked", "rawtypes"})
@@ -233,21 +210,9 @@ public final class ItemInterfaceSlotHandler implements IInterfaceSlotHandler {
             return super.injectItems(input, type, src);
         }
 
-        @SuppressWarnings({"unchecked", "rawtypes"})
         @Override
-        @Deprecated
-        public IAEItemStack extractItems(final IAEItemStack request, final Actionable type, final IActionSource src) {
-            final Optional<Comparable> ctx = src.context(Comparable.class);
-            final boolean hasLowerOrEqualPriority = ctx
-                    .map(c -> c.compareTo(context.getPriority()) <= 0).orElse(false);
-            if (hasLowerOrEqualPriority) {
-                return null;
-            }
-            return super.extractItems(request, type, src);
-        }
-
-        @Override
-        public GenericStack extractItems(final GenericStack request, final Actionable type, final IActionSource src) {
+        public GenericStack extractItems(final GenericStack request, final Actionable type,
+                final IActionSource src) {
             if (request == null) return null;
             @SuppressWarnings({"unchecked", "rawtypes"})
             final Optional<Comparable> ctx = src.context(Comparable.class);

@@ -124,7 +124,7 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
             return super.onPartActivate(player, hand, pos);
         } else if (containerHandler != null) {
             // Held item is a container for some type — check if it matches the displayed stack
-            final IAEStack<?> containerStack = containerHandler.getStackFromContainer(eq);
+            final GenericStack containerStack = containerHandler.getStackFromContainer(eq);
             if (this.getDisplayed() != null && containerStack != null
                     && this.getDisplayed().equals(containerStack)) {
                 insertFromContainer(containerHandler, player, hand);
@@ -145,7 +145,7 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
     private boolean handleUnlockedFallthrough(EntityPlayer player, EnumHand hand, Vec3d pos,
             ItemStack eq, IConversionMonitorHandler containerHandler) {
         if (containerHandler != null) {
-            final IAEStack<?> containerStack = containerHandler.getStackFromContainer(eq);
+            final GenericStack containerStack = containerHandler.getStackFromContainer(eq);
             if (this.getDisplayed() == null || !isSameStackType(this.getDisplayed(), containerHandler)) {
                 return super.onPartActivate(player, hand, pos);
             }
@@ -166,7 +166,7 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
     private boolean handleUnlockedActivate(EntityPlayer player, EnumHand hand, Vec3d pos,
             ItemStack eq, IConversionMonitorHandler containerHandler) {
         if (containerHandler != null) {
-            final IAEStack<?> containerStack = containerHandler.getStackFromContainer(eq);
+            final GenericStack containerStack = containerHandler.getStackFromContainer(eq);
             if (this.getDisplayed() == null || !isSameStackType(this.getDisplayed(), containerHandler)) {
                 return super.onPartActivate(player, hand, pos);
             }
@@ -249,7 +249,7 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
      * Check if the displayed stack's type matches the handler's type.
      */
     private boolean isSameStackType(IAEStack<?> displayed, IConversionMonitorHandler handler) {
-        return displayed.getStackTypeBase() == handler.getStackType();
+        return displayed.getAEKeyType() == handler.getKeyType();
     }
 
     /**

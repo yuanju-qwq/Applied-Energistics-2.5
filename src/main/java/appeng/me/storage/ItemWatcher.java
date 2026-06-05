@@ -24,7 +24,7 @@ import java.util.Set;
 
 import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEKey;
 import appeng.me.cache.GridStorageCache;
 
 /**
@@ -34,7 +34,7 @@ public class ItemWatcher implements IStackWatcher {
 
     private final GridStorageCache gsc;
     private final IStackWatcherHost myObject;
-    private final Set<IAEStack> myInterests = new HashSet<>();
+    private final Set<AEKey> myInterests = new HashSet<>();
 
     public ItemWatcher(final GridStorageCache cache, final IStackWatcherHost host) {
         this.gsc = cache;
@@ -46,22 +46,22 @@ public class ItemWatcher implements IStackWatcher {
     }
 
     @Override
-    public boolean add(final IAEStack e) {
+    public boolean add(final AEKey e) {
         if (this.myInterests.contains(e)) {
             return false;
         }
 
-        return this.myInterests.add(e.copy()) && this.gsc.getInterestManager().put(e, this);
+        return this.myInterests.add(e) && this.gsc.getInterestManager().put(e, this);
     }
 
     @Override
-    public boolean remove(final IAEStack o) {
+    public boolean remove(final AEKey o) {
         return this.myInterests.remove(o) && this.gsc.getInterestManager().remove(o, this);
     }
 
     @Override
     public void reset() {
-        final Iterator<IAEStack> i = this.myInterests.iterator();
+        final Iterator<AEKey> i = this.myInterests.iterator();
 
         while (i.hasNext()) {
             this.gsc.getInterestManager().remove(i.next(), this);

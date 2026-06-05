@@ -63,8 +63,8 @@ import appeng.me.storage.MEInventoryHandler;
 import appeng.parts.automation.PartUpgradeable;
 import appeng.util.ConfigManager;
 import appeng.util.Platform;
-import appeng.util.prioritylist.FuzzyPriorityList;
-import appeng.util.prioritylist.PrecisePriorityList;
+import appeng.util.prioritylist.FuzzyAEKeyPriorityList;
+import appeng.util.prioritylist.PreciseAEKeyPriorityList;
 
 /**
  * Abstract base class for storage bus parts. Extracts the common logic shared by
@@ -465,10 +465,10 @@ public abstract class AbstractPartStorageBus extends PartUpgradeable
                 }
 
                 if (this.getInstalledUpgrades(Upgrades.FUZZY) > 0) {
-                    this.handler.setPartitionList(new FuzzyPriorityList<>(priorityList,
+                    this.handler.setKeyPartitionList(new FuzzyAEKeyPriorityList(priorityList.keySet(),
                             (FuzzyMode) this.getConfigManager().getSetting(Settings.FUZZY_MODE)));
                 } else {
-                    this.handler.setPartitionList(new PrecisePriorityList<>(priorityList));
+                    this.handler.setKeyPartitionList(new PreciseAEKeyPriorityList(priorityList.keySet()));
                 }
 
                 if (inv instanceof IBaseMonitor) {

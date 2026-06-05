@@ -26,6 +26,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
 
 import appeng.api.config.Actionable;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
@@ -34,7 +35,7 @@ import appeng.api.parts.IConversionMonitorHost;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.storage.data.IAEStack;
 import appeng.core.AELog;
 import appeng.fluids.util.AEFluidStackType;
 import appeng.util.StorageHelper;
@@ -54,8 +55,8 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
 
     @Nonnull
     @Override
-    public IAEStackType getStackType() {
-        return AEFluidStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.fluids();
     }
 
     @Override
@@ -66,8 +67,9 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
 
     @Nullable
     @Override
-    public IAEFluidStack getStackFromContainer(@Nonnull ItemStack heldItem) {
-        return AEFluidStackType.INSTANCE.getStackFromContainerItem(heldItem);
+    public GenericStack getStackFromContainer(@Nonnull ItemStack heldItem) {
+        IAEFluidStack stack = AEFluidStackType.INSTANCE.getStackFromContainerItem(heldItem);
+        return stack != null ? GenericStack.fromIAEStack(stack) : null;
     }
 
     // Drain fluid from held container into the ME network
@@ -121,11 +123,11 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
         player.setHeldItem(hand, actualDrain.getResultContainer());
     }
 
-    // Fluids don't support "insert all from inventory" �?containers are handled one at a time
+    // Fluids don't support "insert all from inventory" - containers are handled one at a time
     @Override
     public void insertAllFromPlayer(
             @Nonnull EntityPlayer player,
-            @Nonnull IAEFluidStack displayed,
+            @Nonnull GenericStack displayed,
             @Nonnull IEnergySource energy,
             @Nonnull IMEMonitor monitor,
             @Nonnull IActionSource src) {
@@ -137,7 +139,7 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
     public void extractToPlayer(
             @Nonnull EntityPlayer player,
             @Nonnull EnumHand hand,
-            @Nonnull IAEFluidStack displayed,
+            @Nonnull GenericStack displayed,
             long count,
             @Nonnull IEnergySource energy,
             @Nonnull IMEMonitor monitor,
@@ -148,8 +150,13 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
             return;
         }
 
+        final IAEFluidStack displayedFluid = (IAEFluidStack) displayed.toIAEStack();
+        if (displayedFluid == null) {
+            return;
+        }
+
         // Simulate: see how much the container can accept
-        final IAEFluidStack fillRequest = displayed.copy();
+        final IAEFluidStack fillRequest = displayedFluid.copy();
         fillRequest.setStackSize(Integer.MAX_VALUE);
         final ContainerInteractionResult<IAEFluidStack> simFill =
                 AEFluidStackType.INSTANCE.fillToContainer(held, fillRequest, true);
@@ -159,7 +166,7 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
 
         // Simulate: check if ME network has enough
         final GenericStack canPull = StorageHelper.poweredExtraction(
-                energy, monitor, new GenericStack(displayed.toAEKey(), simFill.getTransferredAmount()), src, Actionable.SIMULATE);
+                energy, monitor, new GenericStack(displayed.what(), simFill.getTransferredAmount()), src, Actionable.SIMULATE);
         if (canPull == null || canPull.amount() < 1) {
             return;
         }
@@ -173,7 +180,7 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
 
         // Actually pull from ME network
         final GenericStack pulled = StorageHelper.poweredExtraction(energy, monitor,
-                new GenericStack(displayed.toAEKey(), simFill2.getTransferredAmount()), src);
+                new GenericStack(displayed.what(), simFill2.getTransferredAmount()), src);
         if (pulled == null || pulled.amount() < 1) {
             AELog.error("Unable to pull fluid out of the ME system even though the simulation said yes ");
             return;
@@ -194,8 +201,8 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
 
     @Nullable
     @Override
-    public IAEFluidStack resolveConfiguredStack(@Nonnull ItemStack heldItem) {
+    public GenericStack resolveConfiguredStack(@Nonnull ItemStack heldItem) {
         final IAEFluidStack stack = AEFluidStackType.INSTANCE.getStackFromContainerItem(heldItem);
-        return stack != null ? (IAEFluidStack) stack.setStackSize(0) : null;
+        return stack != null ? GenericStack.fromIAEStack((IAEStack<?>) stack.setStackSize(0)) : null;
     }
 }

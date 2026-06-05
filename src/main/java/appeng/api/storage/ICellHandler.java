@@ -56,15 +56,6 @@ public interface ICellHandler {
     ICellInventoryHandler getCellInventory(ItemStack is, ISaveProvider host, AEKeyType type);
 
     /**
-     * AEKeyType-based variant of {@link #getCellInventory(ItemStack, ISaveProvider, IAEStackType)}.
-     */
-    default ICellInventoryHandler<?> getCellInventory(ItemStack is, ISaveProvider host, AEKeyType type) {
-        var legacyType = appeng.api.storage.data.AEStackTypeRegistry.getType(type.getId());
-        if (legacyType == null) return null;
-        return getCellInventory(is, host, legacyType);
-    }
-
-    /**
      * 0 - cell is missing.
      *
      * 1 - green, ( usually means available room for types or items. )

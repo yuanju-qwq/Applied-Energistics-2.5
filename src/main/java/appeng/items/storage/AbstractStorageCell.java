@@ -41,11 +41,12 @@ import appeng.api.exceptions.MissingDefinitionException;
 import appeng.api.implementations.items.IItemGroup;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.implementations.items.IUpgradeModule;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.core.AEConfig;
 import appeng.core.features.AEFeature;
 import appeng.core.localization.GuiText;
@@ -80,7 +81,7 @@ public abstract class AbstractStorageCell<T extends IAEStack<T>> extends AEBaseI
         AEApi.instance()
                 .client()
                 .addCellInformation(
-                        AEApi.instance().registries().cell().getCellInventory(stack, null, this.getStackType()), lines);
+                        AEApi.instance().registries().cell().getCellInventory(stack, null, AEKeyType.items()), lines);
     }
 
     @Override
@@ -159,11 +160,11 @@ public abstract class AbstractStorageCell<T extends IAEStack<T>> extends AEBaseI
             }
 
             final InventoryPlayer playerInventory = player.inventory;
-            final IMEInventoryHandler<?> inv = AEApi.instance().registries().cell().getCellInventory(stack, null,
-                    this.getStackType());
+            final IMEInventoryHandler inv = AEApi.instance().registries().cell().getCellInventory(stack, null,
+                    AEKeyType.items());
             if (inv != null && playerInventory.getCurrentItem() == stack) {
                 final InventoryAdaptor ia = InventoryAdaptor.getAdaptor(player);
-        final IItemList<? extends IAEStack<?>> list = appeng.util.StorageHelper.getAvailableItems(inv);
+        final KeyCounter list = inv.getAvailableKeyCounter();
                 if (list.isEmpty() && ia != null) {
                     playerInventory.setInventorySlotContents(playerInventory.currentItem, ItemStack.EMPTY);
 

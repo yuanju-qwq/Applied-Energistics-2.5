@@ -40,6 +40,7 @@ import appeng.client.me.ItemRepo;
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.mui.AEBaseMEPanel;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.IMUIWidget;
 import appeng.client.mui.module.InterfaceListModule;
 import appeng.client.mui.module.MEItemBrowserModule;
 import appeng.client.mui.module.PatternEncodingModule;
@@ -221,7 +222,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     @Override
     protected void drawBG(final int offsetX, final int offsetY, final int mouseX, final int mouseY) {
         // Wireless upgrade icon
-        this.wirelessHelper.drawWirelessIcon(offsetX, offsetY, 198, 127);
+        this.wirelessHelper.drawWirelessIcon(this, offsetX, offsetY, 198, 127);
 
         // Interface list panel background
         this.interfaceListModule.drawBG(offsetX, offsetY);
@@ -245,9 +246,8 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
 
     @Override
     public void drawScreen(final int mouseX, final int mouseY, final float partialTicks) {
-        // Each module populates its buttons and slots
+        // Each module populates its slots (buttons are MUI widgets registered once at initGui)
         this.interfaceListModule.populateDynamicSlots();
-        this.patternEncodingModule.populateButtons();
 
         super.drawScreen(mouseX, mouseY, partialTicks);
 
@@ -256,15 +256,9 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     }
 
     // ========== Input events ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        // Pattern encoding module buttons
-        if (this.patternEncodingModule.actionPerformed(btn)) {
-            return;
-        }
-
-    }
+    //
+    // All button click handling now happens via per-widget onClick callbacks registered
+    // by the modules during initGui, so no central actionPerformed override is required.
 
     @Override
     protected void mouseClicked(final int xCoord, final int yCoord, final int btn) throws IOException {
@@ -309,6 +303,7 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
                     && this.patternEncodingModule.getDragState().isDragging()) {
                 this.patternEncodingModule.getDragState().updateDrag(mouseX, mouseY);
                 this.patternEncodingModule.repositionSlots();
+                this.patternEncodingModule.updateButtonPositions();
                 return;
             }
             if (this.meItemBrowserModule.getDragState() != null
@@ -420,8 +415,8 @@ public class MUIWirelessDualInterfaceTerminalPanel extends AEBaseMEPanel
     }
 
     @Override
-    public <T extends appeng.client.mui.IMUIWidget> T addModuleWidget(T widget) {
-        return this.addWidget(widget);
+    public void addModuleWidget(IMUIWidget widget) {
+        this.addWidget(widget);
     }
 
     @Override

@@ -110,14 +110,15 @@ public class MUIPriorityPanel extends AEBasePanel {
             this.addWidget(this.originalGuiBtn);
         }
 
-        this.priority = this.addWidget(new MUINumberFieldWidget(FIELD_X, FIELD_Y, FIELD_WIDTH,
-                this.fontRenderer.FONT_HEIGHT, MUINumberFieldWidget.NumberType.LONG));
-        this.priority.setEnableBackground(false);
+        this.priority = new MUINumberFieldWidget(this.fontRenderer, FIELD_X, FIELD_Y, FIELD_WIDTH,
+                this.fontRenderer.FONT_HEIGHT, long.class);
+        this.addWidget(this.priority.getDelegate());
+        this.priority.setEnableBackgroundDrawing(false);
         this.priority.setMaxStringLength(16);
         this.priority.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
         this.priority.setVisible(true);
         this.priority.setFocused(true);
-        ((ContainerPriority) this.inventorySlots).setTextField(this.priority.getTextField());
+        ((ContainerPriority) this.inventorySlots).setTextField(this.priority.getDelegate().getTextField());
     }
 
     private void addButton(ButtonSpec spec) {
@@ -173,7 +174,7 @@ public class MUIPriorityPanel extends AEBasePanel {
     @Override
     protected void keyTyped(final char character, final int key) throws IOException {
         if (!this.checkHotbarKeys(key)) {
-            if (this.priority.textboxKeyTyped(character, key)) {
+            if (this.priority.getDelegate().textboxKeyTyped(character, key)) {
                 try {
                     String out = this.priority.getText();
 

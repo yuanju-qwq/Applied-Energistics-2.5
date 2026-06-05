@@ -23,27 +23,25 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.RenderItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
-import appeng.client.gui.widgets.ITooltip;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 
 /**
  * MUI tab button widget. Full replacement for legacy {@code GuiTabButton}.
  * <p>
- * Supports icon by atlas index or by {@link ItemStack}. Implements {@link ITooltip}
+ * Supports icon by atlas index or by {@link ItemStack}. Implements {@link IMUITooltip}
  * so that {@link AEBasePanel} can display tooltip text automatically.
  * <p>
  * The {@code hideEdge} parameter controls the tab background variant:
  * when non-zero, uses a narrower tab sprite (uv_x = 11 * 16) with a 1px X offset.
  */
-public class MUITabContainer implements IMUIWidget, ITooltip {
+public class MUITabContainer implements IMUIWidget, IMUITooltip {
 
     private static final ResourceLocation STATES_TEXTURE = new ResourceLocation("appliedenergistics2",
             "textures/guis/states.png");
@@ -114,13 +112,13 @@ public class MUITabContainer implements IMUIWidget, ITooltip {
         // Tab background (hideEdge controls sprite variant, matching legacy GuiTabButton)
         int uvX = (this.hideEdge > 0 ? 11 : 13);
         final int offsetX = this.hideEdge > 0 ? 1 : 0;
-        Gui.drawModalRectWithCustomSizedTexture(screenX, screenY, uvX * 16, 0, 25, 22, 256, 256);
+        panel.drawModalRectWithCustomSizedTexture(screenX, screenY, uvX * 16, 0, 25, 22, 256, 256);
 
         // Icon (atlas index)
         if (this.iconIndex >= 0) {
             int iconUvY = this.iconIndex / 16;
             int iconUvX = this.iconIndex - iconUvY * 16;
-            Gui.drawModalRectWithCustomSizedTexture(offsetX + screenX + 3, screenY + 3,
+            panel.drawModalRectWithCustomSizedTexture(offsetX + screenX + 3, screenY + 3,
                     iconUvX * 16, iconUvY * 16, 16, 16, 256, 256);
         }
 
@@ -140,7 +138,7 @@ public class MUITabContainer implements IMUIWidget, ITooltip {
 
     @Override
     public void drawForeground(AEBasePanel panel, int localX, int localY) {
-        // Tooltip rendering is handled by AEBasePanel.drawTooltip(ITooltip, ...) via the ITooltip interface.
+        // Tooltip rendering is handled by AEBasePanel.drawTooltip(IMUITooltip, ...) via the IMUITooltip interface.
     }
 
     // ========== Input events ==========
@@ -160,7 +158,7 @@ public class MUITabContainer implements IMUIWidget, ITooltip {
         return false;
     }
 
-    // ========== ITooltip implementation ==========
+    // ========== IMUITooltip implementation ==========
 
     @Override
     public String getMessage() {

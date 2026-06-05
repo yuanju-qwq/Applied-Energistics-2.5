@@ -31,6 +31,7 @@ import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.data.IAEStack;
 import appeng.util.prioritylist.DefaultPriorityList;
+import appeng.util.prioritylist.IAEKeyPartitionList;
 import appeng.util.prioritylist.IPartitionList;
 
 @SuppressWarnings("rawtypes")
@@ -42,6 +43,12 @@ public class MEInventoryHandler implements IMEInventoryHandler {
     private AccessRestriction myAccess;
     private StorageFilter storageFilter;
     private IPartitionList myPartitionList;
+    /**
+     * Native AEKey-based partition list. Preferred over the legacy {@link #myPartitionList} because
+     * it does not require allocating a transient {@code IAEStack} for every membership check.
+     * When set, it takes precedence; the legacy list is only consulted as a fallback.
+     */
+    private IAEKeyPartitionList myKeyPartitionList;
 
     private AccessRestriction cachedAccessRestriction;
 
@@ -98,6 +105,19 @@ public class MEInventoryHandler implements IMEInventoryHandler {
         this.myPartitionList = myPartitionList;
     }
 
+    /**
+     * Install an AEKey-based partition list. This is the preferred path during the migration
+     * away from the IAEStack-based system: callers avoid the per-check allocation of a transient
+     * IAEStack instance.
+     */
+    public void setKeyPartitionList(IAEKeyPartitionList list) {
+        this.myKeyPartitionList = list;
+    }
+
+    public IAEKeyPartitionList getKeyPartitionList() {
+        return this.myKeyPartitionList;
+    }
+
     @Override
     public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
         if (input == null) return null;
@@ -152,9 +172,17 @@ public class MEInventoryHandler implements IMEInventoryHandler {
     @Override
     public boolean isPrioritized(final AEKey input) {
         if (this.myWhitelist == IncludeExclude.WHITELIST) {
-            return this.myPartitionList.isListed((IAEStack) input.toIAEStack(1)) || this.internal.isPrioritized(input);
+            if (this.myKeyPartitionList != null) {
+                if (this.myKeyPartitionList.isListed(input)) {
+                    return true;
+                }
+            } else if (this.myPartitionList != null) {
+                if (this.myPartitionList.isListed((IAEStack) input.toIAEStack(1))) {
+                    return true;
+                }
+            }
         }
-        return false;
+        return this.internal.isPrioritized(input);
     }
 
     @Override
@@ -211,14 +239,40 @@ public class MEInventoryHandler implements IMEInventoryHandler {
     }
 
     public boolean passesBlackOrWhitelist(AEKey input) {
-        if (this.myPartitionList.isEmpty()) {
+        if (this.isPartitionListEmpty()) {
             return true;
         }
 
+        final boolean listed = this.isListed(input);
         return switch (this.myWhitelist) {
-            case WHITELIST -> this.myPartitionList.isListed((IAEStack) input.toIAEStack(1));
-            case BLACKLIST -> !this.myPartitionList.isListed((IAEStack) input.toIAEStack(1));
+            case WHITELIST -> listed;
+            case BLACKLIST -> !listed;
         };
+    }
+
+    /**
+     * @return true when neither partition list is configured. The AEKey-based list is preferred;
+     *         the legacy list is consulted as a fallback.
+     */
+    private boolean isPartitionListEmpty() {
+        if (this.myKeyPartitionList != null) {
+            return this.myKeyPartitionList.isEmpty();
+        }
+        if (this.myPartitionList != null) {
+            return this.myPartitionList.isEmpty();
+        }
+        return true;
+    }
+
+    /**
+     * @return true when the input key is a member of the active partition list. Consults the
+     *         AEKey-based list first and only falls back to the legacy list if needed.
+     */
+    private boolean isListed(AEKey input) {
+        if (this.myKeyPartitionList != null) {
+            return this.myKeyPartitionList.isListed(input);
+        }
+        return this.myPartitionList.isListed((IAEStack) input.toIAEStack(1));
     }
 
     public StorageFilter getStorageFilter() {

@@ -35,7 +35,9 @@ import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.*;
 import appeng.api.storage.data.IAEStack;
@@ -50,8 +52,8 @@ public class GridStorageCache implements IStorageGrid {
     private final IGrid myGrid;
     private final HashSet<ICellProvider> activeCellProviders = new HashSet<>();
     private final HashSet<ICellProvider> inactiveCellProviders = new HashSet<>();
-    private final SetMultimap<IAEStack, ItemWatcher> interests = HashMultimap.create();
-    private final GenericInterestManager<ItemWatcher> interestManager = new GenericInterestManager<>(this.interests);
+    private final SetMultimap<AEKey, ItemWatcher> interests = HashMultimap.create();
+    private final GenericInterestManager<AEKey, ItemWatcher> interestManager = new GenericInterestManager<>(this.interests);
     private final HashMap<IGridNode, IStackWatcher> watchers = new HashMap<>();
     private final Map<AEKeyType, NetworkInventoryHandler> storageNetworks;
     private final Map<AEKeyType, NetworkMonitor> storageMonitors;
@@ -227,12 +229,9 @@ public class GridStorageCache implements IStorageGrid {
             final int upOrDown, final KeyCounter availableItems, final IActionSource src) {
         NetworkMonitor monitor = (NetworkMonitor) this.storageMonitors.get(type);
         if (monitor != null) {
-            List<IAEStack<?>> changes = new ArrayList<>();
+            List<GenericStack> changes = new ArrayList<>();
             for (var entry : availableItems) {
-                IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
-                if (stack != null) {
-                    changes.add(stack);
-                }
+                changes.add(new GenericStack(entry.getKey(), entry.getLongValue()));
             }
             monitor.postChange(upOrDown > 0, changes, src);
         }
@@ -258,12 +257,9 @@ public class GridStorageCache implements IStorageGrid {
             final IActionSource src) {
         NetworkMonitor monitor = (NetworkMonitor) this.storageMonitors.get(type);
         if (monitor == null) return;
-        List<IAEStack<?>> changes = new ArrayList<>();
+        List<GenericStack> changes = new ArrayList<>();
         for (var entry : input) {
-            IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
-            if (stack != null) {
-                changes.add(stack);
-            }
+            changes.add(new GenericStack(entry.getKey(), entry.getLongValue()));
         }
         monitor.postChange(true, changes, src);
     }
@@ -273,16 +269,7 @@ public class GridStorageCache implements IStorageGrid {
             IActionSource src) {
         NetworkMonitor monitor = (NetworkMonitor) this.storageMonitors.get(type);
         if (monitor == null) return;
-        List<IAEStack<?>> changes = new ArrayList<>();
-        for (var entry : input) {
-            long amount = entry.getLongValue();
-            IAEStack<?> stack = entry.getKey().toIAEStack(Math.abs(amount));
-            if (stack != null) {
-                stack.setCraftable(amount > 0);
-                changes.add(stack);
-            }
-        }
-        monitor.updateCraftables(changes, src);
+        monitor.updateCraftables(input, src);
     }
 
     @Override
@@ -297,7 +284,7 @@ public class GridStorageCache implements IStorageGrid {
         this.inactiveCellProviders.remove(provider);
     }
 
-    public GenericInterestManager<ItemWatcher> getInterestManager() {
+    public GenericInterestManager<AEKey, ItemWatcher> getInterestManager() {
         return this.interestManager;
     }
 

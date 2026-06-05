@@ -18,9 +18,6 @@
 
 package appeng.client.mui.screen;
 
-import java.io.IOException;
-
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
@@ -31,7 +28,7 @@ import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
 import appeng.api.storage.ITerminalHost;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiImgButton;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.container.implementations.ContainerCraftingTerm;
 import appeng.container.slot.SlotCraftingMatrix;
 import appeng.core.localization.GuiText;
@@ -42,12 +39,14 @@ import appeng.helpers.InventoryAction;
 /**
  * MUI version of the Crafting Terminal panel
  * <p>
- * Extends {@link MUIMEMonitorablePanel}, 3x3 crafting grid + clear button
+ * Extends {@link MUIMEMonitorablePanel}, 3x3 crafting grid + clear button.
+ * The clear button is implemented as a {@link MUIButtonWidget} with an
+ * onClick callback that asks the server to MOVE_REGION the crafting matrix slot.
  */
 @SideOnly(Side.CLIENT)
 public class MUICraftingTermPanel extends MUIMEMonitorablePanel {
 
-    private GuiImgButton clearBtn;
+    private MUIButtonWidget clearBtn;
 
     public MUICraftingTermPanel(final InventoryPlayer inventoryPlayer, final ITerminalHost te) {
         super(inventoryPlayer, te, new ContainerCraftingTerm(inventoryPlayer, te));
@@ -55,31 +54,34 @@ public class MUICraftingTermPanel extends MUIMEMonitorablePanel {
     }
 
     @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        if (this.clearBtn == btn) {
-            Slot s = null;
-            final Container c = this.inventorySlots;
-            for (final Object j : c.inventorySlots) {
-                if (j instanceof SlotCraftingMatrix) {
-                    s = (Slot) j;
-                }
-            }
-
-            if (s != null) {
-                final PacketInventoryAction p = new PacketInventoryAction(InventoryAction.MOVE_REGION, s.slotNumber, 0);
-                NetworkHandler.instance().sendToServer(p);
-            }
-        }
-    }
-
-    @Override
     public void initGui() {
         super.initGui();
-        this.buttonList.add(this.clearBtn = new GuiImgButton(this.guiLeft + 92, this.guiTop + this.ySize - 156,
-                Settings.ACTIONS, ActionItems.STASH));
+
+        // Clear button (3x3 crafting grid stash)
+        this.clearBtn = new MUIButtonWidget(this.guiLeft + 92, this.guiTop + this.ySize - 156,
+                Settings.ACTIONS, ActionItems.STASH);
         this.clearBtn.setHalfSize(true);
+        this.clearBtn.setOnClick(btn -> sendClearCraftingGridPacket());
+        this.addWidget(this.clearBtn);
+    }
+
+    /**
+     * Find the crafting matrix slot and ask the server to clear the entire 3x3 grid.
+     * Triggered by the MUI clear button's onClick callback.
+     */
+    private void sendClearCraftingGridPacket() {
+        Slot s = null;
+        final Container c = this.inventorySlots;
+        for (final Object j : c.inventorySlots) {
+            if (j instanceof SlotCraftingMatrix) {
+                s = (Slot) j;
+            }
+        }
+
+        if (s != null) {
+            final PacketInventoryAction p = new PacketInventoryAction(InventoryAction.MOVE_REGION, s.slotNumber, 0);
+            NetworkHandler.instance().sendToServer(p);
+        }
     }
 
     @Override

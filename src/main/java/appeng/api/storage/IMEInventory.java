@@ -75,14 +75,4 @@ public interface IMEInventory {
      * @return the {@link AEKeyType} corresponding to this inventory
      */
     AEKeyType getKeyType();
-
-    // ===================== Legacy bridge defaults (for migration) =====================
-
-    /**
-     * @deprecated Use {@link #getKeyType()} instead.
-     */
-    @Deprecated
-    default appeng.api.storage.data.IAEStackType<?> getStackType() {
-        return appeng.api.storage.data.AEStackTypeRegistry.getType(getKeyType().getId());
-    }
 }

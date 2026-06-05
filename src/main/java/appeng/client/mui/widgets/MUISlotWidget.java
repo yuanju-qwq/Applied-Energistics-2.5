@@ -23,7 +23,6 @@ import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.entity.player.EntityPlayer;
@@ -81,7 +80,7 @@ public class MUISlotWidget implements IMUIWidget {
 
         if (this.drawBackground) {
             GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
-            Gui.drawRect(screenX, screenY, screenX + this.size, screenY + this.size, 0x80808080);
+            AEBasePanel.drawSolidRect(screenX, screenY, screenX + this.size, screenY + this.size, 0x80808080);
         }
 
         if (this.contentRenderer != null) {

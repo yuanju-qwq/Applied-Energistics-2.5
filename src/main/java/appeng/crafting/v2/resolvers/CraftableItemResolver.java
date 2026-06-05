@@ -19,6 +19,7 @@ import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
@@ -32,7 +33,6 @@ import appeng.crafting.v2.ITreeSerializable;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
-import appeng.api.stacks.GenericStack;
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -85,15 +85,15 @@ public class CraftableItemResolver implements CraftingRequestResolver {
         public final ICraftingPatternDetails pattern;
         public final boolean allowSimulation;
         public final boolean isComplex;
-        protected final IAEStack<?>[] patternRecursionInputs;
-        protected final IAEStack<?>[] patternInputs;
-        protected final IAEStack<?>[] patternOutputs;
-        protected final IAEStack<?> matchingOutput;
+        protected final GenericStack[] patternRecursionInputs;
+        protected final GenericStack[] patternInputs;
+        protected final GenericStack[] patternOutputs;
+        protected final GenericStack matchingOutput;
         public IAEItemStack craftingMachine;
         protected final ArrayList<RequestAndPerCraftAmount> childRequests = new ArrayList<>();
         protected final ArrayList<CraftingRequest> complexRequestPerSlot = new ArrayList<>();
-        protected final Map<IAEStack<?>, CraftingRequest> childRecursionRequests = new HashMap<>();
-        protected final IdentityHashMap<IAEStack<?>, Long> byproducts = new IdentityHashMap<>();
+        protected final Map<GenericStack, CraftingRequest> childRecursionRequests = new HashMap<>();
+        protected final IdentityHashMap<GenericStack, Long> byproducts = new IdentityHashMap<>();
         protected boolean requestedInputs = false;
         protected long totalCraftsDone = 0;
         protected long fulfilledAmount = 0;
@@ -106,25 +106,23 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             this.allowSimulation = allowSimulation;
             this.isComplex = isComplex;
 
-            GenericStack[] gsInputs = pattern.getCondensedInputStacks();
-            GenericStack[] gsOutputs = pattern.getCondensedOutputStacks();
-            IAEStack<?>[] pInputs = Arrays.stream(gsInputs).map(GenericStack::toIAEStack).toArray(IAEStack<?>[]::new);
-            IAEStack<?>[] pOutputs = Arrays.stream(gsOutputs).map(GenericStack::toIAEStack).toArray(IAEStack<?>[]::new);
+            GenericStack[] pInputs = pattern.getCondensedInputStacks();
+            GenericStack[] pOutputs = pattern.getCondensedOutputStacks();
 
             if (!hasRecursiveInputs(pInputs, pOutputs)) {
                 this.patternInputs = pInputs;
                 this.patternOutputs = pOutputs;
-                this.patternRecursionInputs = new IAEStack[0];
+                this.patternRecursionInputs = new GenericStack[0];
             } else {
-                pInputs = Arrays.stream(pInputs).map(IAEStack::copy).toArray(IAEStack<?>[]::new);
-                pOutputs = Arrays.stream(pOutputs).map(IAEStack::copy).toArray(IAEStack<?>[]::new);
+                pInputs = copyStacks(pInputs);
+                pOutputs = copyStacks(pOutputs);
                 this.patternRecursionInputs = calculateRecursiveInputs(pInputs, pOutputs);
                 this.patternInputs = filterMeaningfulStacks(pInputs);
                 this.patternOutputs = filterMeaningfulStacks(pOutputs);
             }
 
-            IAEStack<?> mo = null;
-            for (IAEStack<?> patternOutput : this.patternOutputs) {
+            GenericStack mo = null;
+            for (GenericStack patternOutput : this.patternOutputs) {
                 if (isOutputAcceptable(patternOutput)) {
                     mo = patternOutput;
                     break;
@@ -136,6 +134,10 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             }
         }
 
+        private static GenericStack[] copyStacks(GenericStack[] stacks) {
+            return Arrays.stream(stacks).map(s -> new GenericStack(s.what(), s.amount())).toArray(GenericStack[]::new);
+        }
+
         @SuppressWarnings("unused")
         public CraftFromPatternTask(CraftingTreeSerializer serializer, ITreeSerializable parent) throws IOException {
             super(serializer, parent);
@@ -143,21 +145,19 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             this.pattern = serializer.readPattern();
             this.allowSimulation = buffer.readBoolean();
             this.isComplex = buffer.readBoolean();
-            this.matchingOutput = serializer.readStack().toIAEStack();
+            this.matchingOutput = serializer.readStack();
             this.craftingMachine = serializer.readItemStack();
             this.totalCraftsDone = buffer.readLong();
 
-            GenericStack[] gsInputs = pattern.getCondensedInputStacks();
-            GenericStack[] gsOutputs = pattern.getCondensedOutputStacks();
-            IAEStack<?>[] pInputs = Arrays.stream(gsInputs).map(GenericStack::toIAEStack).toArray(IAEStack<?>[]::new);
-            IAEStack<?>[] pOutputs = Arrays.stream(gsOutputs).map(GenericStack::toIAEStack).toArray(IAEStack<?>[]::new);
+            GenericStack[] pInputs = pattern.getCondensedInputStacks();
+            GenericStack[] pOutputs = pattern.getCondensedOutputStacks();
             if (!hasRecursiveInputs(pInputs, pOutputs)) {
                 this.patternInputs = pInputs;
                 this.patternOutputs = pOutputs;
-                this.patternRecursionInputs = new IAEStack[0];
+                this.patternRecursionInputs = new GenericStack[0];
             } else {
-                pInputs = Arrays.stream(pInputs).map(IAEStack::copy).toArray(IAEStack<?>[]::new);
-                pOutputs = Arrays.stream(pOutputs).map(IAEStack::copy).toArray(IAEStack<?>[]::new);
+                pInputs = copyStacks(pInputs);
+                pOutputs = copyStacks(pOutputs);
                 this.patternRecursionInputs = calculateRecursiveInputs(pInputs, pOutputs);
                 this.patternInputs = filterMeaningfulStacks(pInputs);
                 this.patternOutputs = filterMeaningfulStacks(pOutputs);
@@ -166,42 +166,44 @@ public class CraftableItemResolver implements CraftingRequestResolver {
 
         // ====================== 递归输入计算 ======================
 
-        private static IAEStack<?>[] calculateRecursiveInputs(IAEStack<?>[] pInputs, IAEStack<?>[] pOutputs) {
-            IAEStack<?>[] recInputs = null;
-            for (IAEStack<?> output : pOutputs) {
-                for (IAEStack<?> input : pInputs) {
-                    if (!input.equals(output)) {
+        private static GenericStack[] calculateRecursiveInputs(GenericStack[] pInputs, GenericStack[] pOutputs) {
+            GenericStack[] recInputs = null;
+            for (int oi = 0; oi < pOutputs.length; oi++) {
+                var output = pOutputs[oi];
+                for (int ii = 0; ii < pInputs.length; ii++) {
+                    var input = pInputs[ii];
+                    if (!input.what().equals(output.what())) {
                         continue;
                     }
-                    final long netProduced = output.getStackSize() - input.getStackSize();
-                    IAEStack<?> recInput;
+                    final long netProduced = output.amount() - input.amount();
+                    GenericStack recInput;
                     if (netProduced > 0) {
-                        recInput = input.copy();
-                        input.setStackSize(0);
-                        output.setStackSize(netProduced);
+                        recInput = new GenericStack(input.what(), input.amount());
+                        pInputs[ii] = new GenericStack(input.what(), 0);
+                        pOutputs[oi] = new GenericStack(output.what(), netProduced);
                     } else {
-                        recInput = input.copy().setStackSize(input.getStackSize() + netProduced);
-                        input.setStackSize(-netProduced);
-                        output.setStackSize(0);
+                        recInput = new GenericStack(input.what(), input.amount() + netProduced);
+                        pInputs[ii] = new GenericStack(input.what(), -netProduced);
+                        pOutputs[oi] = new GenericStack(output.what(), 0);
                     }
-                    if (!recInput.isMeaningful()) {
+                    if (recInput.amount() <= 0) {
                         continue;
                     }
                     if (recInputs == null) {
-                        recInputs = new IAEStack<?>[] { recInput };
+                        recInputs = new GenericStack[] { recInput };
                     } else {
                         recInputs = Arrays.copyOf(recInputs, recInputs.length + 1);
                         recInputs[recInputs.length - 1] = recInput;
                     }
                 }
             }
-            return recInputs == null ? new IAEStack<?>[0] : recInputs;
+            return recInputs == null ? new GenericStack[0] : recInputs;
         }
 
-        private static boolean hasRecursiveInputs(IAEStack<?>[] pInputs, IAEStack<?>[] pOutputs) {
-            for (IAEStack<?> output : pOutputs) {
-                for (IAEStack<?> input : pInputs) {
-                    if (input.equals(output)) {
+        private static boolean hasRecursiveInputs(GenericStack[] pInputs, GenericStack[] pOutputs) {
+            for (GenericStack output : pOutputs) {
+                for (GenericStack input : pInputs) {
+                    if (input.what().equals(output.what())) {
                         return true;
                     }
                 }
@@ -209,10 +211,10 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             return false;
         }
 
-        private static IAEStack<?>[] filterMeaningfulStacks(IAEStack<?>[] stacks) {
+        private static GenericStack[] filterMeaningfulStacks(GenericStack[] stacks) {
             int i = 0, j = 0;
             for (; i < stacks.length; i++) {
-                if (stacks[i].isMeaningful()) {
+                if (stacks[i].amount() > 0) {
                     stacks[j] = stacks[i];
                     j++;
                 }
@@ -229,7 +231,7 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             serializer.writePattern(pattern);
             buffer.writeBoolean(allowSimulation);
             buffer.writeBoolean(isComplex);
-            serializer.writeStack(GenericStack.fromIAEStack(matchingOutput));
+            serializer.writeStack(matchingOutput);
             serializer.writeStack(GenericStack.fromIAEStack(craftingMachine));
             buffer.writeLong(totalCraftsDone);
             return this.childRequests;
@@ -256,16 +258,15 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             return craftingMachine;
         }
 
-        public boolean isOutputAcceptable(IAEStack<?> otherStack) {
+        public boolean isOutputAcceptable(GenericStack otherStack) {
             if (request.substitutionMode == SubstitutionMode.ACCEPT_FUZZY) {
-                if (!this.request.acceptableSubstituteFn.test(otherStack.toAEKey())) {
+                if (!this.request.acceptableSubstituteFn.test(otherStack.what())) {
                     return false;
                 }
-                if (this.request.what.getType() != otherStack.getStackType()) return false;
-                IAEStack<?> requestStack = new GenericStack(this.request.what, 1).toIAEStack();
-                return ((IAEStack) requestStack).fuzzyComparison((IAEStack) otherStack, FuzzyMode.IGNORE_ALL);
+                if (this.request.what.getType() != otherStack.what().getType()) return false;
+                return this.request.what.fuzzyEquals(otherStack.what(), FuzzyMode.IGNORE_ALL);
             } else {
-                return this.request.what.equals(otherStack.toAEKey());
+                return this.request.what.equals(otherStack.what());
             }
         }
 
@@ -276,13 +277,13 @@ public class CraftableItemResolver implements CraftingRequestResolver {
          * which only works with ItemStack. For non-item types, we skip the validation and
          * return true (non-item inputs don't go through the MC crafting table).
          */
-        public boolean isValidSubstitute(IAEStack<?> reference, IAEStack<?> stack, World world, int slot) {
+        public boolean isValidSubstitute(GenericStack reference, GenericStack stack, World world, int slot) {
             if (!pattern.isCraftable()) {
                 return true;
             }
             // MC limitation: crafting table validation only works for ItemStack
-            if (stack instanceof IAEItemStack) {
-                return pattern.isValidItemForSlot(slot, ((IAEItemStack) stack).createItemStack(), world);
+            if (stack.what() instanceof appeng.api.stacks.AEItemKey itemKey) {
+                return pattern.isValidItemForSlot(slot, itemKey.toStack(), world);
             }
             return true;
         }
@@ -299,7 +300,7 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             final SubstitutionMode childMode = canUseSubstitutes ? SubstitutionMode.ACCEPT_FUZZY
                     : SubstitutionMode.PRECISE;
             final long toCraft = Platform
-                    .ceilDiv(isComplex ? 1 : request.remainingToProcess, matchingOutput.getStackSize());
+                    .ceilDiv(isComplex ? 1 : request.remainingToProcess, matchingOutput.amount());
 
             if (requestedInputs) {
                 return collectInputsAndCraft(context, toCraft);
@@ -331,15 +332,15 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 maxCraftable = Math.min(maxCraftable, fullRecipes);
             }
 
-            final long producedMatchingOutput = Math.multiplyExact(maxCraftable, matchingOutput.getStackSize());
+            final long producedMatchingOutput = Math.multiplyExact(maxCraftable, matchingOutput.amount());
             this.matchingOutputRemainderItems = Math.max(0, producedMatchingOutput - request.remainingToProcess);
             this.fulfilledAmount = producedMatchingOutput - matchingOutputRemainderItems;
-            request.fulfill(this, new GenericStack(matchingOutput.toAEKey(), fulfilledAmount), context);
+            request.fulfill(this, new GenericStack(matchingOutput.what(), fulfilledAmount), context);
 
             // 余量放入副产品库存
             if (matchingOutputRemainderItems > 0) {
                 context.byproductsInventory.injectItems(
-                        new GenericStack(matchingOutput.toAEKey(), matchingOutputRemainderItems),
+                        new GenericStack(matchingOutput.what(), matchingOutputRemainderItems),
                         Actionable.MODULATE);
             }
 
@@ -349,13 +350,12 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             }
 
             // 其他非匹配输出的副产品
-            for (IAEStack<?> output : patternOutputs) {
+            for (GenericStack output : patternOutputs) {
                 if (output != matchingOutput) {
-                    final IAEStack<?> injected = output.copy()
-                            .setStackSize(Math.multiplyExact(maxCraftable, output.getStackSize()));
+                    final long bpAmount = Math.multiplyExact(maxCraftable, output.amount());
                     context.byproductsInventory.injectItems(
-                            new GenericStack(injected.toAEKey(), injected.getStackSize()), Actionable.MODULATE);
-                    this.byproducts.put(injected.copy(), output.getStackSize());
+                            new GenericStack(output.what(), bpAmount), Actionable.MODULATE);
+                    this.byproducts.put(new GenericStack(output.what(), bpAmount), output.amount());
                 }
             }
 
@@ -404,7 +404,7 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 }
                 context.byproductsInventory.injectItems(
                         new GenericStack(leftover.toAEKey(), leftover.getStackSize()), Actionable.MODULATE);
-                this.byproducts.put(leftover.copy(), leftover.getStackSize());
+                this.byproducts.put(new GenericStack(leftover.toAEKey(), leftover.getStackSize()), leftover.getStackSize());
             }
         }
 
@@ -446,10 +446,10 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             }
 
             // 递归输入
-            for (IAEStack<?> recInput : patternRecursionInputs) {
-                final long amount = Math.multiplyExact(recInput.getStackSize(), toCraft);
+            for (GenericStack recInput : patternRecursionInputs) {
+                final long amount = Math.multiplyExact(recInput.amount(), toCraft);
                 CraftingRequest req = new CraftingRequest(
-                        request, recInput.toAEKey(), amount,
+                        request, recInput.what(), amount,
                         SubstitutionMode.PRECISE, allowSimulation, request.craftingMode, x -> true);
                 req.patternParents.addAll(request.patternParents);
                 childRecursionRequests.put(recInput, req);
@@ -462,22 +462,22 @@ public class CraftableItemResolver implements CraftingRequestResolver {
 
         private void requestSimpleInputs(CraftingContext context, SubstitutionMode childMode, long toCraft,
                 ArrayList<CraftingRequest> newChildren) {
-            for (IAEStack<?> input : patternInputs) {
-                final long amount = Math.multiplyExact(input.getStackSize(), toCraft);
-                final AEKey inputKey = input.toAEKey();
+            for (GenericStack input : patternInputs) {
+                final long amount = Math.multiplyExact(input.amount(), toCraft);
+                final AEKey inputKey = input.what();
                 CraftingRequest req;
                 if (childMode == SubstitutionMode.ACCEPT_FUZZY) {
-                    final IAEStack<?> inputRef = input;
+                    final GenericStack inputRef = input;
                     req = new CraftingRequest(
                             request, inputKey, amount,
                             childMode, allowSimulation, request.craftingMode,
                             key -> {
                                 if (!(inputKey instanceof appeng.api.stacks.AEItemKey)
-                                        || !(inputRef.toAEKey() instanceof appeng.api.stacks.AEItemKey)) {
+                                        || !(inputRef.what() instanceof appeng.api.stacks.AEItemKey)) {
                                     return inputKey.equals(key);
                                 }
                                 return this.isValidSubstitute(inputRef,
-                                        new GenericStack(key, 1).toIAEStack(), context.world, -1);
+                                        new GenericStack(key, 1), context.world, -1);
                             });
                 } else {
                 req = new CraftingRequest(
@@ -486,7 +486,7 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 }
                 req.patternParents.addAll(request.patternParents);
                 newChildren.add(req);
-                childRequests.add(new RequestAndPerCraftAmount(req, input.getStackSize()));
+                childRequests.add(new RequestAndPerCraftAmount(req, input.amount()));
             }
         }
 
@@ -506,8 +506,8 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                         request, inputKey, amount,
                         childMode, allowSimulation, request.craftingMode,
                         key -> this.isValidSubstitute(
-                                new GenericStack(inputKey, amount).toIAEStack(),
-                                new GenericStack(key, 1).toIAEStack(),
+                                new GenericStack(inputKey, amount),
+                                new GenericStack(key, 1),
                                 context.world, finalSlot));
                 complexRequestPerSlot.add(req);
                 newChildren.add(req);
@@ -523,20 +523,20 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 return 0;
             }
             final long refundedCrafts = Math.min(
-                    amount / matchingOutput.getStackSize(),
+                    amount / matchingOutput.amount(),
                     totalCraftsDone);
             if (refundedCrafts <= 0) {
                 return 0;
             }
-            final long refundedOutputAmount = Math.multiplyExact(refundedCrafts, matchingOutput.getStackSize());
+            final long refundedOutputAmount = Math.multiplyExact(refundedCrafts, matchingOutput.amount());
             totalCraftsDone -= refundedCrafts;
             fulfilledAmount -= refundedOutputAmount;
 
             // 退还副产品
-            for (Map.Entry<IAEStack<?>, Long> bp : byproducts.entrySet()) {
+            for (Map.Entry<GenericStack, Long> bp : byproducts.entrySet()) {
                 final long perCraft = bp.getValue();
-                final IAEStack<?> toExtract = bp.getKey().copy()
-                        .setStackSize(Math.multiplyExact(refundedCrafts, perCraft));
+                final GenericStack toExtract = new GenericStack(bp.getKey().what(),
+                        Math.multiplyExact(refundedCrafts, perCraft));
                 context.byproductsInventory.extractAny(toExtract, Actionable.MODULATE);
             }
 
@@ -545,8 +545,8 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 final long childRefundAmount = Math.multiplyExact(refundedCrafts, childPair.perCraftAmount);
                 childPair.request.partialRefund(context, childRefundAmount);
             }
-            for (Map.Entry<IAEStack<?>, CraftingRequest> recEntry : childRecursionRequests.entrySet()) {
-                final long recRefundAmount = Math.multiplyExact(refundedCrafts, recEntry.getKey().getStackSize());
+            for (Map.Entry<GenericStack, CraftingRequest> recEntry : childRecursionRequests.entrySet()) {
+                final long recRefundAmount = Math.multiplyExact(refundedCrafts, recEntry.getKey().amount());
                 recEntry.getValue().partialRefund(context, recRefundAmount);
             }
 
@@ -561,14 +561,15 @@ public class CraftableItemResolver implements CraftingRequestResolver {
             for (CraftingRequest recChild : childRecursionRequests.values()) {
                 recChild.fullRefund(context);
             }
-            for (Map.Entry<IAEStack<?>, Long> bp : byproducts.entrySet()) {
+            for (Map.Entry<GenericStack, Long> bp : byproducts.entrySet()) {
                 context.byproductsInventory.extractAny(
-                        bp.getKey().copy().setStackSize(Math.multiplyExact(totalCraftsDone, bp.getValue())),
+                        new GenericStack(bp.getKey().what(),
+                                Math.multiplyExact(totalCraftsDone, bp.getValue())),
                         Actionable.MODULATE);
             }
             if (matchingOutputRemainderItems > 0) {
                 context.byproductsInventory.extractItems(
-                        (IAEStack) matchingOutput.copy().setStackSize(matchingOutputRemainderItems), Actionable.MODULATE);
+                        new GenericStack(matchingOutput.what(), matchingOutputRemainderItems), Actionable.MODULATE);
             }
             totalCraftsDone = 0;
             fulfilledAmount = 0;
@@ -587,12 +588,9 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                 for (CraftingRequest recChild : childRecursionRequests.values()) {
                     recChild.usedResolvers.forEach(re -> re.task.populatePlan(targetPlan));
                 }
-                for (IAEStack<?> output : patternOutputs) {
-                    final IAEStack<?> crafted = output.copy()
-                            .setStackSize(Math.multiplyExact(totalCraftsDone, output.getStackSize()));
-                    crafted.setCraftable(false);
-                    crafted.setCountRequestable(crafted.getStackSize());
-                    targetPlan.addRequestable(crafted);
+                for (GenericStack output : patternOutputs) {
+                    final long amount = Math.multiplyExact(totalCraftsDone, output.amount());
+                    targetPlan.addRequestable(new GenericStack(output.what(), amount).toIAEStack());
                 }
             }
         }

@@ -46,10 +46,10 @@ import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.client.ActionKey;
-import appeng.client.gui.slots.VirtualMEMonitorableSlot;
-import appeng.client.gui.slots.VirtualMEPinSlot;
-import appeng.client.gui.widgets.GuiCustomSlot;
-import appeng.client.gui.widgets.ISortSource;
+import appeng.client.mui.slot.VirtualMEMonitorableSlot;
+import appeng.client.mui.slot.VirtualMEPinSlot;
+import appeng.client.mui.widgets.IMUISortSource;
+import appeng.client.mui.widgets.MUICustomSlot;
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.me.InternalSlotME;
 import appeng.client.me.ItemRepo;
@@ -82,7 +82,7 @@ import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 
 /**
- * MUI ME terminal panel �?base class for all terminals.
+ * MUI ME terminal panel - base class for all terminals.
  *
  * <p>Delegates ME browsing logic to {@link MEItemBrowserModule} (standard layout):
  * <ul>
@@ -95,8 +95,8 @@ import appeng.util.Platform;
  *
  * <p>Panel-specific concerns retained:
  * <ul>
- *   <li>{@link TerminalToolbar} �?settings buttons, type filter toggles, pins button, crafting status tab</li>
- *   <li>{@link TerminalPinSystem} �?pin row calculation, VirtualMEPinSlot creation, pin interactions</li>
+ *   <li>{@link TerminalToolbar} - settings buttons, type filter toggles, pins button, crafting status tab</li>
+ *   <li>{@link TerminalPinSystem} - pin row calculation, VirtualMEPinSlot creation, pin interactions</li>
  *   <li>ViewCell management</li>
  *   <li>Background rendering (terminal texture)</li>
  *   <li>Advanced search key handling (auto-focus, toggle focus, terminal search config)</li>
@@ -109,7 +109,7 @@ import appeng.util.Platform;
  */
 @SideOnly(Side.CLIENT)
 public class MUIMEMonitorablePanel extends AEBaseMEPanel
-        implements ISortSource, IConfigManagerHost, IMEMonitorableGuiCallback,
+        implements IMUISortSource, IConfigManagerHost, IMEMonitorableGuiCallback,
         MEItemBrowserModule.Host {
 
     // ========== Static fields ==========
@@ -237,7 +237,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         }
 
         @Override
-        public List<GuiCustomSlot> getGuiSlots() {
+        public List<MUICustomSlot> getGuiSlots() {
             return guiSlots;
         }
 
@@ -600,7 +600,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
 
     @Override
     protected void actionPerformed(final GuiButton btn) throws IOException {
-        // Legacy TypeToggleButton handling removed �?type filter is now handled by TerminalToolbar
+        // Legacy TypeToggleButton handling removed - type filter is now handled by TerminalToolbar
         // Subclasses may add their own buttons here via super.actionPerformed()
     }
 
@@ -694,7 +694,7 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
         }
 
         // VirtualMEMonitorableSlot scroll interaction
-        for (final GuiCustomSlot slot : this.guiSlots) {
+        for (final MUICustomSlot slot : this.guiSlots) {
             if (slot instanceof VirtualMEMonitorableSlot virtualSlot) {
                 if (this.isPointInRegion(slot.xPos(), slot.yPos(),
                         slot.getWidth(), slot.getHeight(), x, y)) {

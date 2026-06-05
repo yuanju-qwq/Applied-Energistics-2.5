@@ -36,6 +36,7 @@ import net.minecraftforge.items.IItemHandler;
 import appeng.api.AEApi;
 import appeng.api.config.*;
 import appeng.api.implementations.IUpgradeableHost;
+import net.minecraftforge.fluids.Fluid;
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.energy.IEnergySource;
@@ -385,7 +386,7 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
     private long transferContents(final IEnergySource energy, final IMEInventory src,
             final IMEInventory destination, long itemsToMove, final AEKeyType type) {
         final KeyCounter myList = src.getAvailableKeyCounter();
-        itemsToMove *= type.transferFactor();
+        itemsToMove *= type == AEKeyType.fluids() ? Fluid.BUCKET_VOLUME : 1;
 
         boolean didStuff;
 
@@ -435,7 +436,7 @@ public class TileIOPort extends AENetworkInvTile implements IUpgradeableHost, IC
             }
         } while (itemsToMove > 0 && didStuff);
 
-        return itemsToMove / type.transferFactor();
+        return itemsToMove / (type == AEKeyType.fluids() ? Fluid.BUCKET_VOLUME : 1);
     }
 
     private boolean shouldMove(final IMEInventory inv) {

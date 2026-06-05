@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.RenderItem;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
@@ -22,12 +21,12 @@ import appeng.api.config.Settings;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
-import appeng.client.gui.slots.VirtualMEPatternSlot;
-import appeng.client.gui.widgets.GuiImgButton;
-import appeng.client.gui.widgets.GuiTabButton;
+import appeng.client.mui.slot.VirtualMEPatternSlot;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.IMUIWidget;
+import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUITabButton;
 import appeng.container.implementations.ContainerPatternEncoder;
-import appeng.core.AELog;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketVirtualSlot;
@@ -38,8 +37,9 @@ import appeng.tile.inventory.IAEStackInventory;
 /**
  * Shared pattern terminal module for {@link MUIPatternTermPanel} and {@link MUIExpandedProcessingPatternTermPanel}.
  *
- * <p>Extracts duplicated button creation, visibility management, click handling,
- * and JEI ghost drag logic into a single reusable component.
+ * <p>Manages pattern terminal buttons as MUI widgets (MUIButtonWidget/MUITabButton)
+ * with onClick callbacks, replacing legacy GuiImgButton/GuiTabButton.
+ * JEI ghost drag logic is also handled here.
  */
 public class PatternTerminalModule {
 
@@ -59,17 +59,9 @@ public class PatternTerminalModule {
 
         RenderItem getItemRenderer();
 
-        List<GuiButton> getButtonList();
+        void addModuleWidget(IMUIWidget widget);
 
-        /**
-         * X position (relative to guiLeft) for the right column of quantity adjustment buttons.
-         */
         int getMultiplyButtonX();
-
-        /**
-         * X position (relative to guiLeft) for the left column of quantity adjustment buttons.
-         */
-        int getDivideButtonX();
 
         default int getSubstituteX() {
             return 84;
@@ -102,21 +94,16 @@ public class PatternTerminalModule {
 
     private final Host host;
 
-    // buttons
-    private GuiTabButton tabCraftButton;
-    private GuiTabButton tabProcessButton;
-    private GuiImgButton substitutionsEnabledBtn;
-    private GuiImgButton substitutionsDisabledBtn;
-    private GuiImgButton encodeBtn;
-    private GuiImgButton clearBtn;
-    private GuiImgButton x2Btn;
-    private GuiImgButton x3Btn;
-    private GuiImgButton plusOneBtn;
-    private GuiImgButton divTwoBtn;
-    private GuiImgButton divThreeBtn;
-    private GuiImgButton minusOneBtn;
+    private MUITabButton tabCraftButton;
+    private MUITabButton tabProcessButton;
+    private MUIButtonWidget substitutionsEnabledBtn;
+    private MUIButtonWidget substitutionsDisabledBtn;
+    private MUIButtonWidget encodeBtn;
+    private MUIButtonWidget clearBtn;
+    private MUIButtonWidget x2Btn;
+    private MUIButtonWidget x3Btn;
+    private MUIButtonWidget plusOneBtn;
 
-    // JEI ghost drag target & slot mapping
     public Map<Target<?>, Object> mapTargetSlot = new HashMap<>();
 
     public PatternTerminalModule(Host host) {
@@ -124,188 +111,109 @@ public class PatternTerminalModule {
     }
 
     /**
-     * Creates and registers all pattern terminal buttons. Call once from the panel's {@code initGui()}
-     * after {@code super.initGui()}.
+     * Creates and registers all pattern terminal buttons as MUI widgets.
+     * Call once from the panel's {@code initGui()} after {@code super.initGui()}.
      */
     public void initButtons() {
-        final List<GuiButton> buttonList = host.getButtonList();
-        final int guiLeft = host.getGuiLeft();
-        final int guiTop = host.getGuiTop();
         final int ySize = host.getYSize();
 
-        this.tabCraftButton = new GuiTabButton(guiLeft + host.getTabX(), guiTop + ySize + host.getTabY(),
+        this.tabCraftButton = new MUITabButton(host.getTabX(), ySize + host.getTabY(),
                 new ItemStack(Blocks.CRAFTING_TABLE), GuiText.CraftingPattern.getLocal(),
                 host.getItemRenderer());
-        buttonList.add(this.tabCraftButton);
+        this.tabCraftButton.setOnClick(tab -> sendPacket("PatternTerminal.CraftMode", "0"));
+        host.addModuleWidget(this.tabCraftButton);
 
-        this.tabProcessButton = new GuiTabButton(guiLeft + host.getTabX(), guiTop + ySize + host.getTabY(),
+        this.tabProcessButton = new MUITabButton(host.getTabX(), ySize + host.getTabY(),
                 new ItemStack(Blocks.FURNACE), GuiText.ProcessingPattern.getLocal(),
                 host.getItemRenderer());
-        buttonList.add(this.tabProcessButton);
+        this.tabProcessButton.setOnClick(tab -> sendPacket("PatternTerminal.CraftMode", "1"));
+        host.addModuleWidget(this.tabProcessButton);
 
-        this.substitutionsEnabledBtn = new GuiImgButton(guiLeft + host.getSubstituteX(),
-                guiTop + ySize + host.getSubstituteY(), Settings.ACTIONS, ItemSubstitution.ENABLED);
+        this.substitutionsEnabledBtn = new MUIButtonWidget(host.getSubstituteX(),
+                ySize + host.getSubstituteY(), Settings.ACTIONS, ItemSubstitution.ENABLED);
         this.substitutionsEnabledBtn.setHalfSize(true);
-        buttonList.add(this.substitutionsEnabledBtn);
+        this.substitutionsEnabledBtn.setOnClick(btn -> sendPacket("PatternTerminal.Substitute", "0"));
+        host.addModuleWidget(this.substitutionsEnabledBtn);
 
-        this.substitutionsDisabledBtn = new GuiImgButton(guiLeft + host.getSubstituteX(),
-                guiTop + ySize + host.getSubstituteY(), Settings.ACTIONS, ItemSubstitution.DISABLED);
+        this.substitutionsDisabledBtn = new MUIButtonWidget(host.getSubstituteX(),
+                ySize + host.getSubstituteY(), Settings.ACTIONS, ItemSubstitution.DISABLED);
         this.substitutionsDisabledBtn.setHalfSize(true);
-        buttonList.add(this.substitutionsDisabledBtn);
+        this.substitutionsDisabledBtn.setOnClick(btn -> sendPacket("PatternTerminal.Substitute", "1"));
+        host.addModuleWidget(this.substitutionsDisabledBtn);
 
-        this.clearBtn = new GuiImgButton(guiLeft + host.getClearX(), guiTop + ySize + host.getSubstituteY(),
+        this.clearBtn = new MUIButtonWidget(host.getClearX(), ySize + host.getSubstituteY(),
                 Settings.ACTIONS, ActionItems.CLOSE);
         this.clearBtn.setHalfSize(true);
-        buttonList.add(this.clearBtn);
+        this.clearBtn.setOnClick(btn -> sendPacket("PatternTerminal.Clear", "1"));
+        host.addModuleWidget(this.clearBtn);
 
-        this.x3Btn = new GuiImgButton(guiLeft + host.getMultiplyButtonX(), guiTop + ySize - 158,
+        this.x3Btn = new MUIButtonWidget(host.getMultiplyButtonX(), ySize - 158,
                 Settings.ACTIONS, ActionItems.MULTIPLY_BY_THREE);
         this.x3Btn.setHalfSize(true);
-        buttonList.add(this.x3Btn);
+        this.x3Btn.setOnClick(btn -> sendPacket(
+                AEBasePanel.isShiftKeyDown() ? "PatternTerminal.DivideByThree" : "PatternTerminal.MultiplyByThree",
+                "1"));
+        host.addModuleWidget(this.x3Btn);
 
-        this.x2Btn = new GuiImgButton(guiLeft + host.getMultiplyButtonX(), guiTop + ySize - 148,
+        this.x2Btn = new MUIButtonWidget(host.getMultiplyButtonX(), ySize - 148,
                 Settings.ACTIONS, ActionItems.MULTIPLY_BY_TWO);
         this.x2Btn.setHalfSize(true);
-        buttonList.add(this.x2Btn);
+        this.x2Btn.setOnClick(btn -> sendPacket(
+                AEBasePanel.isShiftKeyDown() ? "PatternTerminal.DivideByTwo" : "PatternTerminal.MultiplyByTwo",
+                "1"));
+        host.addModuleWidget(this.x2Btn);
 
-        this.plusOneBtn = new GuiImgButton(guiLeft + host.getMultiplyButtonX(), guiTop + ySize - 138,
+        this.plusOneBtn = new MUIButtonWidget(host.getMultiplyButtonX(), ySize - 138,
                 Settings.ACTIONS, ActionItems.INCREASE_BY_ONE);
         this.plusOneBtn.setHalfSize(true);
-        buttonList.add(this.plusOneBtn);
+        this.plusOneBtn.setOnClick(btn -> sendPacket(
+                AEBasePanel.isShiftKeyDown() ? "PatternTerminal.DecreaseByOne" : "PatternTerminal.IncreaseByOne",
+                "1"));
+        host.addModuleWidget(this.plusOneBtn);
 
-        this.divThreeBtn = new GuiImgButton(guiLeft + host.getDivideButtonX(), guiTop + ySize - 158,
-                Settings.ACTIONS, ActionItems.DIVIDE_BY_THREE);
-        this.divThreeBtn.setHalfSize(true);
-        this.divThreeBtn.visible = false;
-        this.divThreeBtn.enabled = false;
-        buttonList.add(this.divThreeBtn);
-
-        this.divTwoBtn = new GuiImgButton(guiLeft + host.getDivideButtonX(), guiTop + ySize - 148,
-                Settings.ACTIONS, ActionItems.DIVIDE_BY_TWO);
-        this.divTwoBtn.setHalfSize(true);
-        this.divTwoBtn.visible = false;
-        this.divTwoBtn.enabled = false;
-        buttonList.add(this.divTwoBtn);
-
-        this.minusOneBtn = new GuiImgButton(guiLeft + host.getDivideButtonX(), guiTop + ySize - 138,
-                Settings.ACTIONS, ActionItems.DECREASE_BY_ONE);
-        this.minusOneBtn.setHalfSize(true);
-        this.minusOneBtn.visible = false;
-        this.minusOneBtn.enabled = false;
-        buttonList.add(this.minusOneBtn);
-
-        this.encodeBtn = new GuiImgButton(guiLeft + host.getEncodeX(), guiTop + ySize + host.getEncodeY(),
+        this.encodeBtn = new MUIButtonWidget(host.getEncodeX(), ySize + host.getEncodeY(),
                 Settings.ACTIONS, ActionItems.ENCODE);
-        buttonList.add(this.encodeBtn);
+        this.encodeBtn.setOnClick(btn -> {
+            final String value = AEBasePanel.isShiftKeyDown() ? "2" : "1";
+            sendPacket("PatternTerminal.Encode", value);
+        });
+        host.addModuleWidget(this.encodeBtn);
     }
 
     /**
      * Updates button visibility and labels each frame. Call from the panel's {@code drawFG()}.
-     *
-     * @param craftingActive whether the container is currently in crafting mode
-     * @param showDualTabs   {@code true} if the panel supports both crafting and processing tabs
-     *                       ({@link MUIPatternTermPanel}); {@code false} for processing-only
-     *                       ({@link MUIExpandedProcessingPatternTermPanel})
-     * @param shiftDown      whether Shift is held (passed because the module cannot resolve
-     *                       {@link GuiScreen#isShiftKeyDown()} from this package)
      */
     public void drawFG(boolean craftingActive, boolean showDualTabs, boolean shiftDown) {
         if (showDualTabs && craftingActive) {
-            this.tabCraftButton.visible = true;
-            this.tabProcessButton.visible = false;
-            this.x2Btn.visible = false;
-            this.x3Btn.visible = false;
-            this.divTwoBtn.visible = false;
-            this.divThreeBtn.visible = false;
-            this.plusOneBtn.visible = false;
-            this.minusOneBtn.visible = false;
+            this.tabCraftButton.setVisible(true);
+            this.tabProcessButton.setVisible(false);
+            this.x2Btn.setVisible(false);
+            this.x3Btn.setVisible(false);
+            this.plusOneBtn.setVisible(false);
 
-            if (host.getEncoder().substitute) {
-                this.substitutionsEnabledBtn.visible = true;
-                this.substitutionsDisabledBtn.visible = false;
-            } else {
-                this.substitutionsEnabledBtn.visible = false;
-                this.substitutionsDisabledBtn.visible = true;
-            }
+            this.substitutionsEnabledBtn.setVisible(host.getEncoder().substitute);
+            this.substitutionsDisabledBtn.setVisible(!host.getEncoder().substitute);
         } else {
-            this.tabCraftButton.visible = false;
-            this.tabProcessButton.visible = true;
-            this.substitutionsEnabledBtn.visible = false;
-            this.substitutionsDisabledBtn.visible = false;
-            this.x2Btn.visible = true;
-            this.x3Btn.visible = true;
+            this.tabCraftButton.setVisible(false);
+            this.tabProcessButton.setVisible(true);
+            this.substitutionsEnabledBtn.setVisible(false);
+            this.substitutionsDisabledBtn.setVisible(false);
+            this.x2Btn.setVisible(true);
+            this.x3Btn.setVisible(true);
             this.x2Btn.set(shiftDown ? ActionItems.DIVIDE_BY_TWO : ActionItems.MULTIPLY_BY_TWO);
             this.x3Btn.set(shiftDown ? ActionItems.DIVIDE_BY_THREE : ActionItems.MULTIPLY_BY_THREE);
-            this.divTwoBtn.visible = false;
-            this.divThreeBtn.visible = false;
-            this.plusOneBtn.visible = true;
+            this.plusOneBtn.setVisible(true);
             this.plusOneBtn.set(shiftDown ? ActionItems.DECREASE_BY_ONE : ActionItems.INCREASE_BY_ONE);
-            this.minusOneBtn.visible = false;
         }
     }
 
-    /**
-     * Handles all pattern-terminal button clicks. Call from the panel's {@code actionPerformed()}
-     * after {@code super.actionPerformed(btn)}.
-     *
-     * @return {@code true} if the button was handled by this module
-     */
-    public boolean actionPerformed(GuiButton btn) {
+    /** Helper that swallows IOExceptions. */
+    private void sendPacket(String key, String value) {
         try {
-            if (this.tabCraftButton == btn) {
-                NetworkHandler.instance().sendToServer(
-                        new PacketValueConfig("PatternTerminal.CraftMode", "0"));
-                return true;
-            }
-
-            if (this.tabProcessButton == btn) {
-                NetworkHandler.instance().sendToServer(
-                        new PacketValueConfig("PatternTerminal.CraftMode", "1"));
-                return true;
-            }
-
-            if (this.encodeBtn == btn) {
-                final String value = AEBasePanel.isShiftKeyDown() ? "2" : "1";
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("PatternTerminal.Encode", value));
-                return true;
-            }
-
-            if (this.clearBtn == btn) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("PatternTerminal.Clear", "1"));
-                return true;
-            }
-
-            if (this.x2Btn == btn) {
-                final String action = AEBasePanel.isShiftKeyDown() ? "PatternTerminal.DivideByTwo"
-                        : "PatternTerminal.MultiplyByTwo";
-                NetworkHandler.instance().sendToServer(new PacketValueConfig(action, "1"));
-                return true;
-            }
-
-            if (this.x3Btn == btn) {
-                final String action = AEBasePanel.isShiftKeyDown() ? "PatternTerminal.DivideByThree"
-                        : "PatternTerminal.MultiplyByThree";
-                NetworkHandler.instance().sendToServer(new PacketValueConfig(action, "1"));
-                return true;
-            }
-
-            if (this.plusOneBtn == btn) {
-                final String action = AEBasePanel.isShiftKeyDown() ? "PatternTerminal.DecreaseByOne"
-                        : "PatternTerminal.IncreaseByOne";
-                NetworkHandler.instance().sendToServer(new PacketValueConfig(action, "1"));
-                return true;
-            }
-
-            if (this.substitutionsEnabledBtn == btn || this.substitutionsDisabledBtn == btn) {
-                NetworkHandler.instance().sendToServer(
-                        new PacketValueConfig("PatternTerminal.Substitute",
-                                this.substitutionsEnabledBtn == btn ? "0" : "1"));
-                return true;
-            }
-        } catch (final IOException e) {
-            AELog.error(e);
+            NetworkHandler.instance().sendToServer(new PacketValueConfig(key, value));
+        } catch (IOException e) {
+            // ignore
         }
-        return false;
     }
 
     /**

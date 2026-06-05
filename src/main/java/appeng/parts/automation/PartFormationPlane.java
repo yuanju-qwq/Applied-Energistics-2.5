@@ -41,6 +41,7 @@ import net.minecraftforge.common.IPlantable;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.AEApi;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.config.*;
 import appeng.api.networking.events.MENetworkCellArrayUpdate;
@@ -50,12 +51,9 @@ import appeng.api.networking.events.MENetworkPowerStatusChange;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.parts.IPartItem;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.core.AEConfig;
 import appeng.core.sync.AEGuiKeys;
@@ -67,8 +65,8 @@ import appeng.me.storage.MEInventoryHandler;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.tile.inventory.IIAEStackInventory;
 import appeng.util.Platform;
-import appeng.util.prioritylist.FuzzyPriorityList;
-import appeng.util.prioritylist.PrecisePriorityList;
+import appeng.util.prioritylist.FuzzyAEKeyPriorityList;
+import appeng.util.prioritylist.PreciseAEKeyPriorityList;
 import appeng.api.stacks.AEKeyType;
 import appeng.util.item.AEItemStackType;
 
@@ -101,23 +99,22 @@ public class PartFormationPlane extends PartAbstractFormationPlane
                 this.getInstalledUpgrades(Upgrades.INVERTER) > 0 ? IncludeExclude.BLACKLIST : IncludeExclude.WHITELIST);
         this.myHandler.setPriority(this.getPriority());
 
-        final IItemList<IAEItemStack> priorityList = new ItemList();
+        final KeyCounter priorityList = new KeyCounter();
 
         final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
         for (int x = 0; x < this.Config.getSizeInventory() && x < slotsToUse; x++) {
             final GenericStack raw = this.Config.getGenericStack(x);
-            final IAEStack<?> stack = raw != null ? raw.toIAEStack() : null;
-            if (stack instanceof IAEItemStack is) {
-                priorityList.add(is);
+            if (raw != null) {
+                priorityList.add(raw.what(), raw.amount());
             }
         }
 
         if (this.getInstalledUpgrades(Upgrades.FUZZY) > 0) {
-            this.myHandler.setPartitionList(
-                    new FuzzyPriorityList<IAEItemStack>(priorityList,
+            this.myHandler.setKeyPartitionList(
+                    new FuzzyAEKeyPriorityList(priorityList.keySet(),
                             (FuzzyMode) this.getConfigManager().getSetting(Settings.FUZZY_MODE)));
         } else {
-            this.myHandler.setPartitionList(new PrecisePriorityList<IAEItemStack>(priorityList));
+            this.myHandler.setKeyPartitionList(new PreciseAEKeyPriorityList(priorityList.keySet()));
         }
 
         try {
@@ -209,10 +206,9 @@ public class PartFormationPlane extends PartAbstractFormationPlane
 
         final YesNo placeBlock = (YesNo) this.getConfigManager().getSetting(Settings.PLACE_BLOCK);
 
-        final IAEStack<?> aeStack = input.toIAEStack();
-        if (!(aeStack instanceof IAEItemStack)) return input;
-        final IAEItemStack inputItem = (IAEItemStack) aeStack;
-        final ItemStack is = inputItem.createItemStack();
+        if (!(input.what() instanceof AEItemKey)) return input;
+        final AEItemKey inputItem = (AEItemKey) input.what();
+        final ItemStack is = inputItem.toStack((int) input.amount());
         final Item i = is.getItem();
 
         long maxStorage = Math.min(input.amount(), is.getMaxStackSize());

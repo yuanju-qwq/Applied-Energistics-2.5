@@ -11,7 +11,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.storage.data.IAEItemStack;
-import appeng.client.gui.toasts.CraftingStatusToast;
+import appeng.client.mui.toast.CraftingStatusToast;
 import appeng.core.AEConfig;
 import appeng.core.features.AEFeature;
 import appeng.core.sync.AppEngPacket;

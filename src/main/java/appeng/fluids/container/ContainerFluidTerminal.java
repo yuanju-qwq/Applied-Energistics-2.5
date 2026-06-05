@@ -49,7 +49,6 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
-import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
@@ -74,15 +73,15 @@ import appeng.util.Platform;
  * @author BrockWS
  * @version rv6 - 12/05/2018
  * @since rv6 12/05/2018
- * @deprecated 使用 {@link appeng.container.implementations.ContainerMEMonitorable} 替代�?
- *             该终端已支持物品+流体的统一浏览和桶交互�?
+ * @deprecated 使用 {@link appeng.container.implementations.ContainerMEMonitorable} 替代�?
+ *             该终端已支持物品+流体的统一浏览和桶交互�?
  */
 @Deprecated
 public class ContainerFluidTerminal extends AEBaseContainer
         implements IConfigManagerHost, IConfigurableObject, IMEMonitorHandlerReceiver {
     private final IConfigManager clientCM;
     private final IMEMonitor monitor;
-    private final IItemList<IAEFluidStack> fluids = new FluidList();
+    private KeyCounter fluids = new KeyCounter();
     @GuiSync(99)
     public boolean hasPower = false;
     private final ITerminalHost terminal;
@@ -143,7 +142,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
             IActionSource actionSource) {
         for (final GenericStack is : change) {
             if (is.toIAEStack() instanceof IAEFluidStack fluidStack) {
-                this.fluids.add(fluidStack);
+                this.fluids.add(fluidStack.toAEKey(), fluidStack.getStackSize());
             }
         }
     }
@@ -248,20 +247,17 @@ public class ContainerFluidTerminal extends AEBaseContainer
 
                     final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
-                    for (final IAEFluidStack is : this.fluids) {
-                        AEKey searchKey = is.toAEKey();
-                        long sendAmount = searchKey != null ? monitorCache.get(searchKey) : 0;
-                        if (sendAmount == 0) {
-                            is.setStackSize(0);
-                            piu.appendStack(is);
-                        } else {
-                            is.setStackSize(sendAmount);
+                    for (var entry : this.fluids) {
+                        AEKey searchKey = entry.getKey();
+                        long sendAmount = monitorCache.get(searchKey);
+                        IAEFluidStack is = (IAEFluidStack) searchKey.toIAEStack(sendAmount);
+                        if (is != null) {
                             piu.appendStack(is);
                         }
                     }
 
                     if (!piu.isEmpty()) {
-                        this.fluids.resetStatus();
+                        this.fluids = new KeyCounter();
 
                         for (final Object c : this.listeners) {
                             if (c instanceof EntityPlayer) {
@@ -519,7 +515,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
     }
 
     /**
-     * 客户端接收流体库存更新包�?
+     * 客户端接收流体库存更新包�?
      */
     public void postUpdate(final List<IAEStack<?>> list) {
         final IConfigManagerHost gui = this.getGui();

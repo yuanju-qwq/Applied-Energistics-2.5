@@ -16,7 +16,7 @@
  * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
  */
 
-package appeng.client.gui.slots;
+package appeng.client.mui.slot;
 
 import javax.annotation.Nullable;
 
@@ -63,17 +63,6 @@ public class VirtualMEMonitorableSlot extends VirtualMESlot {
     @Nullable
     public RepoEntry getRepoEntry() {
         return this.repo.getEntry(this.slotIndex);
-    }
-
-    /**
-     * @deprecated Use {@link #getRepoEntry()} instead.
-     */
-    @Deprecated
-    @Override
-    @Nullable
-    public IAEStack<?> getAEStack() {
-        RepoEntry entry = this.repo.getEntry(this.slotIndex);
-        return entry != null ? entry.toIAEStack() : null;
     }
 
     @Override

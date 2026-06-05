@@ -30,8 +30,8 @@ import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.AEKeyFilter;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.client.gui.widgets.IScrollSource;
-import appeng.client.gui.widgets.ISortSource;
+import appeng.client.mui.widgets.IMUIScrollSource;
+import appeng.client.mui.widgets.IMUISortSource;
 import appeng.core.AEConfig;
 import appeng.integration.Integrations;
 import appeng.integration.modules.bogosorter.InventoryBogoSortModule;
@@ -141,8 +141,8 @@ public class ItemRepo {
      */
     private List<RepoEntry> view = new ArrayList<>();
 
-    private final IScrollSource src;
-    private final ISortSource sortSrc;
+    private final IMUIScrollSource src;
+    private final IMUISortSource sortSrc;
 
     /**
      * Type filter state: maps AEKeyType -> enabled.
@@ -173,7 +173,7 @@ public class ItemRepo {
     private boolean changed = false;
 
 
-    public ItemRepo(final IScrollSource src, final ISortSource sortSrc) {
+    public ItemRepo(final IMUIScrollSource src, final IMUISortSource sortSrc) {
         this.src = src;
         this.sortSrc = sortSrc;
     }

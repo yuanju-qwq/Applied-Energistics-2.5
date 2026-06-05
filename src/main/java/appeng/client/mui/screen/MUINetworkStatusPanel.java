@@ -31,9 +31,9 @@ import appeng.api.config.SortOrder;
 import appeng.api.config.ViewItems;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.widgets.MUIScrollBar;
-import appeng.client.gui.widgets.ISortSource;
 import appeng.client.me.ItemRepo;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.IMUISortSource;
 import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.container.implementations.ContainerNetworkStatus;
 import appeng.core.AEConfig;
@@ -52,7 +52,7 @@ import appeng.util.Platform;
  * </ul>
  */
 public class MUINetworkStatusPanel extends AEBasePanel
-        implements ISortSource, ContainerNetworkStatus.INetworkStatusGuiCallback {
+        implements IMUISortSource, ContainerNetworkStatus.INetworkStatusGuiCallback {
 
     private final ItemRepo repo;
     private final int rows = 4;
@@ -230,7 +230,7 @@ public class MUINetworkStatusPanel extends AEBasePanel
         this.getScrollBar().setRange(0, (size + 4) / 5 - this.rows, 1);
     }
 
-    // ========== ISortSource implementation ==========
+    // ========== IMUISortSource implementation ==========
 
     @Override
     public Enum getSortBy() {

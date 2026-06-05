@@ -162,6 +162,18 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
      */
     IAEStackType<T> getStackType();
 
+    /**
+     * @return the corresponding {@link appeng.api.stacks.AEKeyType} for this stack. Default
+     *         implementation derives it from the legacy {@link #getStackType()} id; new code
+     *         should prefer this method to avoid scattering
+     *         {@code AEKeyType.fromLegacyType(getStackType())} lookups.
+     */
+    @SuppressWarnings("unchecked")
+    @Nonnull
+    default appeng.api.stacks.AEKeyType getAEKeyType() {
+        return appeng.api.stacks.AEKeyType.fromId(getStackType().getId());
+    }
+
     @Override
     default IAEStackType<?> getStackTypeBase() {
         return getStackType();

@@ -24,12 +24,10 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.translation.I18n;
 
-import appeng.client.gui.widgets.ITooltip;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 
@@ -39,10 +37,10 @@ import appeng.client.mui.IMUIWidget;
  * Two-state button that toggles between on/off. Each state uses a different icon
  * from the states.png atlas (specified by icon index).
  * <p>
- * Implements {@link ITooltip} so that {@link AEBasePanel} can display tooltip
+ * Implements {@link IMUITooltip} so that {@link AEBasePanel} can display tooltip
  * text automatically using the same mechanism as legacy buttons.
  */
-public class MUIToggleButton implements IMUIWidget, ITooltip {
+public class MUIToggleButton implements IMUIWidget, IMUITooltip {
 
     private static final Pattern PATTERN_NEW_LINE = Pattern.compile("\\n", Pattern.LITERAL);
 
@@ -99,18 +97,18 @@ public class MUIToggleButton implements IMUIWidget, ITooltip {
         mc.getTextureManager().bindTexture(STATES_TEXTURE);
 
         // Background
-        Gui.drawModalRectWithCustomSizedTexture(screenX, screenY, 240, 240, 16, 16, 256, 256);
+        panel.drawModalRectWithCustomSizedTexture(screenX, screenY, 240, 240, 16, 16, 256, 256);
 
         // Icon
         int iconIdx = this.active ? this.iconIdxOn : this.iconIdxOff;
         int iconU = (iconIdx % 16) * 16;
         int iconV = (iconIdx / 16) * 16;
-        Gui.drawModalRectWithCustomSizedTexture(screenX, screenY, iconU, iconV, 16, 16, 256, 256);
+        panel.drawModalRectWithCustomSizedTexture(screenX, screenY, iconU, iconV, 16, 16, 256, 256);
     }
 
     @Override
     public void drawForeground(AEBasePanel panel, int localX, int localY) {
-        // Tooltip rendering is handled by AEBasePanel.drawTooltip(ITooltip, ...) via the ITooltip interface.
+        // Tooltip rendering is handled by AEBasePanel.drawTooltip(IMUITooltip, ...) via the IMUITooltip interface.
     }
 
     // ========== Input events ==========
@@ -131,7 +129,7 @@ public class MUIToggleButton implements IMUIWidget, ITooltip {
         return false;
     }
 
-    // ========== ITooltip implementation ==========
+    // ========== IMUITooltip implementation ==========
 
     /**
      * Generate tooltip text using the same format as legacy {@code GuiToggleButton.getMessage()}.

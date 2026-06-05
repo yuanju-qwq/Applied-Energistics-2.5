@@ -21,12 +21,9 @@ package appeng.client.mui.widgets;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 
-import appeng.client.gui.widgets.GuiProgressBar.Direction;
-import appeng.client.gui.widgets.ITooltip;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 import appeng.container.interfaces.IProgressProvider;
@@ -36,9 +33,22 @@ import appeng.core.localization.GuiText;
  * MUI 进度条控件。
  * <p>
  * 根据 {@link IProgressProvider} 提供的进度值，绘制水平或垂直的进度条。
- * 支持 tooltip（通过 {@link ITooltip} 接口）。
+ * 支持 tooltip（通过 {@link IMUITooltip} 接口）。
+ * <p>
+ * 该控件将 {@link Direction} 作为内部 enum 收敛进 MUI 命名空间，
+ * 替代原 {@code appeng.client.gui.widgets.GuiProgressBar.Direction}。
  */
-public class MUIProgressWidget implements IMUIWidget, ITooltip {
+public class MUIProgressWidget implements IMUIWidget, IMUITooltip {
+
+    /**
+     * 进度条填充方向。
+     * <p>
+     * 完全等价于已废弃的 {@code appeng.client.gui.widgets.GuiProgressBar.Direction}。
+     */
+    public enum Direction {
+        HORIZONTAL,
+        VERTICAL
+    }
 
     private final IProgressProvider source;
     private final ResourceLocation texture;
@@ -91,13 +101,13 @@ public class MUIProgressWidget implements IMUIWidget, ITooltip {
             switch (this.direction) {
                 case HORIZONTAL:
                     int filledWidth = (int) ((float) this.width * ((float) current / (float) max));
-                    Gui.drawModalRectWithCustomSizedTexture(screenX, screenY,
+                    panel.drawModalRectWithCustomSizedTexture(screenX, screenY,
                             this.fillU, this.fillV, filledWidth, this.height, 256, 256);
                     break;
                 case VERTICAL:
                     int filledHeight = (int) ((float) this.height * ((float) current / (float) max));
                     int yOffset = this.height - filledHeight;
-                    Gui.drawModalRectWithCustomSizedTexture(screenX, screenY + yOffset,
+                    panel.drawModalRectWithCustomSizedTexture(screenX, screenY + yOffset,
                             this.fillU, this.fillV + yOffset, this.width, filledHeight, 256, 256);
                     break;
             }
@@ -113,7 +123,7 @@ public class MUIProgressWidget implements IMUIWidget, ITooltip {
         return this.fullMsg;
     }
 
-    // ========== ITooltip ==========
+    // ========== IMUITooltip ==========
 
     @Override
     public String getMessage() {

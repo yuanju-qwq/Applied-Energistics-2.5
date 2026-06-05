@@ -29,8 +29,9 @@ import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.AEApi;
 import appeng.api.config.FuzzyMode;
-import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.ICellWorkbenchItem;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.items.AEBaseItem;
 import appeng.items.contents.CellAEConfig;
@@ -73,7 +74,7 @@ public class ItemCreativeStorageCell extends AEBaseItem implements ICellWorkbenc
     @Override
     public void addCheckedInformation(final ItemStack stack, final World world, final List<String> lines,
             final ITooltipFlag advancedTooltips) {
-        final IMEInventoryHandler<?> inventory = AEApi.instance()
+        final IMEInventoryHandler inventory = AEApi.instance()
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,

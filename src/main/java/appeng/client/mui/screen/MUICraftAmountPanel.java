@@ -32,7 +32,7 @@ import appeng.api.definitions.IDefinitions;
 import appeng.api.definitions.IParts;
 import appeng.api.storage.ITerminalHost;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.MathExpressionParser;
+import appeng.util.MathExpressionParser;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.client.mui.widgets.MUITabContainer;

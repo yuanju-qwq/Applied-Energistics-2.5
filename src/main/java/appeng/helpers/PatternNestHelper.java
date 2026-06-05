@@ -38,7 +38,6 @@ import appeng.api.AEApi;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.container.ContainerNull;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;

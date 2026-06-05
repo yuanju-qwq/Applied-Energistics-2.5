@@ -52,6 +52,7 @@ import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.*;
@@ -137,7 +138,7 @@ public class InterfaceLogic
     private final AEFluidInventory fluidTanks;
 
     // --- 统一 Plan（36 槽，IAEStack<?> 泛型工作计划） ---
-    private final IAEStack<?>[] requireWork = new IAEStack<?>[NUMBER_OF_CONFIG_SLOTS];
+    private final GenericStack[] requireWork = new GenericStack[NUMBER_OF_CONFIG_SLOTS];
 
     // --- ME 网络存储代理 ---
     private final MEMonitorPassThrough items = new MEMonitorPassThrough(
@@ -296,7 +297,7 @@ public class InterfaceLogic
             for (int x = 0; x < NUMBER_OF_CONFIG_SLOTS; x++) {
                 GenericStack gs = this.config.getGenericStack(x);
                 IAEStack<?> cfg = gs != null ? gs.toIAEStack() : null;
-                if (cfg != null && InterfaceSlotHandlerRegistry.hasHandler(AEKeyType.fromLegacyType(cfg.getStackType()))) {
+                if (cfg != null && InterfaceSlotHandlerRegistry.hasHandler(cfg.getAEKeyType())) {
                     this.updatePlan(x);
                 }
             }
@@ -363,7 +364,7 @@ public class InterfaceLogic
             if (cfg != null) {
                 IAEStackType<?> type = cfg.getStackTypeBase();
                 this.configuredTypes.add(type);
-                AEKeyType keyType = AEKeyType.fromLegacyType(type);
+                AEKeyType keyType = cfg.getAEKeyType();
                 if (keyType == AEKeyType.items()) {
                     this.hasItemConfig = true;
                 } else if (keyType == AEKeyType.fluids()) {
@@ -400,9 +401,9 @@ public class InterfaceLogic
 
         if (cfg != null) {
             // Dispatch to the registered handler for this type
-            IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(AEKeyType.fromLegacyType(cfg.getStackType()));
+            IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(cfg.getAEKeyType());
             if (handler != null) {
-                this.requireWork[slot] = handler.computePlan(slot, cfg, this);
+                this.requireWork[slot] = handler.computePlan(slot, new GenericStack(cfg.toAEKey(), cfg.getStackSize()), this);
             } else {
                 this.requireWork[slot] = null;
             }
@@ -412,11 +413,10 @@ public class InterfaceLogic
             final IAEFluidStack storedFluid = this.fluidTanks.getFluidInSlot(slot);
 
             if (!storedItem.isEmpty()) {
-                final IAEItemStack work = AEItemStack.fromItemStack(storedItem);
-                this.requireWork[slot] = work.setStackSize(-work.getStackSize());
+                AEItemKey itemKey = AEItemKey.of(storedItem);
+                this.requireWork[slot] = new GenericStack(itemKey, -storedItem.getCount());
             } else if (storedFluid != null && storedFluid.getStackSize() > 0) {
-                final IAEFluidStack work = storedFluid.copy();
-                this.requireWork[slot] = work.setStackSize(-work.getStackSize());
+                this.requireWork[slot] = new GenericStack(storedFluid.toAEKey(), -storedFluid.getStackSize());
             } else {
                 this.requireWork[slot] = null;
             }
@@ -435,7 +435,7 @@ public class InterfaceLogic
 
         for (int x = 0; x < NUMBER_OF_CONFIG_SLOTS; x++) {
             if (this.requireWork[x] != null) {
-                IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(AEKeyType.fromLegacyType(this.requireWork[x].getStackType()));
+                IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(this.requireWork[x].what().getType());
                 if (handler != null) {
                     this.isWorkingSlot = x;
                     boolean changed = handler.executePlan(x, this.requireWork[x], this);
@@ -565,7 +565,7 @@ public class InterfaceLogic
     }
 
     private boolean hasWorkToDo() {
-        for (final IAEStack<?> requiredWork : this.requireWork) {
+        for (final GenericStack requiredWork : this.requireWork) {
             if (requiredWork != null) {
                 return true;
             }

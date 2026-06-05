@@ -23,7 +23,6 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 
@@ -128,7 +127,7 @@ public class MUICycleButtonWidget implements IMUIWidget {
         }
 
         mc.getTextureManager().bindTexture(STATES_TEXTURE);
-        Gui.drawModalRectWithCustomSizedTexture(screenX, screenY, 240, 240, 16, 16, 256, 256);
+        panel.drawModalRectWithCustomSizedTexture(screenX, screenY, 240, 240, 16, 16, 256, 256);
 
         if (current.texture != null) {
             mc.getTextureManager().bindTexture(current.texture);
@@ -136,7 +135,7 @@ public class MUICycleButtonWidget implements IMUIWidget {
             float g = ((current.tintColor >> 8) & 0xFF) / 255.0f;
             float b = (current.tintColor & 0xFF) / 255.0f;
             GlStateManager.color(r, g, b, 1.0f);
-            Gui.drawModalRectWithCustomSizedTexture(screenX, screenY,
+            panel.drawModalRectWithCustomSizedTexture(screenX, screenY,
                     current.iconU, current.iconV, 16, 16, 256, 256);
         }
 

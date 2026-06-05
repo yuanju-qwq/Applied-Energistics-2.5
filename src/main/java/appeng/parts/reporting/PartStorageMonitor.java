@@ -21,7 +21,9 @@ package appeng.parts.reporting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
+import appeng.api.networking.security.IActionSource;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.KeyCounter;
 import appeng.core.AppEng;
 import appeng.helpers.Reflected;
 import appeng.items.parts.PartModels;
@@ -58,6 +60,13 @@ public class PartStorageMonitor extends AbstractPartMonitor {
     @Reflected
     public PartStorageMonitor(final ItemStack is) {
         super(is);
+    }
+
+    // ==================== IStackWatcherHost ====================
+
+    @Override
+    public void onStackChange(KeyCounter fullStack, KeyCounter diffStack, IActionSource src) {
+        super.onStackChange(fullStack, diffStack, src);
     }
 
     @Override

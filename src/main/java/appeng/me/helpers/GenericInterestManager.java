@@ -6,8 +6,6 @@ import java.util.List;
 
 import com.google.common.collect.Multimap;
 
-import appeng.api.storage.data.IAEStack;
-
 public class GenericInterestManager<K, T> {
 
     private final Multimap<K, T> container;

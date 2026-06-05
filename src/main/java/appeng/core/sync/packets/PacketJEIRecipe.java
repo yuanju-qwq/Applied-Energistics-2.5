@@ -57,7 +57,6 @@ import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.container.implementations.ContainerPatternEncoder;
 import appeng.container.implementations.ContainerWirelessDualInterfaceTerminal;
 import appeng.core.sync.AppEngPacket;
@@ -222,15 +221,15 @@ public class PacketJEIRecipe extends AppEngPacket {
                                                 || Platform.isGTDamageableItem(request.getItem())) {
                                             Collection<Object2LongMap.Entry<AEKey>> outList = inv
                                                     .getInventory(AEKeyType.items())
-                                                    .getKeyCounter().findFuzzy(request, FuzzyMode.IGNORE_ALL);
+                                                    .getKeyCounter().findFuzzy(request.toAEKey(), FuzzyMode.IGNORE_ALL);
                                             for (var is : outList) {
                                                 if (is.getLongValue() == 0) {
                                                     continue;
                                                 }
                                                 if (Platform.isGTDamageableItem(request.getItem())) {
-                                                    if (is.getKey() instanceof AEItemKey itemKey
-                                                            && !(itemKey.getDefinition().getMetadata() == request.getDefinition()
-                                                            .getMetadata())) {
+                                                if (is.getKey() instanceof AEItemKey itemKey
+                                                        && !(itemKey.getItem().getMetadata(itemKey.toStack()) == request.getDefinition()
+                                                        .getMetadata())) {
                                                         continue;
                                                     }
                                                 }

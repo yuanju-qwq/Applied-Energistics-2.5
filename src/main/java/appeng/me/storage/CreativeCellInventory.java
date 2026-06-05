@@ -23,30 +23,29 @@ import net.minecraft.item.ItemStack;
 import appeng.api.config.AccessRestriction;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IItemList;
 import appeng.items.contents.CellConfig;
-import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 @SuppressWarnings("rawtypes")
 public class CreativeCellInventory implements IMEInventoryHandler {
 
-    private final IItemList itemListCache = new ItemList();
+    private final KeyCounter itemListCache = new KeyCounter();
 
     protected CreativeCellInventory(final ItemStack o) {
         final CellConfig cc = new CellConfig(o);
         for (final ItemStack is : cc) {
             if (!is.isEmpty()) {
-                final IAEItemStack i = AEItemStack.fromItemStack(is);
-                i.setStackSize(Integer.MAX_VALUE);
-                this.itemListCache.add(i);
+                final AEItemKey key = AEItemKey.of(is);
+                if (key != null) {
+                    this.itemListCache.add(key, Integer.MAX_VALUE);
+                }
             }
         }
     }
@@ -59,7 +58,7 @@ public class CreativeCellInventory implements IMEInventoryHandler {
     @Override
     public GenericStack injectItems(final GenericStack input, final Actionable mode, final IActionSource src) {
         if (input == null) return null;
-        if (this.itemListCache.findPreciseGeneric(input.what()) != null) {
+        if (this.itemListCache.get(input.what()) > 0) {
             return null; // accepted
         }
         return input; // rejected
@@ -68,7 +67,7 @@ public class CreativeCellInventory implements IMEInventoryHandler {
     @Override
     public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
         if (request == null) return null;
-        if (this.itemListCache.findPreciseGeneric(request.what()) == null) {
+        if (this.itemListCache.get(request.what()) == 0) {
             return null;
         }
         return request;
@@ -77,13 +76,8 @@ public class CreativeCellInventory implements IMEInventoryHandler {
     @Override
     public KeyCounter getAvailableKeyCounter() {
         KeyCounter kc = new KeyCounter();
-        for (final Object ais : this.itemListCache) {
-            if (ais instanceof IAEItemStack itemStack) {
-                AEItemKey key = (AEItemKey) itemStack.toAEKey();
-                if (key != null) {
-                    kc.add(key, itemStack.getStackSize());
-                }
-            }
+        for (Object2LongMap.Entry<AEKey> entry : this.itemListCache) {
+            kc.add(entry.getKey(), entry.getLongValue());
         }
         return kc;
     }
@@ -100,12 +94,12 @@ public class CreativeCellInventory implements IMEInventoryHandler {
 
     @Override
     public boolean isPrioritized(final AEKey input) {
-        return this.itemListCache.findPreciseGeneric(input) != null;
+        return this.itemListCache.get(input) > 0;
     }
 
     @Override
     public boolean canAccept(final AEKey input) {
-        return this.itemListCache.findPreciseGeneric(input) != null;
+        return this.itemListCache.get(input) > 0;
     }
 
     @Override

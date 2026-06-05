@@ -35,7 +35,6 @@ import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.container.ContainerNull;
@@ -116,8 +115,8 @@ public final class CraftingContext {
     private final ArrayDeque<CraftingTask> tasksToProcess = new ArrayDeque<>(64);
     private boolean doingWork = false;
     private CraftingTask.State finishedState = CraftingTask.State.FAILURE;
-    private final ImmutableMap<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> availablePatterns;
-    private final Map<IAEStack<?>, List<ICraftingPatternDetails>> precisePatternCache = new HashMap<>();
+    private final ImmutableMap<GenericStack, ImmutableList<ICraftingPatternDetails>> availablePatterns;
+    private final Map<GenericStack, List<ICraftingPatternDetails>> precisePatternCache = new HashMap<>();
     private final Map<ICraftingPatternDetails, IAEItemStack> crafterIconCache = new HashMap<>();
     private final OreListMultiMap<ICraftingPatternDetails> fuzzyPatternCache = new OreListMultiMap<>();
     private final IdentityHashMap<ICraftingPatternDetails, Boolean> isPatternComplexCache = new IdentityHashMap<>();
@@ -170,7 +169,7 @@ public final class CraftingContext {
                 AEApi.instance().definitions().blocks().iface().maybeStack(1).orElse(ItemStack.EMPTY)));
     }
 
-    public List<ICraftingPatternDetails> getPrecisePatternsFor(@Nonnull IAEStack<?> stack) {
+    public List<ICraftingPatternDetails> getPrecisePatternsFor(@Nonnull GenericStack stack) {
         return precisePatternCache.compute(stack, (key, value) -> {
             if (value == null) {
                 return availablePatterns.getOrDefault(stack, ImmutableList.of());
@@ -188,10 +187,10 @@ public final class CraftingContext {
      * non-item types have no concept of damage/metadata for fuzzy comparison, so they
      * fall back to precise pattern matching.
      */
-    public List<ICraftingPatternDetails> getFuzzyPatternsFor(@Nonnull IAEStack<?> stack) {
-        // instanceof IAEItemStack: only items support fuzzy matching via damage values
-        if (stack instanceof IAEItemStack) {
-            IAEItemStack aiStack = (IAEItemStack) stack;
+    public List<ICraftingPatternDetails> getFuzzyPatternsFor(@Nonnull GenericStack stack) {
+        // instanceof AEItemKey: only items support fuzzy matching via damage values
+        if (stack.what() instanceof AEItemKey) {
+            IAEItemStack aiStack = (IAEItemStack) stack.toIAEStack();
             if (!fuzzyPatternCache.isPopulated()) {
                 for (final ImmutableList<ICraftingPatternDetails> patternSet : availablePatterns.values()) {
                     for (final ICraftingPatternDetails pattern : patternSet) {
@@ -250,7 +249,7 @@ public final class CraftingContext {
 
         final IAEItemStack[] itemInputs = new IAEItemStack[inputs.length];
         for (int i = 0; i < inputs.length; i++) {
-            itemInputs[i] = (IAEItemStack) inputs[i].toIAEStack();
+            itemInputs[i] = AEItemStack.fromItemStack(((AEItemKey) inputs[i].what()).toStack((int) inputs[i].amount()));
         }
         final IAEItemStack[] mcOutputs = simulateComplexCrafting(itemInputs, pattern);
 

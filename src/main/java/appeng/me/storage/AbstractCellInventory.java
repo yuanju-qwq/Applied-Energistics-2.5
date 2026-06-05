@@ -62,7 +62,7 @@ public abstract class AbstractCellInventory implements ICellInventory {
     private int maxItemTypes = MAX_ITEM_TYPES;
     private short storedItemTypes = 0;
     private long storedItemCount = 0;
-    protected IItemList cellItems;
+    protected KeyCounter cellItems;
 
     /**
      * AEKey-based primary storage. All mutating operations go through this counter.
@@ -91,7 +91,7 @@ public abstract class AbstractCellInventory implements ICellInventory {
     protected AbstractCellInventory(final IStorageCell<?> cellType, final ItemStack o, final ISaveProvider container) {
         this.i = o;
         this.cellType = cellType;
-        this.itemsPerByte = this.cellType.getStackType().getUnitsPerByte();
+        this.itemsPerByte = this.cellType.getKeyType().getAmountPerByte();
         this.maxItemTypes = this.cellType.getTotalTypes(this.i);
 
         if (this.maxItemTypes > MAX_ITEM_TYPES) {
@@ -150,12 +150,11 @@ public abstract class AbstractCellInventory implements ICellInventory {
             this.cellKeyCounter = new KeyCounter();
             // Populate from cellItems if already loaded
             if (this.cellItems != null) {
-                for (final Object v : this.cellItems) {
-                    if (v instanceof IAEStack stack) {
-                        AEKey key = stack.toAEKey();
-                        if (key != null) {
-                            this.cellKeyCounter.set(key, stack.getStackSize());
-                        }
+                for (var entry : this.cellItems) {
+                    AEKey key = entry.getKey();
+                    long amount = entry.getLongValue();
+                    if (amount > 0) {
+                        this.cellKeyCounter.set(key, amount);
                     }
                 }
             }
@@ -165,9 +164,9 @@ public abstract class AbstractCellInventory implements ICellInventory {
 
     private void rebuildCellItemsFromKeyCounter() {
         if (this.cellItems == null) {
-            this.cellItems = this.getStackType().createList();
+            this.cellItems = new KeyCounter();
         } else {
-            this.cellItems.resetStatus();
+            this.cellItems.clear();
         }
         for (var entry : this.cellKeyCounter) {
             AEKey key = entry.getKey();
@@ -175,19 +174,17 @@ public abstract class AbstractCellInventory implements ICellInventory {
             if (amount <= 0) {
                 continue;
             }
-            IAEStack stack = (IAEStack) key.toIAEStack(amount);
-            if (stack != null) {
-                this.cellItems.add(stack);
-            }
+            this.cellItems.add(key, amount);
         }
         this.cellItemsDirty = false;
     }
 
-    protected IItemList getCellItems() {
+    protected KeyCounter getCellItems() {
         if (this.cellItems == null) {
-            this.cellItems = this.getStackType().createList();
+            this.cellItems = new KeyCounter();
             this.loadCellItems();
-        } else if (this.cellItemsDirty && this.cellKeyCounter != null) {
+        }
+        if (this.cellItemsDirty && this.cellKeyCounter != null) {
             rebuildCellItemsFromKeyCounter();
         }
 
@@ -202,7 +199,7 @@ public abstract class AbstractCellInventory implements ICellInventory {
 
         long itemCount = 0;
 
-        // write from primary KeyCounter (old NBT format for backward compat)
+        // write from primary KeyCounter using AEKey NBT format directly
         int x = 0;
         final KeyCounter kc = this.getKeyCounter();
         for (var entry : kc) {
@@ -213,9 +210,9 @@ public abstract class AbstractCellInventory implements ICellInventory {
             }
             itemCount += amount;
 
-            final NBTTagCompound g = new NBTTagCompound();
-            key.toIAEStack(amount).writeToNBT(g);
-            this.tagCompound.setTag(ITEM_SLOT_KEYS[x], g);
+            // Write key identification only — amount is stored in ITEM_SLOT_COUNT_KEYS.
+            // Using AEKey.toTag() directly avoids the temporary IAEStack conversion.
+            this.tagCompound.setTag(ITEM_SLOT_KEYS[x], key.toTag());
             this.tagCompound.setLong(ITEM_SLOT_COUNT_KEYS[x], amount);
 
             x++;
@@ -271,10 +268,10 @@ public abstract class AbstractCellInventory implements ICellInventory {
 
     private void loadCellItems() {
         if (this.cellItems == null) {
-            this.cellItems = this.getStackType().createList();
+            this.cellItems = new KeyCounter();
         }
 
-        this.cellItems.resetStatus(); // clears totals and stuff.
+        this.cellItems.clear(); // clears totals and stuff.
         if (this.cellKeyCounter != null) {
             this.cellKeyCounter.reset();
         }
@@ -306,7 +303,7 @@ public abstract class AbstractCellInventory implements ICellInventory {
 
     @Override
     public AEKeyType getKeyType() {
-        return AEKeyType.fromLegacyType(this.cellType.getStackType());
+        return this.cellType.getKeyType();
     }
 
     /**

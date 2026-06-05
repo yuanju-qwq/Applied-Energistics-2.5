@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderItem;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -15,10 +14,11 @@ import mezz.jei.api.gui.IGhostIngredientHandler.Target;
 
 import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.ITerminalHost;
-import appeng.client.gui.slots.VirtualMEPatternSlot;
-import appeng.client.gui.slots.VirtualMEPhantomSlot;
+import appeng.client.mui.slot.VirtualMEPatternSlot;
+import appeng.client.mui.slot.VirtualMEPhantomSlot;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEMUITheme;
+import appeng.client.mui.IMUIWidget;
 import appeng.client.mui.module.PatternTerminalModule;
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.container.implementations.ContainerExpandedProcessingPatternTerm;
@@ -98,8 +98,8 @@ public class MUIExpandedProcessingPatternTermPanel extends MUIMEMonitorablePanel
     }
 
     @Override
-    public List<GuiButton> getButtonList() {
-        return buttonList;
+    public void addModuleWidget(IMUIWidget widget) {
+        this.addWidget(widget);
     }
 
     @Override
@@ -108,16 +108,8 @@ public class MUIExpandedProcessingPatternTermPanel extends MUIMEMonitorablePanel
     }
 
     @Override
-    public int getDivideButtonX() {
-        return 87;
-    }
-
-    // ========== Button events ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
+    protected void actionPerformed(final net.minecraft.client.gui.GuiButton btn) throws IOException {
         super.actionPerformed(btn);
-        this.module.actionPerformed(btn);
     }
 
     // ========== Initialization ==========

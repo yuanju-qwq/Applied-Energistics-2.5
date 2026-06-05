@@ -30,8 +30,8 @@ import appeng.api.config.SearchBoxMode;
 import appeng.api.config.Settings;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
-import appeng.client.gui.slots.VirtualMEMonitorableSlot;
-import appeng.client.gui.widgets.ISortSource;
+import appeng.client.mui.slot.VirtualMEMonitorableSlot;
+import appeng.client.mui.widgets.IMUISortSource;
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.me.ItemRepo;
 import appeng.client.mui.AEBasePanel;
@@ -41,28 +41,9 @@ import appeng.integration.Integrations;
 import appeng.util.Platform;
 
 /**
- * ME item browser module — reusable component for ME network item browsing.
- *
- * <p>Supports two layout modes via {@link LayoutConfig}:
- * <ul>
- *   <li>{@link LayoutConfig#compact()} — 4-column side panel (used by WirelessDualInterfaceTerminal)</li>
- *   <li>{@link LayoutConfig#standard()} — 9-column main panel (used by MUIMEMonitorablePanel)</li>
- * </ul>
- *
- * <p>Responsible for:
- * <ul>
- *   <li>ItemRepo + VirtualMEMonitorableSlot grid</li>
- *   <li>Search field + JEI sync</li>
- *   <li>Scrollbar management</li>
- *   <li>Panel drag support (compact mode only)</li>
- *   <li>IMEInventoryUpdateReceiver data forwarding</li>
- *   <li>ISortSource implementation</li>
- * </ul>
- *
- * <p>Sort / view / sort direction / search mode buttons are now managed by
- * {@link TerminalToolbar}.
+ * ME item browser module - reusable component for ME network item browsing.
  */
-public class MEItemBrowserModule implements ISortSource {
+public class MEItemBrowserModule implements IMUISortSource {
 
     // ========== Layout configuration ==========
 

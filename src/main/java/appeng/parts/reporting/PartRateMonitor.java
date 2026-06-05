@@ -53,7 +53,6 @@ import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.client.render.TesrRenderHelper;
 import appeng.core.AppEng;
 import appeng.fluids.util.AEFluidStack;
@@ -293,7 +292,7 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
         if (this.watcher != null) {
             this.watcher.reset();
             if (this.configured != null) {
-                this.watcher.add(this.configured);
+                this.watcher.add(this.configured.toAEKey());
             }
         }
         this.updateCurrentAmount();
@@ -306,10 +305,10 @@ public class PartRateMonitor extends AbstractPartDisplay implements IStackWatche
     private void updateCurrentAmount() {
         try {
             if (this.configured != null) {
-                final AEKeyType keyType = AEKeyType.fromLegacyType(this.configured.getStackType());
-                final IMEMonitor inv = this.getProxy().getStorage().getInventory(keyType);
-                AEKey searchKey = this.configured.toAEKey();
+                final AEKey searchKey = this.configured.toAEKey();
                 if (searchKey != null) {
+                    final AEKeyType keyType = searchKey.getType();
+                    final IMEMonitor inv = this.getProxy().getStorage().getInventory(keyType);
                     this.currentAmount = inv.getKeyCounter().get(searchKey);
                 } else {
                     this.currentAmount = 0;

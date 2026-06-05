@@ -37,23 +37,21 @@ import mezz.jei.api.gui.IGhostIngredientHandler;
 
 import appeng.api.stacks.AEKey;
 import appeng.client.ClientHelper;
-import appeng.client.gui.slots.VirtualMEPhantomSlot;
-import appeng.client.gui.widgets.GuiCustomSlot;
+import appeng.client.mui.slot.VirtualMEPhantomSlot;
+import appeng.client.mui.widgets.MUICustomSlot;
 import appeng.container.interfaces.IJEIGhostIngredients;
 import appeng.container.interfaces.ISpecialSlotIngredient;
 import appeng.core.AELog;
 
 /**
- * MUI 面板的 JEI 集成处理器。
+ * MUI panel JEI integration handler.
  * <p>
- * 功能与旧 AEGuiHandler（已删除）完全对等，但绑定到 {@link AEBasePanel}：
+ * Replaces old AEGuiHandler, removes cache/security, bound to {@link AEBasePanel}.
  * <ul>
- *   <li>{@link IAdvancedGuiHandler} — JEI 排除区域 + 鼠标下物品识别</li>
- *   <li>{@link IGhostIngredientHandler} — JEI 拖拽物品到幽灵槽位</li>
+ *   <li>{@link IAdvancedGuiHandler} JEI hidden area + drag item detection</li>
+ *   <li>{@link IGhostIngredientHandler} JEI drag items to virtual slots</li>
+ *   <li>{@link DragAndDropServerHandler} server-side item processing</li>
  * </ul>
- *
- * @see AEBasePanel#getJEIExclusionArea()
- * @see AEBasePanel#getGuiSlots()
  */
 public class AEBasePanelGuiHandler
         implements IAdvancedGuiHandler<AEBasePanel>, IGhostIngredientHandler<AEBasePanel> {
@@ -75,8 +73,7 @@ public class AEBasePanelGuiHandler
     @Nullable
     @Override
     public Object getIngredientUnderMouse(@Nonnull AEBasePanel panel, int mouseX, int mouseY) {
-        // 特殊面板：Crafting confirm（CraftConfirm）和Crafting CPU（CraftingCPU）
-        // They have virtual item lists from getVisual() + getDisplayedRows()
+        // Special panel: Crafting confirm (CraftConfirm) and Crafting CPU - They have virtual item lists from getVisual() + getDisplayedRows()
         if (panel instanceof IMUIVisualListPanel) {
             IMUIVisualListPanel visualPanel = (IMUIVisualListPanel) panel;
             int guiSlotIdx = getSlotIdx(panel, mouseX, mouseY, visualPanel.getDisplayedRows());
@@ -93,8 +90,8 @@ public class AEBasePanelGuiHandler
             return ((ISpecialSlotIngredient) slot).getIngredient();
         }
 
-        // Custom slot: check GuiCustomSlot
-        for (GuiCustomSlot customSlot : panel.getGuiSlots()) {
+        // Custom slot: check MUICustomSlot
+        for (MUICustomSlot customSlot : panel.getGuiSlots()) {
             if (checkSlotArea(panel, customSlot, mouseX, mouseY)) {
                 return customSlot.getIngredient();
             }
@@ -145,9 +142,9 @@ public class AEBasePanelGuiHandler
     // ========== Internal helper methods ==========
 
     /**
-     * 检查鼠标是否在自定义槽位区域内。
+     * Check if mouse is within the custom slot area.
      */
-    private boolean checkSlotArea(GuiContainer gui, GuiCustomSlot slot, int mouseX, int mouseY) {
+    private boolean checkSlotArea(GuiContainer gui, MUICustomSlot slot, int mouseX, int mouseY) {
         int i = gui.guiLeft;
         int j = gui.guiTop;
         mouseX = mouseX - i;
@@ -159,7 +156,7 @@ public class AEBasePanelGuiHandler
     }
 
     /**
-     * 从 CraftConfirm / CraftingCPU 的虚拟物品列表中计算槽位索引。
+     * Calculate slot index from the virtual item list of CraftConfirm / CraftingCPU.
      */
     private int getSlotIdx(AEBasePanel panel, int mouseX, int mouseY, int rows) {
         int guileft = panel.getGuiLeft();
@@ -180,7 +177,7 @@ public class AEBasePanelGuiHandler
     }
 
     /**
-     * 获取 VirtualMEPhantomSlot 的 JEI 拖拽目标。
+     * Get VirtualMEPhantomSlot JEI drag targets.
      */
     private <I> List<Target<I>> getVirtualTargets(@Nonnull AEBasePanel panel, @Nonnull I ingredient) {
         if (!(ingredient instanceof net.minecraft.item.ItemStack)) {
@@ -189,7 +186,7 @@ public class AEBasePanelGuiHandler
         net.minecraft.item.ItemStack itemStack = (net.minecraft.item.ItemStack) ingredient;
 
         final List<Target<I>> result = new ArrayList<>();
-        for (GuiCustomSlot customSlot : panel.getGuiSlots()) {
+        for (MUICustomSlot customSlot : panel.getGuiSlots()) {
             if (!(customSlot instanceof VirtualMEPhantomSlot)) {
                 continue;
             }
@@ -218,7 +215,7 @@ public class AEBasePanelGuiHandler
     }
 
     /**
-     * HEI 书签物品解包（反射获取内部 ingredient）。
+     * HEI bookmark item unpack (reflectively get inner ingredient).
      */
     @Nullable
     private Object getIngFromBookmarkItem(Object ingredient) {
@@ -235,9 +232,9 @@ public class AEBasePanelGuiHandler
     }
 
     /**
-     * MUI 面板中有虚拟物品列表（如Crafting confirm/Crafting CPU）的通用接口。
+     * Common interface for MUI panels with virtual item lists (e.g. Crafting confirm/Crafting CPU).
      * <p>
-     * 实现此接口的面板可以让 JEI 识别虚拟列表中鼠标下的物品。
+     * Panels implementing this interface can let JEI identify items under the mouse in the virtual list.
      */
     public interface IMUIVisualListPanel {
         List<AEKey> getVisual();

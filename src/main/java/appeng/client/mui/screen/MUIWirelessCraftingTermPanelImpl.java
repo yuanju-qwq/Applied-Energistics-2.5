@@ -18,9 +18,6 @@
 
 package appeng.client.mui.screen;
 
-import java.io.IOException;
-
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
@@ -30,8 +27,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import appeng.api.config.ActionItems;
 import appeng.api.config.Settings;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiImgButton;
-import appeng.container.AEBaseContainer;
+import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.container.implementations.ContainerWirelessCraftingTerminal;
 import appeng.container.slot.SlotCraftingMatrix;
 import appeng.core.localization.GuiText;
@@ -44,13 +40,14 @@ import appeng.helpers.WirelessTerminalGuiObject;
  * MUI wireless crafting terminal panel.
  * <p>
  * Extends {@link MUIMEMonitorablePanel}, adding a 3x3 crafting grid + clear button +
- * wireless upgrade icon + terminal mode toggle button.
+ * wireless upgrade icon + terminal mode toggle button. All buttons are implemented with
+ * MUI widgets ({@link MUIButtonWidget}, {@link MUITabButton}) and callback-based event handling.
  */
 @SideOnly(Side.CLIENT)
 public class MUIWirelessCraftingTermPanelImpl extends MUIMEMonitorablePanel implements MUIWirelessTermPanel {
 
     private final WirelessTerminalHelper wirelessHelper = new WirelessTerminalHelper();
-    private GuiImgButton clearBtn;
+    private MUIButtonWidget clearBtn;
 
     public MUIWirelessCraftingTermPanelImpl(final InventoryPlayer inventoryPlayer,
             final WirelessTerminalGuiObject te) {
@@ -61,34 +58,36 @@ public class MUIWirelessCraftingTermPanelImpl extends MUIMEMonitorablePanel impl
     @Override
     public void initGui() {
         super.initGui();
-        this.buttonList.add(this.clearBtn = new GuiImgButton(this.guiLeft + 92, this.guiTop + this.ySize - 156,
-                Settings.ACTIONS, ActionItems.STASH));
+
+        // Clear button (3x3 crafting grid stash)
+        this.clearBtn = new MUIButtonWidget(this.guiLeft + 92, this.guiTop + this.ySize - 156,
+                Settings.ACTIONS, ActionItems.STASH);
         this.clearBtn.setHalfSize(true);
+        this.clearBtn.setOnClick(btn -> sendClearCraftingGridPacket());
+        this.addWidget(this.clearBtn);
+
+        // Wireless terminal mode switch buttons (left side of the GUI)
         this.wirelessHelper.initButtons(
-                ((AEBaseContainer) this.inventorySlots).getPlayerInv(),
-                this.guiLeft, this.guiTop, this.buttonList, 200, this.itemRender);
+                ((ContainerWirelessCraftingTerminal) this.inventorySlots).getPlayerInv(),
+                this.guiLeft, this.guiTop, this.widgets, 200, this.itemRender);
     }
 
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        if (this.wirelessHelper.handleButtonClick(btn)) {
-            return;
+    /**
+     * Find the crafting matrix slot and ask the server to clear the entire 3x3 grid.
+     * Triggered by the MUI clear button's onClick callback.
+     */
+    private void sendClearCraftingGridPacket() {
+        Slot s = null;
+        final Container c = this.inventorySlots;
+        for (final Object j : c.inventorySlots) {
+            if (j instanceof SlotCraftingMatrix) {
+                s = (Slot) j;
+            }
         }
-        super.actionPerformed(btn);
 
-        if (this.clearBtn == btn) {
-            Slot s = null;
-            final Container c = this.inventorySlots;
-            for (final Object j : c.inventorySlots) {
-                if (j instanceof SlotCraftingMatrix) {
-                    s = (Slot) j;
-                }
-            }
-
-            if (s != null) {
-                final PacketInventoryAction p = new PacketInventoryAction(InventoryAction.MOVE_REGION, s.slotNumber, 0);
-                NetworkHandler.instance().sendToServer(p);
-            }
+        if (s != null) {
+            final PacketInventoryAction p = new PacketInventoryAction(InventoryAction.MOVE_REGION, s.slotNumber, 0);
+            NetworkHandler.instance().sendToServer(p);
         }
     }
 
@@ -101,7 +100,7 @@ public class MUIWirelessCraftingTermPanelImpl extends MUIMEMonitorablePanel impl
 
     @Override
     public void drawBG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        this.wirelessHelper.drawWirelessIcon(offsetX, offsetY, 198, 127);
+        this.wirelessHelper.drawWirelessIcon(this, offsetX, offsetY, 198, 127);
         super.drawBG(offsetX, offsetY, mouseX, mouseY);
     }
 

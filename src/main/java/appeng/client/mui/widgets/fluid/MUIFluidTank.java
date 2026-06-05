@@ -27,22 +27,35 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.storage.data.IAEFluidStack;
-import appeng.client.gui.widgets.GuiCustomSlot;
-import appeng.client.gui.widgets.ITooltip;
+import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.widgets.IMUITooltip;
+import appeng.client.mui.widgets.MUICustomSlot;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.fluids.util.IAEFluidTank;
 import appeng.helpers.InventoryAction;
 
+/**
+ * MUI namespace fluid tank slot rendering widget.
+ * <p>
+ * Equivalent to the legacy {@code appeng.client.gui.widgets.GuiFluidTank}, but
+ * migrated to the {@link MUICustomSlot} + {@link IMUITooltip} system and renamed
+ * to follow the {@code MUI*} naming convention used by all MUI widgets.
+ * <p>
+ * The widget no longer inherits {@code net.minecraft.client.gui.Gui}; the
+ * required drawing methods (e.g. {@code drawTexturedModalRect}) are obtained
+ * indirectly through {@link AEBasePanel}, which extends
+ * {@code GuiContainer} → {@code Gui}.
+ */
 @SideOnly(Side.CLIENT)
-public class GuiFluidTank extends GuiCustomSlot implements ITooltip {
+public class MUIFluidTank extends MUICustomSlot {
     private final IAEFluidTank tank;
     private final int slot;
     private final int width;
     private final int height;
     private boolean darkened = false;
 
-    public GuiFluidTank(IAEFluidTank tank, int slot, int id, int x, int y, int w, int h) {
+    public MUIFluidTank(IAEFluidTank tank, int slot, int id, int x, int y, int w, int h) {
         super(id, x, y);
         this.tank = tank;
         this.slot = slot;
@@ -50,7 +63,7 @@ public class GuiFluidTank extends GuiCustomSlot implements ITooltip {
         this.height = h;
     }
 
-    public GuiFluidTank(IAEFluidTank tank, int slot, int id, int x, int y, int w, int h, boolean darkened) {
+    public MUIFluidTank(IAEFluidTank tank, int slot, int id, int x, int y, int w, int h, boolean darkened) {
         super(id, x, y);
         this.tank = tank;
         this.slot = slot;
@@ -60,14 +73,11 @@ public class GuiFluidTank extends GuiCustomSlot implements ITooltip {
     }
 
     @Override
-    public void drawContent(Minecraft mc, int mouseX, int mouseY, float partialTicks) {
+    public void drawContent(AEBasePanel panel, Minecraft mc, int mouseX, int mouseY, float partialTicks) {
         final IAEFluidStack fs = this.getFluidStack();
         if (fs != null) {
             GlStateManager.disableBlend();
             GlStateManager.disableLighting();
-
-            // drawRect( this.x, this.y, this.x + this.width, this.y + this.height, AEColor.GRAY.blackVariant |
-            // 0xFF000000 );
 
             final IAEFluidStack fluid = this.tank.getFluidInSlot(this.slot);
             if (fluid != null && fluid.getStackSize() > 0) {
@@ -91,11 +101,12 @@ public class GuiFluidTank extends GuiCustomSlot implements ITooltip {
 
                 int iconHeightRemainder = scaledHeight % 16;
                 if (iconHeightRemainder > 0) {
-                    this.drawTexturedModalRect(this.xPos(), this.yPos() + this.getHeight() - iconHeightRemainder,
+                    // Delegates to the panel's GuiScreen-inherited drawTexturedModalRect.
+                    panel.drawTexturedModalRect(this.xPos(), this.yPos() + this.getHeight() - iconHeightRemainder,
                             sprite, 16, iconHeightRemainder);
                 }
                 for (int i = 0; i < scaledHeight / 16; i++) {
-                    this.drawTexturedModalRect(this.xPos(),
+                    panel.drawTexturedModalRect(this.xPos(),
                             this.yPos() + this.getHeight() - iconHeightRemainder - (i + 1) * 16, sprite, 16, 16);
                 }
             }
@@ -112,16 +123,6 @@ public class GuiFluidTank extends GuiCustomSlot implements ITooltip {
                     + "mB";
         }
         return null;
-    }
-
-    @Override
-    public int xPos() {
-        return this.x;
-    }
-
-    @Override
-    public int yPos() {
-        return this.y;
     }
 
     @Override

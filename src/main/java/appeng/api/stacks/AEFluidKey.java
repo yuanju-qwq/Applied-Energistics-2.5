@@ -232,7 +232,13 @@ public final class AEFluidKey extends AEKey {
     @Nullable
     public static AEFluidKey fromTag(NBTTagCompound tag) {
         try {
+            // Prefer the canonical "id" key. Fall back to the legacy "FluidName" key used by
+            // the pre-AEKey IAEStack fluid format for backward compatibility with existing
+            // storage cells.
             var fluidId = tag.getString("id");
+            if (fluidId.isEmpty()) {
+                fluidId = tag.getString("FluidName");
+            }
             if (fluidId.isEmpty()) {
                 throw new IllegalArgumentException("Missing fluid id in NBT");
             }
@@ -242,7 +248,13 @@ public final class AEFluidKey extends AEKey {
                 throw new IllegalArgumentException("Unknown fluid id: " + fluidId);
             }
 
-            NBTTagCompound extraTag = tag.hasKey("tag") ? tag.getCompoundTag("tag") : null;
+            // Legacy IAEStack fluids used "Tag"; AEKey uses "tag". Read both.
+            NBTTagCompound extraTag = null;
+            if (tag.hasKey("tag")) {
+                extraTag = tag.getCompoundTag("tag");
+            } else if (tag.hasKey("Tag")) {
+                extraTag = tag.getCompoundTag("Tag");
+            }
             return of(fluid, extraTag);
         } catch (Exception e) {
             AELog.debug("Tried to load an invalid fluid key from NBT: %s", tag, e);

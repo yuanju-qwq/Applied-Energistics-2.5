@@ -28,7 +28,6 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IItemList;
 import appeng.container.guisync.GuiSync;
 import appeng.container.slot.SlotRestrictedInput;
 import appeng.parts.misc.AbstractPartStorageBus;

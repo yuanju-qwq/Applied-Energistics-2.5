@@ -240,11 +240,17 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         }
     }
 
-    public boolean canAccept(final IAEStack<?> input) {
+    public boolean canAccept(final GenericStack input) {
         if (input != null) {
-            return this.waitingFor.get(input.toAEKey()) > 0;
+            return this.waitingFor.get(input.what()) > 0;
         }
         return false;
+    }
+
+    public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
+        IAEStack<?> aeResult = injectItems(input.toIAEStack(), type, src);
+        if (aeResult == null) return null;
+        return GenericStack.fromIAEStack(aeResult);
     }
 
     @SuppressWarnings("unchecked")
@@ -698,13 +704,16 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                 remainingOperations = Math.max(this.remainingOperations, BATCH_SIZE);
             }
 
+            MEInventoryCrafting ic = null;
+            boolean found = false;
+
             for (int times = 0; times < BATCH_SIZE && e.getValue().value > 0; times++) {
                 if (this.remainingOperations <= 0) {
                     break;
                 }
 
                 if (this.canCraft(details, details.getCondensedInputStacks())) {
-                    MEInventoryCrafting ic = null;
+                    ic = null;
 
                     if (!visitedMediums.containsKey(details) || visitedMediums.get(details).isEmpty()) {
                         visitedMediums.put(details, new ArrayDeque<>(
@@ -741,8 +750,6 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                             PatternHelper.PROCESSING_INPUT_WIDTH,
                                             PatternHelper.PROCESSING_INPUT_HEIGHT);
                                 }
-
-                                boolean found = false;
 
                                 for (int x = 0; x < input.length; x++) {
                                     if (input[x] != null) {
@@ -792,7 +799,6 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
                                                             found = true;
                                                             break;
                                                         }
-                                                    }
                                                     }
                                                 }
                                             }
@@ -1020,7 +1026,7 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
 
         // 统一处理所有类型（物品、流体等）
         for (var entry : this.inventory.getInventoryMap().entrySet()) {
-            final AEKeyType keyType = AEKeyType.fromLegacyType(entry.getKey());
+            final AEKeyType keyType = AEKeyType.fromId(entry.getKey().getId());
             if (keyType == null) continue;
             final IMEMonitor monitor = sg.getInventory(keyType);
             if (monitor == null) continue;
@@ -1285,12 +1291,12 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         }
     }
 
-    public void addStorage(final IAEStack<?> stack) {
-        this.inventory.injectItems(new GenericStack(stack.toAEKey(), stack.getStackSize()), Actionable.MODULATE);
+    public void addStorage(final GenericStack stack) {
+        this.inventory.injectItems(stack, Actionable.MODULATE);
     }
 
-    public void addEmitable(final IAEStack<?> stack) {
-        this.waitingFor.add(stack.toAEKey(), stack.getStackSize());
+    public void addEmitable(final GenericStack stack) {
+        this.waitingFor.add(stack.what(), stack.amount());
         this.postCraftingStatusChange(stack);
     }
 

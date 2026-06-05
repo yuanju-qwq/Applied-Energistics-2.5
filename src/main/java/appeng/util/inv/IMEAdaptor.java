@@ -30,6 +30,7 @@ import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
@@ -87,7 +88,7 @@ public class IMEAdaptor extends InventoryAdaptor {
 
         if (filter == null || filter.isEmpty()) {
             final KeyCounter list = this.getList();
-            AEKey firstKey = list.getFirstKey();
+            AEKey firstKey = list.iterator().next().getKey();
             if (firstKey instanceof AEItemKey itemKey) {
                 reqKey = itemKey;
             }

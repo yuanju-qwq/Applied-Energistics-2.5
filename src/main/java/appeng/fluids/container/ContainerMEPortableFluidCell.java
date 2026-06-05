@@ -40,7 +40,6 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
-import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
@@ -67,7 +66,7 @@ import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.InvOperation;
 
 /**
- * @deprecated 便携流体单元 Container 将在后续版本统一�?
+ * @deprecated 便携流体单元 Container 将在后续版本统一�?
  *             {@link appeng.container.implementations.ContainerMEMonitorable} 体系。此类保留向后兼容�?
  */
 @Deprecated
@@ -79,7 +78,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
 
     private final IConfigManager clientCM;
     private final IMEMonitor monitor;
-    private final IItemList<IAEFluidStack> fluids = new FluidList();
+    private KeyCounter fluids = new KeyCounter();
     @GuiSync(99)
     public boolean hasPower = false;
     private final ITerminalHost terminal;
@@ -179,20 +178,17 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
 
                     final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
-                    for (final IAEFluidStack is : this.fluids) {
-                        AEKey searchKey = is.toAEKey();
-                        long sendAmount = searchKey != null ? monitorCache.get(searchKey) : 0;
-                        if (sendAmount == 0) {
-                            is.setStackSize(0);
-                            piu.appendStack(is);
-                        } else {
-                            is.setStackSize(sendAmount);
+                    for (var entry : this.fluids) {
+                        AEKey searchKey = entry.getKey();
+                        long sendAmount = monitorCache.get(searchKey);
+                        IAEFluidStack is = (IAEFluidStack) searchKey.toIAEStack(sendAmount);
+                        if (is != null) {
                             piu.appendStack(is);
                         }
                     }
 
                     if (!piu.isEmpty()) {
-                        this.fluids.resetStatus();
+                        this.fluids = new KeyCounter();
 
                         for (final Object c : this.listeners) {
                             if (c instanceof EntityPlayer) {
@@ -412,7 +408,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
             IActionSource actionSource) {
         for (final GenericStack is : change) {
             if (is.toIAEStack() instanceof IAEFluidStack fluidStack) {
-                this.fluids.add(fluidStack);
+                this.fluids.add(fluidStack.toAEKey(), fluidStack.getStackSize());
             }
         }
     }
@@ -535,7 +531,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
     }
 
     /**
-     * 客户端接收流体库存更新包�?
+     * 客户端接收流体库存更新包�?
      */
     public void postUpdate(final List<IAEStack<?>> list) {
         final IConfigManagerHost gui = this.getGui();

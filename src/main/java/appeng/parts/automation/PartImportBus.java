@@ -33,6 +33,7 @@ import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;

@@ -87,7 +87,7 @@ public class PartFluidStorageBus extends AbstractPartStorageBus
 
     @Override
     public AEKeyType getStackType() {
-        return AEFluidStackType.INSTANCE;
+        return AEKeyType.fluids();
     }
 
     @Override

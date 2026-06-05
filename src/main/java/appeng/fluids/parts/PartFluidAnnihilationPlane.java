@@ -31,6 +31,7 @@ import appeng.api.parts.IPart;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartHost;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEFluidStack;
@@ -253,7 +254,7 @@ public class PartFluidAnnihilationPlane extends PartBasicState implements IGridT
     private boolean storeFluid(IAEFluidStack stack, boolean modulate) {
         try {
             final IStorageGrid storage = this.getProxy().getStorage();
-            final IMEInventory<IAEFluidStack> inv = storage
+            final IMEInventory inv = storage
                     .getInventory(AEKeyType.fluids());
 
             if (modulate) {

@@ -26,6 +26,8 @@ import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IUpgradeModule;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
+import appeng.api.stacks.KeyCounterAdapter;
 import appeng.api.storage.ICellWorkbenchItem;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IItemList;
@@ -34,12 +36,11 @@ import appeng.items.contents.CellAEConfig;
 import appeng.items.contents.CellUpgrades;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
-import appeng.util.item.AEItemStack;
+import appeng.util.item.ItemList;
 import appeng.util.prioritylist.FuzzyPriorityList;
 import appeng.util.prioritylist.IPartitionList;
 import appeng.util.prioritylist.MergedPriorityList;
 import appeng.util.prioritylist.PrecisePriorityList;
-import appeng.util.item.AEItemStackType;
 
 public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
     public ItemViewCell() {
@@ -63,7 +64,7 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
                 if (!viewCellItem.getViewMode(currentViewCell)) {
                     continue;
                 }
-                final IItemList<IAEItemStack> priorityList = new ItemList();
+                final KeyCounter priorityList = new KeyCounter();
 
                 final ICellWorkbenchItem vc = (ICellWorkbenchItem) currentViewCell.getItem();
                 final IItemHandler upgrades = vc.getUpgradesInventory(currentViewCell);
@@ -94,15 +95,17 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
                 for (int x = 0; x < config.getSizeInventory(); x++) {
                     final GenericStack gs = config.getGenericStack(x);
                     if (gs != null && gs.what() instanceof AEItemKey itemKey) {
-                        priorityList.add(AEItemStack.fromItemStack(itemKey.toStack()));
+                        priorityList.add(itemKey, 1);
                     }
                 }
 
                 if (!priorityList.isEmpty()) {
+                    final IItemList<IAEItemStack> legacyList = new ItemList();
+                    KeyCounterAdapter.toIItemList(priorityList, legacyList);
                     if (hasFuzzy) {
-                        myMergedList.addNewList(new FuzzyPriorityList<>(priorityList, fzMode), !hasInverter);
+                        myMergedList.addNewList(new FuzzyPriorityList<>(legacyList, fzMode), !hasInverter);
                     } else {
-                        myMergedList.addNewList(new PrecisePriorityList<>(priorityList), !hasInverter);
+                        myMergedList.addNewList(new PrecisePriorityList<>(legacyList), !hasInverter);
                     }
 
                     myPartitionList = myMergedList;

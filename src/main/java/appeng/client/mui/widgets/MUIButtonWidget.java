@@ -26,13 +26,11 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.translation.I18n;
 
 import appeng.api.config.*;
-import appeng.client.gui.widgets.ITooltip;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 import appeng.core.localization.ButtonToolTips;
@@ -49,9 +47,9 @@ import appeng.core.localization.ButtonToolTips;
  *       a user-supplied {@link IIconRenderer} for icon drawing and a manual tooltip string.</li>
  * </ol>
  *
- * @see ITooltip for the tooltip contract used by {@link AEBasePanel#drawTooltip(ITooltip, int, int)}
+ * @see IMUITooltip for the tooltip contract used by {@link AEBasePanel#drawTooltip(IMUITooltip, int, int)}
  */
-public class MUIButtonWidget implements IMUIWidget, ITooltip {
+public class MUIButtonWidget implements IMUIWidget, IMUITooltip {
 
     // ========== Icon renderer interface (custom mode) ==========
 
@@ -519,11 +517,11 @@ public class MUIButtonWidget implements IMUIWidget, ITooltip {
             GlStateManager.scale(0.5f, 0.5f, 1.0f);
 
             mc.getTextureManager().bindTexture(STATES_TEXTURE);
-            Gui.drawModalRectWithCustomSizedTexture(0, 0, 256 - this.width, 256 - this.height,
+            panel.drawModalRectWithCustomSizedTexture(0, 0, 256 - this.width, 256 - this.height,
                     this.width, this.height, 256, 256);
 
         if (this.buttonSetting != null) {
-            drawSettingsIcon(mc, 0, 0);
+            drawSettingsIcon(panel, mc, 0, 0);
         } else if (this.iconRenderer != null) {
             this.iconRenderer.render(mc, 0, 0, this.width, this.height, this.hovered);
         } else if (this.text != null) {
@@ -533,11 +531,11 @@ public class MUIButtonWidget implements IMUIWidget, ITooltip {
             GlStateManager.popMatrix();
         } else {
             mc.getTextureManager().bindTexture(STATES_TEXTURE);
-            Gui.drawModalRectWithCustomSizedTexture(screenX, screenY,
+            panel.drawModalRectWithCustomSizedTexture(screenX, screenY,
                     256 - this.width, 256 - this.height, this.width, this.height, 256, 256);
 
         if (this.buttonSetting != null) {
-            drawSettingsIcon(mc, screenX, screenY);
+            drawSettingsIcon(panel, mc, screenX, screenY);
         } else if (this.iconRenderer != null) {
             this.iconRenderer.render(mc, screenX, screenY, this.width, this.height, this.hovered);
         } else if (this.text != null) {
@@ -551,13 +549,13 @@ public class MUIButtonWidget implements IMUIWidget, ITooltip {
     /**
      * Draw the icon from the appearance registry at the given screen coordinates.
      */
-    private void drawSettingsIcon(Minecraft mc, int drawX, int drawY) {
+    private void drawSettingsIcon(AEBasePanel panel, Minecraft mc, int drawX, int drawY) {
         final int iconIndex = this.getIconIndex();
         final int uvY = iconIndex / 16;
         final int uvX = iconIndex - uvY * 16;
 
         mc.getTextureManager().bindTexture(STATES_TEXTURE);
-        Gui.drawModalRectWithCustomSizedTexture(drawX, drawY, uvX * 16, uvY * 16, 16, 16, 256, 256);
+        panel.drawModalRectWithCustomSizedTexture(drawX, drawY, uvX * 16, uvY * 16, 16, 16, 256, 256);
     }
 
     private void drawText(Minecraft mc, int drawX, int drawY, int drawWidth, int drawHeight) {
@@ -585,7 +583,7 @@ public class MUIButtonWidget implements IMUIWidget, ITooltip {
 
     @Override
     public void drawForeground(AEBasePanel panel, int localX, int localY) {
-        // Tooltip rendering is handled by AEBasePanel.drawTooltip(ITooltip, ...) via the ITooltip interface.
+        // Tooltip rendering is handled by AEBasePanel.drawTooltip(IMUITooltip, ...) via the IMUITooltip interface.
     }
 
     // ========== Input events ==========
@@ -609,7 +607,7 @@ public class MUIButtonWidget implements IMUIWidget, ITooltip {
         return false;
     }
 
-    // ========== ITooltip implementation ==========
+    // ========== IMUITooltip implementation ==========
 
     @Override
     public String getMessage() {

@@ -69,7 +69,7 @@ public final class ConversionMonitorHandlerRegistry {
      */
     @Nullable
     public static IConversionMonitorHandler getHandler(@Nonnull IAEStack<?> stack) {
-        return REGISTRY.get(AEKeyType.fromLegacyType(stack.getStackTypeBase()));
+        return REGISTRY.get(stack.getAEKeyType());
     }
 
     /**

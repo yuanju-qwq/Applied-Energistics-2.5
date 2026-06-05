@@ -25,7 +25,6 @@ import java.util.function.IntPredicate;
 
 import javax.annotation.Nullable;
 
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -430,7 +429,7 @@ public class DynamicListModule implements IMUIWidget {
         if (!host.hasPower()) {
             GlStateManager.disableDepth();
             GlStateManager.colorMask(true, true, true, false);
-            Gui.drawRect(gridScreenX, gridScreenY,
+            AEBasePanel.drawSolidRect(gridScreenX, gridScreenY,
                     gridScreenX + gridWidth, gridScreenY + gridHeight,
                     DISABLED_OVERLAY_COLOR);
             GlStateManager.colorMask(true, true, true, true);
@@ -481,7 +480,7 @@ public class DynamicListModule implements IMUIWidget {
 
                 GlStateManager.disableDepth();
                 GlStateManager.colorMask(true, true, true, false);
-                Gui.drawRect(x, y, x + this.slotSize, y + this.slotSize, MATCH_HIGHLIGHT_COLOR);
+                AEBasePanel.drawSolidRect(x, y, x + this.slotSize, y + this.slotSize, MATCH_HIGHLIGHT_COLOR);
                 GlStateManager.colorMask(true, true, true, true);
                 GlStateManager.enableDepth();
             }

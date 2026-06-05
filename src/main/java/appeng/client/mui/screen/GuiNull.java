@@ -16,9 +16,21 @@
  * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
  */
 
-package appeng.client.gui.widgets;
+package appeng.client.mui.screen;
 
-public interface IScrollSource {
+import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.inventory.Container;
 
-    int getCurrentScroll();
+/**
+ * 空 GUI，用于错误回退场景（宿主解析失败时显示空白界面）。
+ */
+public class GuiNull extends GuiContainer {
+
+    public GuiNull(final Container container) {
+        super(container);
+    }
+
+    @Override
+    protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
+    }
 }

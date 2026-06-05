@@ -44,9 +44,9 @@ import appeng.api.networking.storage.IStackWatcher;
 import appeng.api.networking.storage.IStackWatcherHost;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.client.render.TesrRenderHelper;
 import appeng.api.parts.ConversionMonitorHandlerRegistry;
 import appeng.api.parts.IConversionMonitorHandler;
@@ -148,9 +148,9 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
             final ItemStack eq = player.getHeldItem(hand);
 
             // Try each registered handler to resolve the held item into a configured stack
-            IAEStack<?> resolved = null;
+            GenericStack resolved = null;
             if (!eq.isEmpty()) {
-                for (IConversionMonitorHandler<?> handler : ConversionMonitorHandlerRegistry.getAllHandlers()) {
+                for (IConversionMonitorHandler handler : ConversionMonitorHandlerRegistry.getAllHandlers()) {
                     resolved = handler.resolveConfiguredStack(eq);
                     if (resolved != null) {
                         break;
@@ -158,7 +158,7 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
                 }
             }
 
-            this.configured = resolved;
+            this.configured = resolved != null ? resolved.toIAEStack() : null;
 
             this.configureWatchers();
             this.getHost().markForSave();
@@ -203,12 +203,11 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
         try {
             if (this.configured != null) {
                 if (this.myWatcher != null) {
-                    this.myWatcher.add(this.configured);
+                    this.myWatcher.add(this.configured.toAEKey());
                 }
 
-                final IAEStackType<?> stackType = this.configured.getStackTypeBase();
                 this.updateReportingValue(
-                        this.getProxy().getStorage().getInventory(stackType));
+                        this.getProxy().getStorage().getInventory(this.configured.getAEKeyType()));
             }
         } catch (final GridAccessException e) {
             // >.>
@@ -288,10 +287,10 @@ public abstract class AbstractPartMonitor extends AbstractPartDisplay
     }
 
     @Override
-    public void onStackChange(IItemList<?> o, IAEStack<?> fullStack, IAEStack<?> diffStack, IActionSource src,
-            IAEStackType<?> type) {
+    public void onStackChange(KeyCounter fullStack, KeyCounter diffStack, IActionSource src) {
         if (this.configured != null && fullStack != null) {
-            this.configured.setStackSize(fullStack.getStackSize());
+            long amount = fullStack.get(this.configured.toAEKey());
+            this.configured.setStackSize(amount);
         } else if (this.configured != null) {
             this.configured.setStackSize(0);
         }

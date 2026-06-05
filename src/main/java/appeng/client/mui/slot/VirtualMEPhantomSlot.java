@@ -16,7 +16,7 @@
  * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
  */
 
-package appeng.client.gui.slots;
+package appeng.client.mui.slot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +27,7 @@ import net.minecraft.item.ItemStack;
 
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStack;
@@ -80,16 +81,19 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
         this.inventory = inventory;
         this.showAmount = false;
         this.acceptType = (slot, legacyType, mouseButton) -> {
-            AEKeyType keyType = AEKeyType.fromLegacyType(legacyType);
+            AEKeyType keyType = AEKeyType.fromId(legacyType.getId());
             return keyType != null && acceptType.test(slot, keyType, mouseButton);
         };
     }
 
     @Nullable
     @Override
-    public IAEStack<?> getAEStack() {
+    public RepoEntry getRepoEntry() {
         GenericStack gs = this.inventory.getGenericStack(this.getSlotIndex());
-        return gs != null ? gs.toIAEStack() : null;
+        if (gs != null) {
+            return new RepoEntry(gs.what(), gs.amount(), false);
+        }
+        return null;
     }
 
     public StorageName getStorageName() {

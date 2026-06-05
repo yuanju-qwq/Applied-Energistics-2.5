@@ -20,15 +20,13 @@ package appeng.client.mui.screen;
 
 import java.io.IOException;
 
-import net.minecraft.client.gui.GuiButton;
-
 import appeng.api.config.RedstoneMode;
 import appeng.api.config.Settings;
 import appeng.api.stacks.AEKeyType;
-import appeng.client.gui.slots.VirtualMEPhantomSlot;
-import appeng.client.gui.widgets.GuiNumberBox;
+import appeng.client.mui.slot.VirtualMEPhantomSlot;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUINumberFieldWidget;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
@@ -48,17 +46,17 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
     private final ContainerFluidLevelEmitter container;
 
     // ========== Number input field ==========
-    private GuiNumberBox level;
+    private MUINumberFieldWidget level;
 
     // ========== +/- increment buttons ==========
-    private GuiButton plus1;
-    private GuiButton plus10;
-    private GuiButton plus100;
-    private GuiButton plus1000;
-    private GuiButton minus1;
-    private GuiButton minus10;
-    private GuiButton minus100;
-    private GuiButton minus1000;
+    private MUIButtonWidget plus1;
+    private MUIButtonWidget plus10;
+    private MUIButtonWidget plus100;
+    private MUIButtonWidget plus1000;
+    private MUIButtonWidget minus1;
+    private MUIButtonWidget minus10;
+    private MUIButtonWidget minus100;
+    private MUIButtonWidget minus1000;
 
     public MUIFluidLevelEmitterPanel(final ContainerFluidLevelEmitter container) {
         super(container);
@@ -71,14 +69,16 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
     public void initGui() {
         super.initGui();
 
-        this.level = new GuiNumberBox(this.fontRenderer, this.guiLeft + 24, this.guiTop + 43, 79,
+        this.level = new MUINumberFieldWidget(this.fontRenderer, 24, 43, 79,
                 this.fontRenderer.FONT_HEIGHT, Long.class);
+        this.level.applyValidator();
         this.level.setEnableBackgroundDrawing(false);
         this.level.setMaxStringLength(16);
         this.level.setTextColor(AEMUITheme.COLOR_TEXT_FIELD);
         this.level.setVisible(true);
         this.level.setFocused(true);
-        this.container.setTextField(this.level);
+        this.addWidget(this.level.getDelegate());
+        this.container.setTextField(this.level.getDelegate().getTextField());
 
         // VirtualMEPhantomSlot for fluid config (fluid-only)
         final int y = 40;
@@ -104,15 +104,29 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
         final int c = AEConfig.instance().levelByMillyBuckets(2);
         final int d = AEConfig.instance().levelByMillyBuckets(3);
 
-        this.buttonList.add(this.plus1 = new GuiButton(0, this.guiLeft + 20, this.guiTop + 17, 22, 20, "+" + a));
-        this.buttonList.add(this.plus10 = new GuiButton(0, this.guiLeft + 48, this.guiTop + 17, 28, 20, "+" + b));
-        this.buttonList.add(this.plus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 17, 32, 20, "+" + c));
-        this.buttonList.add(this.plus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 17, 38, 20, "+" + d));
+        this.plus1 = makeQtyButton(20, 17, 22, 20, "+" + a, a);
+        this.plus10 = makeQtyButton(48, 17, 28, 20, "+" + b, b);
+        this.plus100 = makeQtyButton(82, 17, 32, 20, "+" + c, c);
+        this.plus1000 = makeQtyButton(120, 17, 38, 20, "+" + d, d);
 
-        this.buttonList.add(this.minus1 = new GuiButton(0, this.guiLeft + 20, this.guiTop + 59, 22, 20, "-" + a));
-        this.buttonList.add(this.minus10 = new GuiButton(0, this.guiLeft + 48, this.guiTop + 59, 28, 20, "-" + b));
-        this.buttonList.add(this.minus100 = new GuiButton(0, this.guiLeft + 82, this.guiTop + 59, 32, 20, "-" + c));
-        this.buttonList.add(this.minus1000 = new GuiButton(0, this.guiLeft + 120, this.guiTop + 59, 38, 20, "-" + d));
+        this.minus1 = makeQtyButton(20, 59, 22, 20, "-" + a, -a);
+        this.minus10 = makeQtyButton(48, 59, 28, 20, "-" + b, -b);
+        this.minus100 = makeQtyButton(82, 59, 32, 20, "-" + c, -c);
+        this.minus1000 = makeQtyButton(120, 59, 38, 20, "-" + d, -d);
+    }
+
+    /**
+     * Helper to build a +/- quantity adjustment button. The button is
+     * registered as a MUI widget with an onClick callback that calls
+     * {@link #addQty(long)} directly, eliminating the need to override
+     * {@code actionPerformed()}.
+     */
+    private MUIButtonWidget makeQtyButton(int x, int y, int width, int height, String text, long delta) {
+        MUIButtonWidget btn = new MUIButtonWidget(x, y, width, height);
+        btn.setText(text);
+        btn.setOnClick(b -> this.addQty(delta));
+        this.addWidget(btn);
+        return btn;
     }
 
     // ========== Rendering ==========
@@ -120,7 +134,7 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
     @Override
     protected void drawBG(int offsetX, int offsetY, int mouseX, int mouseY) {
         super.drawBG(offsetX, offsetY, mouseX, mouseY);
-        this.level.drawTextBox();
+        this.level.getDelegate().drawTextBox();
     }
 
     @Override
@@ -152,49 +166,39 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
     }
 
     // ========== Button events ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        final boolean isPlus = btn == this.plus1 || btn == this.plus10 || btn == this.plus100 || btn == this.plus1000;
-        final boolean isMinus = btn == this.minus1 || btn == this.minus10 || btn == this.minus100
-                || btn == this.minus1000;
-
-        if (isPlus || isMinus) {
-            this.addQty(this.getQty(btn));
-        }
-    }
+    //
+    // The +/- quantity buttons now use MUIButtonWidget setOnClick callbacks
+    // registered in addButtons(); no actionPerformed override is needed.
 
     // ========== Number input handling ==========
 
     private void addQty(final long i) {
         try {
-            String Out = this.level.getText();
+            String out = this.level.getText();
 
-            boolean Fixed = false;
-            while (Out.startsWith("0") && Out.length() > 1) {
-                Out = Out.substring(1);
-                Fixed = true;
+            boolean fixed = false;
+            while (out.startsWith("0") && out.length() > 1) {
+                out = out.substring(1);
+                fixed = true;
             }
 
-            if (Fixed) {
-                this.level.setText(Out);
+            if (fixed) {
+                this.level.setText(out);
             }
 
-            if (Out.isEmpty()) {
-                Out = "0";
+            if (out.isEmpty()) {
+                out = "0";
             }
 
-            long result = Long.parseLong(Out);
+            long result = Long.parseLong(out);
             result += i;
             if (result < 0) {
                 result = 0;
             }
 
-            this.level.setText(Out = Long.toString(result));
+            this.level.setText(out = Long.toString(result));
 
-            NetworkHandler.instance().sendToServer(new PacketValueConfig("FluidLevelEmitter.Value", Out));
+            NetworkHandler.instance().sendToServer(new PacketValueConfig("FluidLevelEmitter.Value", out));
         } catch (final NumberFormatException e) {
             this.level.setText("0");
         } catch (final IOException e) {
@@ -206,25 +210,25 @@ public class MUIFluidLevelEmitterPanel extends MUIUpgradeablePanel {
     protected void keyTyped(final char character, final int key) throws IOException {
         if (!this.checkHotbarKeys(key)) {
             if ((key == 211 || key == 205 || key == 203 || key == 14 || Character.isDigit(character))
-                    && this.level.textboxKeyTyped(character, key)) {
+                    && this.level.getDelegate().textboxKeyTyped(character, key)) {
                 try {
-                    String Out = this.level.getText();
+                    String out = this.level.getText();
 
-                    boolean Fixed = false;
-                    while (Out.startsWith("0") && Out.length() > 1) {
-                        Out = Out.substring(1);
-                        Fixed = true;
+                    boolean fixed = false;
+                    while (out.startsWith("0") && out.length() > 1) {
+                        out = out.substring(1);
+                        fixed = true;
                     }
 
-                    if (Fixed) {
-                        this.level.setText(Out);
+                    if (fixed) {
+                        this.level.setText(out);
                     }
 
-                    if (Out.isEmpty()) {
-                        Out = "0";
+                    if (out.isEmpty()) {
+                        out = "0";
                     }
 
-                    NetworkHandler.instance().sendToServer(new PacketValueConfig("FluidLevelEmitter.Value", Out));
+                    NetworkHandler.instance().sendToServer(new PacketValueConfig("FluidLevelEmitter.Value", out));
                 } catch (final IOException e) {
                     AELog.debug(e);
                 }

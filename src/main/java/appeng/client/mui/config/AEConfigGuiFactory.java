@@ -16,15 +16,13 @@
  * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
  */
 
-package appeng.client.gui.config;
+package appeng.client.mui.config;
 
 import java.util.Set;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraftforge.fml.client.IModGuiFactory;
-
-import appeng.client.mui.config.MUIConfigGui;
 
 public class AEConfigGuiFactory implements IModGuiFactory {
 
@@ -59,7 +57,7 @@ public class AEConfigGuiFactory implements IModGuiFactory {
      */
     @Override
     public GuiScreen createConfigGui(GuiScreen parentScreen) {
-        return new MUIConfigGui(parentScreen);
+        return new appeng.client.mui.config.MUIConfigGui(parentScreen);
     }
 
     @Override

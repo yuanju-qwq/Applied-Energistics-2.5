@@ -1,4 +1,4 @@
-package appeng.client.gui.toasts;
+package appeng.client.mui.toast;
 
 import org.jetbrains.annotations.NotNull;
 

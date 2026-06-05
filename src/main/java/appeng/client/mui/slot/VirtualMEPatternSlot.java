@@ -16,7 +16,7 @@
  * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
  */
 
-package appeng.client.gui.slots;
+package appeng.client.mui.slot;
 
 import javax.annotation.Nullable;
 

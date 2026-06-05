@@ -48,6 +48,7 @@ import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageMonitorable;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
@@ -202,7 +203,7 @@ public class PartMEInterface extends PartBasicState implements IGridTickable, IS
     // ========== IStorageMonitorable ==========
 
     @Override
-    public IMEMonitor getInventory(IAEStackType type) {
+    public IMEMonitor getInventory(AEKeyType type) {
         return this.logic.getInventory(type);
     }
 

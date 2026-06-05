@@ -28,12 +28,12 @@ import net.minecraftforge.fluids.FluidStack;
 
 import appeng.api.config.*;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.fluids.util.AEFluidStackType;
 import appeng.fluids.util.IAEFluidTank;
 import appeng.me.GridAccessException;
@@ -68,38 +68,33 @@ public final class FluidInterfaceSlotHandler implements IInterfaceSlotHandler {
 
     @Nullable
     @Override
-    public IAEStack<?> computePlan(int slot, @Nonnull IAEFluidStack desired,
+    public GenericStack computePlan(int slot, @Nonnull GenericStack desired,
             @Nonnull InterfaceSlotContext context) {
         final IAEFluidTank tanks = context.getFluidTanks();
         final IAEFluidStack stored = tanks.getFluidInSlot(slot);
         final long tankSize = getSlotCapacity(context.getInstalledUpgrades(Upgrades.CAPACITY));
 
         if (stored == null || stored.getStackSize() == 0) {
-            IAEFluidStack work = desired.copy();
-            work.setStackSize(tankSize);
-            return work;
-        } else if (desired.equals(stored)) {
+            return new GenericStack(desired.what(), tankSize);
+        } else if (desired.what().equals(stored.toAEKey())) {
             if (stored.getStackSize() == tankSize) {
                 return null;
             } else {
-                IAEFluidStack work = desired.copy();
-                work.setStackSize(tankSize - stored.getStackSize());
-                return work;
+                return new GenericStack(desired.what(), tankSize - stored.getStackSize());
             }
         } else {
             // Type mismatch: return old fluid first (negative = push back to network)
-            final IAEFluidStack work = stored.copy();
-            work.setStackSize(-work.getStackSize());
-            return work;
+            return new GenericStack(stored.toAEKey(), -stored.getStackSize());
         }
     }
 
     // ========== Plan Execution ==========
 
     @Override
-    public boolean executePlan(int slot, @Nonnull IAEFluidStack plan,
+    public boolean executePlan(int slot, @Nonnull GenericStack plan,
             @Nonnull InterfaceSlotContext context) {
         final IAEFluidTank tanks = context.getFluidTanks();
+        final AEFluidKey fluidKey = (AEFluidKey) plan.what();
 
         boolean changed = false;
         try {
@@ -107,40 +102,38 @@ public final class FluidInterfaceSlotHandler implements IInterfaceSlotHandler {
             final appeng.api.networking.energy.IEnergySource src = context.getProxy().getEnergy();
 
             // --- Positive: pull fluid from network into tank ---
-            if (plan.getStackSize() > 0) {
-                if (tanks.fill(slot, plan.getFluidStack(), false) != plan.getStackSize()) {
+            if (plan.amount() > 0) {
+                if (tanks.fill(slot, fluidKey.toStack((int) plan.amount()), false) != plan.amount()) {
                     changed = true;
                 } else if (context.getNetworkInventory(AEKeyType.fluids())
-                        .getKeyCounter().get(plan.toAEKey()) > 0) {
-                    final IAEFluidStack acquired = StorageHelper.poweredExtraction(
+                        .getKeyCounter().get(plan.what()) > 0) {
+                    final GenericStack acquired = StorageHelper.poweredExtraction(
                             src, dest, plan, context.getRequestSource());
                     if (acquired != null) {
                         changed = true;
-                        final int filled = tanks.fill(slot, acquired.getFluidStack(), true);
-                        if (filled != acquired.getStackSize()) {
+                        final int filled = tanks.fill(slot, ((AEFluidKey) acquired.what()).toStack((int) acquired.amount()), true);
+                        if (filled != acquired.amount()) {
                             throw new IllegalStateException("bad attempt at managing tanks. ( fill )");
                         }
                     }
                 }
             }
             // --- Negative: push fluid from tank back to network ---
-            else if (plan.getStackSize() < 0) {
-                IAEFluidStack toStore = plan.copy();
-                toStore.setStackSize(-toStore.getStackSize());
+            else if (plan.amount() < 0) {
+                GenericStack toStore = new GenericStack(plan.what(), -plan.amount());
 
-                final FluidStack canExtract = tanks.drain(slot, toStore.getFluidStack(), false);
-                if (canExtract == null || canExtract.amount != toStore.getStackSize()) {
+                final FluidStack canExtract = tanks.drain(slot, fluidKey.toStack((int) toStore.amount()), false);
+                if (canExtract == null || canExtract.amount != toStore.amount()) {
                     changed = true;
                 } else {
-                    IAEFluidStack notStored = StorageHelper.poweredInsert(
+                    GenericStack notStored = StorageHelper.poweredInsert(
                             src, dest, toStore, context.getRequestSource());
-                    toStore.setStackSize(
-                            toStore.getStackSize() - (notStored == null ? 0 : notStored.getStackSize()));
+                    long remaining = notStored == null ? 0 : notStored.amount();
 
-                    if (toStore.getStackSize() > 0) {
+                    if (toStore.amount() - remaining > 0) {
                         changed = true;
-                        final FluidStack removed = tanks.drain(slot, toStore.getFluidStack(), true);
-                        if (removed == null || toStore.getStackSize() != removed.amount) {
+                        final FluidStack removed = tanks.drain(slot, fluidKey.toStack((int) (toStore.amount() - remaining)), true);
+                        if (removed == null || (toStore.amount() - remaining) != removed.amount) {
                             throw new IllegalStateException("bad attempt at managing tanks. ( drain )");
                         }
                     }
@@ -184,17 +177,6 @@ public final class FluidInterfaceSlotHandler implements IInterfaceSlotHandler {
             this.context = context;
         }
 
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        @Override
-        @Deprecated
-        public IAEFluidStack injectItems(final IAEFluidStack input, final Actionable type, final IActionSource src) {
-            final Optional<Comparable> ctx = src.context(Comparable.class);
-            if (ctx.isPresent()) {
-                return input;
-            }
-            return super.injectItems(input, type, src);
-        }
-
         @Override
         public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
             if (input == null) return null;
@@ -204,20 +186,6 @@ public final class FluidInterfaceSlotHandler implements IInterfaceSlotHandler {
                 return input;
             }
             return super.injectItems(input, type, src);
-        }
-
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        @Override
-        @Deprecated
-        public IAEFluidStack extractItems(final IAEFluidStack request, final Actionable type,
-                final IActionSource src) {
-            final Optional<Comparable> ctx = src.context(Comparable.class);
-            final boolean hasLowerOrEqualPriority = ctx
-                    .map(c -> c.compareTo(context.getPriority()) <= 0).orElse(false);
-            if (hasLowerOrEqualPriority) {
-                return null;
-            }
-            return super.extractItems(request, type, src);
         }
 
         @Override

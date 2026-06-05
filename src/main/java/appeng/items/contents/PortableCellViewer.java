@@ -31,7 +31,6 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.util.IConfigManager;
 import appeng.container.interfaces.IInventorySlotAware;
@@ -76,23 +75,6 @@ public class PortableCellViewer extends MEMonitorHandler implements IPortableCel
     }
 
     @Override
-    @Deprecated
-    public IAEItemStack injectItems(IAEItemStack input, Actionable mode, IActionSource src) {
-        final long size = input.getStackSize();
-
-        final IAEItemStack injected = super.injectItems(input, mode, src);
-
-        if (mode == Actionable.MODULATE && (injected == null || injected.getStackSize() != size)) {
-            this.notifyListenersOfChange(
-                    Collections.singletonList(input.copy()
-                            .setStackSize(input.getStackSize() - (injected == null ? 0 : injected.getStackSize()))),
-                    null);
-        }
-
-        return injected;
-    }
-
-    @Override
     public GenericStack injectItems(GenericStack input, Actionable mode, IActionSource src) {
         if (input == null) return null;
         final long size = input.amount();
@@ -100,28 +82,12 @@ public class PortableCellViewer extends MEMonitorHandler implements IPortableCel
         final GenericStack injected = super.injectItems(input, mode, src);
 
         if (mode == Actionable.MODULATE && (injected == null || injected.amount() != size)) {
-            IAEItemStack aeInput = (IAEItemStack) input.toIAEStack();
-            if (aeInput != null) {
-                long delta = size - (injected == null ? 0 : injected.amount());
-                this.notifyListenersOfChange(
-                        Collections.singletonList(aeInput.copy().setStackSize(delta)), null);
-            }
+            long delta = size - (injected == null ? 0 : injected.amount());
+            this.notifyListenersOfChange(
+                    Collections.singletonList(new GenericStack(input.what(), delta)), null);
         }
 
         return injected;
-    }
-
-    @Override
-    @Deprecated
-    public IAEItemStack extractItems(IAEItemStack request, Actionable mode, IActionSource src) {
-        final IAEItemStack extractable = super.extractItems(request, mode, src);
-
-        if (mode == Actionable.MODULATE && extractable != null) {
-            this.notifyListenersOfChange(
-                    Collections.singletonList(request.copy().setStackSize(-extractable.getStackSize())), null);
-        }
-
-        return extractable;
     }
 
     @Override
@@ -129,11 +95,8 @@ public class PortableCellViewer extends MEMonitorHandler implements IPortableCel
         final GenericStack extractable = super.extractItems(request, mode, src);
 
         if (mode == Actionable.MODULATE && extractable != null) {
-            IAEItemStack aeRequest = (IAEItemStack) request.toIAEStack();
-            if (aeRequest != null) {
-                this.notifyListenersOfChange(
-                        Collections.singletonList(aeRequest.copy().setStackSize(-extractable.amount())), null);
-            }
+            this.notifyListenersOfChange(
+                    Collections.singletonList(new GenericStack(request.what(), -extractable.amount())), null);
         }
 
         return extractable;

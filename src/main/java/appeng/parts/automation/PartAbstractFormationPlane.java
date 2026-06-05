@@ -19,8 +19,6 @@ import appeng.api.parts.IPartHost;
 import appeng.api.storage.ICellContainer;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IItemList;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;

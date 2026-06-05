@@ -35,17 +35,14 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IItemList;
 import appeng.util.InventoryAdaptor;
 import appeng.util.inv.ItemSlot;
-import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class MEMonitorIInventory implements IMEMonitor, ITickingMonitor {
 
     private final InventoryAdaptor adaptor;
-    private IItemList<IAEItemStack> cache = new ItemList();
+    private KeyCounter cache = new KeyCounter();
 
     private final HashMap<IMEMonitorHandlerReceiver, Object> listeners = new HashMap<>();
     private IActionSource mySource;
@@ -66,73 +63,32 @@ public class MEMonitorIInventory implements IMEMonitor, ITickingMonitor {
     }
 
     @Override
-    @Deprecated
-    public IAEItemStack injectItems(final IAEItemStack input, final Actionable type, final IActionSource src) {
-        ItemStack out = ItemStack.EMPTY;
-
-        if (type == Actionable.SIMULATE) {
-            out = this.adaptor.simulateAdd(input.createItemStack());
-        } else {
-            out = this.adaptor.addItems(input.createItemStack());
-        }
-
-        if (out.isEmpty()) {
-            return null;
-        }
-
-        // better then doing construction from scratch :3
-        final IAEItemStack o = input.copy();
-        o.setStackSize(out.getCount());
-
-        if (type == Actionable.MODULATE) {
-            IAEItemStack added = o.copy();
-            this.cache.add(added);
-            this.postDifference(Collections.singletonList(GenericStack.fromIAEStack(added)));
-            this.onTick();
-        }
-
-        return o;
-    }
-
-    @Override
-    @Deprecated
-    public IAEItemStack extractItems(final IAEItemStack request, final Actionable type, final IActionSource src) {
-        ItemStack out = ItemStack.EMPTY;
-
-        if (type == Actionable.SIMULATE) {
-            out = this.adaptor.simulateRemove((int) request.getStackSize(), request.getDefinition(), null);
-        } else {
-            out = this.adaptor.removeItems((int) request.getStackSize(), request.getDefinition(), null);
-        }
-
-        if (out.isEmpty()) {
-            return null;
-        }
-
-        // better then doing construction from scratch :3
-        final IAEItemStack o = request.copy();
-        o.setStackSize(out.getCount());
-
-        if (type == Actionable.MODULATE) {
-            IAEItemStack cachedStack = this.cache.findPrecise(request);
-            if (cachedStack != null) {
-                cachedStack.decStackSize(o.getStackSize());
-                this.postDifference(Collections.singletonList(GenericStack.fromIAEStack(o.copy().setStackSize(-o.getStackSize()))));
-            }
-            this.onTick();
-        }
-
-        return o;
-    }
-
-    @Override
     public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
         if (input == null || !(input.what() instanceof AEItemKey itemKey)) {
             return input;
         }
-        IAEItemStack aeInput = AEItemStack.fromItemStack(itemKey.toStack((int) input.amount()));
-        IAEItemStack result = this.injectItems(aeInput, type, src);
-        return GenericStack.fromIAEStack(result);
+        long amount = input.amount();
+        ItemStack stack = itemKey.toStack((int) amount);
+        ItemStack out;
+
+        if (type == Actionable.SIMULATE) {
+            out = this.adaptor.simulateAdd(stack);
+        } else {
+            out = this.adaptor.addItems(stack);
+        }
+
+        if (out.isEmpty()) {
+            return null;
+        }
+
+        if (type == Actionable.MODULATE) {
+            long added = amount - out.getCount();
+            this.cache.add(itemKey, added);
+            this.postDifference(Collections.singletonList(new GenericStack(itemKey, added)));
+            this.onTick();
+        }
+
+        return new GenericStack(itemKey, out.getCount());
     }
 
     @Override
@@ -140,18 +96,34 @@ public class MEMonitorIInventory implements IMEMonitor, ITickingMonitor {
         if (request == null || !(request.what() instanceof AEItemKey itemKey)) {
             return null;
         }
-        IAEItemStack aeRequest = AEItemStack.fromItemStack(itemKey.toStack((int) request.amount()));
-        IAEItemStack result = this.extractItems(aeRequest, mode, src);
-        return GenericStack.fromIAEStack(result);
+        long amount = request.amount();
+        ItemStack out;
+
+        if (mode == Actionable.SIMULATE) {
+            out = this.adaptor.simulateRemove((int) amount, itemKey.toStack(), null);
+        } else {
+            out = this.adaptor.removeItems((int) amount, itemKey.toStack(), null);
+        }
+
+        if (out.isEmpty()) {
+            return null;
+        }
+
+        if (mode == Actionable.MODULATE) {
+            long cachedAmount = this.cache.get(itemKey);
+            if (cachedAmount > 0) {
+                this.cache.add(itemKey, -out.getCount());
+                this.postDifference(Collections.singletonList(new GenericStack(itemKey, -out.getCount())));
+            }
+            this.onTick();
+        }
+
+        return new GenericStack(itemKey, out.getCount());
     }
 
     @Override
     public KeyCounter getAvailableKeyCounter() {
-        KeyCounter out = new KeyCounter();
-        for (IAEItemStack is : cache) {
-            out.add(is.toAEKey(), is.getStackSize());
-        }
-        return out;
+        return this.cache;
     }
 
     @Override
@@ -168,42 +140,39 @@ public class MEMonitorIInventory implements IMEMonitor, ITickingMonitor {
     public TickRateModulation onTick() {
         boolean changed = false;
 
-        final List<IAEItemStack> changes = new ArrayList<>();
+        final List<GenericStack> changes = new ArrayList<>();
 
-        IItemList<IAEItemStack> currentlyOnStorage = new ItemList();
+        KeyCounter currentlyOnStorage = new KeyCounter();
 
         for (final ItemSlot is : adaptor) {
             if (this.mode == StorageFilter.EXTRACTABLE_ONLY && !is.isExtractable()) {
                 continue;
             }
-            currentlyOnStorage.add(is.getAEItemStack());
-        }
-
-        for (final IAEItemStack is : cache) {
-            is.setStackSize(-is.getStackSize());
-        }
-
-        for (final IAEItemStack is : currentlyOnStorage) {
-            cache.add(is);
-        }
-
-        for (final IAEItemStack is : cache) {
-            if (is.getStackSize() != 0) {
-                changes.add(is);
+            ItemStack itemStack = is.getItemStack();
+            if (!itemStack.isEmpty()) {
+                currentlyOnStorage.add(AEItemKey.of(itemStack), itemStack.getCount());
             }
         }
 
-        cache = currentlyOnStorage;
+        for (Object2LongMap.Entry<AEKey> entry : this.cache) {
+            AEKey key = entry.getKey();
+            long oldAmount = entry.getLongValue();
+            long newAmount = currentlyOnStorage.get(key);
+            if (oldAmount != newAmount) {
+                changes.add(new GenericStack(key, newAmount - oldAmount));
+            }
+        }
+        for (Object2LongMap.Entry<AEKey> entry : currentlyOnStorage) {
+            AEKey key = entry.getKey();
+            if (this.cache.get(key) == 0) {
+                changes.add(new GenericStack(key, entry.getLongValue()));
+            }
+        }
+
+        this.cache = currentlyOnStorage;
 
         if (!changes.isEmpty()) {
-            final List<GenericStack> genericChanges = new ArrayList<>();
-            for (IAEItemStack is : changes) {
-                GenericStack gs = GenericStack.fromIAEStack(is);
-                if (gs != null) {
-                    genericChanges.add(gs);
-                }
-            }
-            this.postDifference(genericChanges);
+            this.postDifference(changes);
             changed = true;
         }
 
@@ -256,18 +225,17 @@ public class MEMonitorIInventory implements IMEMonitor, ITickingMonitor {
         return true;
     }
 
-    @Override
     @Deprecated
-    public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
-        for (IAEItemStack is : cache) {
-            out.addStorage(is);
+    public KeyCounter getAvailableItems(final KeyCounter out) {
+        for (Object2LongMap.Entry<AEKey> entry : cache) {
+            out.add(entry.getKey(), entry.getLongValue());
         }
 
         return out;
     }
 
     @Deprecated
-    public IItemList<IAEItemStack> getStorageList() {
+    public KeyCounter getStorageList() {
         return this.cache;
     }
 

@@ -2,11 +2,6 @@ package appeng.integration.modules.jei;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import com.google.common.base.Stopwatch;
-
-import org.lwjgl.input.Mouse;
 
 import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
@@ -14,27 +9,26 @@ import net.minecraft.util.text.translation.I18n;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.PlayerMainInvWrapper;
 
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+
+import com.google.common.base.Stopwatch;
+
 import mezz.jei.api.gui.ITooltipCallback;
 
 import appeng.api.config.FuzzyMode;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IItemList;
-import appeng.container.AEBaseContainer;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.KeyCounter;
 import appeng.container.implementations.ContainerMEMonitorable;
-import appeng.core.sync.network.NetworkHandler;
-import appeng.core.sync.packets.PacketInventoryAction;
 import appeng.helpers.IContainerCraftingPacket;
-import appeng.helpers.InventoryAction;
 import appeng.util.Platform;
-import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
 
 public class CraftableCallBack implements ITooltipCallback<ItemStack> {
-    private final IItemList<IAEItemStack> list;
+    private final KeyCounter list;
     private final Container container;
     private final Stopwatch lastClicked = Stopwatch.createStarted();
 
-    public CraftableCallBack(Container container, IItemList<IAEItemStack> ir) {
+    public CraftableCallBack(Container container, KeyCounter ir) {
         this.list = ir;
         this.container = container;
     }
@@ -45,16 +39,17 @@ public class CraftableCallBack implements ITooltipCallback<ItemStack> {
             return;
         if (list != null) {
 
-            IItemList<IAEItemStack> available = mergeInventories(list, (ContainerMEMonitorable) container);
+            KeyCounter available = mergeInventories(list, (ContainerMEMonitorable) container);
 
-            IAEItemStack search = AEItemStack.fromItemStack(ingredient);
+            AEItemKey search = AEItemKey.of(ingredient);
+            if (search == null) return;
             if (ingredient.getItem().isDamageable() || Platform.isGTDamageableItem(ingredient.getItem())) {
-                Collection<IAEItemStack> fuzzy = available.findFuzzy(search, FuzzyMode.IGNORE_ALL);
-                if (fuzzy.size() > 0) {
-                    for (IAEItemStack itemStack : fuzzy) {
-                        if (itemStack.getStackSize() > 0) {
+                Collection<Object2LongMap.Entry<AEKey>> fuzzy = available.findFuzzy(search, FuzzyMode.IGNORE_ALL);
+                if (!fuzzy.isEmpty()) {
+                    for (Object2LongMap.Entry<AEKey> entry : fuzzy) {
+                        if (entry.getLongValue() > 0) {
                             if (Platform.isGTDamageableItem(ingredient.getItem())) {
-                                if (!(ingredient.getMetadata() == itemStack.getDefinition().getMetadata())) {
+                                if (!(ingredient.getMetadata() == ((AEItemKey) entry.getKey()).getItemDamage())) {
                                     continue;
                                 }
                             }
@@ -64,19 +59,6 @@ public class CraftableCallBack implements ITooltipCallback<ItemStack> {
                             String line = "§c[" + I18n.translateToLocalFormatted("gui.appliedenergistics2.Missing")
                                     + "]";
                             tooltip.add(line);
-                            if (itemStack.isCraftable()) {
-                                line = "§1["
-                                        + I18n.translateToLocalFormatted("gui.tooltips.appliedenergistics2.Craftable")
-                                        + "]";
-                                tooltip.add(line);
-                                if (Mouse.isButtonDown(2) && this.lastClicked.elapsed(TimeUnit.MILLISECONDS) > 200) {
-                                    this.lastClicked.reset().start();
-                                    ((AEBaseContainer) container).setTargetStack(itemStack);
-                                    final PacketInventoryAction p = new PacketInventoryAction(
-                                            InventoryAction.AUTO_CRAFT, container.getInventory().size(), 0);
-                                    NetworkHandler.instance().sendToServer(p);
-                                }
-                            }
                         }
                     }
                 } else {
@@ -84,25 +66,8 @@ public class CraftableCallBack implements ITooltipCallback<ItemStack> {
                     tooltip.add(line);
                 }
             } else {
-                IAEItemStack found = available.findPrecise(search);
-                if (found != null) {
-                    if (found.getStackSize() == 0) {
-                        String line = "§c[" + I18n.translateToLocalFormatted("gui.appliedenergistics2.Missing") + "]";
-                        tooltip.add(line);
-                    }
-                    if (found.isCraftable()) {
-                        String line = "§1["
-                                + I18n.translateToLocalFormatted("gui.tooltips.appliedenergistics2.Craftable") + "]";
-                        tooltip.add(line);
-                        if (Mouse.isButtonDown(2) && this.lastClicked.elapsed(TimeUnit.MILLISECONDS) > 200) {
-                            this.lastClicked.reset().start();
-                            ((AEBaseContainer) container).setTargetStack(found);
-                            final PacketInventoryAction p = new PacketInventoryAction(InventoryAction.AUTO_CRAFT,
-                                    container.getInventory().size(), 0);
-                            NetworkHandler.instance().sendToServer(p);
-                        }
-                    }
-                } else {
+                long amount = available.get(search);
+                if (amount == 0) {
                     String line = "§c[" + I18n.translateToLocalFormatted("gui.appliedenergistics2.Missing") + "]";
                     tooltip.add(line);
                 }
@@ -110,23 +75,35 @@ public class CraftableCallBack implements ITooltipCallback<ItemStack> {
         }
     }
 
-    IItemList<IAEItemStack> mergeInventories(IItemList<IAEItemStack> repo,
+    KeyCounter mergeInventories(KeyCounter repo,
             ContainerMEMonitorable containerCraftingTerm) {
-        IItemList<IAEItemStack> itemList = new ItemList();
-        for (IAEItemStack i : repo) {
-            itemList.addStorage(i);
+        KeyCounter itemList = new KeyCounter();
+        for (Object2LongMap.Entry<AEKey> entry : repo) {
+            itemList.add(entry.getKey(), entry.getLongValue());
         }
 
         PlayerMainInvWrapper invWrapper = new PlayerMainInvWrapper(containerCraftingTerm.getPlayerInv());
         for (int i = 0; i < invWrapper.getSlots(); i++) {
-            itemList.addStorage(AEItemStack.fromItemStack(invWrapper.getStackInSlot(i)));
+            ItemStack stack = invWrapper.getStackInSlot(i);
+            if (!stack.isEmpty()) {
+                AEItemKey key = AEItemKey.of(stack);
+                if (key != null) {
+                    itemList.add(key, stack.getCount());
+                }
+            }
         }
 
         if (containerCraftingTerm instanceof IContainerCraftingPacket) {
             IItemHandler itemHandler = ((IContainerCraftingPacket) containerCraftingTerm)
                     .getInventoryByName("crafting");
             for (int i = 0; i < itemHandler.getSlots(); i++) {
-                itemList.addStorage(AEItemStack.fromItemStack(itemHandler.getStackInSlot(i)));
+                ItemStack stack = itemHandler.getStackInSlot(i);
+                if (!stack.isEmpty()) {
+                    AEItemKey key = AEItemKey.of(stack);
+                    if (key != null) {
+                        itemList.add(key, stack.getCount());
+                    }
+                }
             }
         }
         return itemList;

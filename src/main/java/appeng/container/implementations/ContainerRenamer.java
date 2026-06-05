@@ -7,7 +7,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.config.SecurityPermissions;
 import appeng.api.parts.IPart;
-import appeng.client.gui.widgets.MEGuiTextField;
+import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.AEBaseContainer;
 import appeng.helpers.ICustomNameObject;
 import appeng.util.Platform;
@@ -16,7 +16,7 @@ public class ContainerRenamer extends AEBaseContainer {
     private final ICustomNameObject namedObject;
 
     @SideOnly(Side.CLIENT)
-    private MEGuiTextField textField;
+    private MUITextFieldWidget textField;
 
     public ContainerRenamer(InventoryPlayer ip, ICustomNameObject obj) {
         super(ip, obj instanceof TileEntity ? (TileEntity) obj : null, obj instanceof IPart ? (IPart) obj : null);
@@ -24,7 +24,7 @@ public class ContainerRenamer extends AEBaseContainer {
     }
 
     @SideOnly(Side.CLIENT)
-    public void setTextField(final MEGuiTextField name) {
+    public void setTextField(final MUITextFieldWidget name) {
         this.textField = name;
         if (getCustomName() != null)
             textField.setText(getCustomName());

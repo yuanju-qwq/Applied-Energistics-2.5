@@ -21,9 +21,9 @@ package appeng.client.mui.screen;
 import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiProgressBar.Direction;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.widgets.MUIProgressWidget;
+import appeng.client.mui.widgets.MUIProgressWidget.Direction;
 import appeng.container.implementations.ContainerInscriber;
 import appeng.container.implementations.ContainerUpgradeable;
 import appeng.core.localization.GuiText;

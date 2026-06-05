@@ -327,8 +327,8 @@ public class MUIInterfaceConfigurationTerminalPanel extends AEBasePanel
     }
 
     @Override
-    public <T extends IMUIWidget> T addModuleWidget(T widget) {
-        return this.addWidget(widget);
+    public void addModuleWidget(IMUIWidget widget) {
+        this.addWidget(widget);
     }
 
     @Override

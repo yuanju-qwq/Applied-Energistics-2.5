@@ -125,9 +125,10 @@ public final class StorageHelper {
                         actuallyInserted -= injectResult.amount();
                     }
                     long leftoverAmount = original - actuallyInserted;
+                    final long inserted = actuallyInserted;
 
                     src.player().ifPresent(player -> {
-                        Stats.ItemsInserted.addToPlayer(player, (int) actuallyInserted);
+                        Stats.ItemsInserted.addToPlayer(player, (int) inserted);
                     });
 
                     return leftoverAmount > 0 ? new GenericStack(input.what(), leftoverAmount) : null;

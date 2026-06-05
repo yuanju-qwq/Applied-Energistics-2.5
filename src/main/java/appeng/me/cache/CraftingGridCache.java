@@ -56,7 +56,6 @@ import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IItemList;
 import appeng.crafting.CraftingLink;
 import appeng.crafting.CraftingLinkNexus;
 import appeng.crafting.CraftingWatcher;
@@ -95,7 +94,7 @@ public class CraftingGridCache
     private final Set<IAEStack<?>> emitableItems = new HashSet<>();
     private final Map<String, CraftingLinkNexus> craftingLinks = new HashMap<>();
     private final Multimap<IAEStack, CraftingWatcher> interests = HashMultimap.create();
-    private final GenericInterestManager<CraftingWatcher> interestManager = new GenericInterestManager<>(
+    private final GenericInterestManager<IAEStack, CraftingWatcher> interestManager = new GenericInterestManager<>(
             this.interests);
     private IStorageGrid storageGrid;
     private IEnergyGrid energyGrid;
@@ -250,7 +249,7 @@ public class CraftingGridCache
 
                 methods.add(details);
 
-                AEKeyType kt = AEKeyType.fromLegacyType(out.getStackType());
+                AEKeyType kt = out.getAEKeyType();
                 if (kt != null) {
                     ensureHandlerForType(kt);
                 }
@@ -262,7 +261,7 @@ public class CraftingGridCache
             this.craftableItems.put(e.getKey(), ImmutableList.copyOf(e.getValue()));
         }
 
-        // 按类型分组 craftables 变更
+        // 按类型分�?craftables 变更
         Map<AEKeyType, List<IAEStack<?>>> craftablesChangedByType = new HashMap<>();
 
         for (Entry<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> ais : oldItems.entrySet()) {
@@ -270,7 +269,7 @@ public class CraftingGridCache
                 var changedStack = ais.getKey().copy();
                 changedStack.reset();
                 changedStack.setCraftable(false);
-                AEKeyType kt = AEKeyType.fromLegacyType(changedStack.getStackType());
+                AEKeyType kt = changedStack.getAEKeyType();
                 if (kt != null) {
                     craftablesChangedByType.computeIfAbsent(kt, k -> new ArrayList<>())
                             .add(changedStack);
@@ -283,7 +282,7 @@ public class CraftingGridCache
                 var changedStack = ais.getKey().copy();
                 changedStack.reset();
                 changedStack.setCraftable(true);
-                AEKeyType kt = AEKeyType.fromLegacyType(changedStack.getStackType());
+                AEKeyType kt = changedStack.getAEKeyType();
                 if (kt != null) {
                     craftablesChangedByType.computeIfAbsent(kt, k -> new ArrayList<>())
                             .add(changedStack);
@@ -296,7 +295,7 @@ public class CraftingGridCache
                 var changedStack = st.copy();
                 changedStack.reset();
                 changedStack.setCraftable(false);
-                AEKeyType kt = AEKeyType.fromLegacyType(changedStack.getStackType());
+                AEKeyType kt = changedStack.getAEKeyType();
                 if (kt != null) {
                     craftablesChangedByType.computeIfAbsent(kt, k -> new ArrayList<>())
                             .add(changedStack);
@@ -309,7 +308,7 @@ public class CraftingGridCache
                 var changedStack = st.copy();
                 changedStack.reset();
                 changedStack.setCraftable(true);
-                AEKeyType kt = AEKeyType.fromLegacyType(changedStack.getStackType());
+                AEKeyType kt = changedStack.getAEKeyType();
                 if (kt != null) {
                     craftablesChangedByType.computeIfAbsent(kt, k -> new ArrayList<>())
                             .add(changedStack);
@@ -392,7 +391,7 @@ public class CraftingGridCache
     @Override
     public void setEmitable(final IAEStack<?> someItem) {
         this.emitableItems.add(someItem.copy());
-        this.ensureHandlerForType(AEKeyType.fromLegacyType(someItem.getStackType()));
+        this.ensureHandlerForType(someItem.getAEKeyType());
     }
 
     private void ensureHandlerForType(AEKeyType keyType) {
@@ -422,25 +421,34 @@ public class CraftingGridCache
     @Override
     @SuppressWarnings("unchecked")
     public Future<ICraftingJob> beginCraftingJob(final World world, final IGrid grid, final IActionSource actionSrc,
-            final IAEStack<?> craftWhat, final ICraftingCallback cb) {
+            final GenericStack craftWhat, final ICraftingCallback cb) {
         if (world == null || grid == null || actionSrc == null || craftWhat == null) {
             throw new IllegalArgumentException("Invalid Crafting Job Request");
         }
 
         final CraftingJobV2 job = new CraftingJobV2(
-                GenericStack.fromIAEStack(craftWhat), grid, actionSrc, cb, world, CraftingMode.STANDARD);
+                craftWhat, grid, actionSrc, cb, world, CraftingMode.STANDARD);
         return (Future) job.schedule();
     }
 
     @Override
-    public ImmutableMap<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> getCraftingMultiPatterns() {
-        return ImmutableMap.copyOf(this.craftableItems);
+    public ImmutableMap<GenericStack, ImmutableList<ICraftingPatternDetails>> getCraftingMultiPatterns() {
+        var builder = ImmutableMap.<GenericStack, ImmutableList<ICraftingPatternDetails>>builder();
+        for (var entry : this.craftableItems.entrySet()) {
+            var gs = GenericStack.fromIAEStack(entry.getKey());
+            if (gs != null) {
+                builder.put(gs, entry.getValue());
+            }
+        }
+        return builder.build();
     }
 
     @Override
-    public ImmutableCollection<ICraftingPatternDetails> getCraftingFor(final IAEStack<?> whatToCraft,
+    public ImmutableCollection<ICraftingPatternDetails> getCraftingFor(final GenericStack whatToCraft,
             final ICraftingPatternDetails details, final int slotIndex, final World world) {
-        final ImmutableList<ICraftingPatternDetails> res = this.craftableItems.get(whatToCraft);
+        var aeKey = whatToCraft.toIAEStack();
+        if (aeKey == null) return ImmutableSet.of();
+        final ImmutableList<ICraftingPatternDetails> res = this.craftableItems.get(aeKey);
         return res == null ? ImmutableSet.of() : res;
     }
 
@@ -500,21 +508,26 @@ public class CraftingGridCache
     }
 
     @Override
-    public boolean canEmitFor(final IAEStack<?> someItem) {
-        return this.emitableItems.contains(someItem);
+    public boolean canEmitFor(final AEKey someItem) {
+        for (var entry : this.emitableItems) {
+            if (someItem.equals(entry.toAEKey())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
-    public boolean isRequesting(final IAEStack<?> what) {
+    public boolean isRequesting(final AEKey what) {
         return this.requesting(what) > 0;
     }
 
     @Override
-    public long requesting(IAEStack<?> what) {
+    public long requesting(AEKey what) {
         long requested = 0;
         for (final CraftingCPUCluster cluster : this.craftingCPUClusters) {
             GenericStack finalOut = cluster.getFinalMultiOutput();
-            if (finalOut != null && finalOut.what().equals(what.toAEKey())) {
+            if (finalOut != null && finalOut.what().equals(what)) {
                 requested += finalOut.amount();
             }
         }
@@ -538,15 +551,15 @@ public class CraftingGridCache
         return false;
     }
 
-    public GenericInterestManager<CraftingWatcher> getInterestManager() {
+    public GenericInterestManager<IAEStack, CraftingWatcher> getInterestManager() {
         return this.interestManager;
     }
 
     /**
-     * 泛型合成库存处理器。
+     * 泛型合成库存处理器�?
      * <p>
-     * 每个 {@link AEKeyType} 对应一个实例，向网络暴露该类型的可合成物品列表，
-     * 并将注入操作转发给Crafting CPU。
+     * 每个 {@link AEKeyType} 对应一个实例，向网络暴露该类型的可合成物品列表�?
+     * 并将注入操作转发给Crafting CPU�?
      */
     private static class CraftingInventoryHandler implements IMEInventoryHandler {
 
@@ -571,7 +584,7 @@ public class CraftingGridCache
         @Override
         public boolean canAccept(AEKey input) {
             for (final CraftingCPUCluster cpu : this.cache.craftingCPUClusters) {
-                if (cpu.canAccept(input.toIAEStack(1))) {
+                if (cpu.canAccept(new GenericStack(input, 1))) {
                     return true;
                 }
             }
@@ -596,11 +609,11 @@ public class CraftingGridCache
         @Override
         public GenericStack injectItems(GenericStack input, Actionable type, IActionSource src) {
             for (final CraftingCPUCluster cpu : this.cache.craftingCPUClusters) {
-                IAEStack<?> result = cpu.injectItems(input.toIAEStack(), type, src);
+                GenericStack result = cpu.injectItems(input, type, src);
                 if (result == null) {
                     return null;
                 }
-                input = new GenericStack(result.toAEKey(), result.getStackSize());
+                input = result;
             }
             return input;
         }
@@ -614,12 +627,12 @@ public class CraftingGridCache
         public KeyCounter getAvailableKeyCounter() {
             KeyCounter out = new KeyCounter();
             for (final IAEStack<?> stack : this.cache.craftableItems.keySet()) {
-                if (stack.getStackTypeBase() != null && AEKeyType.fromLegacyType(stack.getStackTypeBase()) == this.type) {
+                if (stack.getStackTypeBase() != null && stack.getAEKeyType() == this.type) {
                     out.add(stack.toAEKey(), stack.getStackSize());
                 }
             }
             for (final IAEStack<?> st : this.cache.emitableItems) {
-                if (st.getStackTypeBase() != null && AEKeyType.fromLegacyType(st.getStackTypeBase()) == this.type) {
+                if (st.getStackTypeBase() != null && st.getAEKeyType() == this.type) {
                     out.add(st.toAEKey(), st.getStackSize());
                 }
             }

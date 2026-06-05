@@ -33,6 +33,7 @@ import appeng.api.config.CopyMode;
 import appeng.api.config.FuzzyMode;
 import appeng.api.config.Settings;
 import appeng.api.implementations.items.IStorageCell;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellWorkbenchItem;
@@ -40,7 +41,6 @@ import appeng.api.storage.IMEInventory;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.container.guisync.GuiSync;
 import appeng.container.interfaces.IVirtualSlotHolder;
 import appeng.container.interfaces.IVirtualSlotSource;
@@ -61,7 +61,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
     private ItemStack prevStack = ItemStack.EMPTY;
     private int lastUpgrades = 0;
 
-    // 服务端用于增量同步的客户端快照
+    // 服务端用于增量同步的客户端快�?
     private final IAEStack<?>[] configClientSlot = new IAEStack[63];
 
     public ContainerCellWorkbench(final InventoryPlayer ip, final TileCellWorkbench te) {
@@ -96,8 +96,8 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
         this.addSlotToContainer(new SlotRestrictedInput(SlotRestrictedInput.PlacableItemType.WORKBENCH_CELL, cell, 0,
                 152, 8, this.getPlayerInv()));
 
-        // config 槽位不再使用 Minecraft Slot，改为由 GUI 侧的 VirtualMEPhantomSlot 处理。
-        // 这里只添加升级槽位。
+        // config 槽位不再使用 Minecraft Slot，改为由 GUI 侧的 VirtualMEPhantomSlot 处理�?
+        // 这里只添加升级槽位�?
 
         final WrapperSupplierItemHandler upgradeInventory = new WrapperSupplierItemHandler(
                 this::getCellUpgradeInventory);
@@ -201,7 +201,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
                 ? ((IStorageCell) is.getItem()).getKeyType()
                 : AEKeyType.items();
 
-        final IMEInventory<?> cellInv = AEApi.instance().registries().cell().getCellInventory(is, null, type);
+        final IMEInventory cellInv = AEApi.instance().registries().cell().getCellInventory(is, null, type);
 
         final KeyCounter kc = cellInv != null
                 ? appeng.util.StorageHelper.getAvailableKeyCounter(cellInv)
@@ -251,14 +251,14 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
     }
 
     /**
-     * 获取 config IAEStackInventory，供 GUI 层使用。
+     * 获取 config IAEStackInventory，供 GUI 层使用�?
      */
     public IAEStackInventory getConfig() {
         return this.workBench.getAEInventoryByName(StorageName.CONFIG);
     }
 
     /**
-     * 获取当前单元物品的 ICellWorkbenchItem，供 GUI 层判断接受的栈类型。
+     * 获取当前单元物品�?ICellWorkbenchItem，供 GUI 层判断接受的栈类型�?
      */
     public ICellWorkbenchItem getCell() {
         return this.workBench.getCell();

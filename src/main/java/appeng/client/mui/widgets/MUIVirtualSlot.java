@@ -24,7 +24,6 @@ import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -133,7 +132,7 @@ public class MUIVirtualSlot implements IMUIWidget {
             GlStateManager.disableLighting();
             GlStateManager.disableDepth();
             GlStateManager.colorMask(true, true, true, false);
-            Gui.drawRect(screenX, screenY, screenX + this.size, screenY + this.size, 0x80FFFFFF);
+            AEBasePanel.drawSolidRect(screenX, screenY, screenX + this.size, screenY + this.size, 0x80FFFFFF);
             GlStateManager.colorMask(true, true, true, true);
             GlStateManager.enableLighting();
             GlStateManager.enableDepth();

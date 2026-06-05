@@ -38,14 +38,12 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IItemList;
-import appeng.fluids.util.AEFluidStack;
-import appeng.fluids.util.AEFluidStackType;
+
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class MEMonitorIFluidHandler implements IMEMonitor, ITickingMonitor {
     private final IFluidHandler handler;
-    private IItemList<IAEFluidStack> cache = new FluidList();
+    private KeyCounter cache = new KeyCounter();
     private final HashMap<IMEMonitorHandlerReceiver, Object> listeners = new HashMap<>();
     private IActionSource mySource;
     private StorageFilter mode = StorageFilter.EXTRACTABLE_ONLY;
@@ -65,80 +63,57 @@ public class MEMonitorIFluidHandler implements IMEMonitor, ITickingMonitor {
     }
 
     @Override
-    @Deprecated
-    public IAEFluidStack injectItems(final IAEFluidStack input, final Actionable type, final IActionSource src) {
-        final int filled = this.handler.fill(input.getFluidStack(), type == Actionable.MODULATE);
+    public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
+        if (input == null || !(input.what() instanceof AEFluidKey fluidKey)) {
+            return input;
+        }
+        long amount = input.amount();
+        FluidStack fs = fluidKey.toStack((int) amount);
+        final int filled = this.handler.fill(fs, type == Actionable.MODULATE);
 
         if (filled == 0) {
-            return input.copy();
+            return input;
         }
 
-        if (filled == input.getStackSize()) {
+        if (filled == amount) {
             return null;
         }
 
-        final IAEFluidStack o = input.copy();
-        o.setStackSize(input.getStackSize() - filled);
-
         if (type == Actionable.MODULATE) {
-            IAEFluidStack added = o.copy();
-            this.cache.add(added);
-            this.postDifference(Collections.singletonList(GenericStack.fromIAEStack(added)));
+            long added = amount - filled;
+            this.cache.add(fluidKey, added);
+            this.postDifference(Collections.singletonList(new GenericStack(fluidKey, added)));
             this.onTick();
         }
 
-        return o;
+        return new GenericStack(fluidKey, amount - filled);
     }
 
     @Override
-    @Deprecated
-    public IAEFluidStack extractItems(final IAEFluidStack request, final Actionable type, final IActionSource src) {
-        final FluidStack removed = this.handler.drain(request.getFluidStack(), type == Actionable.MODULATE);
+    public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
+        if (request == null || !(request.what() instanceof AEFluidKey fluidKey)) {
+            return null;
+        }
+        FluidStack fs = fluidKey.toStack((int) request.amount());
+        final FluidStack removed = this.handler.drain(fs, mode == Actionable.MODULATE);
 
         if (removed == null || removed.amount == 0) {
             return null;
         }
 
-        final IAEFluidStack o = request.copy();
-        o.setStackSize(removed.amount);
-
-        if (type == Actionable.MODULATE) {
-            IAEFluidStack cachedStack = this.cache.findPrecise(request);
-            if (cachedStack != null) {
-                cachedStack.decStackSize(o.getStackSize());
-                this.postDifference(Collections.singletonList(GenericStack.fromIAEStack(o.copy().setStackSize(-o.getStackSize()))));
+        if (mode == Actionable.MODULATE) {
+            long cachedAmount = this.cache.get(fluidKey);
+            if (cachedAmount > 0) {
+                this.cache.add(fluidKey, -removed.amount);
+                this.postDifference(Collections.singletonList(new GenericStack(fluidKey, -removed.amount)));
             }
         }
-        return o;
-    }
-
-    @Override
-    public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
-        if (input == null || !(input.what() instanceof AEFluidKey)) {
-            return input;
-        }
-        IAEFluidStack aeInput = AEFluidStack.fromFluidStack(((AEFluidKey) input.what()).toStack((int) input.amount()));
-        IAEFluidStack result = this.injectItems(aeInput, type, src);
-        return GenericStack.fromIAEStack(result);
-    }
-
-    @Override
-    public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
-        if (request == null || !(request.what() instanceof AEFluidKey)) {
-            return null;
-        }
-        IAEFluidStack aeRequest = AEFluidStack.fromFluidStack(((AEFluidKey) request.what()).toStack((int) request.amount()));
-        IAEFluidStack result = this.extractItems(aeRequest, mode, src);
-        return GenericStack.fromIAEStack(result);
+        return new GenericStack(fluidKey, removed.amount);
     }
 
     @Override
     public KeyCounter getAvailableKeyCounter() {
-        KeyCounter out = new KeyCounter();
-        for (IAEFluidStack fs : cache) {
-            out.add(fs.toAEKey(), fs.getStackSize());
-        }
-        return out;
+        return this.cache;
     }
 
     @Override
@@ -155,43 +130,40 @@ public class MEMonitorIFluidHandler implements IMEMonitor, ITickingMonitor {
     public TickRateModulation onTick() {
         boolean changed = false;
 
-        final List<IAEFluidStack> changes = new ArrayList<>();
+        final List<GenericStack> changes = new ArrayList<>();
         final IFluidTankProperties[] tankProperties = this.handler.getTankProperties();
 
-        IItemList<IAEFluidStack> currentlyOnStorage = new FluidList();
+        KeyCounter currentlyOnStorage = new KeyCounter();
 
         for (IFluidTankProperties tankProperty : tankProperties) {
             if (this.mode == StorageFilter.EXTRACTABLE_ONLY && this.handler.drain(1, false) == null) {
                 continue;
             }
-            currentlyOnStorage.add(AEFluidStack.fromFluidStack(tankProperty.getContents()));
-        }
-
-        for (final IAEFluidStack is : cache) {
-            is.setStackSize(-is.getStackSize());
-        }
-
-        for (final IAEFluidStack is : currentlyOnStorage) {
-            cache.add(is);
-        }
-
-        for (final IAEFluidStack is : cache) {
-            if (is.getStackSize() != 0) {
-                changes.add(is);
+            FluidStack contents = tankProperty.getContents();
+            if (contents != null && contents.amount > 0) {
+                currentlyOnStorage.add(AEFluidKey.of(contents), contents.amount);
             }
         }
 
-        cache = currentlyOnStorage;
+        for (Object2LongMap.Entry<AEKey> entry : this.cache) {
+            AEKey key = entry.getKey();
+            long oldAmount = entry.getLongValue();
+            long newAmount = currentlyOnStorage.get(key);
+            if (oldAmount != newAmount) {
+                changes.add(new GenericStack(key, newAmount - oldAmount));
+            }
+        }
+        for (Object2LongMap.Entry<AEKey> entry : currentlyOnStorage) {
+            AEKey key = entry.getKey();
+            if (this.cache.get(key) == 0) {
+                changes.add(new GenericStack(key, entry.getLongValue()));
+            }
+        }
+
+        this.cache = currentlyOnStorage;
 
         if (!changes.isEmpty()) {
-            final List<GenericStack> genericChanges = new ArrayList<>();
-            for (IAEFluidStack is : changes) {
-                GenericStack gs = GenericStack.fromIAEStack(is);
-                if (gs != null) {
-                    genericChanges.add(gs);
-                }
-            }
-            this.postDifference(genericChanges);
+            this.postDifference(changes);
             changed = true;
         }
 
@@ -244,18 +216,17 @@ public class MEMonitorIFluidHandler implements IMEMonitor, ITickingMonitor {
         return true;
     }
 
-    @Override
     @Deprecated
-    public IItemList<IAEFluidStack> getAvailableItems(final IItemList<IAEFluidStack> out) {
-        for (final IAEFluidStack fs : cache) {
-            out.addStorage(fs);
+    public KeyCounter getAvailableItems(final KeyCounter out) {
+        for (Object2LongMap.Entry<AEKey> entry : cache) {
+            out.add(entry.getKey(), entry.getLongValue());
         }
 
         return out;
     }
 
     @Deprecated
-    public IItemList<IAEFluidStack> getStorageList() {
+    public KeyCounter getStorageList() {
         return this.cache;
     }
 

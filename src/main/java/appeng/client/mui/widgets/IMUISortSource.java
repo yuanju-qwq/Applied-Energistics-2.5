@@ -16,21 +16,31 @@
  * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
  */
 
-package appeng.client.gui;
+package appeng.client.mui.widgets;
 
-import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.inventory.Container;
+import appeng.api.config.SortDir;
+import appeng.api.config.ViewItems;
 
 /**
- * 空 GUI，用于错误回退场景（宿主解析失败时显示空白界面）。
+ * MUI 命名空间下的排序源接口。
+ * <p>
+ * 完全等价于已废弃的 {@code appeng.client.gui.widgets.ISortSource}，
+ * 仅迁移至 MUI 包以收敛依赖方向。
  */
-public class GuiNull extends GuiContainer {
+public interface IMUISortSource {
 
-    public GuiNull(final Container container) {
-        super(container);
-    }
+    /**
+     * @return the current sort key.
+     */
+    Enum getSortBy();
 
-    @Override
-    protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
-    }
+    /**
+     * @return the current {@link SortDir}.
+     */
+    Enum getSortDir();
+
+    /**
+     * @return the current {@link ViewItems}.
+     */
+    Enum getSortDisplay();
 }

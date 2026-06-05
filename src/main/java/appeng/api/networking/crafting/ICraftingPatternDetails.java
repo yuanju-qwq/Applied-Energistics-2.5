@@ -32,7 +32,6 @@ import net.minecraft.world.World;
 
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.data.IAEStack;
 
 
 public interface ICraftingPatternDetails {

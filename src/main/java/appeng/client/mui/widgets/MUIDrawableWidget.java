@@ -22,7 +22,6 @@ import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 
@@ -75,7 +74,7 @@ public class MUIDrawableWidget implements IMUIWidget {
             Minecraft mc = Minecraft.getMinecraft();
             GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
             mc.getTextureManager().bindTexture(this.texture);
-            Gui.drawModalRectWithCustomSizedTexture(screenX, screenY,
+            panel.drawModalRectWithCustomSizedTexture(screenX, screenY,
                     this.texU, this.texV, this.texWidth, this.texHeight, 256, 256);
         }
     }

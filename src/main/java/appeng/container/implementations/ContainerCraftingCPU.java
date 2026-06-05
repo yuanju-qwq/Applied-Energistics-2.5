@@ -36,7 +36,6 @@ import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.data.IAEStackBase;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
 import appeng.container.interfaces.ICraftingCPUGuiCallback;

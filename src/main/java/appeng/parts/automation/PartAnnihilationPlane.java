@@ -66,6 +66,7 @@ import appeng.api.parts.IPart;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartHost;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.util.AECableType;

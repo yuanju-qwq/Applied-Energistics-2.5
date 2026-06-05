@@ -57,9 +57,7 @@ import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
+
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IConfigManager;
@@ -267,7 +265,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
         }
 
         // Determine the stack type to monitor from the configured stack
-        final AEKeyType targetType = myStack != null ? AEKeyType.fromLegacyType(myStack.getStackType()) : null;
+        final AEKeyType targetType = myStack != null ? myStack.getAEKeyType() : null;
 
         try {
             // Remove listener from old type if it changed
@@ -288,8 +286,8 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
                 } else {
                     this.removeCurrentListener();
 
-                    if (this.myWatcher != null) {
-                        this.myWatcher.add(myStack);
+                    if (this.myWatcher != null && myStack != null) {
+                        this.myWatcher.add(myStack.toAEKey());
                     }
                 }
 
@@ -333,7 +331,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
         if (myStack == null) {
             // No configured stack — report total count of all items in this monitor
             if (monitor instanceof NetworkMonitor) {
-                this.lastReportedValue = ((NetworkMonitor<?>) monitor).getGridCurrentCount();
+                this.lastReportedValue = ((NetworkMonitor) monitor).getGridCurrentCount();
             }
         } else if (myStack instanceof IAEItemStack && this.getInstalledUpgrades(Upgrades.FUZZY) > 0) {
             // Fuzzy mode: only supported for items (ore dictionary concept)
@@ -368,7 +366,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     public void onStackChange(final KeyCounter fullStack, final KeyCounter diffStack,
             final IActionSource src) {
         final GenericStack gs = this.config.getGenericStack(0);
-        AEKey configKey = gs != null ? gs.toAEKey() : null;
+        AEKey configKey = gs != null ? gs.what() : null;
         if (configKey != null && this.getInstalledUpgrades(Upgrades.FUZZY) == 0) {
             long amount = fullStack.get(configKey);
             if (amount > 0) {
@@ -402,7 +400,7 @@ public class PartLevelEmitter extends PartUpgradeable implements IEnergyWatcherH
     }
 
     @Override
-    public void postChange(final IBaseMonitor monitor, final Iterable<IAEStackBase> change,
+    public void postChange(final IBaseMonitor monitor, final Iterable<GenericStack> change,
             final IActionSource actionSource) {
         this.updateReportingValue((IMEMonitor) monitor);
     }

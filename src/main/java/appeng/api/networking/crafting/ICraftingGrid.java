@@ -43,43 +43,38 @@ public interface ICraftingGrid extends IGridCache {
 
     /**
      * Get the set of crafting patterns for the specified stack (item/fluid etc.).
-     *
-     * @param whatToCraft the requested crafting target
-     * @param details     pattern details
-     * @param slot        slot index
-     * @param world       crafting world
-     * @return the corresponding set of crafting patterns
-     * @deprecated Use {@link #getCraftingFor(GenericStack, ICraftingPatternDetails, int, World)} instead.
      */
-    @Deprecated
-    ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEStack<?> whatToCraft,
+    ImmutableCollection<ICraftingPatternDetails> getCraftingFor(GenericStack whatToCraft,
             ICraftingPatternDetails details, int slot, World world);
 
     /**
-     * GenericStack-based variant of {@link #getCraftingFor(IAEStack, ICraftingPatternDetails, int, World)}.
+     * @deprecated Use {@link #getCraftingFor(GenericStack, ICraftingPatternDetails, int, World)} instead.
      */
-    default ImmutableCollection<ICraftingPatternDetails> getCraftingFor(GenericStack whatToCraft,
+    @Deprecated
+    default ImmutableCollection<ICraftingPatternDetails> getCraftingFor(IAEStack<?> whatToCraft,
             ICraftingPatternDetails details, int slot, World world) {
-        var ae = whatToCraft.toIAEStack();
-        if (ae == null) return ImmutableList.of();
-        return getCraftingFor(ae, details, slot, world);
+        var gs = GenericStack.fromIAEStack(whatToCraft);
+        if (gs == null) return ImmutableList.of();
+        return getCraftingFor(gs, details, slot, world);
     }
 
     /**
      * Get the multi-type pattern mapping of all craftable items/fluids.
      */
-    ImmutableMap<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> getCraftingMultiPatterns();
+    ImmutableMap<GenericStack, ImmutableList<ICraftingPatternDetails>> getCraftingMultiPatterns();
 
     /**
-     * @return the pattern mapping keyed by {@link GenericStack} (converted from {@link IAEStack} representations)
+     * @return the pattern mapping keyed by {@link IAEStack} (converted from {@link GenericStack} representations).
+     * @deprecated Use {@link #getCraftingMultiPatterns()} instead.
      */
-    default ImmutableMap<GenericStack, ImmutableList<ICraftingPatternDetails>> getGenericCraftingMultiPatterns() {
+    @Deprecated
+    default ImmutableMap<IAEStack<?>, ImmutableList<ICraftingPatternDetails>> getLegacyCraftingMultiPatterns() {
         var raw = getCraftingMultiPatterns();
-        var builder = ImmutableMap.<GenericStack, ImmutableList<ICraftingPatternDetails>>builder();
+        var builder = ImmutableMap.<IAEStack<?>, ImmutableList<ICraftingPatternDetails>>builder();
         for (var entry : raw.entrySet()) {
-            var gs = GenericStack.fromIAEStack(entry.getKey());
-            if (gs != null) {
-                builder.put(gs, entry.getValue());
+            var ae = entry.getKey().toIAEStack();
+            if (ae != null) {
+                builder.put(ae, entry.getValue());
             }
         }
         return builder.build();
@@ -96,20 +91,19 @@ public interface ICraftingGrid extends IGridCache {
      *
      * @return a future which will at an undetermined point in the future get you the {@link ICraftingJob} do not wait
      *         on this, your be waiting forever.
-     * @deprecated Use {@link #beginCraftingJob(World, IGrid, IActionSource, GenericStack, ICraftingCallback)} instead.
      */
-    @Deprecated
-    Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc, IAEStack<?> craftWhat,
+    Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc, GenericStack craftWhat,
             ICraftingCallback callback);
 
     /**
-     * GenericStack-based variant of {@link #beginCraftingJob(World, IGrid, IActionSource, IAEStack, ICraftingCallback)}.
+     * @deprecated Use {@link #beginCraftingJob(World, IGrid, IActionSource, GenericStack, ICraftingCallback)} instead.
      */
-    default Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc,
-            GenericStack craftWhat, ICraftingCallback callback) {
-        var ae = craftWhat.toIAEStack();
-        if (ae == null) return null;
-        return beginCraftingJob(world, grid, actionSrc, ae, callback);
+    @Deprecated
+    default Future<ICraftingJob> beginCraftingJob(World world, IGrid grid, IActionSource actionSrc, IAEStack<?> craftWhat,
+            ICraftingCallback callback) {
+        var gs = GenericStack.fromIAEStack(craftWhat);
+        if (gs == null) return null;
+        return beginCraftingJob(world, grid, actionSrc, gs, callback);
     }
 
     /**
@@ -142,16 +136,16 @@ public interface ICraftingGrid extends IGridCache {
      *
      * @param what the stack to check
      * @return true if it can be emitted
+     */
+    boolean canEmitFor(AEKey what);
+
+    /**
      * @deprecated Use {@link #canEmitFor(AEKey)} instead.
      */
     @Deprecated
-    boolean canEmitFor(IAEStack<?> what);
-
-    /**
-     * AEKey-based variant of {@link #canEmitFor(IAEStack)}.
-     */
-    default boolean canEmitFor(AEKey what) {
-        return canEmitFor(new GenericStack(what, 1).toIAEStack());
+    default boolean canEmitFor(IAEStack<?> what) {
+        var key = what.toAEKey();
+        return key != null && canEmitFor(key);
     }
 
     /**
@@ -159,16 +153,16 @@ public interface ICraftingGrid extends IGridCache {
      *
      * @param what the stack to check
      * @return true if it is being crafted
+     */
+    boolean isRequesting(AEKey what);
+
+    /**
      * @deprecated Use {@link #isRequesting(AEKey)} instead.
      */
     @Deprecated
-    boolean isRequesting(IAEStack<?> what);
-
-    /**
-     * AEKey-based variant of {@link #isRequesting(IAEStack)}.
-     */
-    default boolean isRequesting(AEKey what) {
-        return isRequesting(new GenericStack(what, 1).toIAEStack());
+    default boolean isRequesting(IAEStack<?> what) {
+        var key = what.toAEKey();
+        return key != null && isRequesting(key);
     }
 
     /**
@@ -176,15 +170,16 @@ public interface ICraftingGrid extends IGridCache {
      *
      * @param what the stack to query, stackSize is ignored
      * @return total amount being requested
+     */
+    long requesting(AEKey what);
+
+    /**
      * @deprecated Use {@link #requesting(AEKey)} instead.
      */
     @Deprecated
-    long requesting(IAEStack<?> what);
-
-    /**
-     * AEKey-based variant of {@link #requesting(IAEStack)}.
-     */
-    default long requesting(AEKey what) {
-        return requesting(new GenericStack(what, 1).toIAEStack());
+    default long requesting(IAEStack<?> what) {
+        var key = what.toAEKey();
+        if (key == null) return 0;
+        return requesting(key);
     }
 }

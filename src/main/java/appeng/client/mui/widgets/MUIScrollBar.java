@@ -19,10 +19,8 @@
 package appeng.client.mui.widgets;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 
-import appeng.client.gui.widgets.IScrollSource;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 
@@ -32,7 +30,7 @@ import appeng.client.mui.IMUIWidget;
  * Supports mouse-wheel scrolling, drag with relative-offset, region-based track clicks
  * (page up / handle drag / page down) and repeated paging via {@link EventRepeater}.
  */
-public class MUIScrollBar implements IMUIWidget, IScrollSource {
+public class MUIScrollBar implements IMUIWidget, IMUIScrollSource {
 
     private static final int HANDLE_HEIGHT = 15;
 
@@ -77,7 +75,7 @@ public class MUIScrollBar implements IMUIWidget, IScrollSource {
 
         int handleYOffset = getHandleYOffset();
         int texU = getRange() == 0 ? 232 + this.width : 232;
-        Gui.drawModalRectWithCustomSizedTexture(
+        panel.drawModalRectWithCustomSizedTexture(
                 screenX, screenY + handleYOffset, texU, 0, this.width, HANDLE_HEIGHT, 256, 256);
     }
 
@@ -294,7 +292,7 @@ public class MUIScrollBar implements IMUIWidget, IScrollSource {
 
         int handleYOffset = getHandleYOffset();
         int texU = getRange() == 0 ? 232 + this.width : 232;
-        Gui.drawModalRectWithCustomSizedTexture(
+        panel.drawModalRectWithCustomSizedTexture(
                 this.x, this.y + handleYOffset, texU, 0, this.width, HANDLE_HEIGHT, 256, 256);
     }
 

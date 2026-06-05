@@ -32,15 +32,4 @@ public interface ICellGuiHandler {
     void openChestGui(EntityPlayer player, IChestOrDrive chest,
             ICellHandler cellHandler, IMEInventoryHandler inv, ItemStack is, AEKeyType type);
 
-    /**
-     * AEKeyType-based variant of {@link #openChestGui(EntityPlayer, IChestOrDrive, ICellHandler, IMEInventoryHandler, ItemStack, IAEStackType)}.
-     */
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    default void openChestGui(EntityPlayer player, IChestOrDrive chest,
-            ICellHandler cellHandler, IMEInventoryHandler<?> inv, ItemStack is, AEKeyType type) {
-        var legacyType = appeng.api.storage.data.AEStackTypeRegistry.getType(type.getId());
-        if (legacyType != null) {
-            openChestGui(player, chest, cellHandler, (IMEInventoryHandler) inv, is, legacyType);
-        }
-    }
 }

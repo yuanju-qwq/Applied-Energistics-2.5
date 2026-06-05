@@ -30,6 +30,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.mui.AEBasePanel;
+import appeng.client.mui.IMUIWidget;
 import appeng.client.mui.module.InterfaceListModule;
 import appeng.container.implementations.ContainerInterfaceTerminal;
 import appeng.container.interfaces.IInterfaceTerminalGuiCallback;
@@ -221,8 +222,8 @@ public class MUIInterfaceTerminalPanel extends AEBasePanel
     }
 
     @Override
-    public <T extends appeng.client.mui.IMUIWidget> T addModuleWidget(T widget) {
-        return this.addWidget(widget);
+    public void addModuleWidget(IMUIWidget widget) {
+        this.addWidget(widget);
     }
 
     @Override

@@ -67,7 +67,7 @@ import appeng.services.version.VersionCheckerConfig;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
 
-@Mod(modid = AppEng.MOD_ID, acceptedMinecraftVersions = "[1.12.2]", name = AppEng.MOD_NAME, version = AEConfig.VERSION, dependencies = AppEng.MOD_DEPENDENCIES, guiFactory = "appeng.client.gui.config.AEConfigGuiFactory")
+@Mod(modid = AppEng.MOD_ID, acceptedMinecraftVersions = "[1.12.2]", name = AppEng.MOD_NAME, version = AEConfig.VERSION, dependencies = AppEng.MOD_DEPENDENCIES, guiFactory = "appeng.client.mui.config.AEConfigGuiFactory")
 public final class AppEng {
 
     @SidedProxy(clientSide = "appeng.client.ClientHelper", serverSide = "appeng.server.ServerHelper", modId = AppEng.MOD_ID)

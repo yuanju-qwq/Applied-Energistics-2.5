@@ -37,7 +37,6 @@ import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.IItemList;
 
 /**
  * Common implementation of a simple class that monitors injection/extraction of a inventory to send events to a list of

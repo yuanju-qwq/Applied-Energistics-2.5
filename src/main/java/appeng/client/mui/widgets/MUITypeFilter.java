@@ -24,7 +24,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
@@ -126,7 +125,7 @@ public class MUITypeFilter implements IMUIWidget {
             // 背景
             GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
             mc.getTextureManager().bindTexture(STATES_TEXTURE);
-            Gui.drawModalRectWithCustomSizedTexture(screenX, screenY, 240, 240, 16, 16, 256, 256);
+            panel.drawModalRectWithCustomSizedTexture(screenX, screenY, 240, 240, 16, 16, 256, 256);
 
             // 类型图标
             ResourceLocation tex = btn.keyType.getButtonTexture();
@@ -141,7 +140,7 @@ public class MUITypeFilter implements IMUIWidget {
             } else {
                 GlStateManager.color(0.4f, 0.4f, 0.4f, 0.6f);
             }
-            Gui.drawModalRectWithCustomSizedTexture(screenX, screenY, iconU, iconV, 16, 16, 256, 256);
+            panel.drawModalRectWithCustomSizedTexture(screenX, screenY, iconU, iconV, 16, 16, 256, 256);
             GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
         }
     }

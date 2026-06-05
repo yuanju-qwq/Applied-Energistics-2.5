@@ -29,10 +29,10 @@ import net.minecraft.client.gui.GuiScreen;
 import appeng.api.config.PinSectionOrder;
 import appeng.api.config.PinsRows;
 import appeng.api.storage.data.IAEStack;
-import appeng.client.gui.slots.VirtualMEPinSlot;
-import appeng.client.gui.slots.VirtualMEMonitorableSlot;
-import appeng.client.gui.widgets.GuiCustomSlot;
+import appeng.client.mui.slot.VirtualMEPinSlot;
+import appeng.client.mui.slot.VirtualMEMonitorableSlot;
 import appeng.client.me.ItemRepo;
+import appeng.client.mui.widgets.MUICustomSlot;
 import appeng.container.AEBaseContainer;
 import appeng.container.implementations.ContainerMEMonitorable;
 import appeng.core.AELog;
@@ -50,9 +50,9 @@ import appeng.helpers.InventoryAction;
  *   <li>{@link VirtualMEPinSlot} array creation and lifecycle</li>
  *   <li>Pin interaction events:
  *       <ul>
- *         <li>Ctrl+left-click on ME slot → pin</li>
- *         <li>Shift+right-click on pin slot → unpin</li>
- *         <li>Ctrl+scroll over ME grid → adjust pin rows</li>
+ *         <li>Ctrl+left-click on ME slot - pin</li>
+ *         <li>Shift+right-click on pin slot - unpin</li>
+ *         <li>Ctrl+scroll over ME grid - adjust pin rows</li>
  *       </ul>
  *   </li>
  *   <li>Pins button click handling (left/right-click to cycle rows)</li>
@@ -75,7 +75,7 @@ public class TerminalPinSystem {
 
         int getOffsetX();
 
-        List<GuiCustomSlot> getGuiSlots();
+        List<MUICustomSlot> getGuiSlots();
 
         FontRenderer getFontRenderer();
 
@@ -188,7 +188,7 @@ public class TerminalPinSystem {
      * Register pin slots into the panel's guiSlots list.
      */
     public void registerToGuiSlots() {
-        List<GuiCustomSlot> guiSlots = host.getGuiSlots();
+        List<MUICustomSlot> guiSlots = host.getGuiSlots();
         guiSlots.removeIf(s -> s instanceof VirtualMEPinSlot);
         if (this.pinSlots != null) {
             for (VirtualMEPinSlot slot : this.pinSlots) {
@@ -222,9 +222,9 @@ public class TerminalPinSystem {
      */
     public boolean handleMouseClicked(int localX, int localY, int btn,
             boolean isShiftDown, boolean isCtrlDown) throws IOException {
-        List<GuiCustomSlot> guiSlots = host.getGuiSlots();
+        List<MUICustomSlot> guiSlots = host.getGuiSlots();
 
-        for (GuiCustomSlot slot : guiSlots) {
+        for (MUICustomSlot slot : guiSlots) {
             if (host.isPointInRegion(slot.xPos(), slot.yPos(),
                     slot.getWidth(), slot.getHeight(), localX, localY)) {
                 if (slot instanceof VirtualMEPinSlot pinSlot && btn == 1 && isShiftDown) {

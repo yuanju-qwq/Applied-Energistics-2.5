@@ -16,50 +16,19 @@
  * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
  */
 
-package appeng.client.gui.widgets;
+package appeng.client.mui.widgets;
 
 /**
- * GUI 面板 Tooltip 接口，由 AEBasePanel / GuiContainer 统一管理。
+ * MUI 命名空间下的滚动数据源接口。
+ * <p>
+ * 完全等价于已废弃的 {@code appeng.client.gui.widgets.IScrollSource}，
+ * 仅迁移至 MUI 包以收敛依赖方向。
  */
-public interface ITooltip {
+@FunctionalInterface
+public interface IMUIScrollSource {
 
     /**
-     * returns the tooltip message.
-     *
-     * @return tooltip message
+     * @return the current scroll offset.
      */
-    String getMessage();
-
-    /**
-     * x Location for the object that triggers the tooltip.
-     *
-     * @return xPosition
-     */
-    int xPos();
-
-    /**
-     * y Location for the object that triggers the tooltip.
-     *
-     * @return yPosition
-     */
-    int yPos();
-
-    /**
-     * Width of the object that triggers the tooltip.
-     *
-     * @return width
-     */
-    int getWidth();
-
-    /**
-     * Height for the object that triggers the tooltip.
-     *
-     * @return height
-     */
-    int getHeight();
-
-    /**
-     * @return true if button being drawn
-     */
-    boolean isVisible();
+    int getCurrentScroll();
 }

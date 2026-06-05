@@ -32,10 +32,10 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import appeng.api.stacks.AEKey;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.client.gui.slots.VirtualMESlot;
-import appeng.client.gui.widgets.ITooltip;
+import appeng.client.mui.slot.VirtualMESlot;
 import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.client.me.SlotME;
+import appeng.client.mui.widgets.IMUITooltip;
 import appeng.container.slot.AppEngSlot;
 import appeng.container.slot.SlotPlayerHotBar;
 import appeng.container.slot.SlotPlayerInv;
@@ -43,16 +43,14 @@ import appeng.core.AEConfig;
 import appeng.core.localization.ButtonToolTips;
 
 /**
- * ME 终端专用的 MUI 基础面板。
+ * MUI base panel for ME terminals.
  * <p>
- * 在 {@link AEBasePanel} 基础上，增加了 ME 终端特有的功能：
+ * Adds ME-terminal-specific features on top of {@link AEBasePanel}:
  * <ul>
- *   <li>SlotME 的精确数量 tooltip（包括Inventory quantity、Requestable quantity、Craftable marker）</li>
- *   <li>VirtualMESlot 的富 tooltip（AE 栈的完整信息）</li>
- *   <li>AppEngSlot 的数量显示 tooltip</li>
+ *   <li>SlotME precise number tooltip (Inventory quantity, Requestable quantity, Craftable marker)</li>
+ *   <li>VirtualMESlot rich tooltip (full AE stack info)</li>
+ *   <li>AppEngSlot quantity tooltip</li>
  * </ul>
- * <p>
- * 对应旧 GUI 体系中已移除的 AEBaseMEGui（已删除）。
  */
 @SideOnly(Side.CLIENT)
 public abstract class AEBaseMEPanel extends AEBasePanel {
@@ -68,7 +66,7 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
     // ========== ME terminal enhanced tooltip ==========
 
     /**
-     * 覆写 MC 的物品悬停 tooltip，为 SlotME 和 AppEngSlot 追加精确数量信息。
+     * Override MC item hover tooltip, add precise quantity info for SlotME and AppEngSlot.
      */
     @Override
     protected void renderToolTip(final ItemStack stack, final int x, final int y) {
@@ -155,7 +153,7 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
      * Includes: item original tooltip + stored amount + craftable flag + subclass additions.
      */
     @Override
-    public void drawTooltip(ITooltip tooltip, int mouseX, int mouseY) {
+    public void drawTooltip(IMUITooltip tooltip, int mouseX, int mouseY) {
         if (tooltip instanceof VirtualMESlot virtualSlot && tooltip.isVisible()) {
             final int tx = tooltip.xPos();
             int ty = tooltip.yPos();

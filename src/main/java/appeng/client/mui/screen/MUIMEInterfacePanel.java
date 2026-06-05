@@ -42,10 +42,12 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.slots.VirtualMEPhantomSlot;
-import appeng.client.gui.slots.VirtualMESlot;
-import appeng.client.gui.widgets.GuiCustomSlot;
+import appeng.client.me.ItemRepo.RepoEntry;
+import appeng.client.mui.slot.VirtualMEPhantomSlot;
+import appeng.client.mui.slot.VirtualMESlot;
+import appeng.client.mui.widgets.MUICustomSlot;
 import appeng.client.mui.widgets.MUIToggleButton;
 import appeng.container.implementations.ContainerMEInterface;
 import appeng.container.interfaces.IJEIGhostIngredients;
@@ -256,7 +258,7 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         List<Target<?>> targets = new ArrayList<>();
 
         // Config VirtualMEPhantomSlot accepts both items and fluids
-        for (GuiCustomSlot slot : this.getGuiSlots()) {
+        for (MUICustomSlot slot : this.getGuiSlots()) {
             if (slot instanceof VirtualMEPhantomSlot phantomSlot && phantomSlot.isSlotEnabled()) {
                 addConfigTarget(targets, phantomSlot, itemStack, fluidStack);
             }
@@ -317,6 +319,12 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
 
         @Override
         @Nullable
+        public RepoEntry getRepoEntry() {
+            return null;
+        }
+
+        @Override
+        @Nullable
         public IAEStack<?> getAEStack() {
             GenericStack gs = this.inventory.getGenericStack(this.inventorySlot);
             return gs != null ? gs.toIAEStack() : null;
@@ -333,11 +341,11 @@ public class MUIMEInterfacePanel extends MUIUpgradeablePanel implements IJEIGhos
         }
 
         @Override
-        public void drawContent(Minecraft mc, int mouseX, int mouseY, float partialTicks) {
+        public void drawContent(AEBasePanel panel, Minecraft mc, int mouseX, int mouseY, float partialTicks) {
             if (this.hidden) {
                 return;
             }
-            super.drawContent(mc, mouseX, mouseY, partialTicks);
+            super.drawContent(panel, mc, mouseX, mouseY, partialTicks);
         }
 
         @Override

@@ -240,7 +240,7 @@ public class MECraftingInventory implements IMEInventory {
         for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
             IItemList<?> list = type.createList();
             this.inventoryMap.put(type, list);
-            AEKeyType keyType = AEKeyType.fromLegacyType(type);
+            AEKeyType keyType = AEKeyType.fromId(type.getId());
             if (keyType == null) continue;
             IMEMonitor monitor = target.getInventory(keyType);
             if (monitor != null) {
@@ -490,6 +490,14 @@ public class MECraftingInventory implements IMEInventory {
     }
 
     /**
+     * 获取指定栈的模糊匹配（GenericStack 版本）。
+     */
+    public Collection<? extends IAEStackBase> findFuzzyAny(final GenericStack filter, final FuzzyMode fuzzy) {
+        if (filter == null) return null;
+        return findFuzzyAny(filter.toIAEStack(), fuzzy);
+    }
+
+    /**
      * 获取指定栈的模糊匹配。
      */
     public Collection<? extends IAEStackBase> findFuzzyAny(final IAEStack<?> filter, final FuzzyMode fuzzy) {
@@ -652,7 +660,6 @@ public class MECraftingInventory implements IMEInventory {
         return out;
     }
 
-    @Override
     public IAEStackType<IAEItemStack> getStackType() {
         return AEItemStackType.INSTANCE;
     }
@@ -813,7 +820,7 @@ public class MECraftingInventory implements IMEInventory {
         if (stack == null) return null;
 
         if (this.monitorableTarget != null) {
-            AEKeyType keyType = AEKeyType.fromLegacyType(stack.getStackType());
+            AEKeyType keyType = stack.getAEKeyType();
             if (keyType == null) return stack;
             IMEMonitor monitor = this.monitorableTarget.getInventory(keyType);
             if (monitor != null) {
@@ -836,7 +843,7 @@ public class MECraftingInventory implements IMEInventory {
         if (stack == null) return null;
 
         if (this.monitorableTarget != null) {
-            AEKeyType keyType = AEKeyType.fromLegacyType(stack.getStackType());
+            AEKeyType keyType = stack.getAEKeyType();
             if (keyType == null) return null;
             IMEMonitor monitor = this.monitorableTarget.getInventory(keyType);
             if (monitor != null) {

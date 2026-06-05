@@ -30,12 +30,12 @@ import appeng.api.config.ViewItems;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
-import appeng.client.gui.widgets.ISortSource;
 import appeng.client.me.ItemRepo;
 import appeng.client.mui.AEBaseMEPanel;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.module.DynamicListModule;
+import appeng.client.mui.widgets.IMUISortSource;
 import appeng.client.mui.widgets.MUIScrollBar;
 
 /**
@@ -94,7 +94,7 @@ import appeng.client.mui.widgets.MUIScrollBar;
  */
 @SideOnly(Side.CLIENT)
 public abstract class MUITemplatePanel extends AEBaseMEPanel
-        implements DynamicListModule.Host, ISortSource {
+        implements DynamicListModule.Host, IMUISortSource {
 
     // ========== 可复用模块 ==========
 
@@ -145,7 +145,7 @@ public abstract class MUITemplatePanel extends AEBaseMEPanel
         this.scrollBar = new MUIScrollBar();
         this.setScrollBar(this.scrollBar);
 
-        // 数据仓库（IScrollSource + ISortSource）
+        // 数据仓库（IMUIScrollSource + IMUISortSource）
         this.repo = new ItemRepo(
                 () -> this.scrollBar.getCurrentScroll(),
                 this);

@@ -61,7 +61,7 @@ public class ContainerOreDictStorageBus extends ContainerUpgradeable implements 
     }
 
     public void partition() {
-        final IMEInventory<IAEItemStack> cellInv = this.part.getInternalHandler();
+        final IMEInventory cellInv = this.part.getInternalHandler();
 
         if (cellInv == null) {
             return;

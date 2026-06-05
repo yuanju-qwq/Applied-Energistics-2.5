@@ -12,7 +12,6 @@ import appeng.api.config.Actionable;
 import appeng.api.stacks.GenericStack;
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.crafting.CraftBranchFailure;
 import appeng.crafting.MECraftingInventory;
@@ -75,33 +74,31 @@ public class ExtractItemResolver implements CraftingRequestResolver {
 
         private void extractExact(CraftingContext context, MECraftingInventory source, List<GenericStack> removedList) {
             GenericStack hint = new GenericStack(request.what, request.remainingToProcess);
-            IAEStack<?> exactMatching = source.extractAny(hint.toIAEStack(), Actionable.SIMULATE);
+            GenericStack exactMatching = source.extractAny(hint, Actionable.SIMULATE);
             if (exactMatching != null) {
-                final long requestSize = Math.min(request.remainingToProcess, exactMatching.getStackSize());
-                final IAEStack<?> extracted = source.extractAny(
-                        exactMatching.copy().setStackSize(requestSize), Actionable.MODULATE);
-                if (extracted != null && extracted.getStackSize() > 0) {
-                    extracted.setCraftable(false);
-                    request.fulfill(this, GenericStack.fromIAEStack(extracted), context);
-                    removedList.add(GenericStack.fromIAEStack(extracted));
+                final long requestSize = Math.min(request.remainingToProcess, exactMatching.amount());
+                GenericStack extracted = source.extractAny(
+                        new GenericStack(exactMatching.what(), requestSize), Actionable.MODULATE);
+                if (extracted != null && extracted.amount() > 0) {
+                    request.fulfill(this, extracted, context);
+                    removedList.add(extracted);
                 }
             }
         }
 
         private void extractFuzzy(CraftingContext context, MECraftingInventory source, List<GenericStack> removedList) {
-            Collection<? extends IAEStackBase> fuzzyMatching = source.findFuzzyAny(
-                    new GenericStack(request.what, request.remainingToProcess).toIAEStack(), FuzzyMode.IGNORE_ALL);
-            for (final IAEStackBase candidateBase : fuzzyMatching) {
+            var fuzzyMatching = source.findFuzzyAny(
+                    new GenericStack(request.what, request.remainingToProcess), FuzzyMode.IGNORE_ALL);
+            for (final var candidateBase : fuzzyMatching) {
                 if (candidateBase == null) continue;
-                IAEStack<?> candidate = (IAEStack<?>) candidateBase;
+                var candidate = (IAEStack<?>) candidateBase;
                 if (request.acceptableSubstituteFn.test(candidate.toAEKey())) {
                     final long requestSize = Math.min(request.remainingToProcess, candidate.getStackSize());
-                    final IAEStack<?> extracted = source.extractAny(
-                            candidate.copy().setStackSize(requestSize), Actionable.MODULATE);
-                    if (extracted == null || extracted.getStackSize() <= 0) continue;
-                    extracted.setCraftable(false);
-                    request.fulfill(this, GenericStack.fromIAEStack(extracted), context);
-                    removedList.add(GenericStack.fromIAEStack(extracted));
+                    var extracted = source.extractAny(
+                            new GenericStack(candidate.toAEKey(), requestSize), Actionable.MODULATE);
+                    if (extracted == null || extracted.amount() <= 0) continue;
+                    request.fulfill(this, extracted, context);
+                    removedList.add(extracted);
                 }
             }
         }
@@ -161,8 +158,8 @@ public class ExtractItemResolver implements CraftingRequestResolver {
                 MECraftingInventory craftingInv) {
             for (GenericStack stack : removedFromSystem) {
                 if (stack.amount() > 0) {
-                    IAEStack<?> extracted = craftingInv.extractAny(stack.toIAEStack(), Actionable.MODULATE);
-                    if (extracted == null || extracted.getStackSize() != stack.amount()) {
+                    GenericStack extracted = craftingInv.extractAny(stack, Actionable.MODULATE);
+                    if (extracted == null || extracted.amount() != stack.amount()) {
                         throw new IllegalStateException(new CraftBranchFailure(stack));
                     }
                     cpuCluster.addStorage(extracted);

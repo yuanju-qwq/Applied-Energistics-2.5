@@ -1,4 +1,4 @@
-package appeng.client.gui;
+package appeng.util;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

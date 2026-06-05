@@ -37,6 +37,7 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
@@ -61,12 +62,12 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.client.gui.widgets.GuiCustomSlot;
-import appeng.client.gui.widgets.ITooltip;
 import appeng.client.me.InternalSlotME;
 import appeng.client.me.SlotDisconnected;
 import appeng.client.me.SlotME;
+import appeng.client.mui.widgets.IMUITooltip;
 import appeng.client.mui.widgets.MUIButtonPool;
+import appeng.client.mui.widgets.MUICustomSlot;
 import appeng.client.mui.widgets.MUIScrollBar;
 import appeng.client.render.StackSizeRenderer;
 import appeng.client.render.stack.AEStackTypeRendererRegistry;
@@ -107,7 +108,7 @@ import appeng.util.item.AEItemStack;
  *   <li>统一的绘制管线（背景 → 控件 → 前景）</li>
  *   <li>旧式 drawBG/drawFG 钩子（兼容旧 GUI 移植）</li>
  *   <li>Scrollbar集成（{@link MUIScrollBar}）</li>
- *   <li>GuiCustomSlot 绘制和交互</li>
+ *   <li>MUICustomSlot 绘制和交互</li>
  *   <li>特殊槽位渲染（SlotME、流体槽、SlotFake 等）</li>
  *   <li>滚轮事件分发</li>
  *   <li>热键映射和双击逻辑</li>
@@ -129,8 +130,8 @@ public abstract class AEBasePanel extends GuiContainer {
 
     // ========== Legacy GUI compatibility layer ==========
 
-    /** Custom slot list (compatible with legacy GuiCustomSlot system) */
-    protected final List<GuiCustomSlot> guiSlots = new ArrayList<>();
+    /** Custom slot list (compatible with legacy GuiCustomSlot system, but now stored as MUICustomSlot) */
+    protected final List<MUICustomSlot> guiSlots = new ArrayList<>();
 
     /** ME internal slot list */
     private final List<InternalSlotME> meSlots = new ArrayList<>();
@@ -144,7 +145,7 @@ public abstract class AEBasePanel extends GuiContainer {
     /** Drag-click slot record (prevents duplicate triggers) */
     private final Set<Slot> dragClick = new HashSet<>();
 
-    /** Whether GuiCustomSlot click is being processed */
+    /** Whether MUICustomSlot click is being processed */
     private boolean handlingCustomSlotClick = false;
 
     /** Double-click logic related */
@@ -264,15 +265,15 @@ public abstract class AEBasePanel extends GuiContainer {
         super.drawDefaultBackground();
         super.drawScreen(mouseX, mouseY, partialTicks);
 
-        // Draw GuiCustomSlot (in panel coordinate space)
+        // Draw MUICustomSlot (in panel coordinate space)
         GlStateManager.pushMatrix();
         GlStateManager.translate(this.guiLeft, this.guiTop, 0.0F);
         GlStateManager.enableDepth();
-        for (final GuiCustomSlot c : this.guiSlots) {
+        for (final MUICustomSlot c : this.guiSlots) {
             this.drawGuiSlot(c, mouseX, mouseY, partialTicks);
         }
         GlStateManager.disableDepth();
-        for (final GuiCustomSlot c : this.guiSlots) {
+        for (final MUICustomSlot c : this.guiSlots) {
             this.drawTooltip(c, mouseX - this.guiLeft, mouseY - this.guiTop);
         }
         GlStateManager.popMatrix();
@@ -282,19 +283,19 @@ public abstract class AEBasePanel extends GuiContainer {
 
         // Button and label tooltips
         for (final Object c : this.buttonList) {
-            if (c instanceof ITooltip) {
-                this.drawTooltip((ITooltip) c, mouseX, mouseY);
+            if (c instanceof IMUITooltip) {
+                this.drawTooltip((IMUITooltip) c, mouseX, mouseY);
             }
         }
         for (final Object o : this.labelList) {
-            if (o instanceof ITooltip) {
-                this.drawTooltip((ITooltip) o, mouseX, mouseY);
+            if (o instanceof IMUITooltip) {
+                this.drawTooltip((IMUITooltip) o, mouseX, mouseY);
             }
         }
-        // MUI widget tooltips (for widgets implementing ITooltip but not in buttonList)
+        // MUI widget tooltips (for widgets implementing IMUITooltip but not in buttonList)
         for (final IMUIWidget w : this.widgets) {
-            if (w instanceof ITooltip && !(w instanceof net.minecraft.client.gui.GuiButton)) {
-                this.drawTooltip((ITooltip) w, mouseX, mouseY);
+            if (w instanceof IMUITooltip && !(w instanceof net.minecraft.client.gui.GuiButton)) {
+                this.drawTooltip((IMUITooltip) w, mouseX, mouseY);
             }
             // Draw tooltips for active buttons inside MUIButtonPool
             if (w instanceof MUIButtonPool) {
@@ -353,9 +354,9 @@ public abstract class AEBasePanel extends GuiContainer {
             }
         }
 
-        // GuiCustomSlot background drawing
-        for (final GuiCustomSlot slot : this.guiSlots) {
-            slot.drawBackground(ox, oy);
+        // MUICustomSlot background drawing
+        for (final MUICustomSlot slot : this.guiSlots) {
+            slot.drawBackground(this, ox, oy);
         }
 
         // MUI widget background layer
@@ -446,19 +447,19 @@ public abstract class AEBasePanel extends GuiContainer {
     protected void drawFG(int offsetX, int offsetY, int mouseX, int mouseY) {
     }
 
-    // ========== GuiCustomSlot rendering ==========
+    // ========== MUICustomSlot rendering ==========
 
     /**
-     * 绘制单个 GuiCustomSlot（内容 + 悬停高亮）。
+     * 绘制单个 MUICustomSlot（内容 + 悬停高亮）。
      */
-    protected void drawGuiSlot(GuiCustomSlot slot, int mouseX, int mouseY, float partialTicks) {
+    protected void drawGuiSlot(MUICustomSlot slot, int mouseX, int mouseY, float partialTicks) {
         if (slot.isSlotEnabled()) {
             final int left = slot.xPos();
             final int top = slot.yPos();
             final int right = left + slot.getWidth();
             final int bottom = top + slot.getHeight();
 
-            slot.drawContent(this.mc, mouseX, mouseY, partialTicks);
+            slot.drawContent(this, this.mc, mouseX, mouseY, partialTicks);
 
             if (this.isPointInRegion(left, top, slot.getWidth(), slot.getHeight(), mouseX, mouseY)
                     && slot.canClick(this.mc.player)) {
@@ -490,7 +491,7 @@ public abstract class AEBasePanel extends GuiContainer {
                 this.zLevel = 0.0F;
                 this.itemRender.zLevel = 0.0F;
 
-                super.drawSlot(new appeng.client.gui.Size1Slot((SlotME) s));
+                super.drawSlot(new appeng.client.mui.slot.Size1Slot((SlotME) s));
                 this.stackSizeRenderer.renderStackSize(this.fontRenderer, ((SlotME) s).getAEStack(), s.xPos, s.yPos);
             } catch (final Exception err) {
                 AELog.warn("[AppEng] AE prevented crash while drawing slot: " + err);
@@ -715,8 +716,8 @@ public abstract class AEBasePanel extends GuiContainer {
             }
         }
 
-        // GuiCustomSlot click
-        for (GuiCustomSlot slot : this.guiSlots) {
+        // MUICustomSlot click
+        for (MUICustomSlot slot : this.guiSlots) {
             if (this.isPointInRegion(slot.xPos(), slot.yPos(), slot.getWidth(), slot.getHeight(), mouseX, mouseY)
                     && slot.canClick(this.mc.player)) {
                 this.handlingCustomSlotClick = true;
@@ -1082,9 +1083,13 @@ public abstract class AEBasePanel extends GuiContainer {
     // ========== Tooltips ==========
 
     /**
-     * 绘制 {@link ITooltip} 控件的工具提示。
+     * 绘制 {@link IMUITooltip} 控件的工具提示。
+     * <p>
+     * 该方法接受 MUI 命名空间下的 {@link IMUITooltip} 契约。由于旧的
+     * {@code appeng.client.gui.widgets.ITooltip} 已经 {@code extends IMUITooltip}，
+     * 旧代码传入 ITooltip 实例也能被该方法正确处理。
      */
-    public void drawTooltip(ITooltip tooltip, int mouseX, int mouseY) {
+    public void drawTooltip(IMUITooltip tooltip, int mouseX, int mouseY) {
         final int tx = tooltip.xPos();
         int ty = tooltip.yPos();
 
@@ -1147,6 +1152,57 @@ public abstract class AEBasePanel extends GuiContainer {
     public void bindTexture(final String base, final String file) {
         final ResourceLocation loc = new ResourceLocation(base, "textures/" + file);
         this.mc.getTextureManager().bindTexture(loc);
+    }
+
+    // ========== Drawing primitives (MUI-side delegation) ==========
+    //
+    // The following methods are MUI-side public entry points that replace the
+    // legacy `net.minecraft.client.gui.Gui` static helpers. MUI widgets and
+    // modules must call these through the panel (or via this class for
+    // statics) instead of importing `Gui` directly, so that the MUI code
+    // base no longer carries a transitive dependency on the vanilla
+    // `Gui` rendering primitives.
+
+    /**
+     * MUI-aware wrapper for {@code Gui.drawModalRectWithCustomSizedTexture}.
+     * <p>
+     * Draws a textured rectangle using the currently bound texture. The
+     * texture coordinate system is normalised against the texture's full
+     * size, allowing sub-rectangle sampling (e.g. for icon atlases).
+     *
+     * @param x            screen X
+     * @param y            screen Y
+     * @param u            texture U offset (in texels)
+     * @param v            texture V offset (in texels)
+     * @param width        rectangle width
+     * @param height       rectangle height
+     * @param textureWidth full texture width
+     * @param textureHeight full texture height
+     */
+    public void drawModalRectWithCustomSizedTexture(final int x, final int y,
+            final double u, final double v, final int width, final int height,
+            final double textureWidth, final double textureHeight) {
+        Gui.drawModalRectWithCustomSizedTexture(
+                x, y, (float) u, (float) v, width, height, (float) textureWidth, (float) textureHeight);
+    }
+
+    /**
+     * MUI-aware wrapper for {@code Gui.drawRect}.
+     * <p>
+     * Draws a solid-colour rectangle (no texture binding required). Kept as
+     * a static method on the panel class so that call sites which do not
+     * have an {@link AEBasePanel} instance handy (e.g. slot background
+     * painters) can still use a single, consistent entry point.
+     *
+     * @param left   left edge
+     * @param top    top edge
+     * @param right  right edge
+     * @param bottom bottom edge
+     * @param color  packed ARGB colour
+     */
+    public static void drawSolidRect(final int left, final int top,
+            final int right, final int bottom, final int color) {
+        Gui.drawRect(left, top, right, bottom, color);
     }
 
     // ========== Slot positioning ==========
@@ -1331,9 +1387,9 @@ public abstract class AEBasePanel extends GuiContainer {
     }
 
     /**
-     * @return GuiCustomSlot 列表
+     * @return MUICustomSlot 列表
      */
-    public List<GuiCustomSlot> getGuiSlots() {
+    public List<MUICustomSlot> getGuiSlots() {
         return this.guiSlots;
     }
 

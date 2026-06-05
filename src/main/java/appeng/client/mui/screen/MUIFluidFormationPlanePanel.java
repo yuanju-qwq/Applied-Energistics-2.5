@@ -20,7 +20,7 @@ package appeng.client.mui.screen;
 
 import appeng.api.config.Upgrades;
 import appeng.api.stacks.AEKeyType;
-import appeng.client.gui.slots.VirtualMEPhantomSlot;
+import appeng.client.mui.slot.VirtualMEPhantomSlot;
 import appeng.client.mui.widgets.MUITabContainer;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;

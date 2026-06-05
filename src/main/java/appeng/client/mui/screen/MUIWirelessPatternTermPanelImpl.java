@@ -18,9 +18,6 @@
 
 package appeng.client.mui.screen;
 
-import java.io.IOException;
-
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -33,7 +30,9 @@ import appeng.helpers.WirelessTerminalGuiObject;
  * MUI wireless pattern terminal panel.
  * <p>
  * Extends {@link MUIPatternTermPanel} (via its wireless constructor),
- * adding wireless upgrade icon and terminal mode toggle button.
+ * adding wireless upgrade icon and terminal mode toggle button. Mode-switch buttons are
+ * MUI widgets registered through {@link WirelessTerminalHelper} →
+ * {@link appeng.client.mui.widgets.MUIUniversalTerminalButtons}.
  * <p>
  * Pattern encoding functionality (crafting/processing mode, virtual slots, 4x4 extended processing layout, etc.)
  * is all reused from the parent class.
@@ -53,20 +52,12 @@ public class MUIWirelessPatternTermPanelImpl extends MUIPatternTermPanel impleme
         super.initGui();
         this.wirelessHelper.initButtons(
                 ((AEBaseContainer) this.inventorySlots).getPlayerInv(),
-                this.guiLeft, this.guiTop, this.buttonList, 200, this.itemRender);
-    }
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        if (this.wirelessHelper.handleButtonClick(btn)) {
-            return;
-        }
-        super.actionPerformed(btn);
+                this.guiLeft, this.guiTop, this.widgets, 200, this.itemRender);
     }
 
     @Override
     public void drawBG(int offsetX, int offsetY, int mouseX, int mouseY) {
-        this.wirelessHelper.drawWirelessIcon(offsetX, offsetY, 198, 127);
+        this.wirelessHelper.drawWirelessIcon(this, offsetX, offsetY, 198, 127);
         super.drawBG(offsetX, offsetY, mouseX, mouseY);
     }
 }

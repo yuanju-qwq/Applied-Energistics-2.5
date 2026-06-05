@@ -22,8 +22,8 @@ import appeng.api.config.LockCraftingMode;
 import appeng.api.config.Settings;
 import appeng.api.config.YesNo;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiImgLabel;
 import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUIImgLabel;
 import appeng.client.mui.widgets.MUITabContainer;
 import appeng.client.mui.widgets.MUIToggleButton;
 import appeng.container.implementations.ContainerPatternProvider;
@@ -48,7 +48,7 @@ public class MUIPatternProviderPanel extends MUIUpgradeablePanel {
     private MUIButtonWidget blockMode;
     private MUIButtonWidget unlockMode;
     private MUIToggleButton interfaceMode;
-    private GuiImgLabel lockReason;
+    private MUIImgLabel lockReason;
 
     public MUIPatternProviderPanel(final ContainerPatternProvider container) {
         super(container);
@@ -91,11 +91,11 @@ public class MUIPatternProviderPanel extends MUIUpgradeablePanel {
 
     protected void addLabel() {
         if (this.lockReason != null) {
-            this.labelList.remove(this.lockReason);
+            this.widgets.remove(this.lockReason);
         }
-        this.lockReason = new GuiImgLabel(this.fontRenderer, this.guiLeft + 40, this.guiTop + 12, Settings.UNLOCK,
+        this.lockReason = new MUIImgLabel(this.fontRenderer, 40, 12, Settings.UNLOCK,
                 LockCraftingMode.NONE);
-        this.labelList.add(this.lockReason);
+        this.addWidget(this.lockReason);
     }
 
     // ========== Rendering ==========

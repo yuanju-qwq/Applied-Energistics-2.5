@@ -36,9 +36,11 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.parts.IConversionMonitorHandler;
 import appeng.api.parts.IConversionMonitorHost;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.util.InventoryAdaptor;
 import appeng.util.StorageHelper;
@@ -72,7 +74,7 @@ public final class ItemConversionMonitorHandler implements IConversionMonitorHan
 
     @Nullable
     @Override
-    public IAEItemStack getStackFromContainer(@Nonnull ItemStack heldItem) {
+    public GenericStack getStackFromContainer(@Nonnull ItemStack heldItem) {
         return null;
     }
 
@@ -94,11 +96,14 @@ public final class ItemConversionMonitorHandler implements IConversionMonitorHan
     @Override
     public void insertAllFromPlayer(
             @Nonnull EntityPlayer player,
-            @Nonnull IAEItemStack displayed,
+            @Nonnull GenericStack displayed,
             @Nonnull IEnergySource energy,
             @Nonnull IMEMonitor monitor,
             @Nonnull IActionSource src) {
-        final IAEItemStack template = displayed.copy();
+        final IAEItemStack template = (IAEItemStack) displayed.toIAEStack();
+        if (template == null) {
+            return;
+        }
         final IItemHandler inv = new PlayerMainInvWrapper(player.inventory);
 
         for (int x = 0; x < inv.getSlots(); x++) {
@@ -123,13 +128,16 @@ public final class ItemConversionMonitorHandler implements IConversionMonitorHan
     public void extractToPlayer(
             @Nonnull EntityPlayer player,
             @Nonnull EnumHand hand,
-            @Nonnull IAEItemStack displayed,
+            @Nonnull GenericStack displayed,
             long count,
             @Nonnull IEnergySource energy,
             @Nonnull IMEMonitor monitor,
             @Nonnull IActionSource src,
             @Nonnull IConversionMonitorHost host) {
-        final IAEItemStack request = displayed.copy();
+        final IAEItemStack request = (IAEItemStack) displayed.toIAEStack();
+        if (request == null) {
+            return;
+        }
         request.setStackSize(count);
 
         final GenericStack retrieved = StorageHelper.poweredExtraction(energy, monitor,
@@ -153,11 +161,11 @@ public final class ItemConversionMonitorHandler implements IConversionMonitorHan
 
     @Nullable
     @Override
-    public IAEItemStack resolveConfiguredStack(@Nonnull ItemStack heldItem) {
+    public GenericStack resolveConfiguredStack(@Nonnull ItemStack heldItem) {
         if (heldItem.isEmpty()) {
             return null;
         }
         final IAEItemStack stack = AEItemStack.fromItemStack(heldItem);
-        return stack != null ? (IAEItemStack) stack.setStackSize(0) : null;
+        return stack != null ? GenericStack.fromIAEStack((IAEStack<?>) stack.setStackSize(0)) : null;
     }
 }

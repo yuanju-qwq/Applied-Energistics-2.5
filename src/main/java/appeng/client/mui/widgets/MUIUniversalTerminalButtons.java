@@ -16,61 +16,67 @@
  * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
  */
 
-package appeng.client.gui.widgets;
+package appeng.client.mui.widgets;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.client.gui.GuiButton;
+import javax.annotation.Nullable;
+
 import net.minecraft.client.renderer.RenderItem;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 
 import appeng.api.AEApi;
+import appeng.client.mui.IMUIWidget;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.items.tools.powered.ToolWirelessUniversalTerminal;
 import appeng.items.tools.powered.WirelessTerminalMode;
 
 /**
- * 通用无线终端的 GUI 模式切换按钮管理器。
- * 用于在各无线终端 GUI 中添加终端切换按钮。
- * 当玩家持有通用终端时，会在 GUI 左侧显示其他已安装模式的切换按钮。
+ * Universal wireless terminal mode-switch button manager (MUI version).
+ * <p>
+ * Used by all wireless terminal MUI panels. When the player is holding a
+ * {@link ToolWirelessUniversalTerminal}, this helper adds a vertical column of
+ * {@link MUITabButton}s to the left side of the GUI — one for each installed
+ * mode other than the currently-active mode.
+ * <p>
+ * Equivalent to the legacy {@code UniversalTerminalButtons}, but uses MUI
+ * widgets and callback handlers instead of the legacy {@code actionPerformed}
+ * pattern.
  */
-public class UniversalTerminalButtons {
+public class MUIUniversalTerminalButtons {
 
     private final List<ModeButton> modeButtons = new ArrayList<>();
     private final ItemStack terminalStack;
-    private boolean isUniversalTerminal;
+    private final boolean isUniversalTerminal;
 
-    /**
-     * @param ip 玩家物品栏
-     */
-    public UniversalTerminalButtons(InventoryPlayer ip) {
+    public MUIUniversalTerminalButtons(InventoryPlayer ip) {
         this.terminalStack = findUniversalTerminal(ip);
         this.isUniversalTerminal = !this.terminalStack.isEmpty();
     }
 
     /**
-     * 在 GUI 的 initGui() 中调用。创建并添加模式切换按钮。
+     * Initialize mode-switch buttons. Call from the host panel's {@code initGui()}.
      *
-     * @param guiLeft     GUI 左边界 x
-     * @param guiTop      GUI 上边界 y
-     * @param buttonList  GUI 的按钮列表
-     * @param nextButtonId 下一个可用的按钮 ID
-     * @param itemRender  物品渲染器
-     * @return 使用的按钮数量（用于后续 ID 分配）
+     * @param panelX        GUI left edge in screen coordinates
+     * @param panelY        GUI top edge in screen coordinates
+     * @param buttonList    the host panel's MUI widget list (typically
+     *                      {@code panel.widgets} or a module's container)
+     * @param baseButtonId  base id for buttons (kept for API compatibility)
+     * @param itemRender    item renderer used by the tab buttons
+     * @return number of buttons created
      */
-    public int initButtons(int guiLeft, int guiTop, List<GuiButton> buttonList, int nextButtonId,
-            RenderItem itemRender) {
+    public int initButtons(int panelX, int panelY, List<IMUIWidget> buttonList, int baseButtonId,
+            @Nullable RenderItem itemRender) {
         this.modeButtons.clear();
-        if (!isUniversalTerminal) {
+        if (!this.isUniversalTerminal) {
             return 0;
         }
 
-        WirelessTerminalMode currentMode = ToolWirelessUniversalTerminal.getMode(terminalStack);
-        int[] installedModes = ToolWirelessUniversalTerminal.getInstalledModes(terminalStack);
+        WirelessTerminalMode currentMode = ToolWirelessUniversalTerminal.getMode(this.terminalStack);
+        int[] installedModes = ToolWirelessUniversalTerminal.getInstalledModes(this.terminalStack);
         int count = 0;
 
         for (int modeId : installedModes) {
@@ -82,9 +88,9 @@ public class UniversalTerminalButtons {
             ItemStack iconStack = getIconForMode(mode);
             String tooltip = mode.getName();
 
-            GuiTabButton btn = new GuiTabButton(guiLeft - 22, guiTop + 4 + count * 24, iconStack, tooltip,
-                    itemRender);
-            btn.id = nextButtonId + count;
+            MUITabButton btn = new MUITabButton(panelX - 22, panelY + 4 + count * 24,
+                    iconStack, tooltip, itemRender);
+            btn.setOnClick(tab -> sendModeSwitchPacket(mode));
 
             ModeButton modeButton = new ModeButton(btn, mode);
             this.modeButtons.add(modeButton);
@@ -95,39 +101,26 @@ public class UniversalTerminalButtons {
         return count;
     }
 
-    /**
-     * 处理按钮点击事件。如果是模式切换按钮，发送网络包并返回 true。
-     *
-     * @param button 被点击的按钮
-     * @return true 如果已处理，false 如果不是模式切换按钮
-     */
-    public boolean handleButtonClick(GuiButton button) {
-        for (ModeButton mb : modeButtons) {
-            if (mb.button == button) {
-                try {
-                    NetworkHandler.instance().sendToServer(
-                            new PacketValueConfig("UniversalTerminal.SwitchMode",
-                                    String.valueOf(mb.mode.getId())));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                return true;
-            }
+    private void sendModeSwitchPacket(WirelessTerminalMode mode) {
+        try {
+            NetworkHandler.instance().sendToServer(
+                    new PacketValueConfig("UniversalTerminal.SwitchMode", String.valueOf(mode.getId())));
+        } catch (Exception e) {
+            // ignore network errors
         }
-        return false;
     }
 
     /**
-     * 查看是否是通用终端。
+     * Returns true if the player is holding a universal terminal.
      */
     public boolean isUniversalTerminal() {
-        return isUniversalTerminal;
+        return this.isUniversalTerminal;
     }
 
     /**
-     * 获取指定模式的图标物品。
+     * Icon item for a given wireless terminal mode. Falls back to empty stack.
      */
-    private ItemStack getIconForMode(WirelessTerminalMode mode) {
+    private static ItemStack getIconForMode(WirelessTerminalMode mode) {
         switch (mode) {
             case TERMINAL:
                 return AEApi.instance().definitions().items().wirelessTerminal().maybeStack(1).orElse(ItemStack.EMPTY);
@@ -152,7 +145,7 @@ public class UniversalTerminalButtons {
     }
 
     /**
-     * 在玩家物品栏中查找通用终端物品。
+     * Locate the universal terminal in the player's main or off hand.
      */
     private static ItemStack findUniversalTerminal(InventoryPlayer ip) {
         ItemStack mainHand = ip.player.getHeldItemMainhand();
@@ -167,13 +160,13 @@ public class UniversalTerminalButtons {
     }
 
     /**
-     * 模式按钮的内部数据结构。
+     * Internal data record pairing a tab button with its associated mode.
      */
-    private static class ModeButton {
-        final GuiTabButton button;
+    private static final class ModeButton {
+        final MUITabButton button;
         final WirelessTerminalMode mode;
 
-        ModeButton(GuiTabButton button, WirelessTerminalMode mode) {
+        ModeButton(MUITabButton button, WirelessTerminalMode mode) {
             this.button = button;
             this.mode = mode;
         }

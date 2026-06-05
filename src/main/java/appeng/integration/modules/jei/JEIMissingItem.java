@@ -23,14 +23,16 @@ import mezz.jei.gui.TooltipRenderer;
 import mezz.jei.gui.recipes.RecipeLayout;
 import mezz.jei.gui.recipes.RecipeTransferButton;
 
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+
 import appeng.api.config.FuzzyMode;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IItemList;
 import appeng.container.implementations.ContainerMEMonitorable;
 import appeng.helpers.IContainerCraftingPacket;
 import appeng.util.Platform;
-import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
 
 public class JEIMissingItem implements IRecipeTransferError {
 
@@ -39,21 +41,27 @@ public class JEIMissingItem implements IRecipeTransferError {
     private final List<Integer> craftableSlots = new ArrayList<>();
     private final List<Integer> foundSlots = new ArrayList<>();
 
-    IItemList<IAEItemStack> available = new ItemList();
+    KeyCounter available = new KeyCounter();
 
-    IItemList<IAEItemStack> used = new ItemList();
+    KeyCounter used = new KeyCounter();
 
     JEIMissingItem(Container container, @Nonnull IRecipeLayout recipeLayout) {
         if (container instanceof ContainerMEMonitorable) {
-            IItemList<IAEItemStack> ir = ((ContainerMEMonitorable) container).items;
+            KeyCounter ir = new KeyCounter();
+            for (IAEItemStack stack : ((ContainerMEMonitorable) container).items) {
+                AEKey key = stack.toAEKey();
+                if (key != null) {
+                    ir.add(key, stack.getStackSize());
+                }
+            }
 
-            IItemList<IAEItemStack> available = mergeInventories(ir, (ContainerMEMonitorable) container);
+            KeyCounter available = mergeInventories(ir, (ContainerMEMonitorable) container);
 
             boolean found;
             this.errored = false;
             recipeLayout.getItemStacks().addTooltipCallback(new CraftableCallBack(container, available));
 
-            IItemList<IAEItemStack> used = new ItemList();
+            KeyCounter used = new KeyCounter();
             for (IGuiIngredient<?> i : recipeLayout.getItemStacks().getGuiIngredients().values()) {
                 found = false;
                 if (i.isInput() && !i.getAllIngredients().isEmpty()) {
@@ -62,30 +70,29 @@ public class JEIMissingItem implements IRecipeTransferError {
                         if (allIngredient instanceof ItemStack) {
                             ItemStack stack = (ItemStack) allIngredient;
                             if (!stack.isEmpty()) {
-                                IAEItemStack search = AEItemStack.fromItemStack(stack);
+                                AEItemKey search = AEItemKey.of(stack);
+                                if (search == null) continue;
                                 if (stack.getItem().isDamageable() || Platform.isGTDamageableItem(stack.getItem())) {
-                                    Collection<IAEItemStack> fuzzy = available.findFuzzy(search, FuzzyMode.IGNORE_ALL);
+                                    Collection<Object2LongMap.Entry<AEKey>> fuzzy = available.findFuzzy(search, FuzzyMode.IGNORE_ALL);
                                     if (!fuzzy.isEmpty()) {
-                                        for (IAEItemStack itemStack : fuzzy) {
-                                            if (itemStack.getStackSize() > 0) {
+                                        for (Object2LongMap.Entry<AEKey> entry : fuzzy) {
+                                            if (entry.getLongValue() > 0) {
                                                 if (Platform.isGTDamageableItem(stack.getItem())) {
-                                                    if (!(stack.getMetadata() == itemStack.getDefinition()
-                                                            .getMetadata())) {
+                                                    if (!(stack.getMetadata() == ((AEItemKey) entry.getKey()).getItemDamage())) {
                                                         continue;
                                                     }
                                                 }
                                                 found = true;
-                                                used.add(itemStack.copy().setStackSize(1));
+                                                used.add(entry.getKey(), 1);
                                             }
                                         }
                                     }
                                 } else {
-                                    IAEItemStack ext = available.findPrecise(search);
-                                    if (ext != null) {
-                                        IAEItemStack usedStack = used.findPrecise(ext);
-                                        if (ext.getStackSize() > 0 && (usedStack == null
-                                                || ext.getStackSize() > usedStack.getStackSize())) {
-                                            used.add(ext.copy().setStackSize(1));
+                                    long ext = available.get(search);
+                                    if (ext > 0) {
+                                        long usedCount = used.get(search);
+                                        if (usedCount < ext) {
+                                            used.add(search, 1);
                                             found = true;
                                         }
                                     }
@@ -115,7 +122,13 @@ public class JEIMissingItem implements IRecipeTransferError {
             int recipeY) {
         Container c = minecraft.player.openContainer;
         if (c instanceof ContainerMEMonitorable container) {
-            IItemList<IAEItemStack> ir = ((ContainerMEMonitorable) c).items;
+            KeyCounter ir = new KeyCounter();
+            for (IAEItemStack stack : ((ContainerMEMonitorable) c).items) {
+                AEKey key = stack.toAEKey();
+                if (key != null) {
+                    ir.add(key, stack.getStackSize());
+                }
+            }
             boolean found = false;
             boolean foundAny = false;
             boolean craftable = false;
@@ -143,54 +156,46 @@ public class JEIMissingItem implements IRecipeTransferError {
                 }
                 return;
             }
-            this.used.resetStatus();
+            this.used.reset();
 
             for (IGuiIngredient<?> i : recipeLayout.getItemStacks().getGuiIngredients().values()) {
                 found = false;
                 craftable = false;
-                IItemList<IAEItemStack> valid = new ItemList();
+                KeyCounter valid = new KeyCounter();
                 if (i.isInput()) {
                     List<?> allIngredients = i.getAllIngredients();
                     for (Object allIngredient : allIngredients) {
                         if (allIngredient instanceof ItemStack stack) {
                             if (!stack.isEmpty()) {
-                                IAEItemStack search = AEItemStack.fromItemStack(stack);
+                                AEItemKey search = AEItemKey.of(stack);
+                                if (search == null) continue;
                                 if (stack.getItem().isDamageable() || Platform.isGTDamageableItem(stack.getItem())) {
-                                    Collection<IAEItemStack> fuzzy = available.findFuzzy(search, FuzzyMode.IGNORE_ALL);
+                                    Collection<Object2LongMap.Entry<AEKey>> fuzzy = available.findFuzzy(search, FuzzyMode.IGNORE_ALL);
                                     if (!fuzzy.isEmpty()) {
-                                        for (IAEItemStack itemStack : fuzzy) {
-                                            if (itemStack.getStackSize() > 0) {
+                                        for (Object2LongMap.Entry<AEKey> entry : fuzzy) {
+                                            if (entry.getLongValue() > 0) {
                                                 if (Platform.isGTDamageableItem(stack.getItem())) {
-                                                    if (!(stack.getMetadata() == itemStack.getDefinition()
-                                                            .getMetadata())) {
+                                                    if (!(stack.getMetadata() == ((AEItemKey) entry.getKey()).getItemDamage())) {
                                                         continue;
                                                     }
                                                 }
                                                 found = true;
-                                                used.add(itemStack.copy().setStackSize(1));
-                                                valid.add(itemStack.copy().setStackSize(1));
-                                            } else {
-                                                if (itemStack.isCraftable()) {
-                                                    craftable = true;
-                                                }
+                                                used.add(entry.getKey(), 1);
+                                                valid.add(entry.getKey(), 1);
                                             }
                                         }
                                     }
                                 } else {
-                                    IAEItemStack ext = available.findPrecise(search);
-                                    if (ext != null) {
-                                        IAEItemStack usedStack = used.findPrecise(ext);
-                                        if (ext.getStackSize() > 0 && (usedStack == null
-                                                || usedStack.getStackSize() < ext.getStackSize())) {
-                                            used.add(ext.copy().setStackSize(1));
+                                    long ext = available.get(search);
+                                    if (ext > 0) {
+                                        long usedCount = used.get(search);
+                                        if (usedCount < ext) {
+                                            used.add(search, 1);
                                             if (craftable) {
-                                                valid.resetStatus();
+                                                valid = new KeyCounter();
                                             }
-                                            valid.add(ext.copy().setStackSize(1));
+                                            valid.add(search, 1);
                                             found = true;
-                                        } else if (ext.isCraftable()) {
-                                            valid.add(ext.copy().setStackSize(1));
-                                            craftable = true;
                                         }
                                     }
                                 }
@@ -204,13 +209,13 @@ public class JEIMissingItem implements IRecipeTransferError {
                         continue;
                     }
                     ArrayList<ItemStack> validStacks = new ArrayList<>();
-                    valid.forEach(v -> {
-                        if (v.getStackSize() > 0) {
-                            ItemStack validStack = v.createItemStack();
-                            validStack.setCount(1);
+                    for (Object2LongMap.Entry<AEKey> entry : valid) {
+                        if (entry.getLongValue() > 0) {
+                            AEItemKey key = (AEItemKey) entry.getKey();
+                            ItemStack validStack = key.toStack(1);
                             validStacks.add(validStack);
                         }
-                    });
+                    }
                     if (!found) {
                         if (craftable) {
                             i.drawHighlight(minecraft, new Color(0.0f, 0.0f, 1.0f, 0.4f), recipeX, recipeY);
@@ -249,23 +254,35 @@ public class JEIMissingItem implements IRecipeTransferError {
         }
     }
 
-    IItemList<IAEItemStack> mergeInventories(IItemList<IAEItemStack> repo,
+    KeyCounter mergeInventories(KeyCounter repo,
             ContainerMEMonitorable containerCraftingTerm) {
-        IItemList<IAEItemStack> itemList = new ItemList();
-        for (IAEItemStack i : repo) {
-            itemList.addStorage(i);
+        KeyCounter itemList = new KeyCounter();
+        for (Object2LongMap.Entry<AEKey> entry : repo) {
+            itemList.add(entry.getKey(), entry.getLongValue());
         }
 
         PlayerMainInvWrapper invWrapper = new PlayerMainInvWrapper(containerCraftingTerm.getPlayerInv());
         for (int i = 0; i < invWrapper.getSlots(); i++) {
-            itemList.addStorage(AEItemStack.fromItemStack(invWrapper.getStackInSlot(i)));
+            ItemStack stack = invWrapper.getStackInSlot(i);
+            if (!stack.isEmpty()) {
+                AEItemKey key = AEItemKey.of(stack);
+                if (key != null) {
+                    itemList.add(key, stack.getCount());
+                }
+            }
         }
 
         if (containerCraftingTerm instanceof IContainerCraftingPacket) {
             IItemHandler itemHandler = ((IContainerCraftingPacket) containerCraftingTerm)
                     .getInventoryByName("crafting");
             for (int i = 0; i < itemHandler.getSlots(); i++) {
-                itemList.addStorage(AEItemStack.fromItemStack(itemHandler.getStackInSlot(i)));
+                ItemStack stack = itemHandler.getStackInSlot(i);
+                if (!stack.isEmpty()) {
+                    AEItemKey key = AEItemKey.of(stack);
+                    if (key != null) {
+                        itemList.add(key, stack.getCount());
+                    }
+                }
             }
         }
         return itemList;

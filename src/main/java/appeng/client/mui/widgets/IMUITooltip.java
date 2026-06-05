@@ -16,25 +16,43 @@
  * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
  */
 
-package appeng.client.gui.widgets;
+package appeng.client.mui.widgets;
 
-import appeng.api.config.SortDir;
-import appeng.api.config.ViewItems;
-
-public interface ISortSource {
-
-    /**
-     * @return Sor
-     */
-    Enum getSortBy();
+/**
+ * MUI 命名空间下的 Tooltip 契约。
+ * <p>
+ * 由 {@link appeng.client.mui.AEBasePanel} 统一扫描并渲染。完全等价于已废弃的
+ * {@code appeng.client.gui.widgets.ITooltip}，仅迁移至 MUI 包以收敛依赖方向。
+ */
+public interface IMUITooltip {
 
     /**
-     * @return {@link SortDir}
+     * @return the tooltip message.
      */
-    Enum getSortDir();
+    String getMessage();
 
     /**
-     * @return {@link ViewItems}
+     * @return the x position of the object that triggers the tooltip.
      */
-    Enum getSortDisplay();
+    int xPos();
+
+    /**
+     * @return the y position of the object that triggers the tooltip.
+     */
+    int yPos();
+
+    /**
+     * @return the width of the object that triggers the tooltip.
+     */
+    int getWidth();
+
+    /**
+     * @return the height of the object that triggers the tooltip.
+     */
+    int getHeight();
+
+    /**
+     * @return true if the object is currently being drawn / is visible.
+     */
+    boolean isVisible();
 }

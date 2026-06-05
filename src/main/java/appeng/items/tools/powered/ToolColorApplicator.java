@@ -55,12 +55,12 @@ import appeng.api.implementations.items.IItemGroup;
 import appeng.api.implementations.items.IStorageCell;
 import appeng.api.implementations.tiles.IColorableTile;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEColor;
 import appeng.api.util.DimensionalCoord;
 import appeng.block.networking.BlockCableBus;
@@ -291,7 +291,7 @@ public class ToolColorApplicator extends AEBasePoweredItem
         return AEApi.instance()
                 .registries()
                 .cell()
-                .getCellInventory(stack, null, getStackType());
+                .getCellInventory(stack, null, AEKeyType.items());
     }
 
     public ItemStack getColor(final ItemStack is) {

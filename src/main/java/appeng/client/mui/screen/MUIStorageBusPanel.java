@@ -27,7 +27,7 @@ import net.minecraft.client.gui.GuiButton;
 import appeng.api.config.*;
 import appeng.api.storage.data.IAEStackType;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.slots.VirtualMEPhantomSlot;
+import appeng.client.mui.slot.VirtualMEPhantomSlot;
 import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.client.mui.widgets.MUITabContainer;
 import appeng.container.implementations.ContainerStorageBus;

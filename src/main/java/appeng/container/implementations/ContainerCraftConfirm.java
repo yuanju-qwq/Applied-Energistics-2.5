@@ -49,7 +49,6 @@ import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IItemList;
 import appeng.api.stacks.GenericStack;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
@@ -200,7 +199,7 @@ public class ContainerCraftConfirm extends AEBaseContainer {
                     final PacketMEInventoryUpdate c = this.result.isSimulation() ? new PacketMEInventoryUpdate((byte) 2)
                             : null;
 
-                    // 使用泛型多类型列表来存储合成计划（支持物品+流体）
+                    // 使用泛型多类型列表来存储合成计划（支持物�?流体�?
                     final IAEStackList plan = new IAEStackList();
                     this.result.populatePlan(plan);
 
@@ -452,7 +451,7 @@ public class ContainerCraftConfirm extends AEBaseContainer {
     }
 
     /**
-     * 泛型版本：接收包含物品和流体的合成计划更新。
+     * 泛型版本：接收包含物品和流体的合成计划更新�?
      */
     public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
         if (this.guiCallback != null) {
@@ -476,7 +475,7 @@ public class ContainerCraftConfirm extends AEBaseContainer {
     }
 
     /**
-     * 设置 GUI 回调（兼容旧 GUI 和新 MUI 面板）。
+     * 设置 GUI 回调（兼容旧 GUI 和新 MUI 面板）�?
      */
     public void setGui(ICraftConfirmGuiCallback callback) {
         this.guiCallback = callback;

@@ -20,10 +20,6 @@ package appeng.client.mui.screen;
 
 import java.io.IOException;
 
-import org.lwjgl.input.Mouse;
-
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 
@@ -35,12 +31,13 @@ import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IUpgradeModule;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.ICellWorkbenchItem;
-import appeng.client.gui.slots.VirtualMEPhantomSlot;
-import appeng.client.gui.widgets.GuiImgButton;
-import appeng.client.gui.widgets.GuiToggleButton;
+import appeng.client.mui.slot.VirtualMEPhantomSlot;
+import appeng.client.mui.widgets.MUIButtonWidget;
+import appeng.client.mui.widgets.MUIToggleButton;
 import appeng.container.implementations.ContainerCellWorkbench;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.network.NetworkHandler;
+import appeng.core.sync.packets.PacketConfigButton;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.tile.misc.TileCellWorkbench;
@@ -56,10 +53,10 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
     private final ContainerCellWorkbench workbench;
 
     // ========== Buttons ==========
-    private GuiImgButton clear;
-    private GuiImgButton partition;
-    private GuiToggleButton copyMode;
-    private GuiImgButton fuzzyBtn;
+    private MUIButtonWidget clear;
+    private MUIButtonWidget partition;
+    private MUIToggleButton copyMode;
+    private MUIButtonWidget fuzzyBtn;
 
     // ========== Virtual slots ==========
     private VirtualMEPhantomSlot[] configSlots;
@@ -82,17 +79,42 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
 
     @Override
     protected void addButtons() {
-        this.clear = new GuiImgButton(this.guiLeft - 18, this.guiTop + 8, Settings.ACTIONS, ActionItems.CLOSE);
-        this.partition = new GuiImgButton(this.guiLeft - 18, this.guiTop + 28, Settings.ACTIONS, ActionItems.WRENCH);
-        this.copyMode = new GuiToggleButton(this.guiLeft - 18, this.guiTop + 48, 11 * 16 + 5, 12 * 16 + 5,
-                GuiText.CopyMode.getLocal(), GuiText.CopyModeDesc.getLocal());
-        this.fuzzyBtn = new GuiImgButton(this.guiLeft - 18, this.guiTop + 68, Settings.FUZZY_MODE,
-                FuzzyMode.IGNORE_ALL);
+        this.clear = new MUIButtonWidget(-18, 8, Settings.ACTIONS, ActionItems.CLOSE);
+        this.clear.setOnClick(btn -> sendActionPacket("Clear"));
+        this.addWidget(this.clear);
 
-        this.buttonList.add(this.fuzzyBtn);
-        this.buttonList.add(this.partition);
-        this.buttonList.add(this.clear);
-        this.buttonList.add(this.copyMode);
+        this.partition = new MUIButtonWidget(-18, 28, Settings.ACTIONS, ActionItems.WRENCH);
+        this.partition.setOnClick(btn -> sendActionPacket("Partition"));
+        this.addWidget(this.partition);
+
+        this.copyMode = new MUIToggleButton(-18, 48, 11 * 16 + 5, 12 * 16 + 5,
+                GuiText.CopyMode.getLocal(), GuiText.CopyModeDesc.getLocal());
+        this.copyMode.setOnToggle(btn -> sendActionPacket("CopyMode"));
+        this.addWidget(this.copyMode);
+
+        this.fuzzyBtn = new MUIButtonWidget(-18, 68, Settings.FUZZY_MODE, FuzzyMode.IGNORE_ALL);
+        this.fuzzyBtn.setOnClick(btn -> cycleFuzzy());
+        this.addWidget(this.fuzzyBtn);
+    }
+
+    private void sendActionPacket(String action) {
+        try {
+            NetworkHandler.instance().sendToServer(
+                    new PacketValueConfig("CellWorkbench.Action", action));
+        } catch (IOException e) {
+            // ignore
+        }
+    }
+
+    private void cycleFuzzy() {
+        try {
+            final boolean backwards = org.lwjgl.input.Mouse.isButtonDown(1);
+            FuzzyMode fz = (FuzzyMode) this.fuzzyBtn.getCurrentValue();
+            fz = appeng.util.EnumCycler.rotateEnum(fz, backwards, Settings.FUZZY_MODE.getPossibleValues());
+            NetworkHandler.instance().sendToServer(new PacketValueConfig("CellWorkbench.Fuzzy", fz.name()));
+        } catch (IOException e) {
+            // ignore
+        }
     }
 
     // ========== Rendering ==========
@@ -179,29 +201,9 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
     }
 
     // ========== Button events ==========
-
-    @Override
-    protected void actionPerformed(final GuiButton btn) {
-        try {
-            if (btn == this.copyMode) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("CellWorkbench.Action", "CopyMode"));
-            } else if (btn == this.partition) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("CellWorkbench.Action", "Partition"));
-            } else if (btn == this.clear) {
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("CellWorkbench.Action", "Clear"));
-            } else if (btn == this.fuzzyBtn) {
-                final boolean backwards = Mouse.isButtonDown(1);
-
-                FuzzyMode fz = (FuzzyMode) this.fuzzyBtn.getCurrentValue();
-                fz = appeng.util.EnumCycler.rotateEnum(fz, backwards, Settings.FUZZY_MODE.getPossibleValues());
-
-                NetworkHandler.instance().sendToServer(new PacketValueConfig("CellWorkbench.Fuzzy", fz.name()));
-            } else {
-                super.actionPerformed(btn);
-            }
-        } catch (final IOException ignored) {
-        }
-    }
+    //
+    // All buttons (clear / partition / copyMode / fuzzy) use MUI onClick / onToggle
+    // callbacks registered in addButtons(); no actionPerformed override is needed.
 
     // ========== Virtual slot management ==========
 
@@ -234,7 +236,7 @@ public class MUICellWorkbenchPanel extends MUIUpgradeablePanel {
     private boolean acceptType(VirtualMEPhantomSlot slot, AEKeyType type, int mouseButton) {
         final ICellWorkbenchItem cell = this.workbench.getCell();
         if (cell != null) {
-            return type == AEKeyType.fromLegacyType(cell.getStackType());
+            return type == cell.getKeyType();
         }
         return false;
     }

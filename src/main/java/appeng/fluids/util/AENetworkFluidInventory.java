@@ -7,6 +7,7 @@ import net.minecraftforge.fluids.FluidStack;
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEFluidStack;
@@ -32,7 +33,7 @@ public class AENetworkFluidInventory extends AEFluidInventory {
         IStorageGrid storage = supplier.get();
         if (storage != null) {
             int originAmt = fluid.amount;
-            IMEInventory<IAEFluidStack> dest = storage
+            IMEInventory dest = storage
                     .getInventory(AEKeyType.fluids());
             GenericStack overflow = dest.injectItems(GenericStack.fromFluidStack(fluid),
                     doFill ? Actionable.MODULATE : Actionable.SIMULATE, this.source);

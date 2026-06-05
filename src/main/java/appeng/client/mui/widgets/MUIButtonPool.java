@@ -24,7 +24,6 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
-import appeng.client.gui.widgets.ITooltip;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 

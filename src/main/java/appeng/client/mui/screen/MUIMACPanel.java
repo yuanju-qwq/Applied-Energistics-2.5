@@ -22,9 +22,9 @@ import net.minecraft.entity.player.InventoryPlayer;
 
 import appeng.api.config.RedstoneMode;
 import appeng.api.config.Settings;
-import appeng.client.gui.widgets.GuiProgressBar.Direction;
 import appeng.client.mui.widgets.MUIButtonWidget;
 import appeng.client.mui.widgets.MUIProgressWidget;
+import appeng.client.mui.widgets.MUIProgressWidget.Direction;
 import appeng.container.implementations.ContainerMAC;
 import appeng.core.localization.GuiText;
 import appeng.tile.crafting.TileMolecularAssembler;

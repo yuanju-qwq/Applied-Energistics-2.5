@@ -30,6 +30,7 @@ import appeng.api.storage.IStorageMonitorable;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.packets.PacketPatternSlot;
 import appeng.helpers.IContainerCraftingPacket;
+import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
 public class SlotPatternTerm extends SlotCraftingTerm {

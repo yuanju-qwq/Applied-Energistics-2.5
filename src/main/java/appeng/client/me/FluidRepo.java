@@ -29,15 +29,16 @@ import appeng.api.config.Settings;
 import appeng.api.config.SortOrder;
 import appeng.api.config.ViewItems;
 import appeng.api.config.YesNo;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IItemList;
-import appeng.client.gui.widgets.IScrollSource;
-import appeng.client.gui.widgets.ISortSource;
+import appeng.client.mui.widgets.IMUIScrollSource;
+import appeng.client.mui.widgets.IMUISortSource;
 import appeng.core.AEConfig;
 import appeng.fluids.util.FluidSorters;
 import appeng.util.Platform;
 import appeng.util.prioritylist.IPartitionList;
-import appeng.fluids.util.AEFluidStackType;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 /**
  * @author BrockWS
@@ -45,10 +46,10 @@ import appeng.fluids.util.AEFluidStackType;
  * @since rv6 22/05/2018
  */
 public class FluidRepo {
-    private final IItemList<IAEFluidStack> list = new FluidList();
+    private final KeyCounter list = new KeyCounter();
     private final ArrayList<IAEFluidStack> view = new ArrayList<>();
-    private final IScrollSource src;
-    private final ISortSource sortSrc;
+    private final IMUIScrollSource src;
+    private final IMUISortSource sortSrc;
 
     private int rowSize = 9;
 
@@ -56,7 +57,7 @@ public class FluidRepo {
     private IPartitionList<IAEFluidStack> myPartitionList;
     private boolean hasPower;
 
-    public FluidRepo(final IScrollSource src, final ISortSource sortSrc) {
+    public FluidRepo(final IMUIScrollSource src, final IMUISortSource sortSrc) {
         this.src = src;
         this.sortSrc = sortSrc;
     }
@@ -91,7 +92,11 @@ public class FluidRepo {
                 .getSetting(Settings.SEARCH_TOOLTIPS) != YesNo.NO;
 
         boolean notDone = false;
-        for (IAEFluidStack fs : this.list) {
+        for (Object2LongMap.Entry<AEKey> entry : this.list) {
+            final AEKey key = entry.getKey();
+            final long amount = entry.getLongValue();
+            IAEFluidStack fs = (IAEFluidStack) key.toIAEStack(amount);
+
             if (this.myPartitionList != null && !this.myPartitionList.isListed(fs)) {
                 continue;
             }
@@ -100,7 +105,7 @@ public class FluidRepo {
                 continue;
             }
 
-            if (viewMode == ViewItems.STORED && fs.getStackSize() == 0) {
+            if (viewMode == ViewItems.STORED && amount == 0) {
                 continue;
             }
 
@@ -149,13 +154,9 @@ public class FluidRepo {
     }
 
     public void postUpdate(final IAEFluidStack is) {
-        final IAEFluidStack st = this.list.findPrecise(is);
-
-        if (st != null) {
-            st.reset();
-            st.add(is);
-        } else {
-            this.list.add(is);
+        final AEKey key = is.toAEKey();
+        if (key != null) {
+            this.list.set(key, is.getStackSize());
         }
     }
 
@@ -173,7 +174,7 @@ public class FluidRepo {
     }
 
     public void clear() {
-        this.list.resetStatus();
+        this.list.reset();
     }
 
     public boolean hasPower() {

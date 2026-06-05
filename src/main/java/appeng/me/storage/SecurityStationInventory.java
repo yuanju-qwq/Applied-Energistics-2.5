@@ -29,18 +29,21 @@ import appeng.api.config.SecurityPermissions;
 import appeng.api.implementations.items.IBiometricCard;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKeyType;
+import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IItemList;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.MEMonitorHandler;
 import appeng.me.helpers.MachineSource;
 import appeng.tile.misc.TileSecurityStation;
-import appeng.util.item.ItemList;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public class SecurityStationInventory implements IMEInventoryHandler {
 
-    private final IItemList<IAEItemStack> storedItems = new ItemList();
+    private final KeyCounter storedItems = new KeyCounter();
     private final TileSecurityStation securityTile;
     private final MachineSource src;
 
@@ -50,21 +53,22 @@ public class SecurityStationInventory implements IMEInventoryHandler {
     }
 
     @Override
-    public IAEItemStack injectItems(final IAEItemStack input, final Actionable type, final IActionSource src) {
+    public GenericStack injectItems(final GenericStack input, final Actionable type, final IActionSource src) {
         if (this.hasPermission(src)) {
-            if (AEApi.instance().definitions().items().biometricCard().isSameAs(input.createItemStack())) {
-                if (this.canAccept(input)) {
+            if (input.what() instanceof AEItemKey itemKey
+                    && AEApi.instance().definitions().items().biometricCard().isSameAs(itemKey.toStack())) {
+                if (this.canAccept(itemKey)) {
                     if (type == Actionable.SIMULATE) {
                         return null;
                     }
 
                     if (securityTile.getProxy().isActive()) {
-                        ((MEMonitorHandler<IAEItemStack>) securityTile
+                        ((MEMonitorHandler) ((IStorageMonitorable) securityTile)
                                 .getInventory(AEKeyType.items()))
-                                .postChangesToListeners(Collections.singletonList(input.copy()), this.src);
+                                .postChangesToListeners(Collections.singletonList(input), this.src);
                     }
 
-                    this.getStoredItems().add(input);
+                    this.getStoredItems().add(input.what(), input.amount());
                     this.securityTile.inventoryChanged();
                     return null;
                 }
@@ -86,38 +90,41 @@ public class SecurityStationInventory implements IMEInventoryHandler {
     }
 
     @Override
-    public IAEItemStack extractItems(final IAEItemStack request, final Actionable mode, final IActionSource src) {
+    public GenericStack extractItems(final GenericStack request, final Actionable mode, final IActionSource src) {
         if (this.hasPermission(src)) {
-            final IAEItemStack target = this.getStoredItems().findPrecise(request);
-            if (target != null) {
-                final IAEItemStack output = target.copy();
-
+            long storedAmount = this.getStoredItems().get(request.what());
+            if (storedAmount > 0) {
                 if (mode == Actionable.SIMULATE) {
-                    return output;
+                    return new GenericStack(request.what(), Math.min(request.amount(), storedAmount));
                 }
 
+                long extracted = Math.min(request.amount(), storedAmount);
+
                 if (securityTile.getProxy().isActive()) {
-                    ((MEMonitorHandler<IAEItemStack>) securityTile
+                    ((MEMonitorHandler) ((IStorageMonitorable) securityTile)
                             .getInventory(AEKeyType.items()))
                             .postChangesToListeners(
-                                    Collections.singletonList(target.copy().setStackSize(-target.getStackSize())),
+                                    Collections.singletonList(new GenericStack(request.what(), -extracted)),
                                     this.src);
                 }
 
-                target.setStackSize(0);
+                this.getStoredItems().add(request.what(), -extracted);
                 this.securityTile.inventoryChanged();
-                return output;
+                return new GenericStack(request.what(), extracted);
             }
         }
         return null;
     }
 
     @Override
-    public IItemList<IAEItemStack> getAvailableItems(final IItemList<IAEItemStack> out) {
-        for (final IAEItemStack ais : this.getStoredItems()) {
-            out.add(ais);
-        }
+    public KeyCounter getAvailableKeyCounter() {
+        return this.getStoredItems();
+    }
 
+    public KeyCounter getAvailableItems(final KeyCounter out) {
+        for (Object2LongMap.Entry<AEKey> entry : this.getStoredItems()) {
+            out.add(entry.getKey(), entry.getLongValue());
+        }
         return out;
     }
 
@@ -132,35 +139,37 @@ public class SecurityStationInventory implements IMEInventoryHandler {
     }
 
     @Override
-    public boolean isPrioritized(final IAEItemStack input) {
+    public boolean isPrioritized(final AEKey input) {
         return false;
     }
 
     @Override
-    public boolean canAccept(final IAEItemStack input) {
-        if (input.getItem() instanceof IBiometricCard) {
-            final IBiometricCard tbc = (IBiometricCard) input.getItem();
-            final GameProfile newUser = tbc.getProfile(input.createItemStack());
+    public boolean canAccept(final AEKey input) {
+        if (input instanceof AEItemKey itemKey) {
+            if (itemKey.getItem() instanceof IBiometricCard) {
+                final IBiometricCard tbc = (IBiometricCard) itemKey.getItem();
+                final GameProfile newUser = tbc.getProfile(itemKey.toStack());
 
-            final int PlayerID = AEApi.instance().registries().players().getID(newUser);
-            if (this.securityTile.getOwner() == PlayerID) {
-                return false;
-            }
+                final int PlayerID = AEApi.instance().registries().players().getID(newUser);
+                if (this.securityTile.getOwner() == PlayerID) {
+                    return false;
+                }
 
-            for (final IAEItemStack ais : this.getStoredItems()) {
-                if (ais.isMeaningful()) {
-                    final GameProfile thisUser = tbc.getProfile(ais.createItemStack());
-                    if (thisUser == newUser) {
-                        return false;
-                    }
+                for (Object2LongMap.Entry<AEKey> entry : this.getStoredItems()) {
+                    if (entry.getLongValue() > 0 && entry.getKey() instanceof AEItemKey storedKey) {
+                        final GameProfile thisUser = tbc.getProfile(storedKey.toStack());
+                        if (thisUser == newUser) {
+                            return false;
+                        }
 
-                    if (thisUser != null && thisUser.equals(newUser)) {
-                        return false;
+                        if (thisUser != null && thisUser.equals(newUser)) {
+                            return false;
+                        }
                     }
                 }
-            }
 
-            return true;
+                return true;
+            }
         }
         return false;
     }
@@ -180,7 +189,7 @@ public class SecurityStationInventory implements IMEInventoryHandler {
         return true;
     }
 
-    public IItemList<IAEItemStack> getStoredItems() {
+    public KeyCounter getStoredItems() {
         return this.storedItems;
     }
 }

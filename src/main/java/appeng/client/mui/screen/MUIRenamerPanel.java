@@ -35,6 +35,8 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.helpers.ICustomNameObject;
 
+import appeng.util.Platform;
+
 /**
  * MUI renamer GUI panel.
  * Provides text input field and confirm button for renaming blocks/items.
@@ -70,6 +72,10 @@ public class MUIRenamerPanel extends AEBasePanel {
                         .setMaxStringLength(32)
                         .setFocused(true)
                         .setClearOnRightClick(true));
+
+        if (!Platform.isServer()) {
+            ((ContainerRenamer) this.inventorySlots).setTextField(this.textField);
+        }
 
         this.confirmButton = new MUIButtonWidget(
                 TEXT_FIELD_X + TEXT_FIELD_WIDTH, TEXT_FIELD_Y, 12, 12);

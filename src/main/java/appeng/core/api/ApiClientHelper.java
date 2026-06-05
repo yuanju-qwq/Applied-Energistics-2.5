@@ -6,6 +6,8 @@ import java.text.DecimalFormatSymbols;
 import java.util.Collection;
 import java.util.List;
 
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+
 import org.lwjgl.input.Keyboard;
 
 import net.minecraft.client.Minecraft;
@@ -18,11 +20,11 @@ import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IItemList;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.api.util.IClientHelper;
 import appeng.core.AEConfig;
@@ -54,8 +56,7 @@ public class ApiClientHelper implements IClientHelper {
                     .getFormattedText());
         }
 
-        @SuppressWarnings("unchecked")
-        IItemList itemList = (IItemList) cellInventory.getStackType().createList();
+        KeyCounter itemList = new KeyCounter();
 
         if (handler.isPreformatted()) {
             final String list = (handler.getIncludeExcludeMode() == IncludeExclude.WHITELIST ? GuiText.Included
@@ -71,58 +72,18 @@ public class ApiClientHelper implements IClientHelper {
                 lines.add(GuiText.Sticky.getLocal());
             }
 
-            if (Minecraft.getMinecraft().gameSettings.advancedItemTooltips || Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)
-                    || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)) {
-                IAEStackInventory inv = cellInventory.getConfigAEInventory();
-                cellInventory.getAvailableItems(itemList);
-                for (int i = 0; i < inv.getSizeInventory(); i++) {
-                    final GenericStack gs = inv.getGenericStack(i);
-                    if (gs == null) {
-                        continue;
-                    }
-                    AEKey key = gs.what();
-                    if (key instanceof AEItemKey itemKey) {
-                        final ItemStack is = itemKey.toStack();
-                        if (AEKeyType.fromLegacyType(cellInventory.getStackType()) == AEKeyType.items()) {
-                            @SuppressWarnings("unchecked")
-                            IItemList<IAEItemStack> itemItemList = (IItemList<IAEItemStack>) (IItemList<?>) itemList;
-                            if (!handler.isFuzzy()) {
-                                final IAEItemStack ais = AEItemStack.fromItemStack(is);
-                                IAEItemStack stocked = itemItemList.findPrecise(ais);
-                                lines.add("[" + is.getDisplayName() + "]" + ": " + (stocked == null ? "0"
-                                        : ReadableNumberConverter.INSTANCE.toWideReadableForm(stocked.getStackSize())));
-                            } else {
-                                final IAEItemStack ais = AEItemStack.fromItemStack(is);
-                                Collection<IAEItemStack> stocked = itemItemList.findFuzzy(ais,
-                                        handler.getCellInv().getFuzzyMode());
-
-                                int[] ids = OreDictionary.getOreIDs(is);
-                                long size = 0;
-                                for (IAEItemStack ist : stocked) {
-                                    size += ist.getStackSize();
-                                }
-
-                                if (is.getItem().isDamageable()) {
-                                    lines.add("[" + is.getDisplayName() + "]" + ": " + size);
-                                } else if (ids.length > 0) {
-                                    StringBuilder sb = new StringBuilder();
-                                    for (int j : ids) {
-                                        sb.append(OreDictionary.getOreName(j)).append(", ");
-                                    }
-                                    lines.add("[{" + sb.substring(0, sb.length() - 2) + "}]" + ": "
-                                            + ReadableNumberConverter.INSTANCE.toWideReadableForm(size));
-                                }
-                            }
-                        }
-                    } else if (key instanceof AEFluidKey fluidKey) {
-                        if (AEKeyType.fromLegacyType(cellInventory.getStackType()) == AEKeyType.fluids()) {
-                            @SuppressWarnings("unchecked")
-                            IItemList<IAEFluidStack> fluidItemList = (IItemList<IAEFluidStack>) (IItemList<?>) itemList;
-                            AEFluidStack ais = (AEFluidStack) fluidKey.toIAEStack(gs.amount());
-                            IAEFluidStack stocked = fluidItemList.findPrecise(ais);
-                            lines.add("[" + fluidKey.getDisplayName() + "]" + ": "
-                                    + (stocked == null ? "0" : fluidStackSize(stocked.getStackSize())));
-                        }
+            if (Minecraft.getMinecraft().gameSettings.advancedItemTooltips
+                    || Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)) {
+                KeyCounter available = cellInventory.getAvailableKeyCounter();
+                for (Object2LongMap.Entry<AEKey> entry : available) {
+                    AEKey entryKey = entry.getKey();
+                    long entryAmount = entry.getLongValue();
+                    if (entryKey instanceof AEItemKey itemKey) {
+                        lines.add(itemKey.toStack().getDisplayName() + ": "
+                                + ReadableNumberConverter.INSTANCE.toWideReadableForm(entryAmount));
+                    } else if (entryKey instanceof AEFluidKey fluidKey) {
+                        lines.add(fluidKey.getDisplayName() + ": "
+                                + fluidStackSize(entryAmount));
                     }
                 }
             }
@@ -131,14 +92,16 @@ public class ApiClientHelper implements IClientHelper {
                 return;
             if (Minecraft.getMinecraft().gameSettings.advancedItemTooltips
                     || Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)) {
-                cellInventory.getAvailableItems(itemList);
-                for (Object s : itemList) {
-                    if (s instanceof IAEItemStack) {
-                        lines.add(((IAEItemStack) s).getDefinition().getDisplayName() + ": "
-                                + ReadableNumberConverter.INSTANCE.toWideReadableForm(((IAEStack<?>) s).getStackSize()));
-                    } else if (s instanceof IAEFluidStack) {
-                        lines.add(((IAEFluidStack) s).getFluidStack().getLocalizedName() + ": "
-                                + fluidStackSize(((IAEStack<?>) s).getStackSize()));
+                KeyCounter available = cellInventory.getAvailableKeyCounter();
+                for (Object2LongMap.Entry<AEKey> entry : available) {
+                    AEKey entryKey = entry.getKey();
+                    long entryAmount = entry.getLongValue();
+                    if (entryKey instanceof AEItemKey itemKey) {
+                        lines.add(itemKey.toStack().getDisplayName() + ": "
+                                + ReadableNumberConverter.INSTANCE.toWideReadableForm(entryAmount));
+                    } else if (entryKey instanceof AEFluidKey fluidKey) {
+                        lines.add(fluidKey.getDisplayName() + ": "
+                                + fluidStackSize(entryAmount));
                     }
                 }
             }
@@ -146,25 +109,25 @@ public class ApiClientHelper implements IClientHelper {
     }
 
     private String fluidStackSize(long size) {
-        String unit;
-        if (size >= 1000) {
-            unit = "B";
-        } else {
-            unit = "mB";
-        }
-
-        final int log = (int) Math.floor(Math.log10(size)) / 2;
-
-        final int index = Math.max(0, Math.min(3, log));
-
-        final DecimalFormatSymbols symbols = new DecimalFormatSymbols();
-        symbols.setDecimalSeparator('.');
-        final DecimalFormat format = new DecimalFormat(NUMBER_FORMATS[index]);
-        format.setDecimalFormatSymbols(symbols);
-        format.setRoundingMode(RoundingMode.DOWN);
-
-        String formatted = format.format(size / 1000d);
-
-        return formatted.concat(unit);
+    String unit;
+    if (size >= 1000) {
+        unit = "B";
+    } else {
+        unit = "mB";
     }
+
+    final int log = (int) Math.floor(Math.log10(size)) / 2;
+
+    final int index = Math.max(0, Math.min(3, log));
+
+    final DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+    symbols.setDecimalSeparator('.');
+    final DecimalFormat format = new DecimalFormat(NUMBER_FORMATS[index]);
+    format.setDecimalFormatSymbols(symbols);
+    format.setRoundingMode(RoundingMode.DOWN);
+
+    String formatted = format.format(size / 1000d);
+
+    return formatted.concat(unit);
+}
 }

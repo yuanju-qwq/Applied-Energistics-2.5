@@ -47,11 +47,13 @@ import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.config.Upgrades;
 import appeng.api.implementations.items.IStorageCell;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEColor;
 import appeng.api.util.DimensionalCoord;
 import appeng.core.AEConfig;
@@ -73,7 +75,7 @@ import appeng.tile.misc.TilePaint;
 import appeng.util.LookDirection;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStackType;
-import appeng.util.item.ItemList;
+
 
 public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<IAEItemStack> {
     private static final double INITIAL_CLOSEST_DISTANCE = 9999999.0D;
@@ -142,7 +144,7 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
             final ITooltipFlag advancedTooltips) {
         super.addCheckedInformation(stack, world, lines, advancedTooltips);
 
-        final ICellInventoryHandler<IAEItemStack> cdi = AEApi.instance()
+        final ICellInventoryHandler cdi = AEApi.instance()
                 .registries()
                 .cell()
                 .getCellInventory(stack, null,
@@ -162,16 +164,20 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
                 shots += cu.getInstalledUpgrades(Upgrades.SPEED);
             }
 
-            final ICellInventoryHandler<IAEItemStack> inv = AEApi.instance()
+            final ICellInventoryHandler inv = AEApi.instance()
                     .registries()
                     .cell()
                     .getCellInventory(p.getHeldItem(hand), null,
                             AEKeyType.items());
             if (inv != null) {
-                final IItemList<IAEItemStack> itemList = inv
-                        .getAvailableItems(
-                                new ItemList());
-                IAEItemStack req = itemList.getFirstItem();
+                final KeyCounter keyCounter = inv.getAvailableKeyCounter();
+                IAEItemStack req = null;
+                for (var entry : keyCounter) {
+                    if (entry.getKey() instanceof AEItemKey itemKey && entry.getLongValue() > 0) {
+                        req = (IAEItemStack) itemKey.toIAEStack(entry.getLongValue());
+                        break;
+                    }
+                }
                 if (req instanceof IAEItemStack) {
                     shots = Math.min(shots, (int) req.getStackSize());
                     for (int sh = 0; sh < shots; sh++) {

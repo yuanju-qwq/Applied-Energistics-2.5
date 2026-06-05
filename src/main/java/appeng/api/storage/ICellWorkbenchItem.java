@@ -23,12 +23,14 @@
 
 package appeng.api.storage;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.config.FuzzyMode;
+import appeng.api.stacks.AEKeyType;
 import appeng.tile.inventory.IAEStackInventory;
-import appeng.util.item.AEItemStackType;
 
 public interface ICellWorkbenchItem {
 
@@ -64,9 +66,22 @@ public interface ICellWorkbenchItem {
      * Default returns item stack type.
      *
      * @return stack type
+     * @deprecated Use {@link #getKeyType()} instead. This default is kept for source
+     *             compatibility with custom cell items that do not override it.
      */
+    @Deprecated
     default appeng.api.storage.data.IAEStackType<?> getStackType() {
-        return AEItemStackType.INSTANCE;
+        return appeng.util.item.AEItemStackType.INSTANCE;
+    }
+
+    /**
+     * @return the AEKeyType this cell handles. Default derives it from
+     *         {@link #getStackType()} for backward compatibility; implementations should
+     *         override this method to return the canonical AEKeyType directly.
+     */
+    @Nonnull
+    default AEKeyType getKeyType() {
+        return AEKeyType.fromId(getStackType().getId());
     }
 
     /**

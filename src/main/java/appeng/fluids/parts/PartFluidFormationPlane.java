@@ -35,14 +35,15 @@ import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStackType;
-import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEPartLocation;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
 import appeng.fluids.helper.IConfigurableAEStackInventory;
 import appeng.fluids.helper.IConfigurableFluidInventory;
 import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.KeyCounter;
 import appeng.fluids.util.AEFluidStackType;
+import appeng.util.prioritylist.PreciseAEKeyPriorityList;
 import appeng.items.parts.PartModels;
 import appeng.me.GridAccessException;
 import appeng.me.storage.MEInventoryHandler;
@@ -79,17 +80,17 @@ public class PartFluidFormationPlane extends PartAbstractFormationPlane
                 this.getInstalledUpgrades(Upgrades.INVERTER) > 0 ? IncludeExclude.BLACKLIST : IncludeExclude.WHITELIST);
         this.myHandler.setPriority(this.getPriority());
 
-        final IItemList<IAEFluidStack> priorityList = new FluidList();
+        final KeyCounter priorityList = new KeyCounter();
 
         final int slotsToUse = 18 + this.getInstalledUpgrades(Upgrades.CAPACITY) * 9;
         for (int x = 0; x < this.config.size() && x < slotsToUse; x++) {
             final GenericStack is = this.config.getGenericStack(x);
             final IAEStack<?> stack = is != null ? is.toIAEStack() : null;
             if (stack instanceof IAEFluidStack fluidStack) {
-                priorityList.add(fluidStack);
+                priorityList.add(fluidStack.toAEKey(), fluidStack.getStackSize());
             }
         }
-        this.myHandler.setPartitionList(new PrecisePriorityList<IAEFluidStack>(priorityList));
+        this.myHandler.setKeyPartitionList(new PreciseAEKeyPriorityList(priorityList.keySet()));
 
         try {
             this.getProxy().getGrid().postEvent(new MENetworkCellArrayUpdate());

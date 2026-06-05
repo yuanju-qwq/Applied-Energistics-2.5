@@ -103,8 +103,6 @@ import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.util.item.IAEStackList;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AEColor;
 import appeng.api.util.AEPartLocation;

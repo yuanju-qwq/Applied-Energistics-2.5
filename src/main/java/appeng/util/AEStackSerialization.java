@@ -32,6 +32,7 @@ import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.helpers.ItemStackHelper;
+import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 import appeng.util.item.IMixedStackList;
 

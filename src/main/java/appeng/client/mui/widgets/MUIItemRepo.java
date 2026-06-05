@@ -30,8 +30,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.client.gui.widgets.IScrollSource;
-import appeng.client.gui.widgets.ISortSource;
 import appeng.client.me.ItemRepo;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
@@ -81,17 +79,18 @@ public class MUIItemRepo implements IMUIWidget {
      * @param sortSrc    排序数据源
      */
     public MUIItemRepo(int gridX, int gridY, int columns, int rows,
-            IScrollSource scrollSrc, ISortSource sortSrc) {
+            IMUIScrollSource scrollSrc, IMUISortSource sortSrc) {
         this(gridX, gridY, columns, rows, 18, scrollSrc, sortSrc);
     }
 
     public MUIItemRepo(int gridX, int gridY, int columns, int rows, int slotSize,
-            IScrollSource scrollSrc, ISortSource sortSrc) {
+            IMUIScrollSource scrollSrc, IMUISortSource sortSrc) {
         this.gridX = gridX;
         this.gridY = gridY;
         this.columns = columns;
         this.rows = rows;
         this.slotSize = slotSize;
+        // ItemRepo accepts IMUIScrollSource/IMUISortSource directly via the new contract.
         this.repo = new ItemRepo(scrollSrc, sortSrc);
 
         buildSlotGrid();

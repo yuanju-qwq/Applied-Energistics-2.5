@@ -20,12 +20,10 @@ package appeng.client.mui.screen;
 
 import java.io.IOException;
 
-import net.minecraft.client.gui.GuiButton;
-
 import appeng.api.config.SecurityPermissions;
 import appeng.api.config.SortOrder;
 import appeng.client.mui.AEMUITheme;
-import appeng.client.gui.widgets.GuiToggleButton;
+import appeng.client.mui.widgets.MUIToggleButton;
 import appeng.container.implementations.ContainerSecurityStation;
 import appeng.core.AELog;
 import appeng.core.localization.GuiText;
@@ -36,16 +34,17 @@ import appeng.core.sync.packets.PacketValueConfig;
  * MUI security station GUI panel.
  *
  * Extends {@link MUIMEMonitorablePanel} and implements {@link MUISecurityStationPanel} marker interface.
- * Adds 5 security permission toggle buttons (inject/extract/craft/build/security).
+ * Adds 5 security permission toggle buttons (inject/extract/craft/build/security) using
+ * {@link MUIToggleButton} with callback-based event handling.
  */
 public class MUISecurityStationPanelImpl extends MUIMEMonitorablePanel implements MUISecurityStationPanel {
 
     // ========== Permission buttons ==========
-    private GuiToggleButton inject;
-    private GuiToggleButton extract;
-    private GuiToggleButton craft;
-    private GuiToggleButton build;
-    private GuiToggleButton security;
+    private MUIToggleButton inject;
+    private MUIToggleButton extract;
+    private MUIToggleButton craft;
+    private MUIToggleButton build;
+    private MUIToggleButton security;
 
     public MUISecurityStationPanelImpl(final ContainerSecurityStation container) {
         super(container);
@@ -64,30 +63,35 @@ public class MUISecurityStationPanelImpl extends MUIMEMonitorablePanel implement
 
         final int top = this.guiTop + this.ySize - 116;
 
-        this.buttonList.add(
-                this.inject = new GuiToggleButton(this.guiLeft + 56, top, 11 * 16, 12 * 16,
-                        SecurityPermissions.INJECT.getUnlocalizedName(),
-                        SecurityPermissions.INJECT.getUnlocalizedTip()));
+        this.inject = new MUIToggleButton(this.guiLeft + 56, top, 11 * 16, 12 * 16,
+                SecurityPermissions.INJECT.getUnlocalizedName(),
+                SecurityPermissions.INJECT.getUnlocalizedTip());
+        this.inject.setOnToggle(btn -> sendTogglePacket(SecurityPermissions.INJECT));
+        this.addWidget(this.inject);
 
-        this.buttonList.add(
-                this.extract = new GuiToggleButton(this.guiLeft + 56 + 18, top, 11 * 16 + 1, 12 * 16 + 1,
-                        SecurityPermissions.EXTRACT.getUnlocalizedName(),
-                        SecurityPermissions.EXTRACT.getUnlocalizedTip()));
+        this.extract = new MUIToggleButton(this.guiLeft + 56 + 18, top, 11 * 16 + 1, 12 * 16 + 1,
+                SecurityPermissions.EXTRACT.getUnlocalizedName(),
+                SecurityPermissions.EXTRACT.getUnlocalizedTip());
+        this.extract.setOnToggle(btn -> sendTogglePacket(SecurityPermissions.EXTRACT));
+        this.addWidget(this.extract);
 
-        this.buttonList.add(
-                this.craft = new GuiToggleButton(this.guiLeft + 56 + 18 * 2, top, 11 * 16 + 2, 12 * 16 + 2,
-                        SecurityPermissions.CRAFT.getUnlocalizedName(),
-                        SecurityPermissions.CRAFT.getUnlocalizedTip()));
+        this.craft = new MUIToggleButton(this.guiLeft + 56 + 18 * 2, top, 11 * 16 + 2, 12 * 16 + 2,
+                SecurityPermissions.CRAFT.getUnlocalizedName(),
+                SecurityPermissions.CRAFT.getUnlocalizedTip());
+        this.craft.setOnToggle(btn -> sendTogglePacket(SecurityPermissions.CRAFT));
+        this.addWidget(this.craft);
 
-        this.buttonList.add(
-                this.build = new GuiToggleButton(this.guiLeft + 56 + 18 * 3, top, 11 * 16 + 3, 12 * 16 + 3,
-                        SecurityPermissions.BUILD.getUnlocalizedName(),
-                        SecurityPermissions.BUILD.getUnlocalizedTip()));
+        this.build = new MUIToggleButton(this.guiLeft + 56 + 18 * 3, top, 11 * 16 + 3, 12 * 16 + 3,
+                SecurityPermissions.BUILD.getUnlocalizedName(),
+                SecurityPermissions.BUILD.getUnlocalizedTip());
+        this.build.setOnToggle(btn -> sendTogglePacket(SecurityPermissions.BUILD));
+        this.addWidget(this.build);
 
-        this.buttonList.add(
-                this.security = new GuiToggleButton(this.guiLeft + 56 + 18 * 4, top, 11 * 16 + 4, 12 * 16 + 4,
-                        SecurityPermissions.SECURITY.getUnlocalizedName(),
-                        SecurityPermissions.SECURITY.getUnlocalizedTip()));
+        this.security = new MUIToggleButton(this.guiLeft + 56 + 18 * 4, top, 11 * 16 + 4, 12 * 16 + 4,
+                SecurityPermissions.SECURITY.getUnlocalizedName(),
+                SecurityPermissions.SECURITY.getUnlocalizedTip());
+        this.security.setOnToggle(btn -> sendTogglePacket(SecurityPermissions.SECURITY));
+        this.addWidget(this.security);
     }
 
     // ========== Rendering ==========
@@ -113,36 +117,20 @@ public class MUISecurityStationPanelImpl extends MUIMEMonitorablePanel implement
     }
 
     // ========== Button events ==========
+    //
+    // Each toggle button registers its own onToggle callback in initGui() that calls
+    // sendTogglePacket(SecurityPermissions), so no central actionPerformed override is required.
 
-    @Override
-    protected void actionPerformed(final GuiButton btn) throws IOException {
-        super.actionPerformed(btn);
-
-        SecurityPermissions toggleSetting = null;
-
-        if (btn == this.inject) {
-            toggleSetting = SecurityPermissions.INJECT;
-        }
-        if (btn == this.extract) {
-            toggleSetting = SecurityPermissions.EXTRACT;
-        }
-        if (btn == this.craft) {
-            toggleSetting = SecurityPermissions.CRAFT;
-        }
-        if (btn == this.build) {
-            toggleSetting = SecurityPermissions.BUILD;
-        }
-        if (btn == this.security) {
-            toggleSetting = SecurityPermissions.SECURITY;
-        }
-
-        if (toggleSetting != null) {
-            try {
-                NetworkHandler.instance()
-                        .sendToServer(new PacketValueConfig("TileSecurityStation.ToggleOption", toggleSetting.name()));
-            } catch (final IOException e) {
-                AELog.debug(e);
-            }
+    /**
+     * Sends a server-side packet to toggle the given security permission. Used by every
+     * permission button's onToggle callback.
+     */
+    private void sendTogglePacket(SecurityPermissions permission) {
+        try {
+            NetworkHandler.instance()
+                    .sendToServer(new PacketValueConfig("TileSecurityStation.ToggleOption", permission.name()));
+        } catch (final IOException e) {
+            AELog.debug(e);
         }
     }
 

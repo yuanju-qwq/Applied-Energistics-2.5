@@ -10,23 +10,25 @@ import appeng.api.implementations.items.IStorageCell;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ISaveProvider;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
-import appeng.util.item.AEStack;
 
-@SuppressWarnings("rawtypes")
+/**
+ * Native AEKey-based cell storage.
+ * <p>
+ * The on-disk NBT format remains unchanged for backward compatibility (the legacy
+ * IAEStack format is identical to {@link AEKey#toTag()} for items). The in-memory
+ * representation is now {@code KeyCounter} only — the IItemList is a derived view.
+ */
 public class BasicCellInventory extends AbstractCellInventory {
-    private final IAEStackType stackType;
 
     private BasicCellInventory(final IStorageCell cellType, final ItemStack o, final ISaveProvider container) {
         super(cellType, o, container);
-        this.stackType = cellType.getStackType();
     }
 
     public static ICellInventory createInventory(final ItemStack o,
@@ -55,10 +57,10 @@ public class BasicCellInventory extends AbstractCellInventory {
         }
     }
 
-    public static boolean isCellOfType(final ItemStack input, IAEStackType<?> channel) {
+    public static boolean isCellOfType(final ItemStack input, AEKeyType channel) {
         final IStorageCell<?> type = getStorageCell(input);
 
-        return type != null && type.getStackType() == channel;
+        return type != null && type.getKeyType() == channel;
     }
 
     public static boolean isCell(final ItemStack input) {
@@ -199,33 +201,26 @@ public class BasicCellInventory extends AbstractCellInventory {
 
     @Override
     protected boolean loadCellItem(NBTTagCompound compoundTag, long stackSize) {
-        // Now load the item stack
-        final IAEStack t;
+        // Load the AEKey directly from NBT — no IAEStack intermediate step
+        final AEKey key;
         try {
-            t = this.getStackType().createFromNBT(compoundTag);
-            if (t == null) {
+            key = this.getKeyType().loadKeyFromTag(compoundTag);
+            if (key == null) {
                 AELog.warn("Removing item " + compoundTag
-                        + " from storage cell because the associated item type couldn't be found.");
+                        + " from storage cell because the associated key type couldn't be loaded.");
                 return false;
             }
         } catch (Throwable ex) {
             if (AEConfig.instance().isRemoveCrashingItemsOnLoad()) {
                 AELog.warn(ex,
-                        "Removing item " + compoundTag + " from storage cell because loading the ItemStack crashed.");
+                        "Removing item " + compoundTag + " from storage cell because loading the key crashed.");
                 return false;
             }
             throw ex;
         }
 
-        t.setStackSize(stackSize);
-        t.setCraftable(false);
-
         if (stackSize > 0) {
-            this.cellItems.add(t);
-            AEKey k = t.toAEKey();
-            if (k != null) {
-                this.getKeyCounter().set(k, stackSize);
-            }
+            this.getKeyCounter().set(key, stackSize);
         }
 
         return true;

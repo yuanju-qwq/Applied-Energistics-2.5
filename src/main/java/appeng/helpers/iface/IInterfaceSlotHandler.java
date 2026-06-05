@@ -25,7 +25,6 @@ import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 
@@ -78,7 +77,7 @@ public interface IInterfaceSlotHandler {
      * @return the work plan, or null if the slot is already satisfied
      */
     @Nullable
-    IAEStack<?> computePlan(int slot, @Nonnull Object desired, @Nonnull InterfaceSlotContext context);
+    GenericStack computePlan(int slot, @Nonnull GenericStack desired, @Nonnull InterfaceSlotContext context);
 
     // ========== Plan Execution ==========
 
@@ -91,7 +90,7 @@ public interface IInterfaceSlotHandler {
      * @param context slot context for accessing storage and network
      * @return true if any transfer occurred
      */
-    boolean executePlan(int slot, @Nonnull Object plan, @Nonnull InterfaceSlotContext context);
+    boolean executePlan(int slot, @Nonnull GenericStack plan, @Nonnull InterfaceSlotContext context);
 
     // ========== Network Integration ==========
 

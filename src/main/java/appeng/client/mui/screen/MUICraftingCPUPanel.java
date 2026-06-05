@@ -27,9 +27,9 @@ import appeng.api.stacks.AEKey;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AEColor;
 import appeng.client.mui.widgets.MUIScrollBar;
-import appeng.client.gui.widgets.ISortSource;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.AEBasePanelGuiHandler;
+import appeng.client.mui.widgets.IMUISortSource;
 import appeng.container.implementations.ContainerCraftingCPU;
 import appeng.container.interfaces.ICraftingCPUGuiCallback;
 import appeng.core.AEConfig;
@@ -47,7 +47,7 @@ import appeng.util.ReadableNumberConverter;
  */
 @SideOnly(Side.CLIENT)
 public class MUICraftingCPUPanel extends AEBasePanel
-        implements ISortSource, ICraftingCPUGuiCallback, AEBasePanelGuiHandler.IMUIVisualListPanel {
+        implements IMUISortSource, ICraftingCPUGuiCallback, AEBasePanelGuiHandler.IMUIVisualListPanel {
 
     private static final int GUI_HEIGHT = 210;
     private static final int GUI_WIDTH = 238;

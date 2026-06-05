@@ -57,6 +57,7 @@ import appeng.core.localization.GuiText;
 import appeng.helpers.PatternProviderLogic;
 import appeng.helpers.PatternHelper;
 import appeng.util.Platform;
+import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
 /**
@@ -134,7 +135,7 @@ public class InterfaceListModule {
          * Register an MUI widget on the host panel.
          * Called during module initialization to add toolbar buttons and button pools.
          */
-        <T extends IMUIWidget> T addModuleWidget(T widget);
+        void addModuleWidget(IMUIWidget widget);
 
         AEBasePanel getPanel();
 
@@ -414,27 +415,27 @@ public class InterfaceListModule {
         final int btnX = -18;
         final int jeiOff = host.getJeiOffset();
 
-        this.terminalStyleBox = host.addModuleWidget(
-                new MUIButtonWidget(btnX, 8 + jeiOff, Settings.TERMINAL_STYLE, null)
-                        .setOnClick(btn -> this.onTerminalStyleClicked()));
-        this.guiButtonBrokenRecipes = host.addModuleWidget(
-                new MUIButtonWidget(btnX, 8 + jeiOff + 20, Settings.ACTIONS, null)
-                        .setOnClick(btn -> {
-                            this.onlyBrokenRecipes = !this.onlyBrokenRecipes;
-                            this.refreshList();
-                        }));
-        this.guiButtonHideFull = host.addModuleWidget(
-                new MUIButtonWidget(btnX, 8 + jeiOff + 40, Settings.ACTIONS, null)
-                        .setOnClick(btn -> {
-                            this.onlyShowWithSpace = !this.onlyShowWithSpace;
-                            this.refreshList();
-                        }));
-        this.guiButtonAssemblersOnly = host.addModuleWidget(
-                new MUIButtonWidget(btnX, 8 + jeiOff + 60, Settings.ACTIONS, null)
-                        .setOnClick(btn -> {
-                            this.onlyMolecularAssemblers = !this.onlyMolecularAssemblers;
-                            this.refreshList();
-                        }));
+        this.terminalStyleBox = new MUIButtonWidget(btnX, 8 + jeiOff, Settings.TERMINAL_STYLE, null)
+                .setOnClick(btn -> this.onTerminalStyleClicked());
+        host.addModuleWidget(this.terminalStyleBox);
+        this.guiButtonBrokenRecipes = new MUIButtonWidget(btnX, 8 + jeiOff + 20, Settings.ACTIONS, null)
+                .setOnClick(btn -> {
+                    this.onlyBrokenRecipes = !this.onlyBrokenRecipes;
+                    this.refreshList();
+                });
+        host.addModuleWidget(this.guiButtonBrokenRecipes);
+        this.guiButtonHideFull = new MUIButtonWidget(btnX, 8 + jeiOff + 40, Settings.ACTIONS, null)
+                .setOnClick(btn -> {
+                    this.onlyShowWithSpace = !this.onlyShowWithSpace;
+                    this.refreshList();
+                });
+        host.addModuleWidget(this.guiButtonHideFull);
+        this.guiButtonAssemblersOnly = new MUIButtonWidget(btnX, 8 + jeiOff + 60, Settings.ACTIONS, null)
+                .setOnClick(btn -> {
+                    this.onlyMolecularAssemblers = !this.onlyMolecularAssemblers;
+                    this.refreshList();
+                });
+        host.addModuleWidget(this.guiButtonAssemblersOnly);
 
         // Highlight module
         this.highlightModule = new HighlightModule(new HighlightModuleHost());

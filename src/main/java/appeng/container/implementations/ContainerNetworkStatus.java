@@ -32,18 +32,18 @@ import appeng.api.networking.IGridBlock;
 import appeng.api.networking.IGridHost;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.energy.IEnergyGrid;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.data.IItemList;
+import appeng.api.stacks.KeyCounter;
+import appeng.api.storage.data.IAEStack;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import appeng.api.util.AEPartLocation;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.util.Platform;
-import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
 
 public class ContainerNetworkStatus extends AEBaseContainer {
 
@@ -128,20 +128,20 @@ public class ContainerNetworkStatus extends AEBaseContainer {
                 final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
 
                 for (final Class<? extends IGridHost> machineClass : this.network.getMachinesClasses()) {
-                    final IItemList<IAEItemStack> list = new ItemList();
+                    final KeyCounter list = new KeyCounter();
                     for (final IGridNode machine : this.network.getMachines(machineClass)) {
                         final IGridBlock blk = machine.getGridBlock();
                         final ItemStack is = blk.getMachineRepresentation();
                         if (!is.isEmpty()) {
-                            final IAEItemStack ais = AEItemStack.fromItemStack(is);
-                            ais.setStackSize(1);
-                            ais.setCountRequestable((long) (blk.getIdlePowerUsage() * 100.0));
-                            list.add(ais);
+                            final AEItemKey key = AEItemKey.of(is);
+                            if (key != null) {
+                                list.add(key, 1);
+                            }
                         }
                     }
 
-                    for (final IAEItemStack ais : list) {
-                        piu.appendStack(ais);
+                    for (Object2LongMap.Entry<AEKey> entry : list) {
+                        piu.appendStack(new GenericStack(entry.getKey(), entry.getLongValue()));
                     }
                 }
 

@@ -1,4 +1,4 @@
-package appeng.client.gui;
+package appeng.client.mui.slot;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

@@ -23,13 +23,11 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 
 import appeng.api.stacks.AEKeyType;
-import appeng.client.gui.widgets.ITooltip;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 import appeng.core.localization.ButtonToolTips;
@@ -42,7 +40,7 @@ import appeng.core.localization.ButtonToolTips;
  * Each button controls whether its associated {@link AEKeyType} is visible in the terminal grid.
  * When disabled, the button renders at 50% opacity.
  */
-public class MUITypeFilterButton implements IMUIWidget, ITooltip {
+public class MUITypeFilterButton implements IMUIWidget, IMUITooltip {
 
     private static final ResourceLocation STATES_TEXTURE = new ResourceLocation("appliedenergistics2",
             "textures/guis/states.png");
@@ -116,14 +114,14 @@ public class MUITypeFilterButton implements IMUIWidget, ITooltip {
         }
 
         mc.renderEngine.bindTexture(STATES_TEXTURE);
-        Gui.drawModalRectWithCustomSizedTexture(screenX, screenY, 256 - SIZE, 256 - SIZE, SIZE, SIZE, 256, 256);
+        panel.drawModalRectWithCustomSizedTexture(screenX, screenY, 256 - SIZE, 256 - SIZE, SIZE, SIZE, 256, 256);
 
         ResourceLocation typeTexture = this.keyType.getButtonTexture();
         if (typeTexture != null) {
             mc.renderEngine.bindTexture(typeTexture);
             int u = this.keyType.getButtonIconU();
             int v = this.keyType.getButtonIconV();
-            Gui.drawModalRectWithCustomSizedTexture(screenX, screenY, u, v, SIZE, SIZE, 256, 256);
+            panel.drawModalRectWithCustomSizedTexture(screenX, screenY, u, v, SIZE, SIZE, 256, 256);
         }
 
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
@@ -147,7 +145,7 @@ public class MUITypeFilterButton implements IMUIWidget, ITooltip {
         return false;
     }
 
-    // ========== ITooltip ==========
+    // ========== IMUITooltip ==========
 
     @Override
     public String getMessage() {

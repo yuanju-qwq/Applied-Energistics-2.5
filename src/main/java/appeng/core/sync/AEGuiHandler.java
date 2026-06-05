@@ -45,7 +45,7 @@ import appeng.api.parts.IPart;
 import appeng.api.parts.IPartHost;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.DimensionalCoord;
-import appeng.client.gui.GuiNull;
+import appeng.client.mui.screen.GuiNull;
 import appeng.client.mui.AEMUIGuiFactory;
 import appeng.container.AEBaseContainer;
 import appeng.container.ContainerNull;

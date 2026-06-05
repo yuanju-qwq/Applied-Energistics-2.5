@@ -57,10 +57,6 @@ import appeng.api.networking.security.ISecurityGrid;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.*;
-import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
@@ -71,7 +67,6 @@ import appeng.capabilities.Capabilities;
 import appeng.core.sync.AEGuiKey;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;
-import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.IPriorityHost;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.MEMonitorHandler;
@@ -86,9 +81,6 @@ import appeng.util.helpers.ItemHandlerUtil;
 import appeng.util.inv.InvOperation;
 import appeng.util.inv.WrapperChainedItemHandler;
 import appeng.util.inv.filter.IAEItemFilter;
-import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
-import appeng.fluids.util.AEFluidStackType;
 
 public class TileChest extends AENetworkPowerTile
         implements IMEChest, ITerminalHost, IPriorityHost, IConfigManagerHost, IColorableTile, ITickable {
@@ -203,8 +195,7 @@ public class TileChest extends AENetworkPowerTile
                     this.getProxy().setIdlePowerUsage(power);
                     this.accessor = new Accessor();
 
-                    if (this.cellHandler != null && AEKeyType.fromLegacyType(
-                            this.cellHandler.getStackType()) == AEKeyType.fluids()) {
+                    if (this.cellHandler != null && this.cellHandler.getKeyType() == AEKeyType.fluids()) {
                         this.fluidHandler = new FluidHandler();
                     }
                 }
@@ -221,7 +212,7 @@ public class TileChest extends AENetworkPowerTile
         ih.setPriority(this.priority);
 
         final ChestMonitorHandler g = new ChestMonitorHandler(ih);
-        g.addListener(new ChestNetNotifier(h.getStackType()), g);
+        g.addListener(new ChestNetNotifier(h.getKeyType()), g);
 
         return g;
     }
@@ -398,7 +389,7 @@ public class TileChest extends AENetworkPowerTile
     public IMEMonitor getInventory(AEKeyType type) {
         this.updateHandler();
 
-        if (this.cellHandler != null && AEKeyType.fromLegacyType(this.cellHandler.getStackType()) == type) {
+        if (this.cellHandler != null && this.cellHandler.getKeyType() == type) {
             return this.cellHandler;
         }
         return null;
@@ -449,7 +440,7 @@ public class TileChest extends AENetworkPowerTile
         if (!ItemHandlerUtil.isEmpty(this.inputInventory)) {
             this.updateHandler();
 
-            if (this.cellHandler != null && AEKeyType.fromLegacyType(this.cellHandler.getStackType()) == AEKeyType.items()) {
+            if (this.cellHandler != null && this.cellHandler.getKeyType() == AEKeyType.items()) {
                 final GenericStack returns = appeng.util.StorageHelper.poweredInsert(this, this.cellHandler,
                         GenericStack.fromItemStack(this.inputInventory.getStackInSlot(0)), this.mySrc);
 
@@ -466,7 +457,7 @@ public class TileChest extends AENetworkPowerTile
     @SuppressWarnings("unchecked")
     public List<IMEInventoryHandler> getCellArray(final AEKeyType type) {
         this.updateHandler();
-        if (this.cellHandler != null && AEKeyType.fromLegacyType(this.cellHandler.getStackType()) == type) {
+        if (this.cellHandler != null && this.cellHandler.getKeyType() == type) {
             return Collections.singletonList((IMEInventoryHandler) this.cellHandler);
         }
         return Collections.emptyList();
@@ -522,9 +513,9 @@ public class TileChest extends AENetworkPowerTile
 
             if (ch != null) {
                 final ICellGuiHandler chg = AEApi.instance().registries().cell()
-                        .getGuiHandler(AEKeyType.fromLegacyType(this.cellHandler.getStackType()), this.getCell());
+                        .getGuiHandler(this.cellHandler.getKeyType(), this.getCell());
                 if (chg != null) {
-                    chg.openChestGui(p, this, ch, this.cellHandler, this.getCell(), AEKeyType.fromLegacyType(this.cellHandler.getStackType()));
+                    chg.openChestGui(p, this, ch, this.cellHandler, this.getCell(), this.cellHandler.getKeyType());
                     return true;
                 }
             }
@@ -561,16 +552,16 @@ public class TileChest extends AENetworkPowerTile
 
     private class ChestNetNotifier implements IMEMonitorHandlerReceiver {
 
-        private final IAEStackType<?> chan;
+        private final AEKeyType chan;
 
-        public ChestNetNotifier(final IAEStackType<?> chan) {
+        public ChestNetNotifier(final AEKeyType chan) {
             this.chan = chan;
         }
 
         @Override
         public boolean isValid(final Object verificationToken) {
             TileChest.this.updateHandler();
-            if (TileChest.this.cellHandler != null && this.chan == TileChest.this.cellHandler.getStackType()) {
+            if (TileChest.this.cellHandler != null && this.chan == TileChest.this.cellHandler.getKeyType()) {
                 return verificationToken == TileChest.this.cellHandler;
             }
             return false;
@@ -587,7 +578,7 @@ public class TileChest extends AENetworkPowerTile
                         }
                     }
                     TileChest.this.getProxy().getStorage().postAlterationOfStoredItems(
-                            AEKeyType.fromLegacyType(this.chan), kc, TileChest.this.mySrc);
+                            this.chan, kc, TileChest.this.mySrc);
                 }
             } catch (final GridAccessException e) {
                 // :(
@@ -723,8 +714,8 @@ public class TileChest extends AENetworkPowerTile
         @Override
         public int fill(final FluidStack resource, final boolean doFill) {
             TileChest.this.updateHandler();
-            if (TileChest.this.cellHandler != null && AEKeyType.fromLegacyType(
-                    TileChest.this.cellHandler.getStackType()) == AEKeyType.fluids()) {
+            if (TileChest.this.cellHandler != null
+                    && TileChest.this.cellHandler.getKeyType() == AEKeyType.fluids()) {
                 final GenericStack results = appeng.util.StorageHelper.poweredInsert(TileChest.this, TileChest.this.cellHandler,
                         GenericStack.fromFluidStack(resource),
                         TileChest.this.mySrc, doFill ? Actionable.MODULATE : Actionable.SIMULATE);
@@ -751,8 +742,8 @@ public class TileChest extends AENetworkPowerTile
         public IFluidTankProperties[] getTankProperties() {
             TileChest.this.updateHandler();
 
-            if (TileChest.this.cellHandler != null && TileChest.this.cellHandler
-                    .getStackType() == AEFluidStackType.INSTANCE) {
+            if (TileChest.this.cellHandler != null
+                    && TileChest.this.cellHandler.getKeyType() == AEKeyType.fluids()) {
                 return this.TANK_PROPS;
             }
             return null;
@@ -769,8 +760,8 @@ public class TileChest extends AENetworkPowerTile
         public boolean allowInsert(IItemHandler inv, int slot, ItemStack stack) {
             if (TileChest.this.isPowered()) {
                 TileChest.this.updateHandler();
-                return TileChest.this.cellHandler != null && AEKeyType.fromLegacyType(
-                        TileChest.this.cellHandler.getStackType()) == AEKeyType.items();
+                return TileChest.this.cellHandler != null
+                        && TileChest.this.cellHandler.getKeyType() == AEKeyType.items();
             }
             return false;
         }
@@ -799,10 +790,10 @@ public class TileChest extends AENetworkPowerTile
     public AEGuiKey getGuiKey() {
         this.updateHandler();
         if (this.cellHandler != null) {
-            if (AEKeyType.fromLegacyType(this.cellHandler.getStackType()) == AEKeyType.items()) {
+            if (this.cellHandler.getKeyType() == AEKeyType.items()) {
                 return AEGuiKeys.ME_TERMINAL;
             }
-            if (AEKeyType.fromLegacyType(this.cellHandler.getStackType()) == AEKeyType.fluids()) {
+            if (this.cellHandler.getKeyType() == AEKeyType.fluids()) {
                 return AEGuiKeys.ME_TERMINAL;
             }
         }

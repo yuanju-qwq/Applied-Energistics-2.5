@@ -16,7 +16,7 @@
  * along with Applied Energistics 2.  If not, see <http://www.gnu.org/licenses/lgpl>.
  */
 
-package appeng.client.gui.slots;
+package appeng.client.mui.slot;
 
 import javax.annotation.Nullable;
 
@@ -32,7 +32,6 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 import appeng.api.stacks.AEKey;
-import appeng.api.storage.data.IAEStack;
 import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.core.AppEng;
 import appeng.items.contents.PinList;
@@ -82,17 +81,6 @@ public class VirtualMEPinSlot extends VirtualMESlot {
             return null;
         }
         return new RepoEntry(key, 0L, false);
-    }
-
-    @Override
-    @Nullable
-    @Deprecated
-    public IAEStack<?> getAEStack() {
-        AEKey key = this.pinList.getPin(this.slotIndex);
-        if (key == null) {
-            return null;
-        }
-        return key.toIAEStack(0);
     }
 
     @Override

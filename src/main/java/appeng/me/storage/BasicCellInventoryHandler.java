@@ -18,6 +18,9 @@
 
 package appeng.me.storage;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import net.minecraft.item.ItemStack;
@@ -35,12 +38,10 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
-import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IItemList;
 import appeng.tile.inventory.IAEStackInventory;
-import appeng.util.Platform;
-import appeng.util.prioritylist.FuzzyPriorityList;
-import appeng.util.prioritylist.PrecisePriorityList;
+import appeng.util.prioritylist.FuzzyAEKeyPriorityList;
+import appeng.util.prioritylist.IAEKeyPartitionList;
+import appeng.util.prioritylist.PreciseAEKeyPriorityList;
 
 /**
  * @author DrummerMC
@@ -51,14 +52,11 @@ import appeng.util.prioritylist.PrecisePriorityList;
 public class BasicCellInventoryHandler extends MEInventoryHandler
         implements ICellInventoryHandler {
 
-    @SuppressWarnings("unchecked")
     public BasicCellInventoryHandler(final IMEInventory c, final AEKeyType type) {
         super(c, type);
 
         final ICellInventory ci = this.getCellInv();
         if (ci != null) {
-            final IItemList priorityList = ci.getStackType().createList();
-
             final IItemHandler upgrades = ci.getUpgradesInventory();
             final IAEStackInventory config = ci.getConfigAEInventory();
             final FuzzyMode fzMode = ci.getFuzzyMode();
@@ -88,26 +86,19 @@ public class BasicCellInventoryHandler extends MEInventoryHandler
                 }
             }
 
-            // Use AEKey-based filter config if available (preferred path)
+            // Collect the cell's configured filter keys once. Prefer the AEKey-native view from
+            // AbstractCellInventory; fall back to the legacy IAEStackInventory config.
+            final List<AEKey> filterKeys = new ArrayList<>();
             if (ci instanceof AbstractCellInventory abstractCell) {
-                final Set<AEKey> filterKeys = abstractCell.getFilterKeys();
-                if (!filterKeys.isEmpty()) {
-                    for (AEKey key : filterKeys) {
-                        final IAEStack<?> stack = key.toIAEStack(1);
-                        if (stack != null) {
-                            priorityList.addGeneric(stack);
-                        }
-                    }
+                final Set<AEKey> keys = abstractCell.getFilterKeys();
+                if (keys != null && !keys.isEmpty()) {
+                    filterKeys.addAll(keys);
                 }
             } else {
-                // Legacy path: read from IAEStackInventory config
                 for (int x = 0; x < config.getSizeInventory(); x++) {
                     final GenericStack gs = config.getGenericStack(x);
-                    if (gs != null && gs.what() instanceof AEItemKey itemKey) {
-                        final IAEStack configItem = ci.getStackType().createStack(itemKey.toStack());
-                        if (configItem != null) {
-                            priorityList.add(configItem);
-                        }
+                    if (gs != null && gs.what() instanceof AEItemKey) {
+                        filterKeys.add(gs.what());
                     }
                 }
             }
@@ -118,12 +109,17 @@ public class BasicCellInventoryHandler extends MEInventoryHandler
                 setSticky(true);
             }
 
-            if (!priorityList.isEmpty()) {
+            if (!filterKeys.isEmpty()) {
+                // Use the AEKey-based partition list. The legacy IItemList-based path is no
+                // longer required here because filter config is read as AEKeys directly.
+                final Set<AEKey> uniqueKeys = new HashSet<>(filterKeys);
+                final IAEKeyPartitionList keyList;
                 if (hasFuzzy) {
-                    this.setPartitionList(new FuzzyPriorityList<>(priorityList, fzMode));
+                    keyList = new FuzzyAEKeyPriorityList(uniqueKeys, fzMode);
                 } else {
-                    this.setPartitionList(new PrecisePriorityList<>(priorityList));
+                    keyList = new PreciseAEKeyPriorityList(uniqueKeys);
                 }
+                this.setKeyPartitionList(keyList);
             }
         }
     }
@@ -141,12 +137,20 @@ public class BasicCellInventoryHandler extends MEInventoryHandler
 
     @Override
     public boolean isPreformatted() {
+        final IAEKeyPartitionList keyList = this.getKeyPartitionList();
+        if (keyList != null) {
+            return !keyList.isEmpty();
+        }
         return !this.getPartitionList().isEmpty();
     }
 
     @Override
     public boolean isFuzzy() {
-        return this.getPartitionList() instanceof FuzzyPriorityList;
+        final IAEKeyPartitionList keyList = this.getKeyPartitionList();
+        if (keyList != null) {
+            return keyList instanceof FuzzyAEKeyPriorityList;
+        }
+        return this.getPartitionList() instanceof appeng.util.prioritylist.FuzzyPriorityList;
     }
 
     @Override

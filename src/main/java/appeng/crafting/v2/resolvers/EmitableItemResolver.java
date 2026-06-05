@@ -7,7 +7,6 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IItemList;
 import appeng.crafting.MECraftingInventory;
@@ -77,7 +76,7 @@ public class EmitableItemResolver implements CraftingRequestResolver {
         @Override
         public void startOnCpu(CraftingContext context, CraftingCPUCluster cpuCluster,
                 MECraftingInventory craftingInv) {
-            cpuCluster.addEmitable(new GenericStack(this.request.what, fulfilled).toIAEStack());
+            cpuCluster.addEmitable(new GenericStack(this.request.what, fulfilled));
         }
 
         @Override
