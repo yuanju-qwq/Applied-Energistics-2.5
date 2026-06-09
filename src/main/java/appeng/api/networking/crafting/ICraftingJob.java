@@ -30,8 +30,6 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IItemList;
 import appeng.crafting.MECraftingInventory;
 
 /**
@@ -43,7 +41,7 @@ public interface ICraftingJob {
 
     long getByteTotal();
 
-    void populatePlan(IItemList<IAEStackBase> plan);
+    CraftingPlan getPlan();
 
     GenericStack getOutput();
 

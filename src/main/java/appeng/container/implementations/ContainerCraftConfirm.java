@@ -45,9 +45,10 @@ import appeng.api.networking.crafting.*;
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.ITerminalHost;
-import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.stacks.GenericStack;
 import appeng.container.AEBaseContainer;
@@ -61,7 +62,6 @@ import appeng.core.sync.GuiBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.crafting.MECraftingInventory;
-import appeng.util.item.IAEStackList;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.me.helpers.PlayerSource;
 import appeng.parts.reporting.PartCraftingTerminal;
@@ -199,48 +199,46 @@ public class ContainerCraftConfirm extends AEBaseContainer {
                     final PacketMEInventoryUpdate c = this.result.isSimulation() ? new PacketMEInventoryUpdate((byte) 2)
                             : null;
 
-                    // 使用泛型多类型列表来存储合成计划（支持物�?流体�?
-                    final IAEStackList plan = new IAEStackList();
-                    this.result.populatePlan(plan);
+                    CraftingPlan craftingPlan = this.result.getPlan();
 
                     this.setUsedBytes(this.result.getByteTotal());
 
                     final MECraftingInventory storageAtBeginning = this.result.getStorageAtBeginning();
 
-                    for (final IAEStack<?> plannedItem : plan.typedView()) {
+                    for (AEKey key : craftingPlan.availableItems().keySet()) {
+                        long total = craftingPlan.availableItems().get(key);
+                        if (total <= 0) continue;
 
-                        IAEStack<?> toExtract = plannedItem.copy();
-                        toExtract.reset();
-                        toExtract.setStackSize(plannedItem.getStackSize());
+                        long inStorage = 0;
+                        GenericStack extracted = storageAtBeginning.extractAny(
+                                new GenericStack(key, total), Actionable.SIMULATE);
+                        if (extracted != null) {
+                            inStorage = extracted.amount();
+                        }
+                        long produced = total - inStorage; // items from pattern byproducts
 
-                        final IAEStack<?> toCraft = plannedItem.copy();
-                        toCraft.reset();
-                        toCraft.setStackSize(plannedItem.getCountRequestable());
-                        toCraft.setCountRequestableCrafts(plannedItem.getCountRequestableCrafts());
+                        if (inStorage > 0) {
+                            a.appendStack(key.toIAEStack(inStorage));
+                        }
+                        if (produced > 0) {
+                            b.appendStack(key.toIAEStack(produced));
+                        }
 
-                        IAEStack<?> missing = null;
-                        if (c != null && this.result.isSimulation()) {
-                            missing = toExtract.copy();
-                            toExtract = storageAtBeginning.extractAny(toExtract, Actionable.SIMULATE);
+                    }
 
-                            if (toExtract == null) {
-                                toExtract = missing.copy();
-                                toExtract.setStackSize(0);
+                    for (AEKey key : craftingPlan.emittedItems().keySet()) {
+                        long amount = craftingPlan.emittedItems().get(key);
+                        if (amount > 0) {
+                            b.appendStack(key.toIAEStack(amount));
+                        }
+                    }
+
+                    if (c != null && craftingPlan.simulation()) {
+                        for (AEKey key : craftingPlan.missingItems().keySet()) {
+                            long amount = craftingPlan.missingItems().get(key);
+                            if (amount > 0) {
+                                c.appendStack(key.toIAEStack(amount));
                             }
-
-                            missing.setStackSize(missing.getStackSize() - toExtract.getStackSize());
-                        }
-
-                        if (toExtract.getStackSize() > 0) {
-                            a.appendStack(toExtract);
-                        }
-
-                        if (toCraft.getStackSize() > 0) {
-                            b.appendStack(toCraft);
-                        }
-
-                        if (c != null && missing != null && missing.getStackSize() > 0) {
-                            c.appendStack(missing);
                         }
                     }
 
@@ -451,7 +449,7 @@ public class ContainerCraftConfirm extends AEBaseContainer {
     }
 
     /**
-     * 泛型版本：接收包含物品和流体的合成计划更新�?
+     * 泛型版本：接收包含物品和流体的合成计划更新�?
      */
     public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
         if (this.guiCallback != null) {
@@ -475,7 +473,7 @@ public class ContainerCraftConfirm extends AEBaseContainer {
     }
 
     /**
-     * 设置 GUI 回调（兼容旧 GUI 和新 MUI 面板）�?
+     * 设置 GUI 回调（兼容旧 GUI 和新 MUI 面板）�?
      */
     public void setGui(ICraftConfirmGuiCallback callback) {
         this.guiCallback = callback;

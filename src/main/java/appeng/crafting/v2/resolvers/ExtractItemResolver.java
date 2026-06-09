@@ -11,8 +11,8 @@ import javax.annotation.Nonnull;
 import appeng.api.config.Actionable;
 import appeng.api.stacks.GenericStack;
 import appeng.api.config.FuzzyMode;
+import appeng.api.networking.crafting.CraftingPlan;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IItemList;
 import appeng.crafting.CraftBranchFailure;
 import appeng.crafting.MECraftingInventory;
 import appeng.crafting.v2.CraftingContext;
@@ -89,13 +89,12 @@ public class ExtractItemResolver implements CraftingRequestResolver {
         private void extractFuzzy(CraftingContext context, MECraftingInventory source, List<GenericStack> removedList) {
             var fuzzyMatching = source.findFuzzyAny(
                     new GenericStack(request.what, request.remainingToProcess), FuzzyMode.IGNORE_ALL);
-            for (final var candidateBase : fuzzyMatching) {
-                if (candidateBase == null) continue;
-                var candidate = (IAEStack<?>) candidateBase;
-                if (request.acceptableSubstituteFn.test(candidate.toAEKey())) {
-                    final long requestSize = Math.min(request.remainingToProcess, candidate.getStackSize());
+            for (final var candidate : fuzzyMatching) {
+                if (candidate == null) continue;
+                if (request.acceptableSubstituteFn.test(candidate.what())) {
+                    final long requestSize = Math.min(request.remainingToProcess, candidate.amount());
                     var extracted = source.extractAny(
-                            new GenericStack(candidate.toAEKey(), requestSize), Actionable.MODULATE);
+                            new GenericStack(candidate.what(), requestSize), Actionable.MODULATE);
                     if (extracted == null || extracted.amount() <= 0) continue;
                     request.fulfill(this, extracted, context);
                     removedList.add(extracted);
@@ -147,9 +146,9 @@ public class ExtractItemResolver implements CraftingRequestResolver {
         }
 
         @Override
-        public void populatePlan(IItemList<IAEStackBase> targetPlan) {
+        public void contributePlan(CraftingPlan.Builder plan) {
             for (GenericStack removed : removedFromSystem) {
-                targetPlan.add(removed.toIAEStack());
+                plan.addAvailable(removed.what(), removed.amount());
             }
         }
 

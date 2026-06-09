@@ -6,10 +6,9 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import appeng.api.networking.crafting.CraftingPlan;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IItemList;
 import appeng.crafting.MECraftingInventory;
 import appeng.crafting.v2.CraftingContext;
 import appeng.crafting.v2.CraftingRequest;
@@ -71,9 +70,8 @@ public class SimulateMissingItemResolver implements CraftingRequestResolver {
         }
 
         @Override
-        @SuppressWarnings("unchecked")
-        public void populatePlan(IItemList<IAEStackBase> targetPlan) {
-            if (fulfilled > 0) targetPlan.add(new GenericStack(request.what, fulfilled).toIAEStack());
+        public void contributePlan(CraftingPlan.Builder plan) {
+            if (fulfilled > 0) plan.addMissing(request.what, fulfilled);
         }
 
         @Override

@@ -11,12 +11,11 @@ import javax.annotation.Nonnull;
 import appeng.api.config.CraftingMode;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.crafting.ICraftingCallback;
+import appeng.api.networking.crafting.CraftingPlan;
 import appeng.api.networking.crafting.ICraftingCPU;
 import appeng.api.networking.crafting.ICraftingJob;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IItemList;
 import appeng.core.AELog;
 import appeng.crafting.MECraftingInventory;
 import appeng.crafting.v2.resolvers.CraftingTask;
@@ -96,13 +95,14 @@ public class CraftingJobV2 implements ICraftingJob, ITreeSerializable {
     }
 
     @Override
-    public void populatePlan(IItemList<IAEStackBase> plan) {
-        if (topRequest == null) {
-            return;
+    public CraftingPlan getPlan() {
+        var builder = new CraftingPlan.Builder();
+        if (topRequest != null) {
+            for (CraftingRequest.UsedResolverEntry resolver : topRequest.usedResolvers) {
+                resolver.task.contributePlan(builder);
+            }
         }
-        for (CraftingRequest.UsedResolverEntry resolver : topRequest.usedResolvers) {
-            resolver.task.populatePlan(plan);
-        }
+        return builder.build(output, getByteTotal(), isSimulation());
     }
 
     @Override

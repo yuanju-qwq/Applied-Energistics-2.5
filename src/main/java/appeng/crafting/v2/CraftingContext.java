@@ -30,13 +30,12 @@ import com.google.common.collect.MutableClassToInstanceMap;
 
 import appeng.api.AEApi;
 import appeng.api.networking.IGrid;
+import appeng.api.networking.crafting.CraftingPlan;
 import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IStorageGrid;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IItemList;
 import appeng.container.ContainerNull;
 import appeng.core.AEConfig;
 import appeng.crafting.MECraftingInventory;
@@ -450,7 +449,7 @@ public final class CraftingContext {
         }
 
         @Override
-        public void populatePlan(IItemList<IAEStackBase> targetPlan) {
+        public void contributePlan(CraftingPlan.Builder plan) {
         }
 
         @Override

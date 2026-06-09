@@ -6,9 +6,8 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import appeng.api.networking.crafting.CraftingPlan;
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IItemList;
 import appeng.crafting.MECraftingInventory;
 import appeng.crafting.v2.CraftingContext;
 import appeng.crafting.v2.CraftingRequest;
@@ -68,9 +67,8 @@ public class EmitableItemResolver implements CraftingRequestResolver {
         }
 
         @Override
-        @SuppressWarnings("unchecked")
-        public void populatePlan(IItemList<IAEStackBase> targetPlan) {
-            if (fulfilled > 0) targetPlan.addRequestable(new GenericStack(request.what, fulfilled).toIAEStack());
+        public void contributePlan(CraftingPlan.Builder plan) {
+            if (fulfilled > 0) plan.addEmitted(request.what, fulfilled);
         }
 
         @Override

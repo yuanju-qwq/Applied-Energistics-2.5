@@ -45,6 +45,7 @@ import appeng.core.AELog;
 import appeng.core.AppEng;
 import appeng.core.sync.packets.PacketPaintedEntity;
 import appeng.api.networking.crafting.ICraftingCallback;
+import appeng.api.networking.crafting.CraftingPlan;
 import appeng.api.networking.crafting.ICraftingJob;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStackBase;
@@ -289,8 +290,8 @@ public class TickHandler {
         }
 
         @Override
-        public void populatePlan(appeng.api.storage.data.IItemList<IAEStackBase> plan) {
-            delegate.populatePlan(plan);
+        public CraftingPlan getPlan() {
+            return delegate.getPlan();
         }
 
         @Override

@@ -20,10 +20,9 @@ import appeng.api.config.FuzzyMode;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
+import appeng.api.networking.crafting.CraftingPlan;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IItemList;
 import appeng.crafting.MECraftingInventory;
 import appeng.crafting.v2.CraftingContext;
 import appeng.crafting.v2.CraftingRequest;
@@ -568,7 +567,7 @@ public class CraftableItemResolver implements CraftingRequestResolver {
                         Actionable.MODULATE);
             }
             if (matchingOutputRemainderItems > 0) {
-                context.byproductsInventory.extractItems(
+                context.byproductsInventory.extractAny(
                         new GenericStack(matchingOutput.what(), matchingOutputRemainderItems), Actionable.MODULATE);
             }
             totalCraftsDone = 0;
@@ -579,18 +578,17 @@ public class CraftableItemResolver implements CraftingRequestResolver {
         // ====================== 计划 & CPU 启动 ======================
 
         @Override
-        @SuppressWarnings("unchecked")
-        public void populatePlan(IItemList<IAEStackBase> targetPlan) {
+        public void contributePlan(CraftingPlan.Builder plan) {
             if (totalCraftsDone > 0) {
                 for (RequestAndPerCraftAmount childPair : childRequests) {
-                    childPair.request.usedResolvers.forEach(re -> re.task.populatePlan(targetPlan));
+                    childPair.request.usedResolvers.forEach(re -> re.task.contributePlan(plan));
                 }
                 for (CraftingRequest recChild : childRecursionRequests.values()) {
-                    recChild.usedResolvers.forEach(re -> re.task.populatePlan(targetPlan));
+                    recChild.usedResolvers.forEach(re -> re.task.contributePlan(plan));
                 }
                 for (GenericStack output : patternOutputs) {
                     final long amount = Math.multiplyExact(totalCraftsDone, output.amount());
-                    targetPlan.addRequestable(new GenericStack(output.what(), amount).toIAEStack());
+                    plan.addAvailable(output.what(), amount);
                 }
             }
         }
@@ -632,11 +630,11 @@ public class CraftableItemResolver implements CraftingRequestResolver {
         final boolean allowSimulation = request.allowSimulation;
 
         List<ICraftingPatternDetails> patterns = context.getPrecisePatternsFor(
-                new GenericStack(request.what, 1).toIAEStack());
+                new GenericStack(request.what, 1));
 
         if (patterns.isEmpty() && request.substitutionMode == SubstitutionMode.ACCEPT_FUZZY) {
             patterns = context.getFuzzyPatternsFor(
-                    new GenericStack(request.what, 1).toIAEStack());
+                    new GenericStack(request.what, 1));
         }
 
         if (patterns.isEmpty()) {

@@ -7,8 +7,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
-import appeng.api.storage.data.IAEStackBase;
-import appeng.api.storage.data.IItemList;
+import appeng.api.networking.crafting.CraftingPlan;
 import appeng.crafting.MECraftingInventory;
 import appeng.crafting.v2.CraftingContext;
 import appeng.crafting.v2.CraftingRequest;
@@ -79,7 +78,7 @@ public abstract class CraftingTask implements ITreeSerializable {
 
     public abstract void fullRefund(CraftingContext context);
 
-    public abstract void populatePlan(IItemList<IAEStackBase> targetPlan);
+    public abstract void contributePlan(CraftingPlan.Builder plan);
 
     public abstract void startOnCpu(CraftingContext context, CraftingCPUCluster cpuCluster,
             MECraftingInventory craftingInv);
