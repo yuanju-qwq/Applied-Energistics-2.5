@@ -45,7 +45,6 @@ import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.IStorageMonitorableAccessor;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.capabilities.Capabilities;
@@ -57,8 +56,7 @@ import appeng.util.inv.InvOperation;
 import appeng.util.inv.WrapperChainedItemHandler;
 import appeng.util.inv.WrapperFilteredItemHandler;
 import appeng.util.inv.filter.AEItemFilters;
-import appeng.util.item.AEItemStackType;
-import appeng.fluids.util.AEFluidStackType;
+import appeng.api.stacks.AEKeyType;
 
 public class TileCondenser extends AEBaseInvTile implements IConfigManagerHost, IConfigurableObject {
 
@@ -284,9 +282,8 @@ public class TileCondenser extends AEBaseInvTile implements IConfigManagerHost, 
         @Override
         public int fill(FluidStack resource, boolean doFill) {
             if (doFill) {
-                final IAEStackType<IAEFluidStack> chan = AEFluidStackType.INSTANCE;
                 TileCondenser.this
-                        .addPower((resource == null ? 0.0 : (double) resource.amount) / chan.transferFactor());
+                        .addPower((resource == null ? 0.0 : (double) resource.amount) / AEKeyType.fluids().transferFactor());
             }
 
             return resource == null ? 0 : resource.amount;

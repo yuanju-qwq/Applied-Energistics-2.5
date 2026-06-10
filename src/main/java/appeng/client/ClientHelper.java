@@ -133,10 +133,10 @@ public class ClientHelper extends ServerHelper {
 
         // Stack type renderer registration
         appeng.client.render.stack.AEStackTypeRendererRegistry.register(
-                appeng.util.item.AEItemStackType.INSTANCE,
+                appeng.api.stacks.AEKeyType.items(),
                 appeng.client.render.stack.AEItemStackRenderer.INSTANCE);
         appeng.client.render.stack.AEStackTypeRendererRegistry.register(
-                appeng.fluids.util.AEFluidStackType.INSTANCE,
+                appeng.api.stacks.AEKeyType.fluids(),
                 appeng.client.render.stack.AEFluidStackRenderer.INSTANCE);
 
         // MUI 面板注册

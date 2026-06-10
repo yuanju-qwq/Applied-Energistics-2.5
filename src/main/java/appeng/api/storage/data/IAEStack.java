@@ -165,8 +165,7 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
     /**
      * @return the corresponding {@link appeng.api.stacks.AEKeyType} for this stack. Default
      *         implementation derives it from the legacy {@link #getStackType()} id; new code
-     *         should prefer this method to avoid scattering
-     *         {@code AEKeyType.fromLegacyType(getStackType())} lookups.
+     *         should prefer this method over accessing {@link #getStackType()} directly.
      */
     @SuppressWarnings("unchecked")
     @Nonnull
@@ -218,12 +217,12 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
             return null;
         }
 
-        IAEStackType<?> type = AEStackTypeRegistry.getType(id);
-        if (type == null) {
+        appeng.api.stacks.AEKeyType keyType = appeng.api.stacks.AEKeyType.fromId(id);
+        if (keyType == null) {
             AELog.warn("Cannot deserialize generic stack from nbt %s because stack type '%s' is not registered.", tag, id);
             return null;
         }
-        return type.loadStackFromNBT(tag);
+        return keyType.loadStackFromNBT(tag);
     }
 
     /**
@@ -234,9 +233,9 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
      */
     static void writeToPacketGeneric(@Nonnull ByteBuf buffer, @Nullable IAEStack<?> stack) throws IOException {
         if (stack == null) {
-            buffer.writeByte(AEStackTypeRegistry.NULL_NETWORK_ID);
+            buffer.writeByte(appeng.api.stacks.AEKeyType.NULL_RAW_ID);
         } else {
-            buffer.writeByte(AEStackTypeRegistry.getNetworkId(stack.getStackType()));
+            buffer.writeByte(stack.getAEKeyType().getRawId());
             stack.writeToPacket(buffer);
         }
     }
@@ -250,16 +249,16 @@ public interface IAEStack<T extends IAEStack<T>> extends IAEStackBase {
     @Nullable
     static IAEStack<?> fromPacketGeneric(@Nonnull ByteBuf buffer) throws IOException {
         final byte id = buffer.readByte();
-        if (id == AEStackTypeRegistry.NULL_NETWORK_ID) {
+        if (id == appeng.api.stacks.AEKeyType.NULL_RAW_ID) {
             return null;
         }
 
-        IAEStackType<?> type = AEStackTypeRegistry.getTypeFromNetworkId(id);
-        if (type == null) {
+        appeng.api.stacks.AEKeyType keyType = appeng.api.stacks.AEKeyType.fromRawId(id);
+        if (keyType == null) {
             AELog.warn("Cannot deserialize generic stack from ByteBuf because stack type network id %d is not registered.", id);
             return null;
         }
-        return type.loadStackFromPacket(buffer);
+        return keyType.loadStackFromPacket(buffer);
     }
 
     // ==================== AEKey bridge methods ====================

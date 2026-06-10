@@ -39,9 +39,7 @@ import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.me.storage.ItemWatcher;
 
@@ -142,11 +140,7 @@ public class NetworkMonitor implements IMEMonitor {
     @Nonnull
     @Deprecated
     public IItemList getStorageList() {
-        IAEStackType<?> legacyType = AEStackTypeRegistry.getType(this.myKeyType.getId());
-        if (legacyType == null) {
-            return null;
-        }
-        final IItemList out = legacyType.createList();
+        final IItemList out = new appeng.util.item.IAEStackList();
 
         for (Object2LongMap.Entry<AEKey> entry : this.keyCounter) {
             AEKey key = entry.getKey();

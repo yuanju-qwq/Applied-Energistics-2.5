@@ -34,7 +34,7 @@ import appeng.api.parts.IPartModel;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 import appeng.core.AppEng;
 import appeng.helpers.Reflected;
 import appeng.items.parts.PartModels;
@@ -256,18 +256,11 @@ public class PartConversionMonitor extends AbstractPartMonitor implements IConve
      * Get the default extraction count for a left-click on the displayed stack.
      * For items: max stack size of the item. For other types: delegates to handler.
      */
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> long getDefaultExtractCount(IAEStack<?> displayed) {
-        final IAEStackType<T> stackType = (IAEStackType<T>) displayed.getStackTypeBase();
-        // Use the amount per unit as a reasonable default batch size
-        // For items (amountPerUnit=1): extracting 1 means extract one item,
-        //   but we actually want maxStackSize — however that's item-specific.
-        // We let the handler's extractToPlayer handle the actual count interpretation.
-        // For now, use the displayed stack's info through createItemStack if available.
+    private long getDefaultExtractCount(IAEStack<?> displayed) {
         if (displayed.asItemStackRepresentation() != ItemStack.EMPTY) {
             return displayed.asItemStackRepresentation().getMaxStackSize();
         }
-        return stackType.getAmountPerUnit();
+        return displayed.getAEKeyType().getAmountPerUnit();
     }
 
     /**

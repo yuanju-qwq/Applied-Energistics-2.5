@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -31,7 +31,7 @@ import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.data.IAEStack;
 import appeng.util.prioritylist.DefaultPriorityList;
-import appeng.util.prioritylist.IAEKeyPartitionList;
+import appeng.util.prioritylist.AEKeyPartitionList;
 import appeng.util.prioritylist.IPartitionList;
 
 @SuppressWarnings("rawtypes")
@@ -48,7 +48,7 @@ public class MEInventoryHandler implements IMEInventoryHandler {
      * it does not require allocating a transient {@code IAEStack} for every membership check.
      * When set, it takes precedence; the legacy list is only consulted as a fallback.
      */
-    private IAEKeyPartitionList myKeyPartitionList;
+    private AEKeyPartitionList myKeyPartitionList;
 
     private AccessRestriction cachedAccessRestriction;
 
@@ -110,11 +110,11 @@ public class MEInventoryHandler implements IMEInventoryHandler {
      * away from the IAEStack-based system: callers avoid the per-check allocation of a transient
      * IAEStack instance.
      */
-    public void setKeyPartitionList(IAEKeyPartitionList list) {
+    public void setKeyPartitionList(AEKeyPartitionList list) {
         this.myKeyPartitionList = list;
     }
 
-    public IAEKeyPartitionList getKeyPartitionList() {
+    public AEKeyPartitionList getKeyPartitionList() {
         return this.myKeyPartitionList;
     }
 

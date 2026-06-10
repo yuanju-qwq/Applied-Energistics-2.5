@@ -34,10 +34,8 @@ import appeng.api.parts.IConversionMonitorHandler;
 import appeng.api.parts.IConversionMonitorHost;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.ContainerInteractionResult;
-import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.core.AELog;
-import appeng.fluids.util.AEFluidStackType;
 import appeng.util.StorageHelper;
 
 /**
@@ -45,7 +43,7 @@ import appeng.util.StorageHelper;
  * <p>
  * Handles fluid container interactions: draining fluid from held containers into the ME network,
  * and filling held containers from the ME network.
- * Uses {@link IAEStackType#drainFromContainer} and {@link IAEStackType#fillToContainer} APIs.
+ * Uses {@link AEKeyType#drainFromContainer} and {@link AEKeyType#fillToContainer} APIs.
  */
 public final class FluidConversionMonitorHandler implements IConversionMonitorHandler {
 
@@ -61,14 +59,14 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
 
     @Override
     public boolean canInteractWithContainer(@Nonnull ItemStack heldItem) {
-        return AEFluidStackType.INSTANCE.isContainerItemForType(heldItem)
-                && AEFluidStackType.INSTANCE.getStackFromContainerItem(heldItem) != null;
+        return AEKeyType.fluids().isContainerItemForType(heldItem)
+                && AEKeyType.fluids().getStackFromContainerItem(heldItem) != null;
     }
 
     @Nullable
     @Override
     public GenericStack getStackFromContainer(@Nonnull ItemStack heldItem) {
-        IAEFluidStack stack = AEFluidStackType.INSTANCE.getStackFromContainerItem(heldItem);
+        IAEStack<?> stack = AEKeyType.fluids().getStackFromContainerItem(heldItem);
         return stack != null ? GenericStack.fromIAEStack(stack) : null;
     }
 
@@ -86,8 +84,8 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
         }
 
         // Simulate: see how much we can drain
-        final ContainerInteractionResult<IAEFluidStack> simDrain =
-                AEFluidStackType.INSTANCE.drainFromContainer(held, Integer.MAX_VALUE, true);
+        final ContainerInteractionResult<? extends IAEStack<?>> simDrain =
+                AEKeyType.fluids().drainFromContainer(held, Integer.MAX_VALUE, true);
         if (!simDrain.isSuccess()) {
             return;
         }
@@ -105,8 +103,8 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
         }
 
         // Actually drain from container
-        final ContainerInteractionResult<IAEFluidStack> actualDrain =
-                AEFluidStackType.INSTANCE.drainFromContainer(held, toDrain, false);
+        final ContainerInteractionResult<? extends IAEStack<?>> actualDrain =
+                AEKeyType.fluids().drainFromContainer(held, toDrain, false);
         if (!actualDrain.isSuccess()) {
             return;
         }
@@ -150,16 +148,16 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
             return;
         }
 
-        final IAEFluidStack displayedFluid = (IAEFluidStack) displayed.toIAEStack();
+        final IAEStack<?> displayedFluid = displayed.toIAEStack();
         if (displayedFluid == null) {
             return;
         }
 
         // Simulate: see how much the container can accept
-        final IAEFluidStack fillRequest = displayedFluid.copy();
+        final IAEStack<?> fillRequest = displayedFluid.copy();
         fillRequest.setStackSize(Integer.MAX_VALUE);
-        final ContainerInteractionResult<IAEFluidStack> simFill =
-                AEFluidStackType.INSTANCE.fillToContainer(held, fillRequest, true);
+        final ContainerInteractionResult<? extends IAEStack<?>> simFill =
+                AEKeyType.fluids().fillToContainer(held, fillRequest, true);
         if (!simFill.isSuccess()) {
             return;
         }
@@ -172,8 +170,8 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
         }
 
         // Re-simulate fill with what we can actually pull
-        final ContainerInteractionResult<IAEFluidStack> simFill2 =
-                AEFluidStackType.INSTANCE.fillToContainer(held, canPull, true);
+        final ContainerInteractionResult<? extends IAEStack<?>> simFill2 =
+                AEKeyType.fluids().fillToContainer(held, canPull, true);
         if (!simFill2.isSuccess()) {
             return;
         }
@@ -187,8 +185,8 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
         }
 
         // Actually fill container
-        final ContainerInteractionResult<IAEFluidStack> actualFill =
-                AEFluidStackType.INSTANCE.fillToContainer(held, pulled, false);
+        final ContainerInteractionResult<? extends IAEStack<?>> actualFill =
+                AEKeyType.fluids().fillToContainer(held, pulled, false);
 
         if (!actualFill.isSuccess()
                 || actualFill.getTransferredAmount() != pulled.amount()) {
@@ -202,7 +200,7 @@ public final class FluidConversionMonitorHandler implements IConversionMonitorHa
     @Nullable
     @Override
     public GenericStack resolveConfiguredStack(@Nonnull ItemStack heldItem) {
-        final IAEFluidStack stack = AEFluidStackType.INSTANCE.getStackFromContainerItem(heldItem);
-        return stack != null ? GenericStack.fromIAEStack((IAEStack<?>) stack.setStackSize(0)) : null;
+        final IAEStack<?> stack = AEKeyType.fluids().getStackFromContainerItem(heldItem);
+        return stack != null ? GenericStack.fromIAEStack(stack.setStackSize(0)) : null;
     }
 }

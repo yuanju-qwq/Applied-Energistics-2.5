@@ -70,14 +70,14 @@ public class ContainerMEInterface extends ContainerUpgradeable
     public YesNo iTermMode = YesNo.YES;
 
     // --- Config VirtualSlot sync (server → client) ---
-    private final IAEStack<?>[] configClientSlot = new IAEStack[InterfaceLogic.NUMBER_OF_CONFIG_SLOTS];
+    private final GenericStack[] configClientSlot = new GenericStack[InterfaceLogic.NUMBER_OF_CONFIG_SLOTS];
 
     // --- Fluid Storage VirtualSlot sync (server → client) ---
     // Server-side mirror: populated from fluidTanks each tick for diff comparison
     private final IAEStackInventory fluidStorageServerMirror =
             new IAEStackInventory(null, InterfaceLogic.NUMBER_OF_CONFIG_SLOTS, StorageName.STORAGE);
     // Server-side diff snapshot
-    private final IAEStack<?>[] fluidStorageClientSlot = new IAEStack[InterfaceLogic.NUMBER_OF_CONFIG_SLOTS];
+    private final GenericStack[] fluidStorageClientSlot = new GenericStack[InterfaceLogic.NUMBER_OF_CONFIG_SLOTS];
     // Client-side inventory: GUI reads from this
     private final IAEStackInventory fluidStorageClientInv =
             new IAEStackInventory(null, InterfaceLogic.NUMBER_OF_CONFIG_SLOTS, StorageName.STORAGE);
@@ -162,15 +162,15 @@ public class ContainerMEInterface extends ContainerUpgradeable
     // ---- IVirtualSlotHolder (client receives server sync) ----
 
     @Override
-    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
+    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<GenericStack> slotStacks) {
         if (invName == StorageName.CONFIG) {
             final IAEStackInventory config = this.logic.getConfig();
             for (var entry : slotStacks.int2ObjectEntrySet()) {
-                config.setGenericStack(entry.getIntKey(), GenericStack.fromIAEStack(entry.getValue()));
+                config.setGenericStack(entry.getIntKey(), entry.getValue());
             }
         } else if (invName == StorageName.STORAGE) {
             for (var entry : slotStacks.int2ObjectEntrySet()) {
-                this.fluidStorageClientInv.setGenericStack(entry.getIntKey(), GenericStack.fromIAEStack(entry.getValue()));
+                this.fluidStorageClientInv.setGenericStack(entry.getIntKey(), entry.getValue());
             }
         }
     }
@@ -178,15 +178,13 @@ public class ContainerMEInterface extends ContainerUpgradeable
     // ---- IVirtualSlotSource (server receives client update) ----
 
     @Override
-    public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
-        // Only config slots are client-writable
+    public void updateVirtualSlot(StorageName invName, int slotId, GenericStack gs) {
         if (invName == StorageName.CONFIG) {
             final IAEStackInventory config = this.logic.getConfig();
             if (config != null && slotId >= 0 && slotId < config.getSizeInventory()) {
-                config.setGenericStack(slotId, GenericStack.fromIAEStack(aes));
+                config.setGenericStack(slotId, gs);
             }
         }
-        // STORAGE is read-only from client, ignore
     }
 
     // ---- Getter ----

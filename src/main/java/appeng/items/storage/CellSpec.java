@@ -20,8 +20,11 @@ package appeng.items.storage;
 
 import java.util.function.Function;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.item.ItemStack;
 
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.tile.inventory.IAEStackInventory;
@@ -36,27 +39,37 @@ import appeng.tile.inventory.IAEStackInventory;
  */
 public class CellSpec<T extends IAEStack<T>> {
 
-    private final IAEStackType<T> stackType;
+    private final AEKeyType keyType;
     private final int bytesPerType;
     private final double idleDrain;
     private final int totalTypes;
     private final Function<ItemStack, IAEStackInventory> configAEInventoryFactory;
 
     public CellSpec(
-            final IAEStackType<T> stackType,
+            @Nonnull final AEKeyType keyType,
             final int bytesPerType,
             final double idleDrain,
             final int totalTypes,
             final Function<ItemStack, IAEStackInventory> configAEInventoryFactory) {
-        this.stackType = stackType;
+        this.keyType = keyType;
         this.bytesPerType = bytesPerType;
         this.idleDrain = idleDrain;
         this.totalTypes = totalTypes;
         this.configAEInventoryFactory = configAEInventoryFactory;
     }
 
+    /**
+     * @deprecated Use {@link #getKeyType()} instead. Kept for backward compatibility.
+     */
+    @Deprecated
+    @SuppressWarnings("unchecked")
     public IAEStackType<T> getStackType() {
-        return this.stackType;
+        return (IAEStackType<T>) AEStackTypeRegistry.getType(keyType.getId());
+    }
+
+    @Nonnull
+    public AEKeyType getKeyType() {
+        return this.keyType;
     }
 
     public int getBytesPerType() {

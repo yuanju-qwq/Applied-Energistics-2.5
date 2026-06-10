@@ -27,11 +27,11 @@ import javax.annotation.Nullable;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 
 /**
- * Client-side registry mapping each {@link IAEStackType} to its {@link IAEStackTypeRenderer}.
+ * Client-side registry mapping each {@link AEKeyType} to its {@link IAEStackTypeRenderer}.
  * <p>
  * Renderers are registered during client initialization. All rendering call sites
  * should use this registry instead of {@code instanceof} checks to obtain the
@@ -40,7 +40,7 @@ import appeng.api.storage.data.IAEStackType;
 @SideOnly(Side.CLIENT)
 public final class AEStackTypeRendererRegistry {
 
-    private static final Map<IAEStackType<?>, IAEStackTypeRenderer> REGISTRY = new IdentityHashMap<>();
+    private static final Map<AEKeyType, IAEStackTypeRenderer> REGISTRY = new IdentityHashMap<>();
 
     /**
      * Fallback renderer that uses {@link IAEStack#asItemStackRepresentation()} for unknown types.
@@ -49,25 +49,29 @@ public final class AEStackTypeRendererRegistry {
 
     private AEStackTypeRendererRegistry() {}
 
+    // ==================== Registration ====================
+
     /**
-     * Register a renderer for the given stack type.
+     * Register a renderer for the given key type.
      *
-     * @param type     the stack type
+     * @param type     the key type
      * @param renderer the renderer instance
      */
-    public static void register(@Nonnull IAEStackType<?> type, @Nonnull IAEStackTypeRenderer renderer) {
+    public static void register(@Nonnull AEKeyType type, @Nonnull IAEStackTypeRenderer renderer) {
         REGISTRY.put(type, renderer);
     }
 
+    // ==================== Lookup ====================
+
     /**
-     * Get the renderer for the given stack type.
+     * Get the renderer for the given key type.
      * Returns a fallback renderer if no specific renderer is registered.
      *
-     * @param type the stack type
+     * @param type the key type
      * @return the renderer (never null)
      */
     @Nonnull
-    public static IAEStackTypeRenderer getRenderer(@Nonnull IAEStackType<?> type) {
+    public static IAEStackTypeRenderer getRenderer(@Nonnull AEKeyType type) {
         IAEStackTypeRenderer renderer = REGISTRY.get(type);
         return renderer != null ? renderer : FALLBACK;
     }
@@ -81,13 +85,13 @@ public final class AEStackTypeRendererRegistry {
      */
     @Nonnull
     public static IAEStackTypeRenderer getRenderer(@Nonnull IAEStack<?> stack) {
-        return getRenderer(stack.getStackTypeBase());
+        return getRenderer(stack.getAEKeyType());
     }
 
     /**
-     * Check whether a renderer is registered for the given type.
+     * Check whether a renderer is registered for the given key type.
      */
-    public static boolean hasRenderer(@Nullable IAEStackType<?> type) {
+    public static boolean hasRenderer(@Nullable AEKeyType type) {
         return type != null && REGISTRY.containsKey(type);
     }
 }

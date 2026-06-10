@@ -28,6 +28,8 @@ import java.util.Locale;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.netty.buffer.ByteBuf;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
@@ -205,5 +207,54 @@ final class AEFluidKeyType extends AEKeyType {
     @Override
     public AEKey readFromPacket(@Nonnull PacketBuffer input) throws IOException {
         return AEFluidKey.fromPacket(input);
+    }
+
+    // ========== Legacy IAEStack bridge methods ==========
+
+    @Nullable
+    @Override
+    public IAEStack<?> loadStackFromNBT(@Nonnull NBTTagCompound tag) {
+        return AEFluidStack.fromNBT(tag);
+    }
+
+    @Nullable
+    @Override
+    public IAEStack<?> loadStackFromPacket(@Nonnull ByteBuf buffer) throws IOException {
+        return AEFluidStack.fromPacket(buffer);
+    }
+
+    @Nullable
+    @Override
+    public IAEStack<?> createStack(@Nonnull Object input) {
+        if (input instanceof FluidStack) {
+            return AEFluidStack.fromFluidStack((FluidStack) input);
+        }
+        if (input instanceof ItemStack) {
+            return convertStackFromItem((ItemStack) input);
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public IAEStack<?> convertStackFromItem(@Nonnull ItemStack input) {
+        return AEFluidStack.fromItemStack(input);
+    }
+
+    @Nullable
+    @Override
+    public IAEStack<?> getStackFromContainerItem(@Nonnull ItemStack container) {
+        if (container == null || container.isEmpty()) {
+            return null;
+        }
+        IFluidHandlerItem handler = FluidUtil.getFluidHandler(container);
+        if (handler == null) {
+            return null;
+        }
+        FluidStack drained = handler.drain(Integer.MAX_VALUE, true);
+        if (drained == null || drained.amount <= 0) {
+            return null;
+        }
+        return AEFluidStack.fromFluidStack(drained);
     }
 }

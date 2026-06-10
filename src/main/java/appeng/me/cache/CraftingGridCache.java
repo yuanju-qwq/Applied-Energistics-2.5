@@ -627,12 +627,12 @@ public class CraftingGridCache
         public KeyCounter getAvailableKeyCounter() {
             KeyCounter out = new KeyCounter();
             for (final IAEStack<?> stack : this.cache.craftableItems.keySet()) {
-                if (stack.getStackTypeBase() != null && stack.getAEKeyType() == this.type) {
+                if (stack.getAEKeyType() == this.type) {
                     out.add(stack.toAEKey(), stack.getStackSize());
                 }
             }
             for (final IAEStack<?> st : this.cache.emitableItems) {
-                if (st.getStackTypeBase() != null && st.getAEKeyType() == this.type) {
+                if (st.getAEKeyType() == this.type) {
                     out.add(st.toAEKey(), st.getStackSize());
                 }
             }

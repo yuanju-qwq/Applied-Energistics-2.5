@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -28,7 +28,7 @@ import appeng.api.stacks.AEKey;
  * component (i.e. NBT) match — the same as the legacy {@link PrecisePriorityList} but working
  * directly on immutable {@link AEKey} instances.
  */
-public final class PreciseAEKeyPriorityList implements IAEKeyPartitionList {
+public final class PreciseAEKeyPriorityList implements AEKeyPartitionList {
 
     private final Set<AEKey> keys;
 

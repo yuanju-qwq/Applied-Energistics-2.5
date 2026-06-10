@@ -31,7 +31,6 @@ import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IItemList;
 import appeng.util.inv.ItemListIgnoreCrafting;
 
@@ -107,15 +106,12 @@ public class MEMonitorPassThrough extends MEPassThrough
 
     /**
      * Backward-compatible method that converts KeyCounter to IItemList.
-     * New code should use {@link #getKeyCounter()} instead.
+     * @deprecated Use {@link #getKeyCounter()} instead.
      */
+    @Deprecated
     public IItemList getStorageList() {
-        var legacyType = AEStackTypeRegistry.getType(getKeyType().getId());
-        if (legacyType == null) {
-            return null;
-        }
-        final IItemList out = legacyType.createList();
         KeyCounter kc = (this.monitor != null) ? this.monitor.getKeyCounter() : this.getInternal().getAvailableKeyCounter();
+        final IItemList out = new appeng.util.item.IAEStackList();
         for (var entry : kc) {
             var stack = entry.getKey().toIAEStack(entry.getLongValue());
             if (stack != null) {

@@ -30,7 +30,7 @@ import appeng.api.stacks.AEKey;
  * interface so that the {@code MEInventoryHandler} does not need to allocate transient
  * {@code IAEStack} instances for every membership check.
  */
-public interface IAEKeyPartitionList {
+public interface AEKeyPartitionList {
 
     /**
      * @return true if the given key is a member of this partition list.

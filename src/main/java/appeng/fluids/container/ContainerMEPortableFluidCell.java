@@ -54,9 +54,9 @@ import appeng.container.slot.SlotPlayerInv;
 import appeng.container.slot.SlotRestrictedInput;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
+import appeng.api.stacks.AEKeyType;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.core.sync.packets.PacketValueConfig;
-import appeng.fluids.util.AEFluidStackType;
 import appeng.helpers.InventoryAction;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.util.ConfigManager;
@@ -66,7 +66,7 @@ import appeng.util.inv.IAEAppEngInventory;
 import appeng.util.inv.InvOperation;
 
 /**
- * @deprecated 便携流体单元 Container 将在后续版本统一�?
+ * @deprecated 便携流体单元 Container 将在后续版本统一�?
  *             {@link appeng.container.implementations.ContainerMEMonitorable} 体系。此类保留向后兼容�?
  */
 @Deprecated
@@ -215,7 +215,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
             final AppEngSlot clickSlot = (AppEngSlot) this.inventorySlots.get(idx);
             ItemStack itemStack = clickSlot.getStack();
 
-            if (!AEFluidStackType.INSTANCE.isContainerItemForType(itemStack)) {
+            if (!AEKeyType.fluids().isContainerItemForType(itemStack)) {
                 return ItemStack.EMPTY;
             }
 
@@ -225,7 +225,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 copy.setCount(1);
 
                 final ContainerInteractionResult<IAEFluidStack> simDrain =
-                        AEFluidStackType.INSTANCE.drainFromContainer(copy, Integer.MAX_VALUE, true);
+                        AEKeyType.fluids().drainFromContainer(copy, Integer.MAX_VALUE, true);
                 if (!simDrain.isSuccess()) {
                     return ItemStack.EMPTY;
                 }
@@ -243,7 +243,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 }
 
                 final ContainerInteractionResult<IAEFluidStack> actualDrain =
-                        AEFluidStackType.INSTANCE.drainFromContainer(copy, toDrain, false);
+                        AEKeyType.fluids().drainFromContainer(copy, toDrain, false);
                 if (!actualDrain.isSuccess()) {
                     return ItemStack.EMPTY;
                 }
@@ -256,7 +256,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                     GenericStack spill = this.monitor.injectItems(notInserted, Actionable.MODULATE,
                             this.getActionSource());
                     if (spill != null && spill.amount() > 0) {
-                        AEFluidStackType.INSTANCE.fillToContainer(
+                        AEKeyType.fluids().fillToContainer(
                                 actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
                     }
                 }
@@ -282,7 +282,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
         }
 
         final ItemStack held = player.inventory.getItemStack();
-        if (!AEFluidStackType.INSTANCE.isContainerItemForType(held)) {
+        if (!AEKeyType.fluids().isContainerItemForType(held)) {
             return;
         }
 
@@ -297,7 +297,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 final IAEFluidStack fillRequest = target.copy();
                 fillRequest.setStackSize(Integer.MAX_VALUE);
                 final ContainerInteractionResult<IAEFluidStack> simFill =
-                        AEFluidStackType.INSTANCE.fillToContainer(copiedFluidContainer, fillRequest, true);
+                        AEKeyType.fluids().fillToContainer(copiedFluidContainer, fillRequest, true);
                 if (!simFill.isSuccess()) {
                     return;
                 }
@@ -311,7 +311,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 }
 
                 final ContainerInteractionResult<IAEFluidStack> simFill2 =
-                        AEFluidStackType.INSTANCE.fillToContainer(copiedFluidContainer, canPull, true);
+                        AEKeyType.fluids().fillToContainer(copiedFluidContainer, canPull, true);
                 if (!simFill2.isSuccess()) {
                     return;
                 }
@@ -326,7 +326,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 }
 
                 final ContainerInteractionResult<IAEFluidStack> actualFill =
-                        AEFluidStackType.INSTANCE.fillToContainer(copiedFluidContainer, pulled, false);
+                        AEKeyType.fluids().fillToContainer(copiedFluidContainer, pulled, false);
                 if (!actualFill.isSuccess()) {
                     AELog.error("Fluid item [%s] reported a different possible amount than it actually accepted.",
                             held.getDisplayName());
@@ -350,7 +350,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 copiedFluidContainer.setCount(1);
 
                 final ContainerInteractionResult<IAEFluidStack> simDrain =
-                        AEFluidStackType.INSTANCE.drainFromContainer(copiedFluidContainer, Integer.MAX_VALUE, true);
+                        AEKeyType.fluids().drainFromContainer(copiedFluidContainer, Integer.MAX_VALUE, true);
                 if (!simDrain.isSuccess()) {
                     return;
                 }
@@ -368,7 +368,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 }
 
                 final ContainerInteractionResult<IAEFluidStack> actualDrain =
-                        AEFluidStackType.INSTANCE.drainFromContainer(copiedFluidContainer, toDrain, false);
+                        AEKeyType.fluids().drainFromContainer(copiedFluidContainer, toDrain, false);
                 if (!actualDrain.isSuccess()) {
                     return;
                 }
@@ -381,7 +381,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                     GenericStack spill = this.monitor.injectItems(notInserted, Actionable.MODULATE,
                             this.getActionSource());
                     if (spill != null && spill.amount() > 0) {
-                        AEFluidStackType.INSTANCE.fillToContainer(
+                        AEKeyType.fluids().fillToContainer(
                                 actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
                     }
                 }
@@ -531,7 +531,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
     }
 
     /**
-     * 客户端接收流体库存更新包�?
+     * 客户端接收流体库存更新包�?
      */
     public void postUpdate(final List<IAEStack<?>> list) {
         final IConfigManagerHost gui = this.getGui();

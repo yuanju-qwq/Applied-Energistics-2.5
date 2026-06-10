@@ -39,10 +39,10 @@ import appeng.api.config.YesNo;
 import appeng.api.implementations.guiobjects.IPortableCell;
 import appeng.api.implementations.tiles.IMEChest;
 import appeng.api.implementations.tiles.IViewCellStorage;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.ITerminalHost;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.api.util.IConfigurableObject;
 import appeng.client.ActionKey;
@@ -698,9 +698,9 @@ public class MUIMEMonitorablePanel extends AEBaseMEPanel
             if (slot instanceof VirtualMEMonitorableSlot virtualSlot) {
                 if (this.isPointInRegion(slot.xPos(), slot.yPos(),
                         slot.getWidth(), slot.getHeight(), x, y)) {
-                    final IAEStack<?> stack = virtualSlot.getAEStack();
-                    if (stack instanceof IAEItemStack itemStack) {
-                        ((AEBaseContainer) this.inventorySlots).setTargetStack(itemStack);
+                    final var repoEntry = virtualSlot.getRepoEntry();
+                    if (repoEntry != null && repoEntry.what() instanceof AEItemKey itemKey) {
+                        ((AEBaseContainer) this.inventorySlots).setTargetStack(new GenericStack(itemKey, repoEntry.amount()));
                         final InventoryAction direction = wheel > 0
                                 ? InventoryAction.ROLL_DOWN
                                 : InventoryAction.ROLL_UP;

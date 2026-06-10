@@ -53,12 +53,10 @@ import appeng.api.parts.IPart;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.ITerminalHost;
-import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
@@ -78,7 +76,6 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.core.sync.packets.PacketPinsUpdate;
 import appeng.core.sync.packets.PacketValueConfig;
-import appeng.fluids.util.AEFluidStackType;
 import appeng.helpers.IPinsHandler;
 import appeng.helpers.InventoryAction;
 import appeng.helpers.WirelessTerminalGuiObject;
@@ -90,7 +87,6 @@ import appeng.me.helpers.PlayerSource;
 import appeng.util.ConfigManager;
 import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
-import appeng.util.item.AEItemStackType;
 import appeng.util.item.ItemList;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
@@ -102,10 +98,10 @@ public class ContainerMEMonitorable extends AEBaseContainer
     public final IItemList<IAEItemStack> items = new ItemList();
 
     /**
-     * Multi-type Monitor mapping: each registered IAEStackType corresponds to one IMEMonitor.
+     * Multi-type Monitor mapping: each registered AEKeyType corresponds to one IMEMonitor.
      * Items and fluids (and other types extended in the future) are all monitored in the same terminal.
      */
-    private final Map<IAEStackType<?>, IMEMonitor> monitors = new IdentityHashMap<>();
+    private final Map<AEKeyType, IMEMonitor> monitors = new IdentityHashMap<>();
 
     /**
      * KeyCounter-based update buffer: AEKey change notifications are accumulated here,
@@ -173,29 +169,24 @@ public class ContainerMEMonitorable extends AEBaseContainer
         if (Platform.isServer()) {
             this.serverCM = monitorable.getConfigManager();
 
-            // Iterate all registered IAEStackTypes and register as listeners on their IMEMonitors
+            // Iterate all registered AEKeyTypes and register as listeners on their IMEMonitors
             boolean hasAnyMonitor = false;
             for (AEKeyType keyType : AEKeyType.getAllTypes()) {
                 IMEMonitor mon = monitorable.getInventory(keyType);
                 if (mon != null) {
                     mon.addListener(this, null);
-                    IAEStackType<?> stackType = AEStackTypeRegistry.getType(keyType.getId());
-                    if (stackType != null) {
-                        this.monitors.put(stackType, mon);
-                    }
+                    this.monitors.put(keyType, mon);
                     hasAnyMonitor = true;
                 }
             }
 
             if (hasAnyMonitor) {
                 // Use item monitor as cell inventory (backward compatibility)
-                IMEMonitor itemMon = this.monitors.get(
-                        AEStackTypeRegistry.getType("item"));
+                IMEMonitor itemMon = this.monitors.get(AEKeyType.items());
                 if (itemMon != null) {
                     this.setCellInventory((IMEInventoryHandler) itemMon);
                 }
-                IMEMonitor fluidMon = this.monitors.get(
-                        AEStackTypeRegistry.getType("fluid"));
+                IMEMonitor fluidMon = this.monitors.get(AEKeyType.fluids());
                 if (fluidMon != null) {
                     this.setFluidCellInventory((IMEInventoryHandler) fluidMon);
                 }
@@ -268,19 +259,19 @@ public class ContainerMEMonitorable extends AEBaseContainer
             final Slot clickedSlot = this.inventorySlots.get(idx);
             if (clickedSlot != null && clickedSlot.getHasStack()) {
                 final ItemStack tis = clickedSlot.getStack();
-                final ContainerInteractionResult<IAEFluidStack> drainResult =
-                        AEFluidStackType.INSTANCE.drainFromContainer(tis.copy(), Integer.MAX_VALUE, true);
+                final ContainerInteractionResult<? extends IAEStack<?>> drainResult =
+                        AEKeyType.fluids().drainFromContainer(tis.copy(), Integer.MAX_VALUE, true);
                 if (drainResult.isSuccess()) {
                     @SuppressWarnings("unchecked")
                     final IMEMonitor fluidMonitor =
-                            (IMEMonitor) this.monitors.get(AEFluidStackType.INSTANCE);
+                            (IMEMonitor) this.monitors.get(AEKeyType.fluids());
                     if (fluidMonitor != null) {
                         final IActionSource src = new PlayerSource(playerMP, (IActionHost) this.host);
                         final GenericStack notInserted = fluidMonitor.injectItems(
                                 new GenericStack(drainResult.getTransferred().toAEKey(), drainResult.getTransferredAmount()), Actionable.SIMULATE, src);
                         if (notInserted == null || notInserted.amount() == 0) {
-                            final ContainerInteractionResult<IAEFluidStack> actualDrain =
-                                    AEFluidStackType.INSTANCE.drainFromContainer(tis,
+                            final ContainerInteractionResult<? extends IAEStack<?>> actualDrain =
+                                    AEKeyType.fluids().drainFromContainer(tis,
                                             drainResult.getTransferredAmount(), false);
                             if (actualDrain.isSuccess()) {
                                 fluidMonitor.injectItems(actualDrain.getTransferredGenericStack(),
@@ -346,9 +337,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
             // Verify all monitors are still valid
             for (AEKeyType keyType : AEKeyType.getAllTypes()) {
                 IMEMonitor current = this.host.getInventory(keyType);
-                IAEStackType<?> type = AEStackTypeRegistry.getType(keyType.getId());
-                if (type == null) continue;
-                IMEMonitor stored = this.monitors.get(type);
+                IMEMonitor stored = this.monitors.get(keyType);
                 if (stored != null && stored != current) {
                     this.setValidContainer(false);
                     return;
@@ -675,17 +664,13 @@ public class ContainerMEMonitorable extends AEBaseContainer
      */
     @SuppressWarnings("unchecked")
     public IMEMonitor getItemMonitor() {
-        IAEStackType<?> itemType = AEStackTypeRegistry.getType("item");
-        if (itemType != null) {
-            return (IMEMonitor) this.monitors.get(itemType);
-        }
-        return null;
+        return (IMEMonitor) this.monitors.get(AEKeyType.items());
     }
 
     /**
      * @return multi-type Monitor mapping
      */
-    public Map<IAEStackType<?>, IMEMonitor> getMonitors() {
+    public Map<AEKeyType, IMEMonitor> getMonitors() {
         return this.monitors;
     }
 
@@ -806,7 +791,7 @@ public class ContainerMEMonitorable extends AEBaseContainer
             final int slot, final long id) {
         @SuppressWarnings("unchecked")
         final IMEMonitor fluidMonitor =
-                (IMEMonitor) this.monitors.get(AEFluidStackType.INSTANCE);
+                (IMEMonitor) this.monitors.get(AEKeyType.fluids());
         if (fluidMonitor == null) {
             return;
         }
@@ -817,19 +802,19 @@ public class ContainerMEMonitorable extends AEBaseContainer
         }
 
         final IActionSource src = new PlayerSource(player, (IActionHost) this.host);
-        final IAEFluidStack targetFluid = this.getTargetFluidStack();
+        final GenericStack targetStack = this.getTargetStack();
+        final AEFluidKey targetFluidKey = targetStack != null && targetStack.what() instanceof AEFluidKey afk ? afk : null;
 
         if (action == InventoryAction.FILL_ITEM) {
-            if (targetFluid != null) {
+            if (targetFluidKey != null) {
                 final GenericStack extracted = fluidMonitor.extractItems(
-                        GenericStack.fromFluidStack(targetFluid.getFluidStack()), Actionable.SIMULATE, src);
-                if (extracted != null) {
-                    final IAEFluidStack extractedFluid = (IAEFluidStack) extracted.toIAEStack();
-                    final ContainerInteractionResult<IAEFluidStack> fillResult =
-                            AEFluidStackType.INSTANCE.fillToContainer(held, extractedFluid, false);
+                        new GenericStack(targetFluidKey, Integer.MAX_VALUE), Actionable.SIMULATE, src);
+                if (extracted != null && extracted.amount() > 0) {
+                    final var fillResult =
+                            AEKeyType.fluids().fillToContainer(held, extracted, false);
                     if (fillResult.isSuccess()) {
                         fluidMonitor.extractItems(
-                                new GenericStack(targetFluid.toAEKey(), fillResult.getTransferredAmount()),
+                                new GenericStack(targetFluidKey, fillResult.getTransferredAmount()),
                                 Actionable.MODULATE, src);
                         player.inventory.setItemStack(fillResult.getResultContainer());
                         this.updateHeld(player);
@@ -837,15 +822,14 @@ public class ContainerMEMonitorable extends AEBaseContainer
                 }
             }
         } else if (action == InventoryAction.EMPTY_ITEM) {
-            final ContainerInteractionResult<IAEFluidStack> drainResult =
-                    AEFluidStackType.INSTANCE.drainFromContainer(held, Integer.MAX_VALUE, true);
+            final var drainResult =
+                    AEKeyType.fluids().drainFromContainer(held, Integer.MAX_VALUE, true);
             if (drainResult.isSuccess()) {
                 final GenericStack notInserted = fluidMonitor.injectItems(
-                        new GenericStack(drainResult.getTransferred().toAEKey(), drainResult.getTransferredAmount()), Actionable.SIMULATE, src);
+                        drainResult.getTransferredGenericStack(), Actionable.SIMULATE, src);
                 if (notInserted == null || notInserted.amount() == 0) {
-                    // Actually drain and insert
-                    final ContainerInteractionResult<IAEFluidStack> actualDrain =
-                            AEFluidStackType.INSTANCE.drainFromContainer(held,
+                    final var actualDrain =
+                            AEKeyType.fluids().drainFromContainer(held,
                                     drainResult.getTransferredAmount(), false);
                     if (actualDrain.isSuccess()) {
                         fluidMonitor.injectItems(actualDrain.getTransferredGenericStack(), Actionable.MODULATE, src);

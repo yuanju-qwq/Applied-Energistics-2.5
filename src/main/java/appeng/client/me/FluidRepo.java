@@ -37,7 +37,7 @@ import appeng.client.mui.widgets.IMUISortSource;
 import appeng.core.AEConfig;
 import appeng.fluids.util.FluidSorters;
 import appeng.util.Platform;
-import appeng.util.prioritylist.IPartitionList;
+import appeng.util.prioritylist.AEKeyPartitionList;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 /**
@@ -54,7 +54,7 @@ public class FluidRepo {
     private int rowSize = 9;
 
     private String searchString = "";
-    private IPartitionList<IAEFluidStack> myPartitionList;
+    private AEKeyPartitionList myPartitionList;
     private boolean hasPower;
 
     public FluidRepo(final IMUIScrollSource src, final IMUISortSource sortSrc) {
@@ -97,7 +97,7 @@ public class FluidRepo {
             final long amount = entry.getLongValue();
             IAEFluidStack fs = (IAEFluidStack) key.toIAEStack(amount);
 
-            if (this.myPartitionList != null && !this.myPartitionList.isListed(fs)) {
+            if (this.myPartitionList != null && !this.myPartitionList.isListed(key)) {
                 continue;
             }
 

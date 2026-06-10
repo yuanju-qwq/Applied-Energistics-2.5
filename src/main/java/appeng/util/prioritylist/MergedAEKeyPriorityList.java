@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -24,16 +24,16 @@ import java.util.Collection;
 import appeng.api.stacks.AEKey;
 
 /**
- * Merges several {@link IAEKeyPartitionList} into a single list. A key is listed if it is not
+ * Merges several {@link AEKeyPartitionList} into a single list. A key is listed if it is not
  * blocked by any negative sublist and either there are no positive sublists or at least one
  * positive sublist accepts it.
  */
-public final class MergedAEKeyPriorityList implements IAEKeyPartitionList {
+public final class MergedAEKeyPriorityList implements AEKeyPartitionList {
 
-    private final Collection<IAEKeyPartitionList> positive = new ArrayList<>();
-    private final Collection<IAEKeyPartitionList> negative = new ArrayList<>();
+    private final Collection<AEKeyPartitionList> positive = new ArrayList<>();
+    private final Collection<AEKeyPartitionList> negative = new ArrayList<>();
 
-    public void addNewList(IAEKeyPartitionList list, boolean isWhitelist) {
+    public void addNewList(AEKeyPartitionList list, boolean isWhitelist) {
         if (isWhitelist) {
             this.positive.add(list);
         } else {
@@ -43,14 +43,14 @@ public final class MergedAEKeyPriorityList implements IAEKeyPartitionList {
 
     @Override
     public boolean isListed(AEKey input) {
-        for (IAEKeyPartitionList l : this.negative) {
+        for (AEKeyPartitionList l : this.negative) {
             if (l.isListed(input)) {
                 return false;
             }
         }
 
         if (!this.positive.isEmpty()) {
-            for (IAEKeyPartitionList l : this.positive) {
+            for (AEKeyPartitionList l : this.positive) {
                 if (l.isListed(input)) {
                     return true;
                 }

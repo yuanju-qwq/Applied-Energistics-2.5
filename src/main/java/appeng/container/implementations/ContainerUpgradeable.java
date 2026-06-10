@@ -32,7 +32,6 @@ import appeng.api.implementations.IUpgradeableHost;
 import appeng.api.implementations.guiobjects.IGuiItem;
 import appeng.api.parts.IPart;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.container.AEBaseContainer;
 import appeng.container.guisync.GuiSync;
@@ -67,7 +66,7 @@ public class ContainerUpgradeable extends AEBaseContainer
     private NetworkToolViewer tbInventory;
 
     // VirtualSlot sync infrastructure for IAEStackInventory config
-    private IAEStack<?>[] configClientSlot;
+    private GenericStack[] configClientSlot;
 
     private IAEStackInventory getHostConfig() {
         if (this.upgradeable instanceof IIAEStackInventory iiaeStackInventory) {
@@ -132,7 +131,7 @@ public class ContainerUpgradeable extends AEBaseContainer
         // Initialize VirtualSlot sync for IAEStackInventory config
         final IAEStackInventory cfg = this.getHostConfig();
         if (cfg != null) {
-            this.configClientSlot = new IAEStack[cfg.getSizeInventory()];
+            this.configClientSlot = new GenericStack[cfg.getSizeInventory()];
         }
     }
 
@@ -315,11 +314,11 @@ public class ContainerUpgradeable extends AEBaseContainer
     // ---- IVirtualSlotHolder (client receives server sync) ----
 
     @Override
-    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
+    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<GenericStack> slotStacks) {
         final IAEStackInventory cfg = this.getHostConfig();
         if (cfg != null) {
             for (var entry : slotStacks.int2ObjectEntrySet()) {
-                cfg.setGenericStack(entry.getIntKey(), GenericStack.fromIAEStack(entry.getValue()));
+                cfg.setGenericStack(entry.getIntKey(), entry.getValue());
             }
         }
     }
@@ -327,10 +326,10 @@ public class ContainerUpgradeable extends AEBaseContainer
     // ---- IVirtualSlotSource (server receives client update) ----
 
     @Override
-    public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
+    public void updateVirtualSlot(StorageName invName, int slotId, GenericStack gs) {
         final IAEStackInventory cfg = this.getHostConfig();
         if (cfg != null && slotId >= 0 && slotId < cfg.getSizeInventory()) {
-            cfg.setGenericStack(slotId, GenericStack.fromIAEStack(aes));
+            cfg.setGenericStack(slotId, gs);
         }
     }
 

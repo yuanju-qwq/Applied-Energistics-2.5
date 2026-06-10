@@ -40,6 +40,7 @@ import appeng.api.networking.energy.IEnergySource;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.data.IAEItemStack;
@@ -243,8 +244,8 @@ public class SlotCraftingTerm extends AppEngCraftingSlot {
                         if (!this.getPattern().getStackInSlot(x).isEmpty()) {
                             set[x] = Platform.extractItemsByRecipe(this.energySrc, this.mySrc, inv, p.world, r, is, ic,
                                     this.getPattern().getStackInSlot(x),
-                                    x, null, Actionable.MODULATE,
-                                    ItemViewCell.createFilter(this.container.getViewCells()));
+                                    x, (KeyCounter) null, Actionable.MODULATE,
+                                    ItemViewCell.createAEKeyFilter(this.container.getViewCells()));
                             ic.setInventorySlotContents(x, set[x]);
                         }
                     }

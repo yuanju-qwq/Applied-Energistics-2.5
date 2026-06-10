@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2018, AlgorithmX2, All rights reserved.
  *
@@ -40,7 +40,7 @@ import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.prioritylist.FuzzyAEKeyPriorityList;
-import appeng.util.prioritylist.IAEKeyPartitionList;
+import appeng.util.prioritylist.AEKeyPartitionList;
 import appeng.util.prioritylist.PreciseAEKeyPriorityList;
 
 /**
@@ -113,7 +113,7 @@ public class BasicCellInventoryHandler extends MEInventoryHandler
                 // Use the AEKey-based partition list. The legacy IItemList-based path is no
                 // longer required here because filter config is read as AEKeys directly.
                 final Set<AEKey> uniqueKeys = new HashSet<>(filterKeys);
-                final IAEKeyPartitionList keyList;
+                final AEKeyPartitionList keyList;
                 if (hasFuzzy) {
                     keyList = new FuzzyAEKeyPriorityList(uniqueKeys, fzMode);
                 } else {
@@ -137,7 +137,7 @@ public class BasicCellInventoryHandler extends MEInventoryHandler
 
     @Override
     public boolean isPreformatted() {
-        final IAEKeyPartitionList keyList = this.getKeyPartitionList();
+        final AEKeyPartitionList keyList = this.getKeyPartitionList();
         if (keyList != null) {
             return !keyList.isEmpty();
         }
@@ -146,7 +146,7 @@ public class BasicCellInventoryHandler extends MEInventoryHandler
 
     @Override
     public boolean isFuzzy() {
-        final IAEKeyPartitionList keyList = this.getKeyPartitionList();
+        final AEKeyPartitionList keyList = this.getKeyPartitionList();
         if (keyList != null) {
             return keyList instanceof FuzzyAEKeyPriorityList;
         }

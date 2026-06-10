@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -129,7 +129,12 @@ import appeng.me.helpers.AENetworkProxy;
 import appeng.util.helpers.ItemComparisonHelper;
 import appeng.util.helpers.P2PHelper;
 import appeng.util.item.AEItemStack;
+import appeng.util.item.OreHelper;
+import appeng.util.item.OreReference;
+import appeng.util.prioritylist.IAEKeyPartitionList;
 import appeng.util.prioritylist.IPartitionList;
+import appeng.api.stacks.KeyCounter;
+import appeng.api.stacks.KeyCounterAdapter;
 
 /**
  * @author AlgorithmX2
@@ -708,19 +713,32 @@ public class Platform {
         }
     }
 
+    /**
+     * Extracts items from the network by matching a crafting recipe.
+     * Uses AEKey-native {@link KeyCounter} and {@link IAEKeyPartitionList}.
+     *
+     * @param items  the available items as a KeyCounter (may be null to skip fuzzy matching)
+     * @param filter the partition list for filtering (may be null for no filter)
+     */
     public static ItemStack extractItemsByRecipe(final IEnergySource energySrc, final IActionSource mySrc,
             final IMEMonitor src, final World w, final IRecipe r, final ItemStack output,
             final InventoryCrafting ci, final ItemStack providedTemplate, final int slot,
-            final IItemList<IAEItemStack> items, final Actionable realForFake,
-            final IPartitionList<IAEItemStack> filter) {
+            final KeyCounter items, final Actionable realForFake,
+            final IAEKeyPartitionList filter) {
         if (energySrc.extractAEPower(1, Actionable.SIMULATE, PowerMultiplier.CONFIG) > 0.9) {
             if (providedTemplate == null) {
                 return ItemStack.EMPTY;
             }
 
-            final GenericStack ae_req = new GenericStack(GenericStack.fromItemStack(providedTemplate).what(), 1);
+            final AEItemKey reqKey = AEItemKey.of(providedTemplate);
+            if (reqKey == null) {
+                return ItemStack.EMPTY;
+            }
 
-            if (filter == null || filter.isListed((IAEItemStack) ae_req.toIAEStack())) {
+            final GenericStack ae_req = new GenericStack(reqKey, 1);
+
+            // Precise extraction attempt
+            if (filter == null || filter.isListed(reqKey)) {
                 final GenericStack ae_ext = src.extractItems(ae_req, realForFake, mySrc);
                 if (ae_ext != null) {
                     final ItemStack extracted = ((AEItemKey) ae_ext.what()).toStack((int) ae_ext.amount());
@@ -731,25 +749,26 @@ public class Platform {
                 }
             }
 
-            final AEItemStack aeReqItem = (AEItemStack) ae_req.toIAEStack();
-            final boolean checkFuzzy = aeReqItem.getOre().isPresent()
+            // Determine whether fuzzy matching is needed
+            final Optional<OreReference> reqOre = OreHelper.INSTANCE.getOre(providedTemplate);
+            final boolean checkFuzzy = reqOre.isPresent()
                     || providedTemplate.getItemDamage() == OreDictionary.WILDCARD_VALUE
                     || providedTemplate.hasTagCompound() || providedTemplate.isItemStackDamageable();
 
             if (items != null && checkFuzzy) {
-                for (final IAEItemStack x : items) {
-                    final ItemStack sh = x.getDefinition();
-                    if ((Platform.itemComparisons().isEqualItemType(providedTemplate, sh) || aeReqItem.sameOre(x))
-                            && !ItemStack.areItemsEqual(sh, output)) { // Platform.isSameItemType( sh, providedTemplate
-                                                                       // )
+                for (var entry : items) {
+                    if (!(entry.getKey() instanceof AEItemKey itemKey)) {
+                        continue;
+                    }
+                    final ItemStack sh = itemKey.toStack();
+                    if ((Platform.itemComparisons().isEqualItemType(providedTemplate, sh) || sameOreDirect(reqOre, sh))
+                            && !ItemStack.areItemsEqual(sh, output)) {
                         final ItemStack cp = sh.copy();
                         cp.setCount(1);
                         ci.setInventorySlotContents(slot, cp);
                         if (r.matches(ci, w) && ItemStack.areItemsEqual(r.getCraftingResult(ci), output)) {
-                            final IAEItemStack ax = x.copy();
-                            ax.setStackSize(1);
-                            if (filter == null || filter.isListed(ax)) {
-                                final GenericStack ex = src.extractItems(new GenericStack(ax.toAEKey(), ax.getStackSize()), realForFake, mySrc);
+                            if (filter == null || filter.isListed(itemKey)) {
+                                final GenericStack ex = src.extractItems(new GenericStack(itemKey, 1), realForFake, mySrc);
                                 if (ex != null) {
                                     energySrc.extractAEPower(1, realForFake, PowerMultiplier.CONFIG);
                                     return ((AEItemKey) ex.what()).toStack((int) ex.amount());
@@ -762,6 +781,36 @@ public class Platform {
             }
         }
         return ItemStack.EMPTY;
+    }
+
+    /**
+     * Checks ore dictionary equivalence directly from an OreReference and an ItemStack,
+     * without requiring an intermediate AEItemStack.
+     */
+    private static boolean sameOreDirect(final Optional<OreReference> reqOre, final ItemStack candidate) {
+        if (!reqOre.isPresent()) {
+            return false;
+        }
+        final Optional<OreReference> candidateOre = OreHelper.INSTANCE.getOre(candidate);
+        if (!candidateOre.isPresent()) {
+            return false;
+        }
+        return OreHelper.INSTANCE.sameOre(reqOre.get(), candidateOre.get());
+    }
+
+    /**
+     * @deprecated Use {@link #extractItemsByRecipe(IEnergySource, IActionSource, IMEMonitor, World, IRecipe, ItemStack, InventoryCrafting, ItemStack, int, KeyCounter, Actionable, IAEKeyPartitionList)} instead.
+     */
+    @Deprecated
+    public static ItemStack extractItemsByRecipe(final IEnergySource energySrc, final IActionSource mySrc,
+            final IMEMonitor src, final World w, final IRecipe r, final ItemStack output,
+            final InventoryCrafting ci, final ItemStack providedTemplate, final int slot,
+            final IItemList<IAEItemStack> items, final Actionable realForFake,
+            final IPartitionList<IAEItemStack> filter) {
+        final KeyCounter kc = items != null ? KeyCounterAdapter.fromIItemList(items) : null;
+        final IAEKeyPartitionList keyFilter = filter != null ? key -> filter.isListed((IAEItemStack) key.toIAEStack(1)) : null;
+        return extractItemsByRecipe(energySrc, mySrc, src, w, r, output, ci, providedTemplate, slot,
+                kc, realForFake, keyFilter);
     }
 
     // TODO wtf is this?

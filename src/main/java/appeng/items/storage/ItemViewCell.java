@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -37,9 +37,13 @@ import appeng.items.contents.CellUpgrades;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.Platform;
 import appeng.util.item.ItemList;
+import appeng.util.prioritylist.FuzzyAEKeyPriorityList;
 import appeng.util.prioritylist.FuzzyPriorityList;
+import appeng.util.prioritylist.AEKeyPartitionList;
 import appeng.util.prioritylist.IPartitionList;
+import appeng.util.prioritylist.MergedAEKeyPriorityList;
 import appeng.util.prioritylist.MergedPriorityList;
+import appeng.util.prioritylist.PreciseAEKeyPriorityList;
 import appeng.util.prioritylist.PrecisePriorityList;
 
 public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
@@ -47,6 +51,89 @@ public class ItemViewCell extends AEBaseItem implements ICellWorkbenchItem {
         this.setMaxStackSize(1);
     }
 
+    // ==================== AEKey-based filter (preferred) ====================
+
+    /**
+     * Creates an {@link AEKeyPartitionList} filter from the given view cells.
+     * This is the AEKey-native replacement for {@link #createFilter(ItemStack[])}.
+     *
+     * @param list array of view cell ItemStacks
+     * @return the partition list, or null if no active filters
+     */
+    @javax.annotation.Nullable
+    public static AEKeyPartitionList createAEKeyFilter(final ItemStack[] list) {
+        AEKeyPartitionList myPartitionList = null;
+
+        final MergedAEKeyPriorityList myMergedList = new MergedAEKeyPriorityList();
+
+        for (final ItemStack currentViewCell : list) {
+            if (currentViewCell == null) {
+                continue;
+            }
+
+            if ((currentViewCell.getItem() instanceof ItemViewCell)) {
+                final ItemViewCell viewCellItem = (ItemViewCell) currentViewCell.getItem();
+
+                // Skip disabled ViewCell
+                if (!viewCellItem.getViewMode(currentViewCell)) {
+                    continue;
+                }
+                final KeyCounter priorityList = new KeyCounter();
+
+                final ICellWorkbenchItem vc = (ICellWorkbenchItem) currentViewCell.getItem();
+                final IItemHandler upgrades = vc.getUpgradesInventory(currentViewCell);
+                final IAEStackInventory config = vc.getConfigAEInventory(currentViewCell);
+                final FuzzyMode fzMode = vc.getFuzzyMode(currentViewCell);
+
+                boolean hasInverter = false;
+                boolean hasFuzzy = false;
+
+                for (int x = 0; x < upgrades.getSlots(); x++) {
+                    final ItemStack is = upgrades.getStackInSlot(x);
+                    if (!is.isEmpty() && is.getItem() instanceof IUpgradeModule) {
+                        final Upgrades u = ((IUpgradeModule) is.getItem()).getType(is);
+                        if (u != null) {
+                            switch (u) {
+                                case FUZZY:
+                                    hasFuzzy = true;
+                                    break;
+                                case INVERTER:
+                                    hasInverter = true;
+                                    break;
+                                default:
+                            }
+                        }
+                    }
+                }
+
+                for (int x = 0; x < config.getSizeInventory(); x++) {
+                    final GenericStack gs = config.getGenericStack(x);
+                    if (gs != null && gs.what() instanceof AEItemKey itemKey) {
+                        priorityList.add(itemKey, 1);
+                    }
+                }
+
+                if (!priorityList.isEmpty()) {
+                    if (hasFuzzy) {
+                        myMergedList.addNewList(new FuzzyAEKeyPriorityList(priorityList, fzMode), !hasInverter);
+                    } else {
+                        myMergedList.addNewList(new PreciseAEKeyPriorityList(priorityList.keySet()), !hasInverter);
+                    }
+
+                    myPartitionList = myMergedList;
+                }
+            }
+        }
+
+        return myPartitionList;
+    }
+
+    // ==================== Legacy filter (deprecated) ====================
+
+    /**
+     * @deprecated Use {@link #createAEKeyFilter(ItemStack[])} instead.
+     */
+    @Deprecated
     public static IPartitionList<IAEItemStack> createFilter(final ItemStack[] list) {
         IPartitionList<IAEItemStack> myPartitionList = null;
 

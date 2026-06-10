@@ -18,8 +18,8 @@
 
 package appeng.container.interfaces;
 
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEStack;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 /**
@@ -32,7 +32,7 @@ public interface IVirtualSlotHolder {
      * Receive batch virtual slot stack data.
      *
      * @param invName    inventory name
-     * @param slotStacks mapping from slot index to IAEStack (null value means the slot is cleared)
+     * @param slotStacks mapping from slot index to GenericStack (null value means the slot is cleared)
      */
-    void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks);
+    void receiveSlotStacks(StorageName invName, Int2ObjectMap<GenericStack> slotStacks);
 }

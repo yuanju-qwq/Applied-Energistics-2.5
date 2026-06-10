@@ -61,7 +61,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
     private ItemStack prevStack = ItemStack.EMPTY;
     private int lastUpgrades = 0;
 
-    // 服务端用于增量同步的客户端快�?
+    // 服务端用于增量同步的客户端快�?
     private final IAEStack<?>[] configClientSlot = new IAEStack[63];
 
     public ContainerCellWorkbench(final InventoryPlayer ip, final TileCellWorkbench te) {
@@ -96,8 +96,8 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
         this.addSlotToContainer(new SlotRestrictedInput(SlotRestrictedInput.PlacableItemType.WORKBENCH_CELL, cell, 0,
                 152, 8, this.getPlayerInv()));
 
-        // config 槽位不再使用 Minecraft Slot，改为由 GUI 侧的 VirtualMEPhantomSlot 处理�?
-        // 这里只添加升级槽位�?
+        // config 槽位不再使用 Minecraft Slot，改为由 GUI 侧的 VirtualMEPhantomSlot 处理�?
+        // 这里只添加升级槽位�?
 
         final WrapperSupplierItemHandler upgradeInventory = new WrapperSupplierItemHandler(
                 this::getCellUpgradeInventory);
@@ -229,36 +229,32 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
         this.copyMode = copyMode;
     }
 
-    // ---- IVirtualSlotHolder 实现（接收服务端推送的Virtual slot数据，客户端侧）----
-
     @Override
-    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
+    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<GenericStack> slotStacks) {
         final IAEStackInventory config = this.workBench.getAEInventoryByName(StorageName.CONFIG);
         for (var entry : slotStacks.int2ObjectEntrySet()) {
-            config.setGenericStack(entry.getIntKey(), GenericStack.fromIAEStack(entry.getValue()));
+            config.setGenericStack(entry.getIntKey(), entry.getValue());
         }
     }
 
-    // ---- IVirtualSlotSource 实现（接收客户端发来的Virtual slot更新，服务端侧）----
-
     @Override
-    public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
+    public void updateVirtualSlot(StorageName invName, int slotId, GenericStack gs) {
         final IAEStackInventory config = this.workBench.getAEInventoryByName(StorageName.CONFIG);
         if (config != null && slotId >= 0 && slotId < config.getSizeInventory()) {
-            config.setGenericStack(slotId, GenericStack.fromIAEStack(aes));
+            config.setGenericStack(slotId, gs);
             this.workBench.syncConfigToCell();
         }
     }
 
     /**
-     * 获取 config IAEStackInventory，供 GUI 层使用�?
+     * 获取 config IAEStackInventory，供 GUI 层使用�?
      */
     public IAEStackInventory getConfig() {
         return this.workBench.getAEInventoryByName(StorageName.CONFIG);
     }
 
     /**
-     * 获取当前单元物品�?ICellWorkbenchItem，供 GUI 层判断接受的栈类型�?
+     * 获取当前单元物品�?ICellWorkbenchItem，供 GUI 层判断接受的栈类型�?
      */
     public ICellWorkbenchItem getCell() {
         return this.workBench.getCell();

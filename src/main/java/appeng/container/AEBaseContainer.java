@@ -56,12 +56,11 @@ import appeng.api.parts.IPart;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.ContainerInteractionResult;
-import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.stacks.AEItemKey;
-import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.client.me.SlotME;
 import appeng.container.guisync.GuiSync;
 import appeng.container.guisync.SyncData;
@@ -71,10 +70,9 @@ import appeng.container.slot.SlotRestrictedInput.PlacableItemType;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketInventoryAction;
+import appeng.api.stacks.AEKeyType;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.fluids.items.FluidDummyItem;
-import appeng.fluids.util.AEFluidStack;
-import appeng.fluids.util.AEFluidStackType;
 import appeng.helpers.ICustomNameObject;
 import appeng.helpers.InventoryAction;
 import appeng.me.helpers.PlayerSource;
@@ -82,8 +80,7 @@ import appeng.util.InventoryAdaptor;
 import appeng.util.Platform;
 import appeng.util.inv.AdaptorItemHandler;
 import appeng.util.inv.WrapperCursorItemHandler;
-import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
+
 
 public abstract class AEBaseContainer extends Container {
     private static final Map<Class<?>, List<SyncBinding>> SYNC_BINDINGS = new ConcurrentHashMap<>();
@@ -104,9 +101,9 @@ public abstract class AEBaseContainer extends Container {
     private boolean sentCustomName;
     private int ticksSinceCheck = 900;
     /**
-     * Unified target stack for all types. Replaces the old separate item/fluid fields.
+     * Unified target stack for all types.
      */
-    private IAEStack<?> clientRequestedTargetStack = null;
+    private GenericStack clientRequestedTargetStack = null;
 
     public AEBaseContainer(final InventoryPlayer ip, final TileEntity myTile, final IPart myPart) {
         this(ip, myTile, myPart, null);
@@ -194,41 +191,9 @@ public abstract class AEBaseContainer extends Container {
     }
 
     /**
-     * @deprecated Use {@link #getTargetGenericStack()} for type-agnostic access.
-     */
-    @Deprecated
-    public IAEItemStack getTargetStack() {
-        return this.clientRequestedTargetStack instanceof IAEItemStack item ? item : null;
-    }
-
-    /**
-     * @deprecated Use {@link #setTargetStack(IAEStack)} instead.
-     */
-    @Deprecated
-    public void setTargetStack(final IAEItemStack stack) {
-        this.setTargetStack((IAEStack<?>) stack);
-    }
-
-    /**
-     * @deprecated Use {@link #getTargetGenericStack()} for type-agnostic access.
-     */
-    @Deprecated
-    public IAEFluidStack getTargetFluidStack() {
-        return this.clientRequestedTargetStack instanceof IAEFluidStack fluid ? fluid : null;
-    }
-
-    /**
-     * @deprecated Use {@link #setTargetStack(IAEStack)} instead.
-     */
-    @Deprecated
-    public void setTargetStack(final IAEFluidStack stack) {
-        this.setTargetStack((IAEStack<?>) stack);
-    }
-
-    /**
      * Get the current target stack of any type.
      */
-    public IAEStack<?> getTargetGenericStack() {
+    public GenericStack getTargetStack() {
         return this.clientRequestedTargetStack;
     }
 
@@ -236,13 +201,13 @@ public abstract class AEBaseContainer extends Container {
      * Set the target stack (any type). On client side, sends {@link PacketTargetStack} to server.
      * Skips sending if the stack is unchanged.
      */
-    public void setTargetStack(final IAEStack<?> stack) {
+    public void setTargetStack(final GenericStack stack) {
         if (Platform.isClient()) {
             if (stack == null && this.clientRequestedTargetStack == null) {
                 return;
             }
             if (stack != null && this.clientRequestedTargetStack != null
-                    && stack.isSameType(this.clientRequestedTargetStack)) {
+                    && stack.what().equals(this.clientRequestedTargetStack.what())) {
                 return;
             }
 
@@ -250,7 +215,35 @@ public abstract class AEBaseContainer extends Container {
                     .sendToServer(new appeng.core.sync.packets.PacketTargetStack(stack));
         }
 
-        this.clientRequestedTargetStack = stack == null ? null : stack.copy();
+        this.clientRequestedTargetStack = stack;
+    }
+
+    /**
+     * @deprecated Migration bridge - use {@link #setTargetStack(GenericStack)} instead.
+     */
+    @Deprecated
+    public void setTargetStack(final IAEItemStack stack) {
+        setTargetStack(stack != null ? new GenericStack(stack.toAEKey(), stack.getStackSize()) : null);
+    }
+
+    /**
+     * @deprecated Migration bridge - use {@link #setTargetStack(GenericStack)} instead.
+     */
+    @Deprecated
+    public void setTargetStack(final IAEFluidStack stack) {
+        setTargetStack(stack != null ? new GenericStack(stack.toAEKey(), stack.getStackSize()) : null);
+    }
+
+    /**
+     * @deprecated Migration bridge - use {@link #getTargetStack()} instead.
+     */
+    @Deprecated
+    public IAEFluidStack getTargetFluidStack() {
+        final GenericStack gs = this.clientRequestedTargetStack;
+        if (gs != null && gs.what() instanceof AEFluidKey fluidKey) {
+            return fluidKey.toIAEStack(gs.amount());
+        }
+        return null;
     }
 
     public IActionSource getActionSource() {
@@ -743,36 +736,35 @@ public abstract class AEBaseContainer extends Container {
             return;
         }
 
-        // get target stack.
-        final IAEItemStack slotItem = this.getTargetStack();
-        final IAEFluidStack slotFluid = this.getTargetFluidStack();
+        final GenericStack target = this.getTargetStack();
+        final AEItemKey itemKey = target != null && target.what() instanceof AEItemKey aik ? aik : null;
+        final AEFluidKey fluidKey = target != null && target.what() instanceof AEFluidKey afk ? afk : null;
 
         switch (action) {
             case SHIFT_CLICK:
-                if (this.getPowerSource() == null || this.getCellInventory() == null) {
+                if (this.getPowerSource() == null || this.getCellInventory() == null || itemKey == null) {
                     return;
                 }
 
-                if (slotItem != null) {
-                    IAEItemStack ais = slotItem.copy();
-                    ItemStack myItem = ais.createItemStack();
-
-                    ais.setStackSize(myItem.getMaxStackSize());
+                {
+                    long itemAmount = target.amount();
+                    ItemStack myItem = itemKey.toStack();
+                    long maxStackSize = myItem.getMaxStackSize();
+                    long extractAmount = Math.min(itemAmount, maxStackSize);
+                    myItem.setCount((int) extractAmount);
 
                     final InventoryAdaptor adp = InventoryAdaptor.getAdaptor(player);
-                    myItem.setCount((int) ais.getStackSize());
-                    myItem = adp.simulateAdd(myItem);
+                    ItemStack remainder = adp.simulateAdd(myItem);
+                    long remCount = remainder.isEmpty() ? 0 : remainder.getCount();
+                    extractAmount -= remCount;
 
-                    if (!myItem.isEmpty()) {
-                        ais.setStackSize(ais.getStackSize() - myItem.getCount());
-                    }
-
-                    GenericStack extracted = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(),
-                            this.getCellInventory(), new GenericStack(ais.toAEKey(), ais.getStackSize()),
-                            this.getActionSource());
-                    if (extracted != null) {
-                        AEItemKey itemKey = (AEItemKey) extracted.what();
-                        adp.addItems(itemKey.toStack((int) extracted.amount()));
+                    if (extractAmount > 0) {
+                        GenericStack extracted = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(),
+                                this.getCellInventory(), new GenericStack(itemKey, extractAmount),
+                                this.getActionSource());
+                        if (extracted != null) {
+                            adp.addItems(itemKey.toStack((int) extracted.amount()));
+                        }
                     }
                 }
                 break;
@@ -810,34 +802,31 @@ public abstract class AEBaseContainer extends Container {
                 break;
             case ROLL_UP:
             case PICKUP_SINGLE:
-                if (this.getPowerSource() == null || this.getCellInventory() == null) {
+                if (this.getPowerSource() == null || this.getCellInventory() == null || itemKey == null) {
                     return;
                 }
 
-                if (slotItem != null) {
+                {
                     int liftQty = 1;
-                    final ItemStack item = player.inventory.getItemStack();
+                    final ItemStack held = player.inventory.getItemStack();
 
-                    if (!item.isEmpty()) {
-                        if (item.getCount() >= item.getMaxStackSize()) {
+                    if (!held.isEmpty()) {
+                        if (held.getCount() >= held.getMaxStackSize()) {
                             liftQty = 0;
                         }
-                        if (!Platform.itemComparisons().isSameItem(slotItem.getDefinition(), item)) {
+                        if (!Platform.itemComparisons().isSameItem(itemKey.toStack(), held)) {
                             liftQty = 0;
                         }
                     }
 
                     if (liftQty > 0) {
-                        IAEItemStack slotAis = slotItem.copy();
-                        slotAis.setStackSize(1);
                         GenericStack extracted = appeng.util.StorageHelper.poweredExtraction(
                                 this.getPowerSource(), this.getCellInventory(),
-                                new GenericStack(slotAis.toAEKey(), slotAis.getStackSize()), this.getActionSource());
+                                new GenericStack(itemKey, 1), this.getActionSource());
                         if (extracted != null) {
                             final InventoryAdaptor ia = new AdaptorItemHandler(
                                     new WrapperCursorItemHandler(player.inventory));
 
-                            final AEItemKey itemKey = (AEItemKey) extracted.what();
                             final ItemStack fail = ia.addItems(itemKey.toStack((int) extracted.amount()));
                             if (!fail.isEmpty()) {
                                 this.getCellInventory().injectItems(new GenericStack(itemKey, fail.getCount()),
@@ -855,14 +844,12 @@ public abstract class AEBaseContainer extends Container {
                 }
 
                 if (player.inventory.getItemStack().isEmpty()) {
-                    if (slotItem != null) {
-                        IAEItemStack slotAis = slotItem.copy();
-                        slotAis.setStackSize(slotAis.getDefinition().getMaxStackSize());
+                    if (itemKey != null) {
+                        long maxSize = itemKey.toStack().getMaxStackSize();
                         GenericStack extracted = appeng.util.StorageHelper.poweredExtraction(
                                 this.getPowerSource(), this.getCellInventory(),
-                                new GenericStack(slotAis.toAEKey(), slotAis.getStackSize()), this.getActionSource());
+                                new GenericStack(itemKey, maxSize), this.getActionSource());
                         if (extracted != null) {
-                            AEItemKey itemKey = (AEItemKey) extracted.what();
                             player.inventory.setItemStack(itemKey.toStack((int) extracted.amount()));
                         } else {
                             player.inventory.setItemStack(ItemStack.EMPTY);
@@ -875,8 +862,8 @@ public abstract class AEBaseContainer extends Container {
                         gs = appeng.util.StorageHelper.poweredInsert(this.getPowerSource(), this.getCellInventory(), gs,
                                 this.getActionSource());
                         if (gs != null) {
-                            AEItemKey itemKey = (AEItemKey) gs.what();
-                            player.inventory.setItemStack(itemKey.toStack((int) gs.amount()));
+                            AEItemKey extractedKey = (AEItemKey) gs.what();
+                            player.inventory.setItemStack(extractedKey.toStack((int) gs.amount()));
                         } else {
                             player.inventory.setItemStack(ItemStack.EMPTY);
                         }
@@ -891,12 +878,10 @@ public abstract class AEBaseContainer extends Container {
                 }
 
                 if (player.inventory.getItemStack().isEmpty()) {
-                    if (slotItem != null) {
-                        IAEItemStack slotAis = slotItem.copy();
-                        final long maxSize = slotAis.getDefinition().getMaxStackSize();
-                        slotAis.setStackSize(maxSize);
+                    if (itemKey != null) {
+                        final long maxSize = itemKey.toStack().getMaxStackSize();
                         GenericStack extracted = this.getCellInventory().extractItems(
-                                new GenericStack(slotAis.toAEKey(), slotAis.getStackSize()), Actionable.SIMULATE, this.getActionSource());
+                                new GenericStack(itemKey, maxSize), Actionable.SIMULATE, this.getActionSource());
 
                         if (extracted != null) {
                             final long stackSize = Math.min(maxSize, extracted.amount());
@@ -906,7 +891,6 @@ public abstract class AEBaseContainer extends Container {
                         }
 
                         if (extracted != null) {
-                            AEItemKey itemKey = (AEItemKey) extracted.what();
                             player.inventory.setItemStack(itemKey.toStack((int) extracted.amount()));
                         } else {
                             player.inventory.setItemStack(ItemStack.EMPTY);
@@ -932,43 +916,41 @@ public abstract class AEBaseContainer extends Container {
 
                 break;
             case CREATIVE_DUPLICATE:
-                if (player.capabilities.isCreativeMode && slotItem != null) {
-                    final ItemStack is = slotItem.createItemStack();
+                if (player.capabilities.isCreativeMode && itemKey != null) {
+                    final ItemStack is = itemKey.toStack();
                     is.setCount(is.getMaxStackSize());
                     player.inventory.setItemStack(is);
                     this.updateHeld(player);
                 }
                 break;
             case MOVE_REGION:
-
-                if (this.getPowerSource() == null || this.getCellInventory() == null) {
+                if (this.getPowerSource() == null || this.getCellInventory() == null || itemKey == null) {
                     return;
                 }
 
-                if (slotItem != null) {
+                {
                     final int playerInv = 9 * 4;
                     for (int slotNum = 0; slotNum < playerInv; slotNum++) {
-                        IAEItemStack ais = slotItem.copy();
-                        ItemStack myItem = ais.createItemStack();
-
-                        ais.setStackSize(myItem.getMaxStackSize());
+                        long itemAmount = target.amount();
+                        ItemStack myItem = itemKey.toStack();
+                        long maxStackSize = myItem.getMaxStackSize();
+                        long extractAmount = Math.min(itemAmount, maxStackSize);
+                        myItem.setCount((int) extractAmount);
 
                         final InventoryAdaptor adp = InventoryAdaptor.getAdaptor(player);
-                        myItem.setCount((int) ais.getStackSize());
-                        myItem = adp.simulateAdd(myItem);
+                        ItemStack remainder = adp.simulateAdd(myItem);
+                        long remCount = remainder.isEmpty() ? 0 : remainder.getCount();
+                        extractAmount -= remCount;
 
-                        if (!myItem.isEmpty()) {
-                            ais.setStackSize(ais.getStackSize() - myItem.getCount());
-                        }
-
-                        GenericStack extracted = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(),
-                                this.getCellInventory(), new GenericStack(ais.toAEKey(), ais.getStackSize()),
-                                this.getActionSource());
-                        if (extracted != null) {
-                            AEItemKey itemKey = (AEItemKey) extracted.what();
-                            adp.addItems(itemKey.toStack((int) extracted.amount()));
-                        } else {
-                            return;
+                        if (extractAmount > 0) {
+                            GenericStack extracted = appeng.util.StorageHelper.poweredExtraction(this.getPowerSource(),
+                                    this.getCellInventory(), new GenericStack(itemKey, extractAmount),
+                                    this.getActionSource());
+                            if (extracted != null) {
+                                adp.addItems(itemKey.toStack((int) extracted.amount()));
+                            } else {
+                                break;
+                            }
                         }
                     }
                 }
@@ -979,14 +961,13 @@ public abstract class AEBaseContainer extends Container {
             case DRAIN_SINGLE_CONTAINER:
             case DRAIN_CONTAINERS:
             case CONTAINER_QUICK_TRANSFER:
-                // 流体容器交互操作（预留，需�?ContainerMEMonitorable 等子类中实现�?
                 break;
             case FILL_ITEM:
-                if (this.getPowerSource() == null || this.getFluidCellInventory() == null || slotFluid == null) {
+                if (this.getPowerSource() == null || this.getFluidCellInventory() == null || fluidKey == null) {
                     return;
                 }
 
-                this.handleFillFluidContainer(player, slotFluid);
+                this.handleFillFluidContainer(player, fluidKey, target.amount());
                 break;
             case EMPTY_ITEM:
                 if (this.getPowerSource() == null || this.getFluidCellInventory() == null) {
@@ -999,12 +980,9 @@ public abstract class AEBaseContainer extends Container {
             case SET_CONTAINER_PIN:
             case UNSET_PIN:
                 if (this instanceof appeng.container.implementations.ContainerMEMonitorable monContainer) {
-                    IAEStack<?> target = this.getTargetGenericStack();
-                    if (target != null) {
-                        AEKey key = target.toAEKey();
-                        if (key != null) {
-                            monContainer.handlePinAction(action, key);
-                        }
+                    GenericStack pinTarget = this.getTargetStack();
+                    if (pinTarget != null) {
+                        monContainer.handlePinAction(action, pinTarget.what());
                     }
                 }
                 break;
@@ -1013,23 +991,22 @@ public abstract class AEBaseContainer extends Container {
         }
     }
 
-    private void handleFillFluidContainer(final EntityPlayerMP player, final IAEFluidStack slotFluid) {
+    private void handleFillFluidContainer(final EntityPlayerMP player, final AEFluidKey fluidKey, final long fluidAmount) {
         final ItemStack held = player.inventory.getItemStack();
         if (held.isEmpty()) {
             return;
         }
 
         final int heldAmount = held.getCount();
+        final GenericStack fluidStack = new GenericStack(fluidKey, Integer.MAX_VALUE);
 
         for (int i = 0; i < heldAmount; i++) {
             final ItemStack copiedFluidContainer = held.copy();
             copiedFluidContainer.setCount(1);
 
             // Simulate: see how much the container can accept
-            final IAEFluidStack fillRequest = slotFluid.copy();
-            fillRequest.setStackSize(Integer.MAX_VALUE);
-            final ContainerInteractionResult<IAEFluidStack> simFill =
-                    AEFluidStackType.INSTANCE.fillToContainer(copiedFluidContainer, fillRequest, true);
+            final var simFill =
+                    AEKeyType.fluids().fillToContainer(copiedFluidContainer, fluidStack, true);
             if (!simFill.isSuccess()) {
                 return;
             }
@@ -1037,7 +1014,7 @@ public abstract class AEBaseContainer extends Container {
             final GenericStack canPull = appeng.util.StorageHelper.poweredExtraction(
                     this.getPowerSource(),
                     this.getFluidCellInventory(),
-                    new GenericStack(slotFluid.toAEKey(), simFill.getTransferredAmount()),
+                    new GenericStack(fluidKey, simFill.getTransferredAmount()),
                     this.getActionSource(),
                     Actionable.SIMULATE);
             if (canPull == null || canPull.amount() < 1) {
@@ -1045,8 +1022,8 @@ public abstract class AEBaseContainer extends Container {
             }
 
             // Re-simulate with the actual available amount
-            final ContainerInteractionResult<IAEFluidStack> simFill2 =
-                    AEFluidStackType.INSTANCE.fillToContainer(copiedFluidContainer, canPull, true);
+            final var simFill2 =
+                    AEKeyType.fluids().fillToContainer(copiedFluidContainer, canPull, true);
             if (!simFill2.isSuccess()) {
                 return;
             }
@@ -1054,7 +1031,7 @@ public abstract class AEBaseContainer extends Container {
             final GenericStack pulled = appeng.util.StorageHelper.poweredExtraction(
                     this.getPowerSource(),
                     this.getFluidCellInventory(),
-                    new GenericStack(slotFluid.toAEKey(), simFill2.getTransferredAmount()),
+                    new GenericStack(fluidKey, simFill2.getTransferredAmount()),
                     this.getActionSource());
             if (pulled == null || pulled.amount() < 1) {
                 AELog.error("Unable to pull fluid out of the ME system even though the simulation said yes");
@@ -1062,8 +1039,8 @@ public abstract class AEBaseContainer extends Container {
             }
 
             // Actually fill
-            final ContainerInteractionResult<IAEFluidStack> actualFill =
-                    AEFluidStackType.INSTANCE.fillToContainer(copiedFluidContainer, pulled, false);
+            final var actualFill =
+                    AEKeyType.fluids().fillToContainer(copiedFluidContainer, pulled, false);
             if (!actualFill.isSuccess()) {
                 AELog.error("Fluid item [%s] reported a different possible amount than it actually accepted.",
                         held.getDisplayName());
@@ -1095,8 +1072,8 @@ public abstract class AEBaseContainer extends Container {
             copiedFluidContainer.setCount(1);
 
             // Simulate drain
-            final ContainerInteractionResult<IAEFluidStack> simDrain =
-                    AEFluidStackType.INSTANCE.drainFromContainer(copiedFluidContainer, Integer.MAX_VALUE, true);
+            final var simDrain =
+                    AEKeyType.fluids().drainFromContainer(copiedFluidContainer, Integer.MAX_VALUE, true);
             if (!simDrain.isSuccess()) {
                 return;
             }
@@ -1118,8 +1095,8 @@ public abstract class AEBaseContainer extends Container {
             }
 
             // Actually drain
-            final ContainerInteractionResult<IAEFluidStack> actualDrain =
-                    AEFluidStackType.INSTANCE.drainFromContainer(copiedFluidContainer, toDrain, false);
+            final var actualDrain =
+                    AEKeyType.fluids().drainFromContainer(copiedFluidContainer, toDrain, false);
             if (!actualDrain.isSuccess()) {
                 return;
             }
@@ -1136,7 +1113,7 @@ public abstract class AEBaseContainer extends Container {
                         .injectItems(notInserted, Actionable.MODULATE, this.getActionSource());
                 if (spill != null && spill.amount() > 0) {
                     // Attempt to put spilled fluid back into the container
-                    AEFluidStackType.INSTANCE.fillToContainer(
+                    AEKeyType.fluids().fillToContainer(
                             actualDrain.getResultContainer(), spill, false);
                 }
             }
@@ -1430,34 +1407,27 @@ public abstract class AEBaseContainer extends Container {
         return hand.copy();
     }
 
-    // ---- Virtual slot同步机制（服务端 �?客户端）----
+    // ---- Virtual slot sync ----
 
     private final java.util.EnumSet<StorageName> fullSyncPending =
             java.util.EnumSet.allOf(StorageName.class);
 
     /**
-     * 在服务端 detectAndSendChanges 中调用，�?{@link appeng.tile.inventory.IAEStackInventory}
-     * 的变更增量推送到所有已连接的客户端�?
-     * <p>
-     * 首次调用时会进行全量同步；后续只同步发生变更的槽位�?
-     *
-     * @param invName           库存名称标识
-     * @param inventory         服务端的 IAEStackInventory
-     * @param clientSlotsStacks 与客户端同步的快照数组（用于增量比较�?
+     * Push incremental changes from {@link appeng.tile.inventory.IAEStackInventory}
+     * to all connected clients.
      */
     protected void updateVirtualSlots(StorageName invName,
             appeng.tile.inventory.IAEStackInventory inventory,
-            IAEStack<?>[] clientSlotsStacks) {
+            GenericStack[] clientSlotsStacks) {
         final boolean needsFull = fullSyncPending.remove(invName);
-        var list = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<IAEStack<?>>();
+        var list = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<GenericStack>();
         for (int i = 0; i < inventory.getSizeInventory(); ++i) {
             GenericStack gs = inventory.getGenericStack(i);
-            IAEStack<?> aes = gs != null ? gs.toIAEStack() : null;
-            IAEStack<?> aesClient = clientSlotsStacks[i];
+            GenericStack gsClient = clientSlotsStacks[i];
 
-            if (needsFull || !appeng.util.AEStackSerialization.isStacksIdentical(aes, aesClient)) {
-                list.put(i, aes);
-                clientSlotsStacks[i] = aes != null ? aes.copy() : null;
+            if (needsFull || !java.util.Objects.equals(gs, gsClient)) {
+                list.put(i, gs);
+                clientSlotsStacks[i] = gs;
             }
         }
 

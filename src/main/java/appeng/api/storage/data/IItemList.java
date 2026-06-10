@@ -33,12 +33,13 @@ import appeng.api.config.FuzzyMode;
 /**
  * Represents a legacy typed list of AE stacks.
  * <p>
- * New code should prefer {@link KeyCounter} for heterogeneous counting and aggregation,
+ * New code should prefer {@link appeng.api.stacks.KeyCounter} for heterogeneous counting and aggregation,
  * while this interface remains as a compatibility layer for the pre-AEKey stack model.
  * <p>
  * Don't Implement.
  * <p>
- * Construct via {@link IAEStackType#createList()}.
+ * For multi-type lists, use {@code new IAEStackList()} directly.
+ * For single-type lists, use {@code new ItemList()} or {@code new FluidList()} directly.
  */
 public interface IItemList<T extends IAEStackBase> extends IItemContainer<T>, Iterable<T> {
 

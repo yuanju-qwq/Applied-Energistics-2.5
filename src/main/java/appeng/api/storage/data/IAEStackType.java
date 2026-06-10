@@ -79,8 +79,12 @@ public interface IAEStackType<T extends IAEStack<T>> {
     T loadStackFromPacket(@Nonnull ByteBuf buffer) throws IOException;
 
     /**
-     * 创建此类型对应的 {@link IItemList}。
+     * Creates the {@link IItemList} for this type.
+     *
+     * @deprecated Use {@link appeng.api.stacks.KeyCounter} for new code.
+     *             This method remains for backward compatibility with legacy IItemList-based APIs.
      */
+    @Deprecated
     @Nonnull
     IItemList<T> createList();
 

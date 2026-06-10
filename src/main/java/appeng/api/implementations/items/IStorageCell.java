@@ -114,6 +114,6 @@ public interface IStorageCell<T extends IAEStack<T>> extends ICellWorkbenchItem 
      */
     @Nonnull
     default AEKeyType getKeyType() {
-        return AEKeyType.fromLegacyType(getStackType());
+        return AEKeyType.fromId(getStackType().getId());
     }
 }

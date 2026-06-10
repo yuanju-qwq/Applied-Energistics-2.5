@@ -38,7 +38,7 @@ import appeng.integration.modules.bogosorter.InventoryBogoSortModule;
 import appeng.items.storage.ItemViewCell;
 import appeng.util.ItemSorters;
 import appeng.util.Platform;
-import appeng.util.prioritylist.IPartitionList;
+import appeng.util.prioritylist.AEKeyPartitionList;
 import appeng.util.item.AEItemStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
@@ -251,12 +251,9 @@ public class ItemRepo {
     }
 
     public void setViewCell(final ItemStack[] list) {
-        IPartitionList<IAEItemStack> partitionList = ItemViewCell.createFilter(list);
+        AEKeyPartitionList partitionList = ItemViewCell.createAEKeyFilter(list);
         if (partitionList != null && !partitionList.isEmpty()) {
-            this.myItemFilter = itemKey -> {
-                IAEStack<?> stack = itemKey.toIAEStack(1);
-                return stack instanceof IAEItemStack && partitionList.isListed((IAEItemStack) stack);
-            };
+            this.myItemFilter = itemKey -> partitionList.isListed(itemKey);
         } else {
             this.myItemFilter = null;
         }

@@ -60,7 +60,8 @@ public final class AEStackTypeRegistry {
     }
 
     /**
-     * 初始化网络 ID。在所有类型注册完毕后调用一次。
+     * Initialize network IDs. Called once after all types are registered.
+     * Also initializes the AEKeyType raw IDs to keep them in sync.
      */
     public static void initNetworkIds() {
         typeToNetworkIdMap.clear();
@@ -71,6 +72,9 @@ public final class AEStackTypeRegistry {
             networkIdToTypeMap.put(id, type);
             id++;
         }
+
+        // Sync AEKeyType raw IDs with the same assignment order
+        appeng.api.stacks.AEKeyType.initRawIds();
     }
 
     /**

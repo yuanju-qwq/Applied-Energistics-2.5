@@ -26,9 +26,10 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
+import net.minecraft.network.PacketBuffer;
 
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEStack;
 import appeng.container.interfaces.IVirtualSlotHolder;
 import appeng.container.interfaces.IVirtualSlotSource;
 import appeng.core.sync.AppEngPacket;
@@ -36,18 +37,15 @@ import appeng.core.sync.network.INetworkInfo;
 import appeng.util.Platform;
 
 /**
- * 用于在客户端和服务端之间同步Virtual slot（IAEStack<?> 泛型栈）的网络包。
- * <p>
- * 服务端通过此包将 IAEStackInventory 的变更批量推送到客户端；
- * 客户端通过此包将 VirtualMEPhantomSlot 的用户操作发送到服务端。
+ * Network packet for synchronizing virtual slots between server and client.
  */
 public class PacketVirtualSlot extends AppEngPacket {
 
     private final StorageName invName;
-    private final Int2ObjectMap<IAEStack<?>> slotStacks;
+    private final Int2ObjectMap<GenericStack> slotStacks;
 
     /**
-     * 从 ByteBuf 反序列化（接收端构造）。
+     * Deserialization (receiver side).
      */
     public PacketVirtualSlot(final ByteBuf buf) {
         this.invName = StorageName.values()[buf.readInt()];
@@ -57,7 +55,7 @@ public class PacketVirtualSlot extends AppEngPacket {
         for (int i = 0; i < size; i++) {
             final int slot = buf.readInt();
             if (buf.readBoolean()) {
-                this.slotStacks.put(slot, appeng.util.AEStackSerialization.readStackByte(buf));
+                this.slotStacks.put(slot, GenericStack.readBuffer(new PacketBuffer(buf)));
             } else {
                 this.slotStacks.put(slot, null);
             }
@@ -65,23 +63,24 @@ public class PacketVirtualSlot extends AppEngPacket {
     }
 
     /**
-     * 批量发送多个槽位的变更（服务端 → 客户端同步）。
+     * Batch send multiple slot changes (server -> client sync).
      */
-    public PacketVirtualSlot(final StorageName invName, final Int2ObjectMap<IAEStack<?>> slotStacks) {
+    public PacketVirtualSlot(final StorageName invName, final Int2ObjectMap<GenericStack> slotStacks) {
         this.invName = invName;
-        this.slotStacks = null;
+        this.slotStacks = slotStacks;
 
         final ByteBuf buf = Unpooled.buffer();
         buf.writeInt(this.getPacketID());
 
         buf.writeInt(invName.ordinal());
         buf.writeInt(slotStacks.size());
-        for (Int2ObjectMap.Entry<IAEStack<?>> entry : slotStacks.int2ObjectEntrySet()) {
+        PacketBuffer pb = new PacketBuffer(buf);
+        for (Int2ObjectMap.Entry<GenericStack> entry : slotStacks.int2ObjectEntrySet()) {
             buf.writeInt(entry.getIntKey());
-            IAEStack<?> stack = entry.getValue();
+            GenericStack stack = entry.getValue();
             buf.writeBoolean(stack != null);
             if (stack != null) {
-                appeng.util.AEStackSerialization.writeStackByte(stack, buf);
+                GenericStack.writeBuffer(stack, pb);
             }
         }
 
@@ -89,9 +88,9 @@ public class PacketVirtualSlot extends AppEngPacket {
     }
 
     /**
-     * 发送单个槽位的变更（客户端 → 服务端，或服务端 → 客户端）。
+     * Send single slot change.
      */
-    public PacketVirtualSlot(final StorageName invName, final int slotIndex, final IAEStack<?> stack) {
+    public PacketVirtualSlot(final StorageName invName, final int slotIndex, final GenericStack stack) {
         this.invName = invName;
         this.slotStacks = null;
 
@@ -103,7 +102,7 @@ public class PacketVirtualSlot extends AppEngPacket {
         buf.writeInt(slotIndex);
         buf.writeBoolean(stack != null);
         if (stack != null) {
-            appeng.util.AEStackSerialization.writeStackByte(stack, buf);
+            GenericStack.writeBuffer(stack, new PacketBuffer(buf));
         }
 
         this.configureWrite(buf);
@@ -121,8 +120,7 @@ public class PacketVirtualSlot extends AppEngPacket {
     public void serverPacketData(INetworkInfo manager, AppEngPacket packet, EntityPlayer player) {
         final Container c = player.openContainer;
         if (c instanceof IVirtualSlotSource) {
-            // 客户端发送的单槽位更新
-            for (Int2ObjectMap.Entry<IAEStack<?>> entry : this.slotStacks.int2ObjectEntrySet()) {
+            for (Int2ObjectMap.Entry<GenericStack> entry : this.slotStacks.int2ObjectEntrySet()) {
                 ((IVirtualSlotSource) c).updateVirtualSlot(this.invName, entry.getIntKey(), entry.getValue());
             }
         }

@@ -25,14 +25,20 @@ import java.util.Locale;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.netty.buffer.ByteBuf;
+
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 
+import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStack;
 import appeng.core.AppEng;
 import appeng.core.localization.GuiText;
 import appeng.util.ReadableNumberConverter;
+import appeng.util.item.AEItemStack;
 
 /**
  * {@link AEKeyType} implementation for items.
@@ -96,5 +102,34 @@ final class AEItemKeyType extends AEKeyType {
     @Override
     public AEKey readFromPacket(@Nonnull PacketBuffer input) throws IOException {
         return AEItemKey.fromPacket(input);
+    }
+
+    // ========== Legacy IAEStack bridge methods ==========
+
+    @Nullable
+    @Override
+    public IAEStack<?> loadStackFromNBT(@Nonnull NBTTagCompound tag) {
+        return AEItemStack.fromNBT(tag);
+    }
+
+    @Nullable
+    @Override
+    public IAEStack<?> loadStackFromPacket(@Nonnull ByteBuf buffer) throws IOException {
+        return AEItemStack.fromPacket(buffer);
+    }
+
+    @Nullable
+    @Override
+    public IAEStack<?> createStack(@Nonnull Object input) {
+        if (input instanceof ItemStack) {
+            return AEItemStack.fromItemStack((ItemStack) input);
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public IAEStack<?> getStackFromContainerItem(@Nonnull ItemStack container) {
+        return null;
     }
 }

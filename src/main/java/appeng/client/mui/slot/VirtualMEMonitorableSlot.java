@@ -29,7 +29,7 @@ import net.minecraftforge.fluids.FluidUtil;
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.GenericStack;
 import appeng.client.me.ItemRepo;
 import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.container.AEBaseContainer;
@@ -125,9 +125,7 @@ public class VirtualMEMonitorableSlot extends VirtualMESlot {
 
         if (action != null) {
             if (player.openContainer instanceof AEBaseContainer container) {
-                // Convert AEKey to IAEStack for network packet compatibility
-                IAEStack<?> aeStack = entry != null ? entry.toIAEStack() : null;
-                container.setTargetStack(aeStack);
+                container.setTargetStack(entry != null ? new GenericStack(entry.what(), entry.amount()) : null);
                 final int inventorySize = container.inventorySlots.size();
                 final PacketInventoryAction p = new PacketInventoryAction(action, inventorySize, -1);
                 NetworkHandler.instance().sendToServer(p);

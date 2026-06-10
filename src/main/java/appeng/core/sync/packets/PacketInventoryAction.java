@@ -172,10 +172,10 @@ public class PacketInventoryAction extends AppEngPacket {
                     if (sender.openContainer instanceof ContainerCraftAmount) {
                         final ContainerCraftAmount cca = (ContainerCraftAmount) sender.openContainer;
 
-                        if (baseContainer.getTargetStack() != null) {
-                            cca.getCraftingItem().putStack(baseContainer.getTargetStack().asItemStackRepresentation());
-                            // This is the *actual* item that matters, not the display item above
-                            cca.setItemToCraft(baseContainer.getTargetStack());
+                        final GenericStack targetStack = baseContainer.getTargetStack();
+                        if (targetStack != null && targetStack.what() instanceof AEItemKey itemKey) {
+                            cca.getCraftingItem().putStack(itemKey.toStack((int) targetStack.amount()));
+                            cca.setItemToCraft(targetStack);
                         }
 
                         cca.detectAndSendChanges();
@@ -200,16 +200,16 @@ public class PacketInventoryAction extends AppEngPacket {
                     if (sender.openContainer instanceof ContainerPatternValueAmount) {
                         final ContainerPatternValueAmount cpv =
                                 (ContainerPatternValueAmount) sender.openContainer;
-                        if (baseContainer.getTargetStack() != null) {
+                        final GenericStack targetStack = baseContainer.getTargetStack();
+                        if (targetStack != null) {
                             cpv.setValueIndex(this.slot);
                             cpv.getPatternValue()
-                                    .putStack(baseContainer.getTargetStack().asItemStackRepresentation());
+                                    .putStack(targetStack.what().asItemStackRepresentation());
                         }
                         cpv.detectAndSendChanges();
                     }
                 }
             } else if (this.action == InventoryAction.SET_PATTERN_NAME) {
-                // Ctrl+中键点击样板槽位 → 打开名称设置界面
                 final ContainerOpenContext context = baseContainer.getOpenContext();
                 if (context != null) {
                     final TileEntity te = context.getTile();
@@ -227,10 +227,11 @@ public class PacketInventoryAction extends AppEngPacket {
                     if (sender.openContainer instanceof ContainerPatternValueName) {
                         final ContainerPatternValueName cpn =
                                 (ContainerPatternValueName) sender.openContainer;
-                        if (baseContainer.getTargetStack() != null) {
+                        final GenericStack targetStack = baseContainer.getTargetStack();
+                        if (targetStack != null) {
                             cpn.setValueIndex(this.slot);
                             cpn.getPatternValue()
-                                    .putStack(baseContainer.getTargetStack().asItemStackRepresentation());
+                                    .putStack(targetStack.what().asItemStackRepresentation());
                         }
                         cpn.detectAndSendChanges();
                     }

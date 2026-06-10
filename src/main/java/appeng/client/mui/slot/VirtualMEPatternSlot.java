@@ -28,12 +28,6 @@ import appeng.tile.inventory.IAEStackInventory;
 public class VirtualMEPatternSlot extends VirtualMEPhantomSlot {
 
     public VirtualMEPatternSlot(int id, int x, int y, IAEStackInventory inventory, int slotIndex,
-            TypeAcceptPredicate acceptType) {
-        super(id, x, y, inventory, slotIndex, acceptType);
-        this.showAmount = true;
-    }
-
-    public VirtualMEPatternSlot(int id, int x, int y, IAEStackInventory inventory, int slotIndex,
             KeyTypeAcceptPredicate acceptType) {
         super(id, x, y, inventory, slotIndex, acceptType);
         this.showAmount = true;

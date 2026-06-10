@@ -18,8 +18,8 @@
 
 package appeng.container.interfaces;
 
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.IAEStack;
 
 /**
  * Implemented by server-side Container. When the client sends a virtual slot update request
@@ -33,7 +33,7 @@ public interface IVirtualSlotSource {
      *
      * @param invName inventory name
      * @param slotId  slot index
-     * @param aes     new stack content (null means clear)
+     * @param gs      new stack content (null means clear)
      */
-    void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes);
+    void updateVirtualSlot(StorageName invName, int slotId, GenericStack gs);
 }

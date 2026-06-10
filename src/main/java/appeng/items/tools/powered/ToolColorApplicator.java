@@ -60,7 +60,6 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEColor;
 import appeng.api.util.DimensionalCoord;
 import appeng.block.networking.BlockCableBus;
@@ -78,7 +77,6 @@ import appeng.me.helpers.BaseActionSource;
 import appeng.tile.misc.TilePaint;
 import appeng.util.Platform;
 import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
 
 public class ToolColorApplicator extends AEBasePoweredItem
         implements IStorageCell<IAEItemStack>, IItemGroup, IBlockTool, IMouseWheelItem {
@@ -503,8 +501,8 @@ public class ToolColorApplicator extends AEBasePoweredItem
     }
 
     @Override
-    public IAEStackType<IAEItemStack> getStackType() {
-        return AEItemStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     @Override

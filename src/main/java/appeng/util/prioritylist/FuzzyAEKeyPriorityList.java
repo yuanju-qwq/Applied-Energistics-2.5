@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -18,44 +18,41 @@
 
 package appeng.util.prioritylist;
 
+import java.util.Collection;
+
 import appeng.api.config.FuzzyMode;
 import appeng.api.stacks.AEKey;
+import appeng.api.stacks.KeyCounter;
 
 /**
- * AEKey-based fuzzy partition list. Uses {@link AEKey#fuzzyEquals(AEKey, FuzzyMode)} so that the
- * secondary component (e.g. NBT) and the fuzzy search value (e.g. damage) are evaluated
- * according to the supplied {@link FuzzyMode}.
+ * AEKey-based fuzzy partition list. Membership is decided by fuzzy-matching
+ * against the keys stored in a {@link KeyCounter}, using the same semantics as
+ * the legacy {@link FuzzyPriorityList} but working directly on immutable
+ * {@link AEKey} instances.
  */
 public final class FuzzyAEKeyPriorityList implements IAEKeyPartitionList {
 
-    private final Iterable<AEKey> keys;
+    private final KeyCounter list;
     private final FuzzyMode mode;
 
-    public FuzzyAEKeyPriorityList(Iterable<AEKey> keys, FuzzyMode mode) {
-        this.keys = keys;
+    public FuzzyAEKeyPriorityList(final KeyCounter in, final FuzzyMode mode) {
+        this.list = in;
         this.mode = mode;
     }
 
     @Override
-    public boolean isListed(AEKey input) {
-        if (input == null) {
-            return false;
-        }
-        for (AEKey candidate : this.keys) {
-            if (candidate != null && candidate.fuzzyEquals(input, this.mode)) {
-                return true;
-            }
-        }
-        return false;
+    public boolean isListed(final AEKey input) {
+        final Collection<?> out = this.list.findFuzzy(input, this.mode);
+        return out != null && !out.isEmpty();
     }
 
     @Override
     public boolean isEmpty() {
-        return !this.keys.iterator().hasNext();
+        return this.list.isEmpty();
     }
 
     @Override
     public Iterable<AEKey> getItems() {
-        return this.keys;
+        return this.list.keySet();
     }
 }

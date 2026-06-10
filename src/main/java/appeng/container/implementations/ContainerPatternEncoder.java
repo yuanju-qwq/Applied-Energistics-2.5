@@ -36,7 +36,7 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IItemList;
+import appeng.api.stacks.KeyCounter;
 import appeng.container.ContainerNull;
 import appeng.container.guisync.GuiSync;
 import appeng.container.interfaces.IVirtualSlotHolder;
@@ -90,8 +90,8 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     protected OptionalSlotFake[] outputSlots;
 
     // 服务端用于增量同步的客户端快照
-    private IAEStack<?>[] craftingClientSlots;
-    private IAEStack<?>[] outputClientSlots;
+    private GenericStack[] craftingClientSlots;
+    private GenericStack[] outputClientSlots;
 
     @GuiSync(97)
     public boolean craftingMode = true;
@@ -788,10 +788,10 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
     private void initClientSlotsIfNeeded(IAEStackInventory craftInv, IAEStackInventory outInv) {
         if (this.craftingClientSlots == null) {
-            this.craftingClientSlots = new IAEStack<?>[craftInv.getSizeInventory()];
+            this.craftingClientSlots = new GenericStack[craftInv.getSizeInventory()];
         }
         if (this.outputClientSlots == null && outInv != null) {
-            this.outputClientSlots = new IAEStack<?>[outInv.getSizeInventory()];
+            this.outputClientSlots = new GenericStack[outInv.getSizeInventory()];
         }
     }
 
@@ -959,7 +959,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                         .getInventory(AEKeyType.items());
             }
 
-            final IItemList<IAEItemStack> all = ((appeng.me.cache.NetworkMonitor) storage).getStorageList();
+            final KeyCounter all = ((appeng.me.cache.NetworkMonitor) storage).getKeyCounter();
 
             final ItemStack is = r.getCraftingResult(ic);
 
@@ -968,7 +968,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                     final ItemStack pulled = Platform.extractItemsByRecipe(this.getPowerSource(),
                             this.getActionSource(), storage, p.world, r, is, ic,
                             ic.getStackInSlot(x), x, all, Actionable.MODULATE,
-                            ItemViewCell.createFilter(this.getViewCells()));
+                            ItemViewCell.createAEKeyFilter(this.getViewCells()));
                     real.setInventorySlotContents(x, pulled);
                 }
             }
@@ -1012,7 +1012,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     // ---- IVirtualSlotHolder 实现（客户端接收服务端推送的Virtual slot数据）----
 
     @Override
-    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<IAEStack<?>> slotStacks) {
+    public void receiveSlotStacks(StorageName invName, Int2ObjectMap<GenericStack> slotStacks) {
         IAEStackInventory inv = null;
         if (invName == StorageName.CRAFTING_INPUT) {
             inv = this.getCraftingAEInv();
@@ -1021,16 +1021,14 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         }
         if (inv != null) {
             for (var entry : slotStacks.int2ObjectEntrySet()) {
-                inv.setGenericStack(entry.getIntKey(), GenericStack.fromIAEStack(entry.getValue()));
+                inv.setGenericStack(entry.getIntKey(), entry.getValue());
             }
             this.refreshPatternPreview();
         }
     }
 
-    // ---- IVirtualSlotSource 实现（服务端接收客户端发来的Virtual slot更新）----
-
     @Override
-    public void updateVirtualSlot(StorageName invName, int slotId, IAEStack<?> aes) {
+    public void updateVirtualSlot(StorageName invName, int slotId, GenericStack gs) {
         IAEStackInventory inv = null;
         if (invName == StorageName.CRAFTING_INPUT) {
             inv = this.getCraftingAEInv();
@@ -1038,7 +1036,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             inv = this.getOutputAEInv();
         }
         if (inv != null && slotId >= 0 && slotId < inv.getSizeInventory()) {
-            inv.setGenericStack(slotId, GenericStack.fromIAEStack(aes));
+            inv.setGenericStack(slotId, gs);
             this.refreshPatternPreview();
 
             if (Platform.isServer()) {

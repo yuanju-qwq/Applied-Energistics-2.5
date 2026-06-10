@@ -42,7 +42,6 @@ import appeng.api.implementations.items.IStorageCell;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEPartLocation;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
@@ -53,7 +52,6 @@ import appeng.tile.inventory.IAEStackInventory;
 import appeng.items.contents.PortableCellViewer;
 import appeng.items.tools.powered.powersink.AEBasePoweredItem;
 import appeng.util.Platform;
-import appeng.util.item.AEItemStackType;
 
 public class ToolPortableCell extends AEBasePoweredItem implements IStorageCell<IAEItemStack>, IGuiItem, IItemGroup {
     public ToolPortableCell() {
@@ -123,8 +121,8 @@ public class ToolPortableCell extends AEBasePoweredItem implements IStorageCell<
     }
 
     @Override
-    public IAEStackType<IAEItemStack> getStackType() {
-        return AEItemStackType.INSTANCE;
+    public AEKeyType getKeyType() {
+        return AEKeyType.items();
     }
 
     @Override

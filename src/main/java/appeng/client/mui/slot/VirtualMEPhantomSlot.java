@@ -29,34 +29,26 @@ import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.api.storage.StorageName;
-import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketVirtualSlot;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.item.AEItemStack;
-import appeng.util.item.AEItemStackType;
 
 /**
- * 虚拟 ME 幽灵槽位，用于在 GUI 中显示和交互泛型 {@link IAEStack}（物品、流体等）。
+ * Virtual ME phantom slot for displaying and interacting with generic {@link IAEStack}
+ * (items, fluids, etc.) in GUIs.
  * <p>
- * 与普通的 phantom slot 不同，此槽位不依赖 Minecraft 的 {@link net.minecraft.inventory.Slot}，
- * 而是直接操作 {@link IAEStackInventory}。用户点击操作通过
- * {@link PacketVirtualSlot} 网络包同步到服务端。
- * </p>
+ * Unlike a normal phantom slot, this slot does not depend on Minecraft's
+ * {@link net.minecraft.inventory.Slot}, but directly operates on
+ * {@link IAEStackInventory}. User click actions are synchronized to the server
+ * via {@link PacketVirtualSlot}.
  */
 public class VirtualMEPhantomSlot extends VirtualMESlot {
 
     /**
-     * 类型接受判断函数，决定此槽位是否接受指定类型的栈。
+     * Type acceptance predicate: determines whether this slot accepts a given key type.
      */
-    @FunctionalInterface
-    public interface TypeAcceptPredicate {
-
-        boolean test(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton);
-    }
-
     @FunctionalInterface
     public interface KeyTypeAcceptPredicate {
 
@@ -64,26 +56,15 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
     }
 
     private final IAEStackInventory inventory;
-    private final TypeAcceptPredicate acceptType;
+    private final KeyTypeAcceptPredicate acceptType;
     private boolean hidden = false;
-
-    public VirtualMEPhantomSlot(int id, int x, int y, IAEStackInventory inventory, int slotIndex,
-            TypeAcceptPredicate acceptType) {
-        super(id, x, y, slotIndex);
-        this.inventory = inventory;
-        this.showAmount = false;
-        this.acceptType = acceptType;
-    }
 
     public VirtualMEPhantomSlot(int id, int x, int y, IAEStackInventory inventory, int slotIndex,
             KeyTypeAcceptPredicate acceptType) {
         super(id, x, y, slotIndex);
         this.inventory = inventory;
         this.showAmount = false;
-        this.acceptType = (slot, legacyType, mouseButton) -> {
-            AEKeyType keyType = AEKeyType.fromId(legacyType.getId());
-            return keyType != null && acceptType.test(slot, keyType, mouseButton);
-        };
+        this.acceptType = acceptType;
     }
 
     @Nullable
@@ -110,7 +91,7 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
     }
 
     /**
-     * 由 {@link appeng.client.mui.AEBasePanel} 的 mouseClicked 调用，桥接到 {@link #handleMouseClicked}。
+     * Called by {@link appeng.client.mui.AEBasePanel}'s mouseClicked, bridges to {@link #handleMouseClicked}.
      */
     @Override
     public void slotClicked(final ItemStack clickStack, final int mouseButton) {
@@ -118,11 +99,11 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
     }
 
     /**
-     * 处理鼠标点击事件。
+     * Handle mouse click events.
      *
-     * @param itemStack     玩家手持的物品栈（客户端）
-     * @param isExtraAction 是否为扩展操作（如按住特殊键）
-     * @param mouseButton   鼠标按键（0=左键，1=右键）
+     * @param itemStack     the player's held item stack (client-side)
+     * @param isExtraAction whether this is an extended action (e.g. holding a special key)
+     * @param mouseButton   the mouse button (0=left, 1=right)
      */
     public void handleMouseClicked(@Nullable ItemStack itemStack, boolean isExtraAction, int mouseButton) {
         IAEStack<?> currentStack = this.getAEStack();
@@ -132,17 +113,17 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
             hand.setCount(1);
         }
 
-        // 收集当前槽位接受的所有栈类型
-        final List<IAEStackType<?>> acceptTypes = new ArrayList<>();
-        for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
+        // Collect all accepted key types for this slot
+        final List<AEKeyType> acceptTypes = new ArrayList<>();
+        for (AEKeyType type : AEKeyType.getAllTypes()) {
             if (this.acceptType.test(this, type, mouseButton)) {
                 acceptTypes.add(type);
             }
         }
 
-        // 先尝试将手持物品转换为非物品类型（如流体容器 → 流体栈）
+        // First try to convert held item to a non-item type (e.g. fluid container → fluid stack)
         if (hand != null) {
-            for (IAEStackType<?> type : acceptTypes) {
+            for (AEKeyType type : acceptTypes) {
                 IAEStack<?> converted = type.convertStackFromItem(hand);
                 if (converted != null) {
                     currentStack = converted;
@@ -153,21 +134,21 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
             }
         }
 
-        final boolean acceptItem = acceptTypes.contains(AEItemStackType.INSTANCE);
+        final boolean acceptItem = acceptTypes.contains(AEKeyType.items());
         boolean acceptExtra = false;
-        for (IAEStackType<?> type : acceptTypes) {
-            if (type != AEItemStackType.INSTANCE) {
+        for (AEKeyType type : acceptTypes) {
+            if (type != AEKeyType.items()) {
                 acceptExtra = true;
                 break;
             }
         }
 
         switch (mouseButton) {
-            case 0: { // 左键
+            case 0: { // Left click
                 if (hand != null) {
                     if (acceptExtra && (!acceptItem || isExtraAction)) {
-                        // 优先尝试从容器物品中提取非物品栈
-                        for (IAEStackType<?> type : acceptTypes) {
+                        // Try to extract non-item stacks from container items first
+                        for (AEKeyType type : acceptTypes) {
                             IAEStack<?> stackFromContainer = type.getStackFromContainerItem(hand);
                             if (stackFromContainer != null) {
                                 currentStack = stackFromContainer;
@@ -182,12 +163,12 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
                 }
                 break;
             }
-            case 1: { // 右键
+            case 1: { // Right click
                 if (hand != null) {
                     hand.setCount(1);
 
                     IAEStack<?> stackFromContainer = null;
-                    for (IAEStackType<?> type : acceptTypes) {
+                    for (AEKeyType type : acceptTypes) {
                         stackFromContainer = type.getStackFromContainerItem(hand);
                         if (stackFromContainer != null) {
                             break;
@@ -204,7 +185,7 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
                     }
 
                     if (stackForHand != null && this.showAmount
-                            && acceptTypes.contains(stackForHand.getStackType())
+                            && acceptTypes.contains(stackForHand.getAEKeyType())
                             && stackForHand.equals(currentStack)) {
                         currentStack.decStackSize(-1);
                     } else {
@@ -218,10 +199,10 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
             }
         }
 
-        // 在客户端立即设置，避免慢网络时的延迟
+        // Set immediately on client to avoid delay during slow network
         inventory.setGenericStack(this.getSlotIndex(), GenericStack.fromIAEStack(currentStack));
 
-        // 发送到服务端
+        // Send to server
         NetworkHandler.instance()
                 .sendToServer(new PacketVirtualSlot(this.getStorageName(), this.getSlotIndex(), currentStack));
     }

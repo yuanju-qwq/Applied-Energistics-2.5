@@ -68,7 +68,7 @@ import appeng.util.helpers.ItemHandlerUtil;
 import appeng.util.inv.AdaptorItemHandler;
 import appeng.util.inv.WrapperInvItemHandler;
 import appeng.util.item.AEItemStack;
-import appeng.util.prioritylist.IPartitionList;
+import appeng.util.prioritylist.AEKeyPartitionList;
 import appeng.util.item.AEItemStackType;
 
 public class PacketJEIRecipe extends AppEngPacket {
@@ -160,7 +160,7 @@ public class PacketJEIRecipe extends AppEngPacket {
         if (inv != null && this.recipe != null && security != null) {
             final IMEMonitor storage = inv
                     .getInventory(AEKeyType.items());
-            final IPartitionList<IAEItemStack> filter = ItemViewCell.createFilter(cct.getViewCells());
+            final AEKeyPartitionList filter = ItemViewCell.createAEKeyFilter(cct.getViewCells());
 
             final boolean overwriteGhostSlots = !cct.useRealItems()
                     && con instanceof ContainerWirelessDualInterfaceTerminal;
@@ -208,7 +208,7 @@ public class PacketJEIRecipe extends AppEngPacket {
                         final IAEItemStack request = AEItemStack.fromItemStack(this.recipe.get(x)[y]);
                         if (request != null) {
                             // try ae
-                            if ((filter == null || filter.isListed(request))
+                            if ((filter == null || filter.isListed(request.toAEKey()))
                                     && security.hasPermission(player, SecurityPermissions.EXTRACT)) {
                                 request.setStackSize(1);
                                 GenericStack out;

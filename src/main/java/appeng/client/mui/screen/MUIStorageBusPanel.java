@@ -25,7 +25,7 @@ import org.lwjgl.input.Mouse;
 import net.minecraft.client.gui.GuiButton;
 
 import appeng.api.config.*;
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 import appeng.client.mui.AEMUITheme;
 import appeng.client.mui.slot.VirtualMEPhantomSlot;
 import appeng.client.mui.widgets.MUIButtonWidget;
@@ -47,13 +47,13 @@ import appeng.tile.inventory.IAEStackInventory;
  * unlocked by CAPACITY upgrades), plus read-write mode, storage filter,
  * priority, partition, and clear buttons.
  *
- * The accepted stack type and title text are passed at construction time,
+ * The accepted key type and title text are passed at construction time,
  * so no per-type subclass is needed.
  */
 public class MUIStorageBusPanel extends MUIUpgradeablePanel {
 
     private final ContainerStorageBus container;
-    private final IAEStackType<?> acceptedType;
+    private final AEKeyType acceptedType;
     private final GuiText title;
 
     // ========== Buttons ==========
@@ -66,7 +66,7 @@ public class MUIStorageBusPanel extends MUIUpgradeablePanel {
     // ========== Virtual Slots ==========
     private VirtualMEPhantomSlot[] configSlots;
 
-    public MUIStorageBusPanel(final ContainerStorageBus container, final IAEStackType<?> acceptedType,
+    public MUIStorageBusPanel(final ContainerStorageBus container, final AEKeyType acceptedType,
             final GuiText title) {
         super(container);
         this.container = container;
@@ -196,7 +196,7 @@ public class MUIStorageBusPanel extends MUIUpgradeablePanel {
         }
     }
 
-    private boolean acceptType(VirtualMEPhantomSlot slot, IAEStackType<?> type, int mouseButton) {
+    private boolean acceptType(VirtualMEPhantomSlot slot, AEKeyType type, int mouseButton) {
         return type == this.acceptedType;
     }
 }

@@ -36,9 +36,9 @@ import appeng.helpers.IPatternProviderHost;
 import appeng.helpers.IPriorityHost;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.items.contents.QuartzKnifeObj;
+import appeng.api.stacks.AEKeyType;
 import appeng.fluids.parts.PartFluidFormationPlane;
 import appeng.fluids.parts.PartFluidLevelEmitter;
-import appeng.fluids.util.AEFluidStackType;
 import appeng.parts.automation.PartFormationPlane;
 import appeng.parts.automation.PartLevelEmitter;
 import appeng.parts.misc.PartOreDicStorageBus;
@@ -59,7 +59,6 @@ import appeng.tile.networking.TileWireless;
 import appeng.tile.qnb.TileQuantumBridge;
 import appeng.tile.spatial.TileSpatialIOPort;
 import appeng.tile.storage.TileChest;
-import appeng.util.item.AEItemStackType;
 import appeng.tile.storage.TileDrive;
 import appeng.tile.storage.TileSkyChest;
 import appeng.api.implementations.IUpgradeableHost;
@@ -67,33 +66,33 @@ import appeng.fluids.parts.PartSharedFluidBus;
 import appeng.parts.reporting.PartInterfaceConfigurationTerminal;
 
 /**
- * MUI GUI 统一注册入口。
+ * MUI GUI 统一注册入口�?
  * <p>
- * 在客户端初始化阶段调用 {@link #registerAll()}，
- * 将所有 MUI 面板通过 {@link AEMUIGuiFactory#register(appeng.core.sync.AEGuiKey,
+ * 在客户端初始化阶段调�?{@link #registerAll()}�?
+ * 将所�?MUI 面板通过 {@link AEMUIGuiFactory#register(appeng.core.sync.AEGuiKey,
  * AEMUIGuiFactory.IHostContainerFactory, AEMUIGuiFactory.IHostGuiFactory)}
- * 注册到以 {@link appeng.core.sync.AEGuiKey} 为主键的注册表中。
+ * 注册到以 {@link appeng.core.sync.AEGuiKey} 为主键的注册表中�?
  * <p>
- * 注册时同时提供服务端 Container 工厂和客户端 GUI 工厂，
+ * 注册时同时提供服务端 Container 工厂和客户端 GUI 工厂�?
  * {@link AEMUIGuiFactory} 内部会自动同步到旧体系的 {@code legacyRegistry}
- * 以保持兼容。
+ * 以保持兼容�?
  *
  * <h3>注册范围</h3>
  * <ul>
  *   <li>存储设备：Chest、Drive、CellWorkbench、MEPortableCell</li>
  *   <li>合成设备：MAC、Inscriber</li>
- *   <li>工具/杂项：Priority、SecurityStation、NetworkStatus、NetworkTool、Wireless、
- *       SpatialIOPort、Condenser、VibrationChamber、Grinder、QNB、SkyChest、
+ *   <li>工具/杂项：Priority、SecurityStation、NetworkStatus、NetworkTool、Wireless�?
+ *       SpatialIOPort、Condenser、VibrationChamber、Grinder、QNB、SkyChest�?
  *       QuartzKnife、Renamer、OreDictStorageBus</li>
- *   <li>无线终端：WirelessTerm、WirelessCraftingTerminal、WirelessPatternTerminal、
+ *   <li>无线终端：WirelessTerm、WirelessCraftingTerminal、WirelessPatternTerminal�?
  *       WirelessInterfaceTerminal、WirelessDualInterfaceTerminal</li>
- *   <li>通用/合成/样板终端：ME、CraftingTerminal、PatternTerminal、
+ *   <li>通用/合成/样板终端：ME、CraftingTerminal、PatternTerminal�?
  *       ExpandedProcessingPatternTerminal、FluidTerminal</li>
  *   <li>接口设置：Interface、FluidInterface、DualItemInterface、DualFluidInterface</li>
- *   <li>总线/面板：Bus、BusFluid、StorageBus、StorageBusFluid、FormationPlane、
+ *   <li>总线/面板：Bus、BusFluid、StorageBus、StorageBusFluid、FormationPlane�?
  *       FluidFormationPlane、LevelEmitter、FluidLevelEmitter</li>
  *   <li>IO/合成子系统：IOPort、CraftingCPU、CraftAmount、CraftConfirm、CraftingStatus</li>
- *   <li>接口终端：InterfaceTerminal、InterfaceConfigurationTerminal、
+ *   <li>接口终端：InterfaceTerminal、InterfaceConfigurationTerminal�?
  *       FluidInterfaceConfigurationTerminal</li>
  *   <li>样板值设置：PatternValueAmount、PatternValueName</li>
  * </ul>
@@ -105,8 +104,8 @@ public final class AEMUIRegistration {
     }
 
     /**
-     * 注册所有 MUI 面板到 {@link AEMUIGuiFactory} 的 AEGuiKey 注册表。
-     * 应在客户端 init 阶段调用。
+     * 注册所�?MUI 面板�?{@link AEMUIGuiFactory} �?AEGuiKey 注册表�?
+     * 应在客户�?init 阶段调用�?
      */
     public static void registerAll() {
         AELog.info("MUI: Registering device/tool GUI panels...");
@@ -283,13 +282,13 @@ public final class AEMUIRegistration {
                 (ip, host) -> new ContainerStorageBus(ip, (AbstractPartStorageBus) host),
                 (ip, host) -> new MUIStorageBusPanel(
                         new ContainerStorageBus(ip, (AbstractPartStorageBus) host),
-                        AEItemStackType.INSTANCE, GuiText.StorageBus));
+                        AEKeyType.items(), GuiText.StorageBus));
 
         AEMUIGuiFactory.register(AEGuiKeys.STORAGE_BUS_FLUID,
                 (ip, host) -> new ContainerStorageBus(ip, (AbstractPartStorageBus) host),
                 (ip, host) -> new MUIStorageBusPanel(
                         new ContainerStorageBus(ip, (AbstractPartStorageBus) host),
-                        AEFluidStackType.INSTANCE, GuiText.StorageBusFluids));
+                        AEKeyType.fluids(), GuiText.StorageBusFluids));
 
         AEMUIGuiFactory.register(AEGuiKeys.FORMATION_PLANE,
                 (ip, host) -> new ContainerFormationPlane(ip, (PartFormationPlane) host),

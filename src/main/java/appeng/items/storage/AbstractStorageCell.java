@@ -46,7 +46,6 @@ import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.core.AEConfig;
 import appeng.core.features.AEFeature;
 import appeng.core.localization.GuiText;
@@ -110,7 +109,7 @@ public abstract class AbstractStorageCell<T extends IAEStack<T>> extends AEBaseI
     }
 
     @Override
-    public abstract IAEStackType<T> getStackType();
+    public abstract AEKeyType getKeyType();
 
     @Override
     public String getUnlocalizedGroupName(final Set<ItemStack> others, final ItemStack is) {

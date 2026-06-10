@@ -28,6 +28,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -36,6 +37,8 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.netty.buffer.ByteBuf;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
@@ -43,10 +46,8 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 
 import appeng.api.storage.AEKeyFilter;
-import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.ContainerInteractionResult;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.util.ReadableNumberConverter;
 
 /**
@@ -63,6 +64,34 @@ public abstract class AEKeyType {
     // ==================== Static registry ====================
 
     private static final Map<String, AEKeyType> REGISTRY = new LinkedHashMap<>();
+
+    // ==================== Network ID registry ====================
+
+    /** Network ID representing a null stack in packets. */
+    public static final byte NULL_RAW_ID = 0;
+
+    private static final int MINIMUM_RAW_ID = 1;
+
+    private static final Map<AEKeyType, Byte> typeToRawIdMap = new java.util.IdentityHashMap<>();
+    private static final Map<Byte, AEKeyType> rawIdToTypeMap = new HashMap<>();
+
+    /**
+     * Initialize raw network IDs for all registered types.
+     * Must be called after all types are registered (typically during mod preInit).
+     * The ID assignment order matches {@link AEStackTypeRegistry#initNetworkIds()}
+     * to ensure wire compatibility.
+     */
+    public static void initRawIds() {
+        typeToRawIdMap.clear();
+        rawIdToTypeMap.clear();
+        byte id = MINIMUM_RAW_ID;
+        for (AEKeyType type : getSortedTypes()) {
+            typeToRawIdMap.put(type, id);
+            rawIdToTypeMap.put(id, type);
+            type.rawId = id;
+            id++;
+        }
+    }
 
     /**
      * @return all registered AEKeyTypes in insertion order
@@ -131,23 +160,10 @@ public abstract class AEKeyType {
      */
     @Nullable
     public static AEKeyType fromRawId(int id) {
-        if (id < 0 || id > Byte.MAX_VALUE) {
+        if (id < MINIMUM_RAW_ID || id > Byte.MAX_VALUE) {
             return null;
         }
-        var legacy = AEStackTypeRegistry.getTypeFromNetworkId((byte) id);
-        if (legacy == null) {
-            return null;
-        }
-        return fromLegacyType(legacy);
-    }
-
-    /**
-     * Resolves the AEKeyType for a given legacy IAEStackType.
-     * This mapping is determined by the string id.
-     */
-    @Nullable
-    public static AEKeyType fromLegacyType(@Nonnull IAEStackType<?> legacyType) {
-        return fromId(legacyType.getId());
+        return rawIdToTypeMap.get((byte) id);
     }
 
     // ==================== Instance fields ====================
@@ -156,6 +172,9 @@ public abstract class AEKeyType {
     private final Class<? extends AEKey> keyClass;
     private final String description;
     private final AEKeyFilter filter;
+
+    // Initialized by initRawIds(); -1 means not yet assigned
+    private byte rawId = -1;
 
     // ==================== Constructor ====================
 
@@ -264,18 +283,32 @@ public abstract class AEKeyType {
         return ContainerInteractionResult.empty();
     }
 
+    /**
+     * GenericStack variant of {@link #fillToContainer(ItemStack, IAEStack, boolean)}.
+     */
+    @Nonnull
+    public ContainerInteractionResult<? extends IAEStack<?>> fillToContainer(
+            @Nonnull ItemStack container, @Nonnull GenericStack stack, boolean simulate) {
+        IAEStack<?> typed = stack.toIAEStack();
+        if (typed == null) {
+            return ContainerInteractionResult.empty();
+        }
+        return fillToContainer(container, typed, simulate);
+    }
+
     // ==================== Network id ====================
 
     /**
-     * @return the raw network id assigned to this type via {@link AEStackTypeRegistry}.
+     * @return the raw network id assigned to this type.
      * @throws IllegalStateException if network ids have not been initialized
      */
     public byte getRawId() {
-        var legacy = AEStackTypeRegistry.getType(id);
-        if (legacy == null) {
-            throw new IllegalStateException("No legacy type registered for id: " + id);
+        if (rawId < MINIMUM_RAW_ID) {
+            throw new IllegalStateException(
+                    "Raw network id not initialized for key type: " + id
+                            + ". Call AEKeyType.initRawIds() first.");
         }
-        return AEStackTypeRegistry.getNetworkId(legacy);
+        return rawId;
     }
 
     // ==================== Key class & filtering ====================
@@ -359,6 +392,90 @@ public abstract class AEKeyType {
      */
     @Nullable
     public abstract AEKey readFromPacket(@Nonnull PacketBuffer input) throws IOException;
+
+    // ==================== Legacy IAEStack bridge methods ====================
+
+    /**
+     * Loads a legacy {@link IAEStack} from an NBT tag.
+     * <p>
+     * This is the {@link AEKeyType} counterpart of {@code IAEStackType.loadStackFromNBT}.
+     * Subclasses must implement this to support legacy NBT deserialization.
+     *
+     * @param tag the NBT tag to read from
+     * @return the deserialized IAEStack, or null if the tag is invalid
+     */
+    @Nullable
+    public abstract IAEStack<?> loadStackFromNBT(@Nonnull NBTTagCompound tag);
+
+    /**
+     * Loads a legacy {@link IAEStack} from a network packet buffer.
+     * <p>
+     * This is the {@link AEKeyType} counterpart of {@code IAEStackType.loadStackFromPacket}.
+     * Subclasses must implement this to support legacy packet deserialization.
+     *
+     * @param buffer the ByteBuf to read from
+     * @return the deserialized IAEStack, or null if reading fails
+     */
+    @Nullable
+    public abstract IAEStack<?> loadStackFromPacket(@Nonnull ByteBuf buffer) throws IOException;
+
+    /**
+     * Creates a legacy {@link IAEStack} from a native object (e.g. ItemStack, FluidStack).
+     * <p>
+     * This is the {@link AEKeyType} counterpart of {@code IAEStackType.createStack}.
+     *
+     * @param input the native object to convert
+     * @return the converted IAEStack, or null if the input type is not supported
+     */
+    @Nullable
+    public abstract IAEStack<?> createStack(@Nonnull Object input);
+
+    /**
+     * Converts an ItemStack to a legacy {@link IAEStack} of this type.
+     * <p>
+     * This is the {@link AEKeyType} counterpart of {@code IAEStackType.convertStackFromItem}.
+     * Default implementation delegates to {@link #createStack(Object)}.
+     *
+     * @param input the ItemStack to convert
+     * @return the converted IAEStack, or null if conversion is not supported
+     */
+    @Nullable
+    public IAEStack<?> convertStackFromItem(@Nonnull ItemStack input) {
+        return createStack(input);
+    }
+
+    /**
+     * Extracts a legacy {@link IAEStack} from a container ItemStack.
+     * <p>
+     * This is the {@link AEKeyType} counterpart of {@code IAEStackType.getStackFromContainerItem}.
+     * For fluids, this drains fluid from a bucket/tank item.
+     * For items, returns null (items are not containers for other types).
+     *
+     * @param container the container item
+     * @return the extracted IAEStack, or null if not applicable
+     */
+    @Nullable
+    public abstract IAEStack<?> getStackFromContainerItem(@Nonnull ItemStack container);
+
+    /**
+     * @return the display unit string for this type (e.g. "mB" for fluids, "" for items).
+     *         Unlike {@link #getUnitSymbol()} which returns null for items, this returns
+     *         an empty string for backward compatibility with {@code IAEStackType.getDisplayUnit()}.
+     */
+    @Nonnull
+    public String getDisplayUnit() {
+        String symbol = getUnitSymbol();
+        return symbol != null ? symbol : "";
+    }
+
+    /**
+     * @return the transfer factor for IO operations.
+     *         Equivalent to {@link #getAmountPerOperation()}.
+     *         Provided for backward compatibility with {@code IAEStackType.transferFactor()}.
+     */
+    public int transferFactor() {
+        return getAmountPerOperation();
+    }
 
     // ==================== Object overrides ====================
 

@@ -57,7 +57,6 @@ import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.*;
 import appeng.api.storage.data.*;
-import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.util.AECableType;
 import appeng.api.util.DimensionalCoord;
 import appeng.api.util.IConfigManager;
@@ -156,7 +155,7 @@ public class InterfaceLogic
     private final MultiCraftingTracker craftingTracker;
 
     // --- 状态 ---
-    private final java.util.Set<IAEStackType<?>> configuredTypes = new java.util.HashSet<>();
+    private final java.util.Set<AEKeyType> configuredTypes = new java.util.HashSet<>();
     private boolean hasItemConfig = false;
     private boolean hasFluidConfig = false;
     private int isWorkingSlot = -1;
@@ -362,12 +361,11 @@ public class InterfaceLogic
             GenericStack gs = this.config.getGenericStack(i);
             IAEStack<?> cfg = gs != null ? gs.toIAEStack() : null;
             if (cfg != null) {
-                IAEStackType<?> type = cfg.getStackTypeBase();
+                AEKeyType type = cfg.getAEKeyType();
                 this.configuredTypes.add(type);
-                AEKeyType keyType = cfg.getAEKeyType();
-                if (keyType == AEKeyType.items()) {
+                if (type == AEKeyType.items()) {
                     this.hasItemConfig = true;
-                } else if (keyType == AEKeyType.fluids()) {
+                } else if (type == AEKeyType.fluids()) {
                     this.hasFluidConfig = true;
                 }
             }
@@ -579,8 +577,7 @@ public class InterfaceLogic
     @SuppressWarnings("unchecked")
     public IMEMonitor getInventory(AEKeyType type) {
         // Check if there's a config for this type and use handler-provided monitor
-        IAEStackType<?> legacyType = AEStackTypeRegistry.getType(type.getId());
-        if (legacyType != null && this.configuredTypes.contains(legacyType)) {
+        if (this.configuredTypes.contains(type)) {
             IInterfaceSlotHandler handler = InterfaceSlotHandlerRegistry.getHandler(type);
             if (handler != null) {
                 if (type == AEKeyType.items()) {

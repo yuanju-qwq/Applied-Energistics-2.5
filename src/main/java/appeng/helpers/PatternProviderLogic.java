@@ -103,7 +103,6 @@ import appeng.util.item.AEItemStack;
 import appeng.fluids.util.AEFluidStack;
 import appeng.api.stacks.AEKeyType;
 import appeng.util.item.AEItemStackType;
-import appeng.fluids.util.AEFluidStackType;
 import appeng.api.storage.IMEMonitor;
 
 /**
@@ -486,7 +485,7 @@ public class PatternProviderLogic
         }
 
         // Generic fluid container item (e.g., bucket)
-        final IAEStack<?> fromContainer = AEFluidStackType.INSTANCE.getStackFromContainerItem(is);
+        final IAEStack<?> fromContainer = AEKeyType.fluids().getStackFromContainerItem(is);
         if (fromContainer != null && !fromContainer.isItem()) {
             return new GenericStack(fromContainer.toAEKey(), fromContainer.getStackSize());
         }

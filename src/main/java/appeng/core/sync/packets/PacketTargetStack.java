@@ -22,30 +22,29 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.network.PacketBuffer;
 
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.GenericStack;
 import appeng.container.AEBaseContainer;
 import appeng.core.AELog;
 import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.network.INetworkInfo;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 /**
  * Unified packet for sending any type of target stack (item, fluid, or future types)
- * from client to server. Replaces the separate {@link PacketTargetItemStack} and
- * {@link PacketTargetFluidStack} packets.
- * <p>
- * Uses {@link IAEStack#writeToPacketGeneric} / {@link IAEStack#fromPacketGeneric}
- * for type-agnostic serialization.
+ * from client to server.
  */
 public class PacketTargetStack extends AppEngPacket {
 
-    private IAEStack<?> stack;
+    private GenericStack stack;
 
     // Deserialization constructor (called by packet handler)
     public PacketTargetStack(final ByteBuf stream) {
         try {
             if (stream.readableBytes() > 0) {
-                this.stack = IAEStack.fromPacketGeneric(stream);
+                this.stack = GenericStack.readBuffer(new PacketBuffer(stream));
             } else {
                 this.stack = null;
             }
@@ -56,17 +55,13 @@ public class PacketTargetStack extends AppEngPacket {
     }
 
     // API constructor (called by client code)
-    public PacketTargetStack(IAEStack<?> stack) {
+    public PacketTargetStack(GenericStack stack) {
         this.stack = stack;
 
         final ByteBuf data = Unpooled.buffer();
         data.writeInt(this.getPacketID());
         if (stack != null) {
-            try {
-                IAEStack.writeToPacketGeneric(data, stack);
-            } catch (Exception ex) {
-                AELog.debug(ex);
-            }
+            GenericStack.writeBuffer(stack, new PacketBuffer(data));
         }
         this.configureWrite(data);
     }

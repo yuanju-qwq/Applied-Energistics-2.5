@@ -855,9 +855,17 @@ public abstract class AEBasePanel extends GuiContainer {
 
         if (Keyboard.isKeyDown(Keyboard.KEY_SPACE)) {
             if (this.enableSpaceClicking()) {
-                IAEItemStack stack = null;
-                if (slot instanceof SlotME) {
-                    stack = ((SlotME) slot).getAEStack();
+                GenericStack stack = null;
+                if (slot instanceof VirtualMEMonitorableSlot virtualSlot) {
+                    final var entry = virtualSlot.getRepoEntry();
+                    if (entry != null) {
+                        stack = new GenericStack(entry.what(), entry.amount());
+                    }
+                } else if (slot instanceof SlotME slotME) {
+                    final var entry = slotME.getRepoEntry();
+                    if (entry != null) {
+                        stack = new GenericStack(entry.what(), entry.amount());
+                    }
                 }
                 int slotNum = this.getInventorySlots().size();
                 if (!(slot instanceof SlotME) && slot != null) {

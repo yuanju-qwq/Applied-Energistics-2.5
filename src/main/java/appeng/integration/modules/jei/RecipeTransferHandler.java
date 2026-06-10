@@ -90,10 +90,10 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         private final boolean input;
         private final boolean notConsumed;
         @Nullable
-        private final IAEStack<?> stack;
+        private final GenericStack stack;
 
         private PatternTransferIngredient(int slotKey, int sourceOrder, boolean input, boolean notConsumed,
-                @Nullable IAEStack<?> stack) {
+                @Nullable GenericStack stack) {
             this.slotKey = slotKey;
             this.sourceOrder = sourceOrder;
             this.input = input;
@@ -244,12 +244,12 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             return;
         }
 
-        final Int2ObjectMap<IAEStack<?>> craftingSlots = new Int2ObjectOpenHashMap<>();
+        final Int2ObjectMap<GenericStack> craftingSlots = new Int2ObjectOpenHashMap<>();
         for (int i = 0; i < craftingInv.getSizeInventory(); i++) {
             craftingSlots.put(i, null);
         }
 
-        final Int2ObjectMap<IAEStack<?>> outputSlots = new Int2ObjectOpenHashMap<>();
+        final Int2ObjectMap<GenericStack> outputSlots = new Int2ObjectOpenHashMap<>();
         for (int i = 0; i < outputInv.getSizeInventory(); i++) {
             outputSlots.put(i, null);
         }
@@ -270,7 +270,7 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
             }
 
             if (ingredient.input) {
-                IAEStack<?> transferStack = ingredient.stack == null ? null : ingredient.stack.copy();
+                GenericStack transferStack = ingredient.stack == null ? null : ingredient.stack.copy();
                 final ItemStack itemStack = toItemStack(transferStack);
                 if (itemStack != null && circuitHelper.isProgrammableCircuit(itemStack)) {
                     hasProgrammableCircuitInput = true;
@@ -315,7 +315,7 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
     }
 
     @Nullable
-    private static ItemStack toItemStack(@Nullable IAEStack<?> stack) {
+    private static ItemStack toItemStack(@Nullable GenericStack stack) {
         if (!(stack instanceof IAEItemStack)) {
             return null;
         }
@@ -323,7 +323,7 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         return itemStack.isEmpty() ? null : itemStack;
     }
 
-    private static int findFirstEmptyInputSlot(Int2ObjectMap<IAEStack<?>> craftingSlots, int size) {
+    private static int findFirstEmptyInputSlot(Int2ObjectMap<GenericStack> craftingSlots, int size) {
         for (int i = 0; i < size; i++) {
             if (craftingSlots.get(i) == null) {
                 return i;
@@ -333,7 +333,7 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
     }
 
     @Nullable
-    private static IAEStack<?> toAEStack(@Nullable ItemStack stack) {
+    private static GenericStack toAEStack(@Nullable ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return null;
         }
@@ -341,7 +341,7 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
     }
 
     @Nullable
-    private static IAEStack<?> toAEStack(@Nullable FluidStack stack) {
+    private static GenericStack toAEStack(@Nullable FluidStack stack) {
         if (stack == null || stack.amount <= 0) {
             return null;
         }

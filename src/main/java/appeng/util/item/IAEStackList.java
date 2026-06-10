@@ -18,203 +18,298 @@
 
 package appeng.util.item;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+
 import appeng.api.config.FuzzyMode;
-import appeng.api.storage.data.AEStackTypeRegistry;
+import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackBase;
 import appeng.api.storage.data.IAEStackType;
 import appeng.api.storage.data.IItemList;
 
 /**
- * 多类型联合 IItemList 实现。
+ * Multi-type union {@link IItemList} implementation backed by {@link KeyCounter}.
  * <p>
- * 内部按 {@link IAEStackType} 分类存储，每种类型使用对应的 {@link IItemList} 实现。
+ * Internally, stacks are partitioned by {@link AEKeyType} and stored in three
+ * {@link KeyCounter} buckets: stored amounts, craftable flags, and requestable amounts.
+ * This eliminates the dependency on the legacy {@code IAEStackType.createList()} and aligns
+ * the internal data model with the new AEKey system.
  * <p>
- * 由于 AE2.5 的 {@code IItemList<T extends IAEStack<T>>} 递归泛型约束，
- * 不同类型的 {@link IItemList} 无法在同一集合中精确持有泛型参数，
- * 因此使用通配符 {@code IItemList<?>} 存储，通过 capture helper 方法桥接类型安全调用。
+ * The class still implements the legacy {@link IItemList<IAEStackBase>} interface
+ * for backward compatibility. All legacy operations perform AEKey ↔ IAEStack
+ * conversion at the boundary.
  */
 public final class IAEStackList implements IItemList<IAEStackBase>, IMixedStackList {
 
-    private final Map<IAEStackType<?>, IItemList<?>> lists = new IdentityHashMap<>();
+    // ==================== Internal KeyCounter buckets ====================
+
+    // Stored amounts per key
+    private final KeyCounter stored = new KeyCounter();
+    // Craftable keys (amount is always 1 for membership tracking)
+    private final KeyCounter craftable = new KeyCounter();
+    // Requestable amounts per key
+    private final KeyCounter requestable = new KeyCounter();
+
+    // Per-type sub-views for efficient iteration by type
+    private final Map<AEKeyType, TypeBucket> buckets = new IdentityHashMap<>();
 
     public IAEStackList() {
-        for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
-            this.lists.put(type, type.createList());
+        for (AEKeyType type : AEKeyType.getAllTypes()) {
+            this.buckets.put(type, new TypeBucket(type));
         }
     }
 
+    // ==================== Type bucket helper ====================
+
     /**
-     * 通配符捕获辅助方法：安全地向对应的子列表执行操作。
-     * 由于 IAEStackBase 是所有 IAEStack<T> 的公共基类，且 lists 保证 key 与 value 的类型一致，
-     * 这里的 unchecked cast 在运行时是安全的。
+     * A per-type view over the three global KeyCounters.
+     * Used for size counting and type-scoped iteration.
      */
-    @SuppressWarnings("unchecked")
-    private static <T extends IAEStack<T>> IItemList<T> castList(IItemList<?> list) {
-        return (IItemList<T>) list;
+    private final class TypeBucket {
+        final AEKeyType type;
+
+        TypeBucket(AEKeyType type) {
+            this.type = type;
+        }
+
+        boolean isEmpty() {
+            for (var entry : stored) {
+                if (entry.getKey().getType() == type && entry.getLongValue() > 0) {
+                    return false;
+                }
+            }
+            for (var entry : craftable) {
+                if (entry.getKey().getType() == type && entry.getLongValue() > 0) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        int size() {
+            Set<AEKey> seen = new java.util.HashSet<>();
+            for (var entry : stored) {
+                if (entry.getKey().getType() == type && entry.getLongValue() > 0) {
+                    seen.add(entry.getKey());
+                }
+            }
+            for (var entry : craftable) {
+                if (entry.getKey().getType() == type && entry.getLongValue() > 0) {
+                    seen.add(entry.getKey());
+                }
+            }
+            return seen.size();
+        }
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T extends IAEStack<T>> T castStack(IAEStackBase stack) {
-        return (T) stack;
-    }
-
-    private void addInternal(final IAEStackBase option) {
-        addHelper(this.lists.get(option.getStackTypeBase()), option);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T extends IAEStack<T>> void addHelper(IItemList<?> list, IAEStackBase option) {
-        ((IItemList<T>) list).add((T) option);
-    }
+    // ==================== IItemList: add ====================
 
     @Override
     public void add(final IAEStackBase option) {
-        if (option != null) {
-            addInternal(option);
+        if (option instanceof IAEStack<?>) {
+            addFromStack((IAEStack<?>) option);
         }
     }
 
     @Override
     public void add(final IAEStack<?> option) {
         if (option != null) {
-            addInternal(option);
+            addFromStack(option);
         }
     }
 
+    private void addFromStack(IAEStack<?> option) {
+        if (option == null) return;
+        AEKey key = option.toAEKey();
+        if (key == null) return;
+        stored.add(key, option.getStackSize());
+        if (option.isCraftable()) {
+            craftable.add(key, 1);
+        }
+        requestable.add(key, option.getCountRequestable());
+    }
+
+    // ==================== IItemList: findPrecise ====================
+
     @Override
     public IAEStackBase findPrecise(final IAEStackBase stack) {
-        return stack == null ? null : this.findPreciseInternal(stack);
+        return stack == null ? null : findPreciseInternal(stack);
     }
 
     @Override
     public IAEStack<?> findPrecise(final IAEStack<?> stack) {
-        return stack == null ? null : this.findPreciseInternal(stack);
+        return stack == null ? null : findPreciseInternal(stack);
     }
 
+    @Nullable
     private IAEStack<?> findPreciseInternal(final IAEStackBase stack) {
-        return findPreciseHelper(this.lists.get(stack.getStackTypeBase()), stack);
+        if (!(stack instanceof IAEStack<?>)) return null;
+        AEKey key = ((IAEStack<?>) stack).toAEKey();
+        if (key == null) return null;
+
+        long storedAmount = stored.get(key);
+        boolean isCraftable = craftable.get(key) > 0;
+        long requestableAmount = requestable.get(key);
+
+        if (storedAmount == 0 && !isCraftable && requestableAmount == 0) {
+            return null;
+        }
+
+        IAEStack<?> result = key.toIAEStack(storedAmount);
+        if (result == null) return null;
+        result.setCraftable(isCraftable);
+        result.setCountRequestable(requestableAmount);
+        return result;
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T extends IAEStack<T>> IAEStack<?> findPreciseHelper(final IItemList<?> list,
-            final IAEStackBase stack) {
-        return (IAEStack<?>) ((IItemList<T>) list).findPrecise((T) stack);
-    }
+    // ==================== IItemList: findFuzzy ====================
 
     @Override
     public Collection<IAEStackBase> findFuzzy(final IAEStackBase filter, final FuzzyMode fuzzy) {
-        return filter == null ? null : this.findFuzzyBase(filter, fuzzy);
+        return filter == null ? null : findFuzzyBase(filter, fuzzy);
     }
 
     @Override
     public Collection<IAEStack<?>> findFuzzy(final IAEStack<?> filter, final FuzzyMode fuzzy) {
-        return filter == null ? null : this.findFuzzyTyped(filter, fuzzy);
+        return filter == null ? null : findFuzzyTyped(filter, fuzzy);
     }
 
     @SuppressWarnings("unchecked")
     private Collection<IAEStackBase> findFuzzyBase(final IAEStackBase filter, final FuzzyMode fuzzy) {
-        return (Collection<IAEStackBase>) (Collection<?>) findFuzzyHelper(this.lists.get(filter.getStackTypeBase()),
-                filter, fuzzy);
+        return (Collection<IAEStackBase>) (Collection<?>) findFuzzyTyped((IAEStack<?>) filter, fuzzy);
     }
 
-    @SuppressWarnings("unchecked")
     private Collection<IAEStack<?>> findFuzzyTyped(final IAEStack<?> filter, final FuzzyMode fuzzy) {
-        return (Collection<IAEStack<?>>) (Collection<?>) findFuzzyHelper(this.lists.get(filter.getStackTypeBase()),
-                filter, fuzzy);
+        AEKey key = filter.toAEKey();
+        if (key == null) return new ArrayList<>();
+
+        Collection<Object2LongMap.Entry<AEKey>> fuzzyEntries = stored.findFuzzy(key, fuzzy);
+        List<IAEStack<?>> result = new ArrayList<>();
+        for (var entry : fuzzyEntries) {
+            AEKey foundKey = entry.getKey();
+            long storedAmount = entry.getLongValue();
+            boolean isCraftable = craftable.get(foundKey) > 0;
+            long requestableAmount = requestable.get(foundKey);
+
+            IAEStack<?> stack = foundKey.toIAEStack(storedAmount);
+            if (stack != null) {
+                stack.setCraftable(isCraftable);
+                stack.setCountRequestable(requestableAmount);
+                result.add(stack);
+            }
+        }
+        return result;
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T extends IAEStack<T>> Collection<T> findFuzzyHelper(final IItemList<?> list,
-            final IAEStackBase filter, final FuzzyMode fuzzy) {
-        return ((IItemList<T>) list).findFuzzy((T) filter, fuzzy);
-    }
+    // ==================== IItemList: isEmpty / size ====================
 
     @Override
     public boolean isEmpty() {
-        for (IItemList<?> list : this.lists.values()) {
-            if (!list.isEmpty()) return false;
-        }
-        return true;
-    }
-
-    private void addStorageInternal(final IAEStackBase option) {
-        addStorageHelper(this.lists.get(option.getStackTypeBase()), option);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T extends IAEStack<T>> void addStorageHelper(IItemList<?> list, IAEStackBase option) {
-        ((IItemList<T>) list).addStorage((T) option);
+        return stored.isEmpty() && craftable.isEmpty();
     }
 
     @Override
+    public int size() {
+        Set<AEKey> seen = new java.util.HashSet<>();
+        for (var entry : stored) {
+            if (entry.getLongValue() > 0) {
+                seen.add(entry.getKey());
+            }
+        }
+        for (var entry : craftable) {
+            if (entry.getLongValue() > 0) {
+                seen.add(entry.getKey());
+            }
+        }
+        return seen.size();
+    }
+
+    // ==================== IItemList: addStorage ====================
+
+    @Override
     public void addStorage(final IAEStackBase option) {
-        if (option != null) {
-            addStorageInternal(option);
+        if (option instanceof IAEStack<?>) {
+            addStorageFromStack((IAEStack<?>) option);
         }
     }
 
     @Override
     public void addStorage(final IAEStack<?> option) {
         if (option != null) {
-            addStorageInternal(option);
+            addStorageFromStack(option);
         }
     }
 
-    private void addCraftingInternal(final IAEStackBase option) {
-        addCraftingHelper(this.lists.get(option.getStackTypeBase()), option);
+    private void addStorageFromStack(IAEStack<?> option) {
+        if (option == null) return;
+        AEKey key = option.toAEKey();
+        if (key == null) return;
+        stored.add(key, option.getStackSize());
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T extends IAEStack<T>> void addCraftingHelper(IItemList<?> list, IAEStackBase option) {
-        ((IItemList<T>) list).addCrafting((T) option);
-    }
+    // ==================== IItemList: addCrafting ====================
 
     @Override
     public void addCrafting(final IAEStackBase option) {
-        if (option != null) {
-            addCraftingInternal(option);
+        if (option instanceof IAEStack<?>) {
+            addCraftingFromStack((IAEStack<?>) option);
         }
     }
 
     @Override
     public void addCrafting(final IAEStack<?> option) {
         if (option != null) {
-            addCraftingInternal(option);
+            addCraftingFromStack(option);
         }
     }
 
-    private void addRequestableInternal(final IAEStackBase option) {
-        addRequestablelHelper(this.lists.get(option.getStackTypeBase()), option);
+    private void addCraftingFromStack(IAEStack<?> option) {
+        if (option == null) return;
+        AEKey key = option.toAEKey();
+        if (key == null) return;
+        if (option.isCraftable()) {
+            craftable.add(key, 1);
+        }
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T extends IAEStack<T>> void addRequestablelHelper(IItemList<?> list, IAEStackBase option) {
-        ((IItemList<T>) list).addRequestable((T) option);
-    }
+    // ==================== IItemList: addRequestable ====================
 
     @Override
     public void addRequestable(final IAEStackBase option) {
-        if (option != null) {
-            addRequestableInternal(option);
+        if (option instanceof IAEStack<?>) {
+            addRequestableFromStack((IAEStack<?>) option);
         }
     }
 
     @Override
     public void addRequestable(final IAEStack<?> option) {
         if (option != null) {
-            addRequestableInternal(option);
+            addRequestableFromStack(option);
         }
     }
+
+    private void addRequestableFromStack(IAEStack<?> option) {
+        if (option == null) return;
+        AEKey key = option.toAEKey();
+        if (key == null) return;
+        requestable.add(key, option.getCountRequestable());
+    }
+
+    // ==================== IItemList: getFirstItem / getFirstMixedItem ====================
 
     @Override
     public IAEStackBase getFirstItem() {
@@ -223,74 +318,123 @@ public final class IAEStackList implements IItemList<IAEStackBase>, IMixedStackL
 
     @Override
     public IAEStack<?> getFirstMixedItem() {
-        for (final IAEStackBase stack : this) {
-            return castStack(stack);
+        for (var entry : stored) {
+            if (entry.getLongValue() > 0) {
+                AEKey key = entry.getKey();
+                IAEStack<?> stack = key.toIAEStack(entry.getLongValue());
+                if (stack != null) {
+                    stack.setCraftable(craftable.get(key) > 0);
+                    stack.setCountRequestable(requestable.get(key));
+                    return stack;
+                }
+            }
+        }
+        // If no stored items, check craftable-only items
+        for (var entry : craftable) {
+            if (entry.getLongValue() > 0) {
+                AEKey key = entry.getKey();
+                if (stored.get(key) == 0) {
+                    IAEStack<?> stack = key.toIAEStack(0);
+                    if (stack != null) {
+                        stack.setCraftable(true);
+                        stack.setCountRequestable(requestable.get(key));
+                        return stack;
+                    }
+                }
+            }
         }
         return null;
     }
 
-    @Override
-    public int size() {
-        int size = 0;
-        for (IItemList<?> list : this.lists.values()) {
-            size += list.size();
-        }
-        return size;
-    }
+    // ==================== IItemList: iterator ====================
 
     @Override
     @Nonnull
     public Iterator<IAEStackBase> iterator() {
-        return new MeaningfulStackIterator(new Iterator<>() {
+        // Build a combined list: stored entries first, then craftable-only entries
+        List<IAEStackBase> allStacks = new ArrayList<>();
 
-            private final Iterator<IItemList<?>> listIterator = lists.values().iterator();
-            private Iterator<?> currentIterator;
+        Set<AEKey> emitted = new java.util.HashSet<>();
 
-            @Override
-            public boolean hasNext() {
-                if (currentIterator == null || !currentIterator.hasNext()) {
-                    while (listIterator.hasNext()) {
-                        currentIterator = listIterator.next().iterator();
-                        if (currentIterator.hasNext()) return true;
+        // Phase 1: emit all stored entries
+        for (var entry : stored) {
+            if (entry.getLongValue() > 0) {
+                AEKey key = entry.getKey();
+                IAEStack<?> stack = key.toIAEStack(entry.getLongValue());
+                if (stack != null) {
+                    stack.setCraftable(craftable.get(key) > 0);
+                    stack.setCountRequestable(requestable.get(key));
+                    allStacks.add(stack);
+                    emitted.add(key);
+                }
+            }
+        }
+
+        // Phase 2: emit craftable-only entries (stored == 0 but craftable)
+        for (var entry : craftable) {
+            if (entry.getLongValue() > 0) {
+                AEKey key = entry.getKey();
+                if (!emitted.contains(key)) {
+                    IAEStack<?> stack = key.toIAEStack(0);
+                    if (stack != null) {
+                        stack.setCraftable(true);
+                        stack.setCountRequestable(requestable.get(key));
+                        allStacks.add(stack);
+                        emitted.add(key);
                     }
-                    return false;
                 }
-                return true;
             }
+        }
 
-            @Override
-            public IAEStackBase next() {
-                if (currentIterator == null || !currentIterator.hasNext()) {
-                    throw new NoSuchElementException();
-                }
-                return (IAEStackBase) currentIterator.next();
-            }
-
-            @Override
-            public void remove() {
-                if (currentIterator != null) {
-                    currentIterator.remove();
-                }
-            }
-        });
+        return new MeaningfulStackIterator(allStacks.iterator());
     }
+
+    // ==================== IItemList: resetStatus ====================
 
     @Override
     public void resetStatus() {
-        for (IItemList<?> list : this.lists.values()) {
-            list.resetStatus();
-        }
+        stored.reset();
+        craftable.reset();
+        requestable.reset();
     }
+
+    // ==================== IItemList: getStackType ====================
 
     @Override
     @Nullable
     public IAEStackType getStackType() {
-        // 多类型联合列表返回 null
+        // Multi-type union list returns null
         return null;
     }
 
+    // ==================== Internal KeyCounter access ====================
+
     /**
-     * 有意义（meaningful）的栈迭代器 — 跳过 stackSize == 0 等无意义的栈。
+     * @return the stored amounts KeyCounter
+     */
+    public KeyCounter getStoredCounter() {
+        return stored;
+    }
+
+    /**
+     * @return the craftable keys KeyCounter
+     */
+    public KeyCounter getCraftableCounter() {
+        return craftable;
+    }
+
+    /**
+     * @return the requestable amounts KeyCounter
+     */
+    public KeyCounter getRequestableCounter() {
+        return requestable;
+    }
+
+    // ==================== Meaningful stack iterator ====================
+
+    /**
+     * A meaningful stack iterator that skips stacks with stackSize == 0
+     * and isMeaningful() == false.
      */
     private static class MeaningfulStackIterator implements Iterator<IAEStackBase> {
 
@@ -325,10 +469,8 @@ public final class IAEStackList implements IItemList<IAEStackBase>, IMixedStackL
         private IAEStackBase seekNext() {
             while (this.parent.hasNext()) {
                 IAEStackBase item = this.parent.next();
-                if (item.isMeaningful()) {
+                if (item != null && item.isMeaningful()) {
                     return item;
-                } else {
-                    this.parent.remove();
                 }
             }
             return null;

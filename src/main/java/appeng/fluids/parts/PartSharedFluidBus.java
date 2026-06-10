@@ -26,11 +26,9 @@ import net.minecraft.util.math.Vec3d;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AECableType;
 import appeng.core.sync.AEGuiKeys;
 import appeng.fluids.helper.IConfigurableFluidInventory;
-import appeng.fluids.util.AEFluidStackType;
 import appeng.parts.automation.AbstractPartIOBus;
 import appeng.util.Platform;
 import net.minecraftforge.fluids.capability.IFluidHandler;
@@ -41,7 +39,7 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
  * Extends {@link AbstractPartIOBus} with fluid-specific functionality:
  * <ul>
  *   <li>Fluid handler access via {@link #getConnectedTE()}</li>
- *   <li>Fluid-based transfer amount using {@link AEFluidStackType#transferFactor()}</li>
+ *   <li>Fluid-based transfer amount using {@link AEKeyType#transferFactor()}</li>
  * </ul>
  * <p>
  * Now inherits full redstone pulse mode support from {@link AbstractPartIOBus}.
@@ -79,10 +77,6 @@ public abstract class PartSharedFluidBus extends AbstractPartIOBus
         return null;
     }
 
-    protected IAEStackType<IAEFluidStack> getStackType() {
-        return AEFluidStackType.INSTANCE;
-    }
-
     protected AEKeyType getKeyType() {
         return AEKeyType.fluids();
     }
@@ -96,6 +90,6 @@ public abstract class PartSharedFluidBus extends AbstractPartIOBus
      * Calculate the amount of fluid (in mB) to transfer based on Speed upgrades.
      */
     protected int calculateFluidAmountToSend() {
-        return this.calculateAmountToSend((int) this.getStackType().transferFactor());
+        return this.calculateAmountToSend((int) this.getKeyType().transferFactor());
     }
 }
