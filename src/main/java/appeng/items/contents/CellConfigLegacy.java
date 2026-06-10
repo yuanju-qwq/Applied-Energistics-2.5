@@ -25,7 +25,6 @@ import net.minecraftforge.items.IItemHandler;
 
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.tile.inventory.IAEStackInventory;
 
 /**
@@ -39,11 +38,9 @@ import appeng.tile.inventory.IAEStackInventory;
 public class CellConfigLegacy implements IItemHandler {
 
     private final IAEStackInventory config;
-    private final IAEStackType<?> type;
 
-    public CellConfigLegacy(IAEStackInventory config, IAEStackType<?> type) {
+    public CellConfigLegacy(IAEStackInventory config) {
         this.config = config;
-        this.type = type;
     }
 
     @Override

@@ -51,7 +51,6 @@ import appeng.api.storage.IStorageMonitorable;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AECableType;
 import appeng.api.util.IConfigManager;
 import appeng.core.AppEng;

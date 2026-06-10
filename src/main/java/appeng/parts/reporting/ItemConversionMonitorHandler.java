@@ -41,7 +41,6 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.util.InventoryAdaptor;
 import appeng.util.StorageHelper;
 import appeng.util.item.AEItemStack;

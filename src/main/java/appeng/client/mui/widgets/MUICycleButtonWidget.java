@@ -26,7 +26,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 
-import appeng.api.storage.data.IAEStackType;
+import appeng.api.stacks.AEKeyType;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
 
@@ -90,12 +90,12 @@ public class MUICycleButtonWidget implements IMUIWidget {
     }
 
     /**
-     * 从 {@link IAEStackType} 列表创建类型切换按钮。
+     * Create a type toggle button from {@link AEKeyType} list.
      */
-    public static MUICycleButtonWidget fromStackTypes(int x, int y, IAEStackType<?>... types) {
+    public static MUICycleButtonWidget fromKeyTypes(int x, int y, AEKeyType... types) {
         Option[] opts = new Option[types.length];
         for (int i = 0; i < types.length; i++) {
-            IAEStackType<?> t = types[i];
+            AEKeyType t = types[i];
             ResourceLocation tex = t.getButtonTexture();
             opts[i] = new Option(t.getDisplayName(),
                     tex != null ? tex : STATES_TEXTURE,

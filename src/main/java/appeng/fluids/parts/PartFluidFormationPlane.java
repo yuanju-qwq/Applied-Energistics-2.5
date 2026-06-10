@@ -34,7 +34,6 @@ import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEFluidStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEPartLocation;
 import appeng.core.sync.AEGuiKeys;
 import appeng.core.sync.GuiBridge;

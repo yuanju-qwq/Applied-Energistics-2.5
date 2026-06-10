@@ -89,7 +89,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     protected SlotFakeCraftingMatrix[] craftingSlots;
     protected OptionalSlotFake[] outputSlots;
 
-    // 服务端用于增量同步的客户端快照
+    // 服务端用于增量同步的客户端快�?
     private GenericStack[] craftingClientSlots;
     private GenericStack[] outputClientSlots;
 
@@ -151,13 +151,13 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         if (name.equals("crafting")) {
             final IAEStackInventory craftingAE = this.getCraftingAEInv();
             if (craftingAE != null) {
-                return new CellConfigLegacy(craftingAE, null);
+                return new CellConfigLegacy(craftingAE);
             }
         }
         if (name.equals("output")) {
             final IAEStackInventory outputAE = this.getOutputAEInv();
             if (outputAE != null) {
-                return new CellConfigLegacy(outputAE, null);
+                return new CellConfigLegacy(outputAE);
             }
         }
         return null;
@@ -278,16 +278,16 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
         boolean requiresSpecialPattern = (encodedOut == null);
         if (!requiresSpecialPattern) {
-            requiresSpecialPattern = true; // 假设需要特殊样板
+            requiresSpecialPattern = true; // 假设需要特殊样�?
             for (ItemStack stack : encodedOut) {
                 if (!stack.isEmpty()) {
-                    requiresSpecialPattern = false; // 找到有效输出，不需要特殊样板
+                    requiresSpecialPattern = false; // 找到有效输出，不需要特殊样�?
                     break;
                 }
             }
         }
 
-        // 检查当前输出槽样板类型是否匹配需求
+        // 检查当前输出槽样板类型是否匹配需�?
         boolean isCurrentSpecial = this.isSpecialPattern(output);
         boolean typeMatches = (requiresSpecialPattern == isCurrentSpecial);
 
@@ -296,16 +296,16 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             // 从输入槽获取普通空白样板（输入槽只接受普通空白样板）
             ItemStack blankPattern = this.patternSlotIN.getStack();
             if (blankPattern.isEmpty() || !this.isPattern(blankPattern)) {
-                return; // 无可用空白样板
+                return; // 无可用空白样�?
             }
 
-            // 消耗一个空白样板
+            // 消耗一个空白样�?
             blankPattern.shrink(1);
             if (blankPattern.isEmpty()) {
                 this.patternSlotIN.putStack(ItemStack.EMPTY);
             }
 
-            // 根据输出状态创建对应类型的新样板
+            // 根据输出状态创建对应类型的新样�?
             Optional<ItemStack> newPatternOpt = requiresSpecialPattern
                     ? AEApi.instance().definitions().items().specialEncodedPattern().maybeStack(1)
                     : AEApi.instance().definitions().items().encodedPattern().maybeStack(1);
@@ -325,7 +325,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             tagIn.appendTag(this.createItemTag(i));
         }
 
-        // 即使 out 为 null，也写入空列表（保持NBT结构完整）
+        // 即使 out �?null，也写入空列表（保持NBT结构完整�?
         if (encodedOut != null) {
             for (final ItemStack i : encodedOut) {
                 tagOut.appendTag(this.createItemTag(i));
@@ -366,7 +366,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     }
 
     /**
-     * 判断物品是否为特殊样板（specialEncodedPattern）
+     * 判断物品是否为特殊样板（specialEncodedPattern�?
      */
     private boolean isSpecialPattern(ItemStack stack) {
         if (stack.isEmpty())
@@ -773,7 +773,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                 }
             }
 
-            // 使用Virtual slot同步 crafting 和 output IAEStackInventory
+            // 使用Virtual slot同步 crafting �?output IAEStackInventory
             final IAEStackInventory craftInv = this.getCraftingAEInv();
             final IAEStackInventory outInv = this.getOutputAEInv();
             if (craftInv != null) {
@@ -854,7 +854,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     }
 
     /**
-     * 检查输入/输出中是否包含流体条目（FluidDummyItem 或流体容器）。
+     * 检查输�?输出中是否包含流体条目（FluidDummyItem 或流体容器）�?
      */
     protected boolean containsFluid(ItemStack[] stacks) {
         if (stacks == null) {
@@ -1009,7 +1009,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         }
     }
 
-    // ---- IVirtualSlotHolder 实现（客户端接收服务端推送的Virtual slot数据）----
+    // ---- IVirtualSlotHolder 实现（客户端接收服务端推送的Virtual slot数据�?---
 
     @Override
     public void receiveSlotStacks(StorageName invName, Int2ObjectMap<GenericStack> slotStacks) {
@@ -1052,7 +1052,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         }
     }
 
-    // ---- IAEStackInventory 访问器 ----
+    // ---- IAEStackInventory 访问�?----
 
     public IAEStackInventory getCraftingAEInv() {
         if (this.patternTerminal != null) {

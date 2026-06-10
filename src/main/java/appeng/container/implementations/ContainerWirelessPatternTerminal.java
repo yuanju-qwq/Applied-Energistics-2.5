@@ -46,14 +46,11 @@ import appeng.util.Platform;
 import appeng.util.inv.InvOperation;
 
 /**
- * 无线样板终端容器。
- * 处理模式使用 16 输入 + 6 输出的泛型栈库存（与扩展处理样板终端一致）。
- * 合成模式仍然使用 3x3 = 9 输入 + 1 输出。
- */
+ * 无线样板终端容器�? * 处理模式使用 16 输入 + 6 输出的泛型栈库存（与扩展处理样板终端一致）�? * 合成模式仍然使用 3x3 = 9 输入 + 1 输出�? */
 public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
         implements IUpgradeableCellContainer, IInventorySlotAware, IIAEStackInventory {
 
-    // 处理模式：16 输入 + 6 输出（与扩展处理样板终端一致）
+    // 处理模式�?6 输入 + 6 输出（与扩展处理样板终端一致）
     private static final int PROCESSING_INPUT_SLOTS = PROCESSING_INPUT_LIMIT;
     private static final int PROCESSING_OUTPUT_SLOTS = 6;
     private static final String NBT_CRAFTING_GRID = "wirelessPatternCraftingGrid";
@@ -64,7 +61,7 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
     private final WirelessTerminalGuiObject wirelessTerminalGUIObject;
     private final WirelessContainerHelper wirelessHelper;
 
-    // 泛型栈库存（存储在 ItemStack NBT 中）
+    // 泛型栈库存（存储�?ItemStack NBT 中）
     private final IAEStackInventory craftingInv;
     private final IAEStackInventory outputInv;
     protected AppEngInternalInventory pattern;
@@ -76,19 +73,17 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
         this.wirelessHelper = new WirelessContainerHelper(gui, ip, this);
         this.wirelessHelper.initUpgrades(this);
 
-        // 创建泛型栈库存（处理模式容量）
-        this.craftingInv = new IAEStackInventory(this, PROCESSING_INPUT_SLOTS, StorageName.CRAFTING_INPUT);
+        // 创建泛型栈库存（处理模式容量�?        this.craftingInv = new IAEStackInventory(this, PROCESSING_INPUT_SLOTS, StorageName.CRAFTING_INPUT);
         this.outputInv = new IAEStackInventory(this, PROCESSING_OUTPUT_SLOTS, StorageName.CRAFTING_OUTPUT);
         this.pattern = new AppEngInternalInventory(this, 2);
 
         this.loadFromNBT();
-        final IItemHandler craftingHandler = new CellConfigLegacy(this.craftingInv, null);
+        final IItemHandler craftingHandler = new CellConfigLegacy(this.craftingInv);
         this.addSlotToContainer(this.craftSlot = new SlotPatternTerm(ip.player, this.getActionSource(),
                 this.getPowerSource(), gui, craftingHandler, this.pattern, this.cOut, 110, -76 + 18, this, 2, this));
         this.craftSlot.setIIcon(-1);
 
-        // 样板输入/输出槽
-        this.addSlotToContainer(
+        // 样板输入/输出�?        this.addSlotToContainer(
                 this.patternSlotIN = new SlotRestrictedInput(SlotRestrictedInput.PlacableItemType.BLANK_PATTERN,
                         pattern, 0, 147, -72 - 9, this.getInventoryPlayer()));
         this.addSlotToContainer(
@@ -300,7 +295,7 @@ public class ContainerWirelessPatternTerminal extends ContainerPatternEncoder
         return null;
     }
 
-    // ---- 覆盖父类的 IAEStackInventory 访问器（无线终端数据存储在 Container 自身而非 Part）----
+    // ---- 覆盖父类�?IAEStackInventory 访问器（无线终端数据存储�?Container 自身而非 Part�?---
 
     @Override
     public IAEStackInventory getCraftingAEInv() {

@@ -33,22 +33,22 @@ public class ContainerPatternTerm extends ContainerPatternEncoder {
     public ContainerPatternTerm(final InventoryPlayer ip, final ITerminalHost monitorable) {
         super(ip, monitorable, false);
 
-        // crafting/output 槽位现在由 GUI 侧的 VirtualMEPatternSlot 管理，
-        // 不再添加 SlotFakeCraftingMatrix / OptionalSlotFake 到 Minecraft Container。
+        // crafting/output 槽位现在�?GUI 侧的 VirtualMEPatternSlot 管理�?
+        // 不再添加 SlotFakeCraftingMatrix / OptionalSlotFake �?Minecraft Container�?
 
         final IItemHandler patternInv = this.getPart().getInventoryByName("pattern");
 
-        // 将 IAEStackInventory 包装为 IItemHandler，供 SlotPatternTerm 等旧有 Slot 使用
+        // �?IAEStackInventory 包装�?IItemHandler，供 SlotPatternTerm 等旧�?Slot 使用
         final IAEStackInventory craftingAE = this.getCraftingAEInv();
-        final IItemHandler craftingHandler = new CellConfigLegacy(craftingAE, null);
+        final IItemHandler craftingHandler = new CellConfigLegacy(craftingAE);
 
-        // 合成输出预览槽
+        // 合成输出预览�?
         this.addSlotToContainer(this.craftSlot = new SlotPatternTerm(ip.player, this.getActionSource(), this
                 .getPowerSource(), monitorable, craftingHandler, patternInv, this.cOut, 110, -76 + 18, this, 2,
                 this));
         this.craftSlot.setIIcon(-1);
 
-        // 样板输入/输出槽
+        // 样板输入/输出�?
         this.addSlotToContainer(
                 this.patternSlotIN = new SlotRestrictedInput(SlotRestrictedInput.PlacableItemType.BLANK_PATTERN,
                         patternInv, 0, 147, -72 - 9, this

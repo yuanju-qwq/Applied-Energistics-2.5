@@ -52,7 +52,6 @@ import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.client.render.TesrRenderHelper;
 import appeng.core.AppEng;
 import appeng.fluids.util.AEFluidStack;

@@ -40,7 +40,6 @@ import appeng.api.storage.ICellWorkbenchItem;
 import appeng.api.storage.IMEInventory;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
-import appeng.api.storage.data.IAEStackType;
 import appeng.container.guisync.GuiSync;
 import appeng.container.interfaces.IVirtualSlotHolder;
 import appeng.container.interfaces.IVirtualSlotSource;

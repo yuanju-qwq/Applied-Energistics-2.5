@@ -27,7 +27,6 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
-import appeng.api.storage.data.IAEStackType;
 
 class CondenserVoidInventory implements IMEMonitor {
 
