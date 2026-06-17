@@ -194,7 +194,7 @@ public final class AEMUIRegistration {
 
         AEMUIGuiFactory.register(AEGuiKeys.RENAMER,
                 (ip, host) -> new ContainerRenamer(ip, (ICustomNameObject) host),
-                (ip, host) -> new MUIRenamerPanel(ip, (ICustomNameObject) host));
+                (ip, host) -> new AEKeyRenamerPanel(ip, (ICustomNameObject) host));
 
         AEMUIGuiFactory.register(AEGuiKeys.ORE_DICT_STORAGE_BUS,
                 (ip, host) -> new ContainerOreDictStorageBus(ip, (PartOreDicStorageBus) host),

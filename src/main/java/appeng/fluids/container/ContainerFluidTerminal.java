@@ -296,7 +296,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 copy.setCount(1);
 
                 // Simulate drain
-                final ContainerInteractionResult<IAEFluidStack> simDrain =
+                final ContainerInteractionResult<?> simDrain =
                         AEKeyType.fluids().drainFromContainer(copy, Integer.MAX_VALUE, true);
                 if (!simDrain.isSuccess()) {
                     return ItemStack.EMPTY;
@@ -316,7 +316,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 }
 
                 // Actually drain
-                final ContainerInteractionResult<IAEFluidStack> actualDrain =
+                final ContainerInteractionResult<?> actualDrain =
                         AEKeyType.fluids().drainFromContainer(copy, toDrain, false);
                 if (!actualDrain.isSuccess()) {
                     return ItemStack.EMPTY;
@@ -332,7 +332,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                             this.getActionSource());
                     if (spill != null && spill.amount() > 0) {
                         AEKeyType.fluids().fillToContainer(
-                                actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
+                                actualDrain.getResultContainer(), spill, false);
                     }
                 }
 
@@ -372,7 +372,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 // Simulate fill
                 final IAEFluidStack fillRequest = target.copy();
                 fillRequest.setStackSize(Integer.MAX_VALUE);
-                final ContainerInteractionResult<IAEFluidStack> simFill =
+                final ContainerInteractionResult<?> simFill =
                         AEKeyType.fluids().fillToContainer(copiedFluidContainer, fillRequest, true);
                 if (!simFill.isSuccess()) {
                     return;
@@ -388,7 +388,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 }
 
                 // Re-simulate with actual available
-                final ContainerInteractionResult<IAEFluidStack> simFill2 =
+                final ContainerInteractionResult<?> simFill2 =
                         AEKeyType.fluids().fillToContainer(copiedFluidContainer, canPull, true);
                 if (!simFill2.isSuccess()) {
                     return;
@@ -405,7 +405,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 }
 
                 // Actually fill
-                final ContainerInteractionResult<IAEFluidStack> actualFill =
+                final ContainerInteractionResult<?> actualFill =
                         AEKeyType.fluids().fillToContainer(copiedFluidContainer, pulled, false);
                 if (!actualFill.isSuccess()) {
                     AELog.error("Fluid item [%s] reported a different possible amount than it actually accepted.",
@@ -430,7 +430,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 copiedFluidContainer.setCount(1);
 
                 // Simulate drain
-                final ContainerInteractionResult<IAEFluidStack> simDrain =
+                final ContainerInteractionResult<?> simDrain =
                         AEKeyType.fluids().drainFromContainer(copiedFluidContainer, Integer.MAX_VALUE, true);
                 if (!simDrain.isSuccess()) {
                     return;
@@ -450,7 +450,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                 }
 
                 // Actually drain
-                final ContainerInteractionResult<IAEFluidStack> actualDrain =
+                final ContainerInteractionResult<?> actualDrain =
                         AEKeyType.fluids().drainFromContainer(copiedFluidContainer, toDrain, false);
                 if (!actualDrain.isSuccess()) {
                     return;
@@ -466,7 +466,7 @@ public class ContainerFluidTerminal extends AEBaseContainer
                             this.getActionSource());
                     if (spill != null && spill.amount() > 0) {
                         AEKeyType.fluids().fillToContainer(
-                                actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
+                                actualDrain.getResultContainer(), spill, false);
                     }
                 }
 

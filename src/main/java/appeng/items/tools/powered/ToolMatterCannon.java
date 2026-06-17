@@ -53,7 +53,9 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEColor;
+import appeng.util.item.AEItemStackType;
 import appeng.api.util.DimensionalCoord;
 import appeng.core.AEConfig;
 import appeng.core.AELog;
@@ -441,6 +443,11 @@ public class ToolMatterCannon extends AEBasePoweredItem implements IStorageCell<
     @Override
     public double getIdleDrain() {
         return 0.5;
+    }
+
+    @Override
+    public IAEStackType<IAEItemStack> getStackType() {
+        return AEItemStackType.INSTANCE;
     }
 
     @Override

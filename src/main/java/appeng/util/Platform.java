@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2015, AlgorithmX2, All rights reserved.
  *
@@ -131,8 +131,9 @@ import appeng.util.helpers.P2PHelper;
 import appeng.util.item.AEItemStack;
 import appeng.util.item.OreHelper;
 import appeng.util.item.OreReference;
-import appeng.util.prioritylist.IAEKeyPartitionList;
+import appeng.util.prioritylist.AEKeyPartitionList;
 import appeng.util.prioritylist.IPartitionList;
+import appeng.api.storage.data.IAEItemStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.stacks.KeyCounterAdapter;
 
@@ -715,7 +716,7 @@ public class Platform {
 
     /**
      * Extracts items from the network by matching a crafting recipe.
-     * Uses AEKey-native {@link KeyCounter} and {@link IAEKeyPartitionList}.
+     * Uses AEKey-native {@link KeyCounter} and {@link AEKeyPartitionList}.
      *
      * @param items  the available items as a KeyCounter (may be null to skip fuzzy matching)
      * @param filter the partition list for filtering (may be null for no filter)
@@ -724,7 +725,7 @@ public class Platform {
             final IMEMonitor src, final World w, final IRecipe r, final ItemStack output,
             final InventoryCrafting ci, final ItemStack providedTemplate, final int slot,
             final KeyCounter items, final Actionable realForFake,
-            final IAEKeyPartitionList filter) {
+            final AEKeyPartitionList filter) {
         if (energySrc.extractAEPower(1, Actionable.SIMULATE, PowerMultiplier.CONFIG) > 0.9) {
             if (providedTemplate == null) {
                 return ItemStack.EMPTY;
@@ -750,7 +751,7 @@ public class Platform {
             }
 
             // Determine whether fuzzy matching is needed
-            final Optional<OreReference> reqOre = OreHelper.INSTANCE.getOre(providedTemplate);
+            final java.util.Optional<OreReference> reqOre = OreHelper.INSTANCE.getOre(providedTemplate);
             final boolean checkFuzzy = reqOre.isPresent()
                     || providedTemplate.getItemDamage() == OreDictionary.WILDCARD_VALUE
                     || providedTemplate.hasTagCompound() || providedTemplate.isItemStackDamageable();
@@ -787,31 +788,18 @@ public class Platform {
      * Checks ore dictionary equivalence directly from an OreReference and an ItemStack,
      * without requiring an intermediate AEItemStack.
      */
-    private static boolean sameOreDirect(final Optional<OreReference> reqOre, final ItemStack candidate) {
+    private static boolean sameOreDirect(final java.util.Optional<OreReference> reqOre, final ItemStack candidate) {
         if (!reqOre.isPresent()) {
             return false;
         }
-        final Optional<OreReference> candidateOre = OreHelper.INSTANCE.getOre(candidate);
+        final java.util.Optional<OreReference> candidateOre = OreHelper.INSTANCE.getOre(candidate);
         if (!candidateOre.isPresent()) {
             return false;
         }
         return OreHelper.INSTANCE.sameOre(reqOre.get(), candidateOre.get());
     }
 
-    /**
-     * @deprecated Use {@link #extractItemsByRecipe(IEnergySource, IActionSource, IMEMonitor, World, IRecipe, ItemStack, InventoryCrafting, ItemStack, int, KeyCounter, Actionable, IAEKeyPartitionList)} instead.
-     */
-    @Deprecated
-    public static ItemStack extractItemsByRecipe(final IEnergySource energySrc, final IActionSource mySrc,
-            final IMEMonitor src, final World w, final IRecipe r, final ItemStack output,
-            final InventoryCrafting ci, final ItemStack providedTemplate, final int slot,
-            final IItemList<IAEItemStack> items, final Actionable realForFake,
-            final IPartitionList<IAEItemStack> filter) {
-        final KeyCounter kc = items != null ? KeyCounterAdapter.fromIItemList(items) : null;
-        final IAEKeyPartitionList keyFilter = filter != null ? key -> filter.isListed((IAEItemStack) key.toIAEStack(1)) : null;
-        return extractItemsByRecipe(energySrc, mySrc, src, w, r, output, ci, providedTemplate, slot,
-                kc, realForFake, keyFilter);
-    }
+
 
     // TODO wtf is this?
     public static ItemStack getContainerItem(final ItemStack stackInSlot) {
@@ -1093,13 +1081,16 @@ public class Platform {
         }
         final ItemStack repr = stack.asItemStackRepresentation();
         if (repr != null && !repr.isEmpty()) {
-            IAEItemStack result = (IAEItemStack) GenericStack.fromItemStack(repr).toIAEStack();
-            if (result != null) {
-                result.setStackSize(stack.getStackSize());
-                result.setCraftable(stack.isCraftable());
-                result.setCountRequestable(stack.getCountRequestable());
+            AEItemKey key = AEItemKey.of(repr);
+            if (key != null) {
+                ItemStack fullStack = key.toStack((int) Math.min(stack.getStackSize(), Integer.MAX_VALUE));
+                IAEItemStack result = AEItemStack.fromItemStack(fullStack);
+                if (result != null) {
+                    result.setCraftable(stack.isCraftable());
+                    result.setCountRequestable(stack.getCountRequestable());
+                }
+                return result;
             }
-            return result;
         }
         return null;
     }
@@ -1118,7 +1109,7 @@ public class Platform {
         if (is.getItem() instanceof appeng.fluids.items.FluidDummyItem fluidDummy) {
             final net.minecraftforge.fluids.FluidStack fluid = fluidDummy.getFluidStack(is);
             if (fluid != null) {
-                IAEFluidStack fluidStack = (IAEFluidStack) GenericStack.fromFluidStack(fluid).toIAEStack();
+                IAEFluidStack fluidStack = AEFluidStack.fromFluidStack(fluid);
                 if (fluidStack != null) {
                     fluidStack.setStackSize(stack.getStackSize());
                     fluidStack.setCraftable(stack.isCraftable());

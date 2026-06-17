@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2014, AlgorithmX2, All rights reserved.
  *
@@ -30,7 +30,7 @@ import appeng.api.stacks.KeyCounter;
  * the legacy {@link FuzzyPriorityList} but working directly on immutable
  * {@link AEKey} instances.
  */
-public final class FuzzyAEKeyPriorityList implements IAEKeyPartitionList {
+public final class FuzzyAEKeyPriorityList implements AEKeyPartitionList {
 
     private final KeyCounter list;
     private final FuzzyMode mode;

@@ -46,6 +46,7 @@ import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.energy.IEnergyGrid;
 import appeng.api.networking.events.MENetworkCraftingCpuChange;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.IMEInventory;
@@ -301,18 +302,13 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
     // Infrastructure methods accessible from CraftingCpuLogic
     // ============================================================
 
+    @SuppressWarnings("unchecked")
     public void postChange(final GenericStack stack, final IActionSource src) {
         if (stack == null) return;
-        postChange(stack.toIAEStack(), src);
-    }
-
-    @SuppressWarnings("unchecked")
-    public void postChange(final IAEStack<?> diff, final IActionSource src) {
         final Iterator<Entry<IMEMonitorHandlerReceiver, Object>> i = this.getListeners();
 
         if (i.hasNext()) {
-            final ImmutableList<GenericStack> single = ImmutableList.of(
-                    new GenericStack(diff.toAEKey(), diff.getStackSize()));
+            final ImmutableList<GenericStack> single = ImmutableList.of(stack);
 
             while (i.hasNext()) {
                 final Entry<IMEMonitorHandlerReceiver, Object> o = i.next();
@@ -327,12 +323,25 @@ public final class CraftingCPUCluster implements IAECluster, ICraftingCPU {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    public void postChange(final IAEStack<?> diff, final IActionSource src) {
+        if (diff == null) return;
+        postChange(new GenericStack(diff.toAEKey(), diff.getStackSize()), src);
+    }
+
     public void postCraftingStatusChange(final GenericStack stack) {
         if (stack == null) return;
-        postCraftingStatusChange(stack.toIAEStack());
+        postCraftingStatusChange(stack.what());
     }
 
     public void postCraftingStatusChange(final IAEStack<?> diff) {
+        if (diff == null) return;
+        postCraftingStatusChange(diff.toAEKey());
+    }
+
+    public void postCraftingStatusChange(final AEKey diff) {
+        if (diff == null) return;
+
         if (this.getGrid() == null) {
             return;
         }

@@ -55,6 +55,8 @@ import appeng.container.implementations.ContainerWirelessDualInterfaceTerminal;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import appeng.core.AELog;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketJEIRecipe;
@@ -278,7 +280,7 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
                 if (shouldApplyToolkitRules && !wrappedCircuitAdded && itemStack != null
                         && !circuitHelper.isProgrammableCircuit(itemStack)
                         && (ingredient.notConsumed || circuitHelper.isIntegratedCircuit(itemStack))) {
-                    transferStack = circuitHelper.wrapItemAsProgrammable(itemStack);
+                    transferStack = GenericStack.fromIAEStack(circuitHelper.wrapItemAsProgrammable(itemStack));
                     wrappedCircuitAdded = transferStack != null;
                     if (wrappedCircuitAdded) {
                         hasProgrammableCircuitInput = true;
@@ -316,10 +318,10 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
 
     @Nullable
     private static ItemStack toItemStack(@Nullable GenericStack stack) {
-        if (!(stack instanceof IAEItemStack)) {
+        if (stack == null || !(stack.what() instanceof AEItemKey itemKey)) {
             return null;
         }
-        final ItemStack itemStack = ((IAEItemStack) stack).createItemStack();
+        final ItemStack itemStack = itemKey.toStack((int) stack.amount());
         return itemStack.isEmpty() ? null : itemStack;
     }
 
@@ -337,7 +339,7 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         if (stack == null || stack.isEmpty()) {
             return null;
         }
-        return AEItemStack.fromItemStack(stack);
+        return GenericStack.fromItemStack(stack);
     }
 
     @Nullable
@@ -345,7 +347,7 @@ class RecipeTransferHandler<T extends Container> implements IRecipeTransferHandl
         if (stack == null || stack.amount <= 0) {
             return null;
         }
-        return AEFluidStack.fromFluidStack(stack.copy());
+        return GenericStack.fromFluidStack(stack.copy());
     }
 
     private static List<PatternTransferIngredient> collectPatternIngredients(

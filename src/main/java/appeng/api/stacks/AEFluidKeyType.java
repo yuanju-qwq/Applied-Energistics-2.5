@@ -238,7 +238,7 @@ final class AEFluidKeyType extends AEKeyType {
     @Nullable
     @Override
     public IAEStack<?> convertStackFromItem(@Nonnull ItemStack input) {
-        return AEFluidStack.fromItemStack(input);
+        return getStackFromContainerItem(input);
     }
 
     @Nullable

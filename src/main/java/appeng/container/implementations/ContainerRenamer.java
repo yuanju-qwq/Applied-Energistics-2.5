@@ -9,6 +9,7 @@ import appeng.api.config.SecurityPermissions;
 import appeng.api.parts.IPart;
 import appeng.client.mui.widgets.MUITextFieldWidget;
 import appeng.container.AEBaseContainer;
+import appeng.container.interfaces.ITextValueSink;
 import appeng.helpers.ICustomNameObject;
 import appeng.util.Platform;
 
@@ -16,7 +17,7 @@ public class ContainerRenamer extends AEBaseContainer {
     private final ICustomNameObject namedObject;
 
     @SideOnly(Side.CLIENT)
-    private MUITextFieldWidget textField;
+    private ITextValueSink textSink;
 
     public ContainerRenamer(InventoryPlayer ip, ICustomNameObject obj) {
         super(ip, obj instanceof TileEntity ? (TileEntity) obj : null, obj instanceof IPart ? (IPart) obj : null);
@@ -24,10 +25,17 @@ public class ContainerRenamer extends AEBaseContainer {
     }
 
     @SideOnly(Side.CLIENT)
+    @Deprecated
     public void setTextField(final MUITextFieldWidget name) {
-        this.textField = name;
-        if (getCustomName() != null)
-            textField.setText(getCustomName());
+        this.setTextSink(name::setText);
+    }
+
+    @SideOnly(Side.CLIENT)
+    public void setTextSink(final ITextValueSink textSink) {
+        this.textSink = textSink;
+        if (getCustomName() != null) {
+            this.textSink.setText(getCustomName());
+        }
     }
 
     public void setNewName(String newValue) {
@@ -38,15 +46,17 @@ public class ContainerRenamer extends AEBaseContainer {
     @Override
     public void setCustomName(final String customName) {
         super.setCustomName(customName);
-        if (!Platform.isServer() && customName != null)
-            textField.setText(customName);
+        if (!Platform.isServer() && customName != null && this.textSink != null) {
+            this.textSink.setText(customName);
+        }
     }
 
     @Override
     public void detectAndSendChanges() {
         verifyPermissions(SecurityPermissions.BUILD, false);
         super.detectAndSendChanges();
-        if (!Platform.isServer() && getCustomName() != null)
-            textField.setText(getCustomName());
+        if (!Platform.isServer() && getCustomName() != null && this.textSink != null) {
+            this.textSink.setText(getCustomName());
+        }
     }
 }

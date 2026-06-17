@@ -260,6 +260,17 @@ public class PartExportBus extends PartSharedItemBus implements ICraftingRequest
     }
 
     @Override
+    public GenericStack injectCraftedItems(final ICraftingLink link, final GenericStack items, final Actionable mode) {
+        IAEStack<?> legacyStack = items.what().toIAEStack(items.amount());
+        if (!(legacyStack instanceof IAEItemStack)) {
+            return items;
+        }
+
+        IAEStack<?> remaining = this.injectCraftedItems(link, legacyStack, mode);
+        return remaining != null ? GenericStack.fromIAEStack(remaining) : null;
+    }
+
+    @Override
     public void jobStateChange(final ICraftingLink link) {
         this.craftingTracker.jobStateChange(link);
     }

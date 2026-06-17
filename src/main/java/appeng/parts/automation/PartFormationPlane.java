@@ -111,7 +111,7 @@ public class PartFormationPlane extends PartAbstractFormationPlane
 
         if (this.getInstalledUpgrades(Upgrades.FUZZY) > 0) {
             this.myHandler.setKeyPartitionList(
-                    new FuzzyAEKeyPriorityList(priorityList.keySet(),
+                    new FuzzyAEKeyPriorityList(priorityList,
                             (FuzzyMode) this.getConfigManager().getSetting(Settings.FUZZY_MODE)));
         } else {
             this.myHandler.setKeyPartitionList(new PreciseAEKeyPriorityList(priorityList.keySet()));

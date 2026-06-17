@@ -41,9 +41,9 @@ import appeng.api.storage.IStorageMonitorable;
 import appeng.api.storage.IStorageMonitorableAccessor;
 import appeng.api.storage.StorageName;
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
+import appeng.api.storage.data.IAEItemStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.capabilities.Capabilities;
 import appeng.core.AppEng;
@@ -184,8 +184,7 @@ public class PartStorageBus extends AbstractPartStorageBus
         final KeyCounter priorityList = new KeyCounter();
         for (int x = 0; x < this.Config.getSizeInventory() && x < slotsToUse; x++) {
             final GenericStack gs = this.Config.getGenericStack(x);
-            final IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack instanceof IAEItemStack && gs != null) {
+            if (gs != null && gs.what() instanceof AEItemKey) {
                 priorityList.add(gs.what(), gs.amount());
             }
         }

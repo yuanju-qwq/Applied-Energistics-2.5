@@ -30,6 +30,7 @@ import net.minecraft.network.PacketBuffer;
 
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.StorageName;
+import java.io.IOException;
 import appeng.container.interfaces.IVirtualSlotHolder;
 import appeng.container.interfaces.IVirtualSlotSource;
 import appeng.core.sync.AppEngPacket;
@@ -55,7 +56,11 @@ public class PacketVirtualSlot extends AppEngPacket {
         for (int i = 0; i < size; i++) {
             final int slot = buf.readInt();
             if (buf.readBoolean()) {
-                this.slotStacks.put(slot, GenericStack.readBuffer(new PacketBuffer(buf)));
+                try {
+                    this.slotStacks.put(slot, GenericStack.readBuffer(new PacketBuffer(buf)));
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to read GenericStack from packet", e);
+                }
             } else {
                 this.slotStacks.put(slot, null);
             }

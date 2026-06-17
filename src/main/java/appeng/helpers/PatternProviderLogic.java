@@ -797,8 +797,8 @@ public class PatternProviderLogic
         boolean hasNonItemInputs = false;
         if (table instanceof MEInventoryCrafting meTable) {
             for (int x = 0; x < meTable.getSizeInventory(); x++) {
-                final IAEStack<?> aeStack = meTable.getAEStackInSlot(x);
-                if (aeStack != null && !(aeStack instanceof IAEItemStack)) {
+                final GenericStack genericStack = meTable.getGenericStackInSlot(x);
+                if (genericStack != null && !(genericStack.what() instanceof AEItemKey)) {
                     hasNonItemInputs = true;
                     break;
                 }
@@ -808,9 +808,9 @@ public class PatternProviderLogic
         if (hasNonItemInputs && table instanceof MEInventoryCrafting meTable) {
             // Contains fluid/non-item inputs: send directly using generic stacks
             for (int x = 0; x < meTable.getSizeInventory(); x++) {
-                final IAEStack<?> aeStack = meTable.getAEStackInSlot(x);
-                if (aeStack != null) {
-                    this.addToSendList(new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()));
+                final GenericStack genericStack = meTable.getGenericStackInSlot(x);
+                if (genericStack != null) {
+                    this.addToSendList(genericStack);
                 }
             }
         } else {
@@ -1033,6 +1033,12 @@ public class PatternProviderLogic
             final appeng.api.config.Actionable mode) {
         // PatternProvider 没有 storage 槽，合成结果直接推入网络
         // 保留此方法以满足 ICraftingRequester 接口要求
+        return acquired;
+    }
+
+    public GenericStack injectCraftedItems(final ICraftingLink link, final GenericStack acquired,
+            final appeng.api.config.Actionable mode) {
+        // PatternProvider 没有 storage 槽，合成结果直接推入网络
         return acquired;
     }
 

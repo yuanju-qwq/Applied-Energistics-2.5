@@ -465,7 +465,7 @@ public abstract class AbstractPartStorageBus extends PartUpgradeable
                 }
 
                 if (this.getInstalledUpgrades(Upgrades.FUZZY) > 0) {
-                    this.handler.setKeyPartitionList(new FuzzyAEKeyPriorityList(priorityList.keySet(),
+                    this.handler.setKeyPartitionList(new FuzzyAEKeyPriorityList(priorityList,
                             (FuzzyMode) this.getConfigManager().getSetting(Settings.FUZZY_MODE)));
                 } else {
                     this.handler.setKeyPartitionList(new PreciseAEKeyPriorityList(priorityList.keySet()));

@@ -63,6 +63,7 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.storage.IBaseMonitor;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
+import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.storage.IMEMonitorHandlerReceiver;
 import appeng.api.storage.StorageName;
@@ -82,7 +83,6 @@ import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketMEInventoryUpdate;
 import appeng.core.sync.packets.PacketValueConfig;
 import appeng.fluids.items.FluidDummyItem;
-import appeng.fluids.util.AEFluidStack;
 import appeng.helpers.IContainerCraftingPacket;
 import appeng.helpers.WirelessTerminalGuiObject;
 import appeng.items.contents.CellConfigLegacy;
@@ -95,18 +95,17 @@ import appeng.util.IConfigManagerHost;
 import appeng.util.Platform;
 import appeng.util.helpers.ItemHandlerUtil;
 import appeng.util.inv.InvOperation;
-import appeng.util.item.AEItemStack;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 /**
- * 无线二合一接口终端的容器�?
- * 继承�?ContainerWirelessInterfaceTerminal，获得接口列表同�?无线管理能力�?
- * 额外嵌入了样板编写功能（�?ContainerPatternEncoder 中移植）�?ME 网络物品监控功能�?
+ * Wireless dual-interface terminal container.
+ * Extends ContainerWirelessInterfaceTerminal, inheriting interface list and wireless management.
+ * Embeds pattern encoding (ported from ContainerPatternEncoder) and ME network inventory monitoring.
  *
- * 布局说明�?
- * - 接口终端数据同步：由父类 ContainerInterfaceTerminal �?detectAndSendChanges 处理
- * - 无线终端管理：由父类 ContainerWirelessInterfaceTerminal �?detectAndSendChanges 处理
- * - 样板编写：本类内嵌的 crafting/output/pattern 槽位（crafting/output 使用Virtual slot同步�?
+ * Layout description:
+ * - Interface terminal data sync: handled by parent ContainerInterfaceTerminal detectAndSendChanges
+ * - Wireless terminal management: handled by parent ContainerWirelessInterfaceTerminal detectAndSendChanges
+ * - Pattern encoding: embedded crafting/output/pattern slots (crafting/output use Virtual slot sync)
  * - ME物品浏览：通过 IMEMonitorHandlerReceiver 监控 AE 网络库存变化
  */
 @SuppressWarnings("unchecked")
@@ -121,7 +120,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private static final String NBT_PATTERNS = "wirelessDualPatternSlots";
     private static final String LEGACY_NBT_PATTERNS = "patterns";
 
-    // ========== 样板编写相关字段（从 ContainerPatternEncoder 移植�?==========
+    // ========== Pattern encoding fields (ported from ContainerPatternEncoder) ==========
     // 泛型 AE 栈库存，支持物品、流体等任意类型
     private final IAEStackInventory crafting;
     private final IAEStackInventory patternOutput;
@@ -134,7 +133,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
     private final AppEngInternalInventory cOut = new AppEngInternalInventory(null, 1);
 
-    // 服务端用于增量同步的客户端快�?
+    // Client-side snapshot for server incremental sync
     private GenericStack[] craftingClientSlots;
 
     private GenericStack[] outputClientSlots;
@@ -157,7 +156,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private boolean bulkPatternChanged = false;
     private boolean bulkCraftingChanged = false;
 
-    // ========== ME 网络监控相关字段（从 ContainerMEMonitorable 移植�?==========
+    // ========== ME network monitoring fields (ported from ContainerMEMonitorable) ==========
 
     /**
      * Multi-type Monitor mapping: each registered AEKeyType corresponds to one IMEMonitor.
@@ -167,22 +166,22 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     /**
      * Multi-type update queue: server-side changes are queued by type before sending.
      */
-    private final Map<AEKeyType, Set<IAEStack<?>>> meUpdateQueue = new IdentityHashMap<>();
+    private final Map<AEKeyType, Set<GenericStack>> meUpdateQueue = new IdentityHashMap<>();
 
     /**
-     * �?onListUpdate 触发时标记为 true，下�?detectAndSendChanges 时发送全量�?
+     * Flagged true when onListUpdate is triggered; sends full list on next detectAndSendChanges.
      */
     private boolean meNeedListUpdate = false;
 
     /**
-     * GUI 回调引用（客户端），用于�?postUpdate 转发�?GUI
+     * GUI callback reference (client-side), used to forward postUpdate to GUI
      */
     private Object meGui;
 
-    // ========== 排序/过滤设置（从 ContainerMEMonitorable 移植�?==========
+    // ========== Sort/Filter settings (ported from ContainerMEMonitorable) ==========
 
     /**
-     * 客户端配置管理器，用于同步排�?视图设置
+     * Client-side config manager for syncing sort/view settings
      */
     private final IConfigManager clientCM;
 
@@ -192,7 +191,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private IConfigManager serverCM;
 
     /**
-     * AE 网络节点引用，用�?ME 物品交互的电力和存储访问
+     * AE network node reference, used for power and storage access for ME item interaction
      */
     private IGridNode networkNode;
 
@@ -200,13 +199,13 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         super(ip, gui);
         this.guiObject = gui;
 
-        // 初始化排�?视图配置管理�?
+        // Initialize sort/view config manager
         this.clientCM = new ConfigManager(this);
         this.clientCM.registerSetting(Settings.SORT_BY, SortOrder.NAME);
         this.clientCM.registerSetting(Settings.VIEW_MODE, ViewItems.ALL);
         this.clientCM.registerSetting(Settings.SORT_DIRECTION, SortDir.ASCENDING);
 
-        // 初始化样板编写的物品栈（泛型 AE 栈库存，支持Virtual slot同步�?
+        // Initialize pattern encoding item stacks (generic AE stack inventory, supports Virtual slot sync)
         this.crafting = new IAEStackInventory(this, PROCESSING_INPUT_SLOTS, StorageName.CRAFTING_INPUT);
         this.patternOutput = new IAEStackInventory(this, TOTAL_OUTPUT_SLOTS, StorageName.CRAFTING_OUTPUT);
         this.patternSlots = new AppEngInternalInventory(this, 2);
@@ -216,7 +215,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
         this.loadPatternFromNBT();
 
-        // 初始�?ME 网络监控（服务端�?
+        // Initialize ME network monitoring (server-side)
         if (Platform.isServer()) {
             this.serverCM = gui.getConfigManager();
 
@@ -254,15 +253,15 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             }
         }
 
-        // crafting/output 槽位现在�?GUI 侧的 VirtualMEPatternSlot 管理�?
-        // 不再添加 SlotFakeCraftingMatrix / SlotPatternOutputs �?Minecraft Container�?
+        // Crafting/output slots are now managed by GUI-side VirtualMEPatternSlot
+        // No longer add SlotFakeCraftingMatrix / SlotPatternOutputs to Minecraft Container
 
-        // 添加样板编码�?
+        // Add pattern encoder slot
         this.addSlotToContainer(this.craftSlot = new SlotPatternTerm(ip.player, this.getActionSource(), gui,
                 gui, new CellConfigLegacy(this.crafting), patternSlots, this.cOut, 110, -76 + 18, this, 2, this));
         this.craftSlot.setIIcon(-1);
 
-        // 添加空白样板输入槽和编码样板输出�?
+        // Add blank pattern input slot and encoded pattern output slot
         this.addSlotToContainer(
                 this.patternSlotIN = new SlotRestrictedInput(SlotRestrictedInput.PlacableItemType.BLANK_PATTERN,
                         patternSlots, 0, 147, -72 - 9, this.getInventoryPlayer()));
@@ -273,7 +272,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         this.restoreEncodedPatternContents();
     }
 
-    // ========== IMEMonitorHandlerReceiver 接口实现（ME 网络监控�?==========
+    // ========== IMEMonitorHandlerReceiver interface implementation (ME network monitoring) ==========
 
     @Override
     public boolean isValid(final Object verificationToken) {
@@ -281,18 +280,14 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void postChange(final IBaseMonitor monitor, final Iterable<GenericStack> change,
             final IActionSource source) {
         for (final GenericStack gs : change) {
             if (gs == null) continue;
-            IAEStack<?> aes = gs.toIAEStack();
-            if (aes != null) {
-                AEKeyType type = aes.getAEKeyType();
-                Set<IAEStack<?>> queue = this.meUpdateQueue.get(type);
-                if (queue != null) {
-                    queue.add(aes);
-                }
+            AEKeyType type = gs.what().getType();
+            Set<GenericStack> queue = this.meUpdateQueue.get(type);
+            if (queue != null) {
+                queue.add(gs);
             }
         }
     }
@@ -303,7 +298,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 设置 GUI 回调对象（客户端），用于接收 postUpdate 转发�?
+     * Set GUI callback object (client-side) for receiving postUpdate forwarding.
      */
     public void setMeGui(final Object gui) {
         this.meGui = gui;
@@ -448,7 +443,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         return null;
     }
 
-    // ========== IVirtualSlotHolder 接口实现（客户端接收Virtual slot数据�?==========
+    // ========== IVirtualSlotHolder interface (client receives Virtual slot data) ==========
 
     @Override
     public void receiveSlotStacks(StorageName invName, Int2ObjectMap<GenericStack> slotStacks) {
@@ -465,7 +460,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         }
     }
 
-    // ========== IVirtualSlotSource 接口实现（服务端接收客户端Virtual slot更新�?==========
+    // ========== IVirtualSlotSource interface (server receives client Virtual slot updates) ==========
 
     @Override
     public void updateVirtualSlot(StorageName invName, int slotId, GenericStack gs) {
@@ -482,7 +477,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         }
     }
 
-    // ========== 样板编写核心方法（从 ContainerPatternEncoder 移植�?==========
+    // ========== Pattern encoding core methods (ported from ContainerPatternEncoder) ==========
 
     public boolean isCraftingMode() {
         return craftingMode;
@@ -617,13 +612,13 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 更新输出槽位的显�?隐藏状态：
-     * - 合成模式下：显示 craftSlot（单个输出），隐藏所�?outputSlots
-     * - 处理模式下：隐藏 craftSlot，输出由 GUI �?VirtualMEPatternSlot 管理
+     * Update output slot visibility:
+     * - Crafting mode: show craftSlot (single output), hide all outputSlots
+     * - Processing mode: hide craftSlot, output managed by GUI-side VirtualMEPatternSlot
      */
     private void updateOrderOfOutputSlots() {
-        // output 槽位现在�?GUI 侧的 VirtualMEPatternSlot 管理�?
-        // 仅控�?craftSlot（合成模式输出）的可见性�?
+        // Output slots are now managed by GUI-side VirtualMEPatternSlot
+        // Only control craftSlot (crafting mode output) visibility
         if (!this.isCraftingMode()) {
             if (this.craftSlot != null) {
                 this.craftSlot.xPos = -9000;
@@ -642,9 +637,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         if (this.isCraftingMode()) {
             for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
                 final GenericStack gs = this.crafting.getGenericStack(x);
-                final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-                if (is != null) {
-                    is.setStackSize(1);
+                if (gs != null && gs.amount() > 0) {
+                    this.crafting.setGenericStack(x, new GenericStack(gs.what(), 1));
                 }
             }
         }
@@ -782,31 +776,27 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
         for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
             GenericStack gs = this.crafting.getGenericStack(x);
-            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack != null && stack.getStackSize() * multiple < 1) {
+            if (gs != null && gs.amount() * multiple < 1) {
                 canMultiplyInputs = false;
             }
         }
         for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
             GenericStack gs = this.patternOutput.getGenericStack(x);
-            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack != null && stack.getStackSize() * multiple < 1) {
+            if (gs != null && gs.amount() * multiple < 1) {
                 canMultiplyOutputs = false;
             }
         }
         if (canMultiplyInputs && canMultiplyOutputs) {
             for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
                 GenericStack gs = this.crafting.getGenericStack(x);
-                IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-                if (stack != null) {
-                    stack.setStackSize(stack.getStackSize() * multiple);
+                if (gs != null) {
+                    this.crafting.setGenericStack(x, new GenericStack(gs.what(), gs.amount() * multiple));
                 }
             }
             for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
                 GenericStack gs = this.patternOutput.getGenericStack(x);
-                IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-                if (stack != null) {
-                    stack.setStackSize(stack.getStackSize() * multiple);
+                if (gs != null) {
+                    this.patternOutput.setGenericStack(x, new GenericStack(gs.what(), gs.amount() * multiple));
                 }
             }
         }
@@ -821,31 +811,27 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
         for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
             GenericStack gs = this.crafting.getGenericStack(x);
-            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack != null && stack.getStackSize() % divide != 0) {
+            if (gs != null && gs.amount() % divide != 0) {
                 canDivideInputs = false;
             }
         }
         for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
             GenericStack gs = this.patternOutput.getGenericStack(x);
-            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack != null && stack.getStackSize() % divide != 0) {
+            if (gs != null && gs.amount() % divide != 0) {
                 canDivideOutputs = false;
             }
         }
         if (canDivideInputs && canDivideOutputs) {
             for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
                 GenericStack gs = this.crafting.getGenericStack(x);
-                IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-                if (stack != null) {
-                    stack.setStackSize(stack.getStackSize() / divide);
+                if (gs != null) {
+                    this.crafting.setGenericStack(x, new GenericStack(gs.what(), gs.amount() / divide));
                 }
             }
             for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
                 GenericStack gs = this.patternOutput.getGenericStack(x);
-                IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-                if (stack != null) {
-                    stack.setStackSize(stack.getStackSize() / divide);
+                if (gs != null) {
+                    this.patternOutput.setGenericStack(x, new GenericStack(gs.what(), gs.amount() / divide));
                 }
             }
         }
@@ -860,31 +846,27 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
         for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
             GenericStack gs = this.crafting.getGenericStack(x);
-            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack != null && stack.getStackSize() + increase < 1) {
+            if (gs != null && gs.amount() + increase < 1) {
                 canIncreaseInputs = false;
             }
         }
         for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
             GenericStack gs = this.patternOutput.getGenericStack(x);
-            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack != null && stack.getStackSize() + increase < 1) {
+            if (gs != null && gs.amount() + increase < 1) {
                 canIncreaseOutputs = false;
             }
         }
         if (canIncreaseInputs && canIncreaseOutputs) {
             for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
                 GenericStack gs = this.crafting.getGenericStack(x);
-                IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-                if (stack != null) {
-                    stack.setStackSize(stack.getStackSize() + increase);
+                if (gs != null) {
+                    this.crafting.setGenericStack(x, new GenericStack(gs.what(), gs.amount() + increase));
                 }
             }
             for (int x = 0; x < this.patternOutput.getSizeInventory(); x++) {
                 GenericStack gs = this.patternOutput.getGenericStack(x);
-                IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-                if (stack != null) {
-                    stack.setStackSize(stack.getStackSize() + increase);
+                if (gs != null) {
+                    this.patternOutput.setGenericStack(x, new GenericStack(gs.what(), gs.amount() + increase));
                 }
             }
         }
@@ -898,20 +880,20 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 最大化数量（此操作�?IAEStack 上不适用，因为没�?maxStackSize 限制，保留空实现�?
+     * Maximize count (not applicable on IAEStack since there is no maxStackSize limit, kept as no-op).
      */
     public void maximizeCount() {
-        // IAEStack 没有 maxStackSize 的概念，此操作不再适用�?
+        // IAEStack has no maxStackSize concept, this operation no longer applies.
     }
 
-    // ========== PlacePattern（将编码样板放入接口�?==========
+    // ========== PlacePattern (put encoded pattern into interface) ==========
 
     /**
-     * 将编码输出槽中的样板放入指定接口的指定槽位�?
-     * 条件：目标槽为空、编码输出有样板、接口中不存在完全相同的样板�?
+     * Place the pattern from the encoded output slot into the specified interface slot.
+     * Conditions: target slot is empty, encoded output has a pattern, interface does not have an identical pattern.
      *
      * @param interfaceId 接口终端中的接口 ID
-     * @param slot        目标接口的槽位索�?
+     * @param slot        Target interface slot index
      */
     public void placePattern(long interfaceId, int slot) {
         final IItemHandler interfaceHandler = this.getInterfacePatternHandlerById(interfaceId);
@@ -928,36 +910,36 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             return;
         }
         final ItemStack pattern = this.patternSlotOUT.getStack();
-        // 检查接口中是否已有完全相同的样�?
+        // Check if the interface already has an identical pattern
         for (int i = 0; i < interfaceHandler.getSlots(); i++) {
             final ItemStack existing = interfaceHandler.getStackInSlot(i);
             if (!existing.isEmpty() && Platform.itemComparisons().isSameItem(existing, pattern)) {
                 return;
             }
         }
-        // 放入样板并清空编码输�?
+        // Place pattern and clear encoded output
         ItemHandlerUtil.setStackInSlot(interfaceHandler, slot, pattern.copy());
         this.patternSlotOUT.putStack(ItemStack.EMPTY);
         this.detectAndSendChanges();
     }
 
     /**
-     * 获取编码输出�?
+     * Get encoded pattern output slot.
      */
     public SlotRestrictedInput getPatternSlotOUT() {
         return this.patternSlotOUT;
     }
 
-    // ========== DoubleStacks（编码面板翻�?减半�?==========
+    // ========== DoubleStacks (pattern panel double/halve) ==========
 
     /**
-     * 对编码面板上的输�?输出进行翻倍或减半�?
+     * Double or halve the input/output on the encoding panel.
      * 位掩码参数：
-     *   bit 0 = shift（快速模式：×8/÷8，否�?×2/÷2�?
-     *   bit 1 = 右键（反�?除法�?
+     *   bit 0 = shift (fast mode: x8/x8, otherwise x2/x2)
+     *   bit 1 = right-click (reverse/divide)
      * Only effective in processing mode.
      *
-     * @param val 位掩码参�?
+     * @param val Bitmask parameter
      */
     public void doubleStacks(int val) {
         if (this.isCraftingMode()) {
@@ -984,8 +966,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private boolean canMultiplyAEInv(IAEStackInventory inv, int multi) {
         for (int i = 0; i < inv.getSizeInventory(); i++) {
             GenericStack gs = inv.getGenericStack(i);
-            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack != null && stack.getStackSize() * multi > Integer.MAX_VALUE) {
+            if (gs != null && gs.amount() * multi > Integer.MAX_VALUE) {
                 return false;
             }
         }
@@ -995,8 +976,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private boolean canDivideAEInv(IAEStackInventory inv, int multi) {
         for (int i = 0; i < inv.getSizeInventory(); i++) {
             GenericStack gs = inv.getGenericStack(i);
-            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack != null && stack.getStackSize() / multi <= 0) {
+            if (gs != null && gs.amount() / multi <= 0) {
                 return false;
             }
         }
@@ -1006,9 +986,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private void multiplyAEInv(IAEStackInventory inv, int multi) {
         for (int i = 0; i < inv.getSizeInventory(); i++) {
             GenericStack gs = inv.getGenericStack(i);
-            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack != null) {
-                stack.setStackSize(stack.getStackSize() * multi);
+            if (gs != null) {
+                inv.setGenericStack(i, new GenericStack(gs.what(), gs.amount() * multi));
             }
         }
     }
@@ -1016,20 +995,19 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private void divideAEInv(IAEStackInventory inv, int multi) {
         for (int i = 0; i < inv.getSizeInventory(); i++) {
             GenericStack gs = inv.getGenericStack(i);
-            IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack != null) {
-                stack.setStackSize(stack.getStackSize() / multi);
+            if (gs != null) {
+                inv.setGenericStack(i, new GenericStack(gs.what(), gs.amount() / multi));
             }
         }
     }
 
-    // ========== InterfaceTerminal.Double（接口样板翻�?减半�?==========
+    // ========== InterfaceTerminal.Double (interface pattern double/halve) ==========
 
     /**
-     * 对指定接口中所有已编码的处理样板（非合成模式）进行翻倍或减半�?
-     * 直接修改样板物品�?NBT 标签�?in/out 列表�?Count 字段�?
+     * Double or halve all encoded processing patterns (non-crafting) in the specified interface.
+     * Directly modifies the Count field in the pattern item's NBT in/out lists.
      *
-     * @param val         位掩码参数（bit 0=shift快�? bit 1=右键反向�?
+     * @param val         Bitmask parameter (bit 0=shift fast, bit 1=right-click reverse)
      * @param interfaceId 接口终端中的接口 ID
      */
     public void doubleInterfacePatterns(int val, long interfaceId) {
@@ -1069,8 +1047,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 乘以指定倍数：修改样�?NBT 中所�?in/out 条目�?Count 字段
-     * @return 是否所有条目都能安全乘以（不溢�?Integer.MAX_VALUE�?
+     * Multiply by multiplier: modifies Count field of all in/out entries in pattern NBT.
+     * @return whether all entries can safely multiply (without exceeding Integer.MAX_VALUE)
      */
     private boolean multiplyPatternNBT(ItemStack pattern, int multi) {
         NBTTagCompound tag = pattern.getTagCompound();
@@ -1087,8 +1065,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 除以指定除数：修改样�?NBT 中所�?in/out 条目�?Count 字段
-     * @return 是否所有条目都能安全除以（结果 >= 1�?
+     * Divide by divisor: modifies Count field of all in/out entries in pattern NBT.
+     * @return whether all entries can safely divide (result >= 1)
      */
     private boolean dividePatternNBT(ItemStack pattern, int multi) {
         NBTTagCompound tag = pattern.getTagCompound();
@@ -1105,7 +1083,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * �?NBT 条目中获取物品数量，兼容 stackSize 扩展字段
+     * Get item count from NBT entry, compatible with stackSize extended field.
      */
     private int getCountFromNBT(NBTTagCompound entry) {
         if (entry.hasKey("stackSize")) {
@@ -1115,7 +1093,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 将物品数量写�?NBT 条目，大�?127 时同时写�?stackSize 扩展字段
+     * Write item count to NBT entry, writes stackSize extended field when count > 127.
      */
     private void setCountToNBT(NBTTagCompound entry, int count) {
         entry.setInteger("Count", count);
@@ -1179,9 +1157,9 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     // ========== 辅助方法 ==========
 
     /**
-     * 获取编码时的输入物品列表�?
-     * �?inverted=false 时，�?crafting（输入区）获取；
-     * �?inverted=true 时，�?patternOutput（输出区当作输入）获取�?
+     * Get input item list for encoding.
+     * When inverted=false, gets from crafting (input area);
+     * When inverted=true, gets from patternOutput (output area used as input).
      */
     private ItemStack[] getInputs() {
         ItemStack[] result;
@@ -1198,9 +1176,9 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 获取编码时的输出物品列表�?
-     * �?inverted=false 时，�?patternOutput（输出区）获取；
-     * �?inverted=true 时，�?crafting（输入区当作输出）获取�?
+     * Get output item list for encoding.
+     * When inverted=false, gets from patternOutput (output area);
+     * When inverted=true, gets from crafting (input area used as output).
      */
     private ItemStack[] getOutputs() {
         if (this.isCraftingMode()) {
@@ -1230,8 +1208,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         boolean hasValue = false;
         for (int x = 0; x < slotCount; x++) {
             final GenericStack gs = this.crafting.getGenericStack(x);
-            final IAEStack<?> aeStack = gs != null ? gs.toIAEStack() : null;
-            input[x] = aeStack != null ? this.toPatternTerminalStack(aeStack) : ItemStack.EMPTY;
+            input[x] = gs != null ? this.toPatternTerminalStack(gs) : ItemStack.EMPTY;
             if (!input[x].isEmpty()) {
                 hasValue = true;
             }
@@ -1244,9 +1221,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         boolean hasValue = false;
         for (int i = 0; i < this.patternOutput.getSizeInventory(); i++) {
             final GenericStack gs = this.patternOutput.getGenericStack(i);
-            final IAEStack<?> aeStack = gs != null ? gs.toIAEStack() : null;
-            if (aeStack != null && aeStack.getStackSize() > 0) {
-                result[i] = this.toPatternTerminalStack(aeStack);
+            if (gs != null && gs.amount() > 0) {
+                result[i] = this.toPatternTerminalStack(gs);
                 hasValue = true;
             } else {
                 result[i] = ItemStack.EMPTY;
@@ -1256,8 +1232,8 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 合并相同物品：将 ItemStack 数组�?Item+NBT 相同的条目合并为一个，数量累加�?
-     * 用于 Combine（合并模式）下的编码�?
+     * Merge identical items: combines entries with same Item+NBT into one, summing counts.
+     * Used under Combine mode for encoding.
      */
     private ItemStack[] combineItems(ItemStack[] items) {
         final List<ItemStack> merged = new ArrayList<>();
@@ -1286,8 +1262,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
 
         for (int x = 0; x < ic.getSizeInventory(); x++) {
             final GenericStack gs = this.crafting.getGenericStack(x);
-            final IAEStack<?> aeStack = gs != null ? gs.toIAEStack() : null;
-            ic.setInventorySlotContents(x, aeStack != null ? this.toPatternTerminalStack(aeStack) : ItemStack.EMPTY);
+            ic.setInventorySlotContents(x, gs != null ? this.toPatternTerminalStack(gs) : ItemStack.EMPTY);
         }
 
         if (this.currentRecipe == null || !this.currentRecipe.matches(ic, world)) {
@@ -1333,7 +1308,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     private NBTBase createItemTag(final ItemStack i) {
         final NBTTagCompound c = new NBTTagCompound();
         if (!i.isEmpty()) {
-            // FluidDummyItem（流体占位物品）：使用泛型格式序列化为流�?
+            // FluidDummyItem (fluid placeholder item): serialize as fluid using generic format
             if (i.getItem() instanceof FluidDummyItem fluidDummy) {
                 FluidStack fs = fluidDummy.getFluidStack(i);
                 if (fs != null) {
@@ -1343,7 +1318,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                     }
                 }
             }
-            // 流体容器（桶等）：提取流体后使用泛型格式序列�?
+            // Fluid container (bucket etc.): extract fluid and serialize using generic format
             FluidStack fluid = FluidUtil.getFluidContained(i);
             if (fluid != null && fluid.amount > 0) {
                 GenericStack gs = GenericStack.fromFluidStack(fluid);
@@ -1351,14 +1326,14 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                     return GenericStack.writeTag(new GenericStack(gs.what(), (long) fluid.amount * i.getCount()));
                 }
             }
-            // 普通物品：使用标准序列�?
+            // Normal item: use standard serialization
             i.writeToNBT(c);
         }
         return c;
     }
 
     /**
-     * 检查输�?输出中是否包含流体条目（FluidDummyItem 或流体容器）�?
+     * Check if input/output contains fluid entries (FluidDummyItem or fluid container).
      */
     private boolean containsFluid(ItemStack[] stacks) {
         if (stacks == null) {
@@ -1394,17 +1369,17 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         return compacted.isEmpty() ? null : compacted.toArray(new ItemStack[0]);
     }
 
-    // ========== 公共访问器（�?GUI 层使用） ==========
+    // ========== Public accessors (for GUI layer use) ==========
 
     /**
-     * 获取 crafting 输入 IAEStackInventory，供 GUI 层创�?VirtualMEPatternSlot�?
+     * Get crafting input IAEStackInventory for GUI layer to create VirtualMEPatternSlot.
      */
     public IAEStackInventory getCraftingAEInv() {
         return this.crafting;
     }
 
     /**
-     * 获取 output IAEStackInventory，供 GUI 层创�?VirtualMEPatternSlot�?
+     * Get output IAEStackInventory for GUI layer to create VirtualMEPatternSlot.
      */
     public IAEStackInventory getOutputAEInv() {
         return this.patternOutput;
@@ -1460,7 +1435,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 校验并加载样板槽位：仅在 NBT 中数据有效时加载（空白样�?编码样板/无物品）
+     * Validate and load pattern slots: only load when NBT data is valid (blank pattern/encoded pattern/no items).
      */
     private void loadValidPatternSlots(NBTTagCompound data, String key) {
         AppEngInternalInventory tmpInv = new AppEngInternalInventory(null, 2);
@@ -1468,7 +1443,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         for (int i = 0; i < 2; i++) {
             final ItemStack stack = tmpInv.getStackInSlot(i);
             if (!stack.isEmpty() && !isPattern(stack)) {
-                // 非法物品：丢�?
+                // Invalid item: skip
                 continue;
             }
             this.patternSlots.setStackInSlot(i, stack);
@@ -1476,20 +1451,20 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * �?IAEStack 转换�?ItemStack 表示形式（用于样板编码）�?
-     * IAEItemStack �?ItemStack�?
-     * IAEFluidStack �?FluidDummyItem ItemStack�?
+     * Convert GenericStack to ItemStack representation (for pattern encoding).
+     * AEItemKey -> ItemStack
+     * AEFluidKey -> FluidDummyItem ItemStack
      */
-    private ItemStack toPatternTerminalStack(final IAEStack<?> aeStack) {
-        if (aeStack == null) {
+    private ItemStack toPatternTerminalStack(final GenericStack gs) {
+        if (gs == null) {
             return ItemStack.EMPTY;
         }
-        return aeStack.asItemStackRepresentation();
+        return gs.what().asItemStackRepresentation();
     }
 
     /**
-     * 从编码样板中还原输入/输出到编码面板�?
-     * 如果 patternSlotOUT 中有编码样板，则读取 in/out NBT 并放�?crafting/patternOutput�?
+     * Restore input/output from encoded pattern onto the encoding panel.
+     * If patternSlotOUT has an encoded pattern, read in/out NBT and place into crafting/patternOutput.
      */
     @SuppressWarnings("unchecked")
     private void restoreEncodedPatternContents() {
@@ -1540,7 +1515,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
     }
 
     /**
-     * 清空 crafting �?patternOutput 的内容�?
+     * Clear crafting and patternOutput contents.
      */
     private void clearPatternContents() {
         for (int x = 0; x < this.crafting.getSizeInventory(); x++) {
@@ -1573,7 +1548,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
             } else {
                 // 增量更新
                 for (var entry : this.meUpdateQueue.entrySet()) {
-                    final Set<IAEStack<?>> set = entry.getValue();
+                    final Set<GenericStack> set = entry.getValue();
                     if (!set.isEmpty()) {
                         this.sendIncrementalUpdate(entry.getKey(), set);
                         set.clear();
@@ -1581,7 +1556,7 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
                 }
             }
 
-            // 同步配置（排序等设置�?
+            // Sync config (sort settings etc.)
             if (this.serverCM != null) {
                 for (final Settings set : this.serverCM.getSettings()) {
                     final Enum<?> sideLocal = this.serverCM.getSetting(set);
@@ -1606,15 +1581,12 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         }
     }
 
-    @SuppressWarnings("unchecked")
     private void sendFullList(AEKeyType type, IMEMonitor mon) {
         try {
             final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
             for (final it.unimi.dsi.fastutil.objects.Object2LongMap.Entry<AEKey> entry : mon.getAvailableKeyCounter()) {
-                IAEStack<?> stack = entry.getKey().toIAEStack(entry.getLongValue());
-                if (stack != null) {
-                    piu.appendStack(stack);
-                }
+                GenericStack stack = new GenericStack(entry.getKey(), entry.getLongValue());
+                piu.appendStack(stack);
             }
 
             for (final IContainerListener c : this.listeners) {
@@ -1627,12 +1599,11 @@ public class ContainerWirelessDualInterfaceTerminal extends ContainerWirelessInt
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private <T extends IAEStack<T>> void sendIncrementalUpdate(AEKeyType type, Set<IAEStack<?>> changes) {
+    private void sendIncrementalUpdate(AEKeyType type, Set<GenericStack> changes) {
         try {
             final PacketMEInventoryUpdate piu = new PacketMEInventoryUpdate();
-            for (IAEStack<?> stack : changes) {
-                piu.appendStack((T) stack);
+            for (GenericStack stack : changes) {
+                piu.appendStack(stack);
             }
 
             for (final IContainerListener c : this.listeners) {

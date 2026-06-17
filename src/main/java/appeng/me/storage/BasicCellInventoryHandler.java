@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of Applied Energistics 2.
  * Copyright (c) 2013 - 2018, AlgorithmX2, All rights reserved.
  *
@@ -35,6 +35,7 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.ICellInventory;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.IMEInventory;
@@ -115,7 +116,11 @@ public class BasicCellInventoryHandler extends MEInventoryHandler
                 final Set<AEKey> uniqueKeys = new HashSet<>(filterKeys);
                 final AEKeyPartitionList keyList;
                 if (hasFuzzy) {
-                    keyList = new FuzzyAEKeyPriorityList(uniqueKeys, fzMode);
+                    final KeyCounter kc = new KeyCounter();
+                    for (AEKey key : uniqueKeys) {
+                        kc.add(key, 1);
+                    }
+                    keyList = new FuzzyAEKeyPriorityList(kc, fzMode);
                 } else {
                     keyList = new PreciseAEKeyPriorityList(uniqueKeys);
                 }

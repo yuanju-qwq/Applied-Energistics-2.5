@@ -61,7 +61,7 @@ public class ContainerCellWorkbench extends ContainerUpgradeable implements IVir
     private int lastUpgrades = 0;
 
     // 服务端用于增量同步的客户端快�?
-    private final IAEStack<?>[] configClientSlot = new IAEStack[63];
+    private final GenericStack[] configClientSlot = new GenericStack[63];
 
     public ContainerCellWorkbench(final InventoryPlayer ip, final TileCellWorkbench te) {
         super(ip, te);

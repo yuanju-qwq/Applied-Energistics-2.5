@@ -36,8 +36,6 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.IMEMonitor;
-import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AECableType;
 import appeng.core.AppEng;
 import appeng.core.settings.TickRates;
@@ -50,7 +48,6 @@ import appeng.parts.PartModel;
 import appeng.util.InventoryAdaptor;
 import appeng.util.Platform;
 import appeng.util.inv.IInventoryDestination;
-import appeng.util.item.AEItemStack;
 import appeng.util.item.AEItemStackType;
 
 public class PartImportBus extends PartSharedItemBus implements IInventoryDestination {
@@ -145,11 +142,10 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
                 boolean Configured = false;
                 for (int x = 0; x < this.availableSlots(); x++) {
                     final GenericStack raw = this.getConfig().getGenericStack(x);
-                    final IAEItemStack ais = raw != null ? (IAEItemStack) raw.toIAEStack() : null;
-                    if (ais != null && this.itemsToSend > 0) {
+                    if (raw != null && this.itemsToSend > 0) {
                         Configured = true;
                         while (this.itemsToSend > 0) {
-                            if (this.importStuff(myAdaptor, ais, inv, energy, fzMode)) {
+                            if (this.importStuff(myAdaptor, raw, inv, energy, fzMode)) {
                                 break;
                             }
                         }
@@ -173,7 +169,7 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
         return this.worked ? TickRateModulation.FASTER : TickRateModulation.SLOWER;
     }
 
-    private boolean importStuff(final InventoryAdaptor myAdaptor, final IAEItemStack whatToImport,
+    private boolean importStuff(final InventoryAdaptor myAdaptor, final GenericStack whatToImport,
             final IMEMonitor inv, final IEnergySource energy, final FuzzyMode fzMode) {
         final int toSend = this.calculateMaximumAmountToImport(myAdaptor, whatToImport, inv, fzMode);
 
@@ -181,20 +177,19 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
             return true;
         }
 
+        final ItemStack itemDef = whatToImport == null || !(whatToImport.what() instanceof AEItemKey)
+                ? ItemStack.EMPTY : ((AEItemKey) whatToImport.what()).toStack();
         final ItemStack newItems;
 
         if (this.getInstalledUpgrades(Upgrades.FUZZY) > 0) {
-            newItems = myAdaptor.removeSimilarItems(toSend,
-                    whatToImport == null ? ItemStack.EMPTY : whatToImport.getDefinition(), fzMode, this);
+            newItems = myAdaptor.removeSimilarItems(toSend, itemDef, fzMode, this);
         } else {
-            newItems = myAdaptor.removeItems(toSend,
-                    whatToImport == null ? ItemStack.EMPTY : whatToImport.getDefinition(), this);
+            newItems = myAdaptor.removeItems(toSend, itemDef, this);
         }
 
         if (!newItems.isEmpty()) {
-            final IAEItemStack aeStack = AEItemStack.fromItemStack(newItems);
             final GenericStack failed = appeng.util.StorageHelper.poweredInsert(energy, inv,
-                    new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()), this.source);
+                    new GenericStack(AEItemKey.of(newItems), newItems.getCount()), this.source);
 
             if (failed != null) {
                 // try unpowered insert, better be a bit lenient then void items
@@ -215,16 +210,11 @@ public class PartImportBus extends PartSharedItemBus implements IInventoryDestin
         return false;
     }
 
-    private int calculateMaximumAmountToImport(final InventoryAdaptor myAdaptor, final IAEItemStack whatToImport,
+    private int calculateMaximumAmountToImport(final InventoryAdaptor myAdaptor, final GenericStack whatToImport,
             final IMEMonitor inv, final FuzzyMode fzMode) {
         final int toSend = Math.min(this.itemsToSend, 64);
-        final ItemStack itemStackToImport;
-
-        if (whatToImport == null) {
-            itemStackToImport = ItemStack.EMPTY;
-        } else {
-            itemStackToImport = whatToImport.getDefinition();
-        }
+        final ItemStack itemStackToImport = whatToImport == null ? ItemStack.EMPTY
+                : ((AEItemKey) whatToImport.what()).toStack();
 
         final GenericStack itemAmountNotStorable;
         final ItemStack simResult;

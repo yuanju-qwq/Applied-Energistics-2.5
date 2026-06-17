@@ -159,9 +159,11 @@ public class CraftingLink implements ICraftingLink {
      * GenericStack-based variant of {@link #injectItems(IAEStack, Actionable)}.
      */
     public GenericStack injectItems(final GenericStack input, final Actionable mode) {
-        IAEStack<?> result = injectItems(input.toIAEStack(), mode);
-        if (result == null) return null;
-        return GenericStack.fromIAEStack(result);
+        if (this.tie == null || this.tie.getRequest() == null || this.tie.getRequest().getRequester() == null) {
+            return input;
+        }
+
+        return this.tie.getRequest().getRequester().injectCraftedItems(this.tie.getRequest(), input, mode);
     }
 
     public void markDone() {

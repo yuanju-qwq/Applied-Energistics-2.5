@@ -204,6 +204,6 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
 
         // Send to server
         NetworkHandler.instance()
-                .sendToServer(new PacketVirtualSlot(this.getStorageName(), this.getSlotIndex(), currentStack));
+                .sendToServer(new PacketVirtualSlot(this.getStorageName(), this.getSlotIndex(), GenericStack.fromIAEStack(currentStack)));
     }
 }

@@ -25,6 +25,7 @@ import javax.annotation.Nonnull;
 import net.minecraft.item.ItemStack;
 
 import appeng.api.stacks.AEKeyType;
+import appeng.api.storage.data.AEStackTypeRegistry;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.storage.data.IAEStackType;
 import appeng.tile.inventory.IAEStackInventory;

@@ -30,6 +30,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.core.AELog;
 import appeng.core.sync.AEGuiKey;
+import appeng.client.mui.core.AEKeyMUIScreenFactory;
+import appeng.client.mui.core.AEKeyModularPanel;
 
 /**
  * MUI GUI factory registry.
@@ -178,7 +180,11 @@ public final class AEMUIGuiFactory {
             return null;
         }
         try {
-            return reg.hostGuiFactory.createGui(ip, host);
+            final Object gui = reg.hostGuiFactory.createGui(ip, host);
+            if (gui instanceof AEKeyModularPanel panel) {
+                return AEKeyMUIScreenFactory.createScreen(panel);
+            }
+            return gui;
         } catch (Exception e) {
             AELog.warn("Failed to create MUI GUI for key: %s, %s", key.getId(), e.toString());
             return null;

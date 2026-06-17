@@ -241,7 +241,7 @@ public abstract class AEBaseContainer extends Container {
     public IAEFluidStack getTargetFluidStack() {
         final GenericStack gs = this.clientRequestedTargetStack;
         if (gs != null && gs.what() instanceof AEFluidKey fluidKey) {
-            return fluidKey.toIAEStack(gs.amount());
+            return (IAEFluidStack) fluidKey.toIAEStack(gs.amount());
         }
         return null;
     }

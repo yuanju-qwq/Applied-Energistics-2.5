@@ -42,7 +42,9 @@ import appeng.api.implementations.items.IStorageCell;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.ICellInventoryHandler;
 import appeng.api.storage.data.IAEItemStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.api.util.AEPartLocation;
+import appeng.util.item.AEItemStackType;
 import appeng.core.AEConfig;
 import appeng.core.localization.GuiText;
 import appeng.core.sync.AEGuiKeys;
@@ -118,6 +120,11 @@ public class ToolPortableCell extends AEBasePoweredItem implements IStorageCell<
     @Override
     public double getIdleDrain() {
         return 0.5;
+    }
+
+    @Override
+    public IAEStackType<IAEItemStack> getStackType() {
+        return AEItemStackType.INSTANCE;
     }
 
     @Override

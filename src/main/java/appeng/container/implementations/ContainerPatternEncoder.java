@@ -35,7 +35,6 @@ import appeng.api.storage.StorageName;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.container.ContainerNull;
 import appeng.container.guisync.GuiSync;
@@ -89,7 +88,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     protected SlotFakeCraftingMatrix[] craftingSlots;
     protected OptionalSlotFake[] outputSlots;
 
-    // 服务端用于增量同步的客户端快�?
+    // Client-side snapshot for server incremental sync
     private GenericStack[] craftingClientSlots;
     private GenericStack[] outputClientSlots;
 
@@ -184,9 +183,8 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             if (inv == null) return;
             for (int x = 0; x < inv.getSizeInventory(); x++) {
                 final GenericStack gs = inv.getGenericStack(x);
-                final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-                if (is != null) {
-                    is.setStackSize(1);
+                if (gs != null) {
+                    inv.setGenericStack(x, new GenericStack(gs.what(), 1));
                 }
             }
         }
@@ -278,16 +276,16 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
         boolean requiresSpecialPattern = (encodedOut == null);
         if (!requiresSpecialPattern) {
-            requiresSpecialPattern = true; // 假设需要特殊样�?
+            requiresSpecialPattern = true; // Assume special pattern needed
             for (ItemStack stack : encodedOut) {
                 if (!stack.isEmpty()) {
-                    requiresSpecialPattern = false; // 找到有效输出，不需要特殊样�?
+                    requiresSpecialPattern = false; // Found valid output, special pattern not needed
                     break;
                 }
             }
         }
 
-        // 检查当前输出槽样板类型是否匹配需�?
+        // Check if current output slot pattern type matches requirements
         boolean isCurrentSpecial = this.isSpecialPattern(output);
         boolean typeMatches = (requiresSpecialPattern == isCurrentSpecial);
 
@@ -296,16 +294,16 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             // 从输入槽获取普通空白样板（输入槽只接受普通空白样板）
             ItemStack blankPattern = this.patternSlotIN.getStack();
             if (blankPattern.isEmpty() || !this.isPattern(blankPattern)) {
-                return; // 无可用空白样�?
+                return; // No blank pattern available
             }
 
-            // 消耗一个空白样�?
+            // Consume one blank pattern
             blankPattern.shrink(1);
             if (blankPattern.isEmpty()) {
                 this.patternSlotIN.putStack(ItemStack.EMPTY);
             }
 
-            // 根据输出状态创建对应类型的新样�?
+            // Create new pattern of appropriate type based on output
             Optional<ItemStack> newPatternOpt = requiresSpecialPattern
                     ? AEApi.instance().definitions().items().specialEncodedPattern().maybeStack(1)
                     : AEApi.instance().definitions().items().encodedPattern().maybeStack(1);
@@ -325,7 +323,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
             tagIn.appendTag(this.createItemTag(i));
         }
 
-        // 即使 out �?null，也写入空列表（保持NBT结构完整�?
+        // Even if out is null, write an empty list (maintain NBT structure integrity)
         if (encodedOut != null) {
             for (final ItemStack i : encodedOut) {
                 tagOut.appendTag(this.createItemTag(i));
@@ -366,7 +364,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     }
 
     /**
-     * 判断物品是否为特殊样板（specialEncodedPattern�?
+     * Detect if item is a special pattern (specialEncodedPattern)
      */
     private boolean isSpecialPattern(ItemStack stack) {
         if (stack.isEmpty())
@@ -384,24 +382,20 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
             final GenericStack gs = craftInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null && is.getStackSize() * multiple < 1) return;
+            if (gs != null && gs.amount() * multiple < 1) return;
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
             final GenericStack gs = outInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null && is.getStackSize() * multiple < 1) return;
+            if (gs != null && gs.amount() * multiple < 1) return;
         }
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
             final GenericStack gs = craftInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null) is.setStackSize(is.getStackSize() * multiple);
+            if (gs != null) craftInv.setGenericStack(x, new GenericStack(gs.what(), gs.amount() * multiple));
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
             final GenericStack gs = outInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null) is.setStackSize(is.getStackSize() * multiple);
+            if (gs != null) outInv.setGenericStack(x, new GenericStack(gs.what(), gs.amount() * multiple));
         }
     }
 
@@ -412,24 +406,20 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
             final GenericStack gs = craftInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null && is.getStackSize() % divide != 0) return;
+            if (gs != null && gs.amount() % divide != 0) return;
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
             final GenericStack gs = outInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null && is.getStackSize() % divide != 0) return;
+            if (gs != null && gs.amount() % divide != 0) return;
         }
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
             final GenericStack gs = craftInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null) is.setStackSize(is.getStackSize() / divide);
+            if (gs != null) craftInv.setGenericStack(x, new GenericStack(gs.what(), gs.amount() / divide));
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
             final GenericStack gs = outInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null) is.setStackSize(is.getStackSize() / divide);
+            if (gs != null) outInv.setGenericStack(x, new GenericStack(gs.what(), gs.amount() / divide));
         }
     }
 
@@ -440,24 +430,20 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
             final GenericStack gs = craftInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null && is.getStackSize() + increase < 1) return;
+            if (gs != null && gs.amount() + increase < 1) return;
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
             final GenericStack gs = outInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null && is.getStackSize() + increase < 1) return;
+            if (gs != null && gs.amount() + increase < 1) return;
         }
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
             final GenericStack gs = craftInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null) is.setStackSize(is.getStackSize() + increase);
+            if (gs != null) craftInv.setGenericStack(x, new GenericStack(gs.what(), gs.amount() + increase));
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
             final GenericStack gs = outInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null) is.setStackSize(is.getStackSize() + increase);
+            if (gs != null) outInv.setGenericStack(x, new GenericStack(gs.what(), gs.amount() + increase));
         }
     }
 
@@ -468,24 +454,20 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
             final GenericStack gs = craftInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null && is.getStackSize() - decrease < 1) return;
+            if (gs != null && gs.amount() - decrease < 1) return;
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
             final GenericStack gs = outInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null && is.getStackSize() - decrease < 1) return;
+            if (gs != null && gs.amount() - decrease < 1) return;
         }
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
             final GenericStack gs = craftInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null) is.setStackSize(is.getStackSize() - decrease);
+            if (gs != null) craftInv.setGenericStack(x, new GenericStack(gs.what(), gs.amount() - decrease));
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
             final GenericStack gs = outInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null) is.setStackSize(is.getStackSize() - decrease);
+            if (gs != null) outInv.setGenericStack(x, new GenericStack(gs.what(), gs.amount() - decrease));
         }
     }
 
@@ -497,17 +479,15 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         long maxCount = Long.MAX_VALUE;
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
             final GenericStack gs = craftInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null && is instanceof IAEItemStack) {
-                long maxPerStack = ((IAEItemStack) is).getDefinition().getMaxStackSize();
+            if (gs != null && gs.what() instanceof AEItemKey itemKey) {
+                long maxPerStack = itemKey.toStack().getMaxStackSize();
                 maxCount = Math.min(maxCount, maxPerStack);
             }
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
             final GenericStack gs = outInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null && is instanceof IAEItemStack) {
-                long maxPerStack = ((IAEItemStack) is).getDefinition().getMaxStackSize();
+            if (gs != null && gs.what() instanceof AEItemKey itemKey) {
+                long maxPerStack = itemKey.toStack().getMaxStackSize();
                 maxCount = Math.min(maxCount, maxPerStack);
             }
         }
@@ -515,13 +495,11 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
         for (int x = 0; x < craftInv.getSizeInventory(); x++) {
             final GenericStack gs = craftInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null) is.setStackSize(maxCount);
+            if (gs != null) craftInv.setGenericStack(x, new GenericStack(gs.what(), maxCount));
         }
         for (int x = 0; x < outInv.getSizeInventory(); x++) {
             final GenericStack gs = outInv.getGenericStack(x);
-            final IAEStack<?> is = gs != null ? gs.toIAEStack() : null;
-            if (is != null) is.setStackSize(maxCount);
+            if (gs != null) outInv.setGenericStack(x, new GenericStack(gs.what(), maxCount));
         }
     }
 
@@ -535,9 +513,8 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
         for (int x = 0; x < inputSize; x++) {
             final GenericStack gs = inv.getGenericStack(x);
-            final IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-            if (stack != null) {
-                final ItemStack repr = stack.asItemStackRepresentation();
+            if (gs != null) {
+                final ItemStack repr = gs.what().asItemStackRepresentation();
                 if (repr != null && !repr.isEmpty()) {
                     input[x] = repr;
                     hasValue = true;
@@ -572,9 +549,8 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
 
             for (int x = 0; x < inv.getSizeInventory(); x++) {
                 final GenericStack gs = inv.getGenericStack(x);
-                final IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-                if (stack != null) {
-                    final ItemStack repr = stack.asItemStackRepresentation();
+                if (gs != null) {
+                    final ItemStack repr = gs.what().asItemStackRepresentation();
                     if (repr != null && !repr.isEmpty()) {
                         output[x] = repr;
                         hasValue = true;
@@ -603,9 +579,8 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         for (int x = 0; x < ic.getSizeInventory(); x++) {
             if (inv != null) {
                 final GenericStack gs = inv.getGenericStack(x);
-                final IAEStack<?> stack = gs != null ? gs.toIAEStack() : null;
-                if (stack instanceof IAEItemStack) {
-                    final ItemStack itemStack = ((IAEItemStack) stack).createItemStack();
+                if (gs != null && gs.what() instanceof AEItemKey itemKey) {
+                    final ItemStack itemStack = itemKey.toStack((int) gs.amount());
                     ic.setInventorySlotContents(x, itemStack);
                     hasInput |= !itemStack.isEmpty();
                 } else {
@@ -773,7 +748,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
                 }
             }
 
-            // 使用Virtual slot同步 crafting �?output IAEStackInventory
+            // Sync crafting and output IAEStackInventory using Virtual slots
             final IAEStackInventory craftInv = this.getCraftingAEInv();
             final IAEStackInventory outInv = this.getOutputAEInv();
             if (craftInv != null) {
@@ -854,7 +829,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
     }
 
     /**
-     * 检查输�?输出中是否包含流体条目（FluidDummyItem 或流体容器）�?
+     * Check if input/output contains fluid entries (FluidDummyItem or fluid container).
      */
     protected boolean containsFluid(ItemStack[] stacks) {
         if (stacks == null) {
@@ -1009,7 +984,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         }
     }
 
-    // ---- IVirtualSlotHolder 实现（客户端接收服务端推送的Virtual slot数据�?---
+    // ---- IVirtualSlotHolder implementation (client receives Virtual slot data from server) ---
 
     @Override
     public void receiveSlotStacks(StorageName invName, Int2ObjectMap<GenericStack> slotStacks) {
@@ -1052,7 +1027,7 @@ public abstract class ContainerPatternEncoder extends ContainerMEMonitorable
         }
     }
 
-    // ---- IAEStackInventory 访问�?----
+    // ---- IAEStackInventory Accessors ----
 
     public IAEStackInventory getCraftingAEInv() {
         if (this.patternTerminal != null) {

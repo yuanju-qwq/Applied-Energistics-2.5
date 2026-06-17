@@ -44,6 +44,7 @@ import appeng.api.definitions.IMaterials;
 import appeng.api.features.IGrinderRecipe;
 import appeng.api.features.IInscriberRecipe;
 import appeng.client.mui.AEBasePanelGuiHandler;
+import appeng.client.mui.jei.AEKeyGuiHandler;
 import appeng.container.implementations.*;
 import appeng.core.AEConfig;
 import appeng.core.features.AEFeature;
@@ -55,6 +56,7 @@ import appeng.items.parts.ItemFacade;
 public class JEIPlugin implements IModPlugin {
     public static IJeiRuntime runtime;
     public static AEBasePanelGuiHandler muiGuiHandler;
+    public static AEKeyGuiHandler aeKeyMuiGuiHandler;
 
     @Override
     public void registerItemSubtypes(ISubtypeRegistry subtypeRegistry) {
@@ -106,6 +108,9 @@ public class JEIPlugin implements IModPlugin {
         muiGuiHandler = new AEBasePanelGuiHandler();
         registry.addAdvancedGuiHandlers(muiGuiHandler);
         registry.addGhostIngredientHandler(muiGuiHandler.getGuiContainerClass(), muiGuiHandler);
+
+        aeKeyMuiGuiHandler = new AEKeyGuiHandler();
+        registry.addGhostIngredientHandler(aeKeyMuiGuiHandler.getGuiScreenClass(), aeKeyMuiGuiHandler);
     }
 
     private void registerDescriptions(IDefinitions definitions, IModRegistry registry) {

@@ -29,6 +29,7 @@ import net.minecraft.client.gui.GuiScreen;
 import appeng.api.config.PinSectionOrder;
 import appeng.api.config.PinsRows;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.stacks.GenericStack;
 import appeng.client.mui.slot.VirtualMEPinSlot;
 import appeng.client.mui.slot.VirtualMEMonitorableSlot;
 import appeng.client.me.ItemRepo;
@@ -231,7 +232,7 @@ public class TerminalPinSystem {
                     IAEStack<?> stack = pinSlot.getAEStack();
                     if (stack != null) {
                         ContainerMEMonitorable c = host.getMonitorableContainer();
-                        ((AEBaseContainer) c).setTargetStack(stack);
+                        ((AEBaseContainer) c).setTargetStack(stack != null ? new GenericStack(stack.toAEKey(), stack.getStackSize()) : null);
                         PacketInventoryAction p = new PacketInventoryAction(
                                 InventoryAction.UNSET_PIN,
                                 c.inventorySlots.size(), -1);
@@ -242,7 +243,7 @@ public class TerminalPinSystem {
                     IAEStack<?> stack = meSlot.getAEStack();
                     if (stack != null) {
                         ContainerMEMonitorable c = host.getMonitorableContainer();
-                        ((AEBaseContainer) c).setTargetStack(stack);
+                        ((AEBaseContainer) c).setTargetStack(stack != null ? new GenericStack(stack.toAEKey(), stack.getStackSize()) : null);
                         PacketInventoryAction p = new PacketInventoryAction(
                                 InventoryAction.SET_ITEM_PIN,
                                 c.inventorySlots.size(), -1);

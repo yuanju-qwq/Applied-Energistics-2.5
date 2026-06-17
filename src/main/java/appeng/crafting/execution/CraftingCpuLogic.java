@@ -269,9 +269,7 @@ public class CraftingCpuLogic {
 
     private GenericStack doLinkInject(GenericStack input, Actionable type) {
         if (this.myLastLink == null) return input;
-        IAEStack<?> result = ((CraftingLink) this.myLastLink).injectItems(input.toIAEStack(), type);
-        if (result == null) return null;
-        return GenericStack.fromIAEStack(result);
+        return ((CraftingLink) this.myLastLink).injectItems(input, type);
     }
 
     // ============================================================
@@ -439,21 +437,21 @@ public class CraftingCpuLogic {
         final KeyCounter bridgeCancel = new KeyCounter();
         this.getGenericListOfItem(bridgeCancel, CraftingItemList.ALL);
         for (final var entry : bridgeCancel) {
-            cluster.postChange(entry.getKey().toIAEStack(entry.getLongValue()), this.cluster.getActionSource());
+            cluster.postChange(new GenericStack(entry.getKey(), entry.getLongValue()), this.cluster.getActionSource());
         }
 
         this.isComplete = true;
         this.myLastLink = null;
         this.tasks.clear();
 
-        final List<IAEStack<?>> items = new ArrayList<>(this.waitingFor.size());
+        final List<GenericStack> items = new ArrayList<>(this.waitingFor.size());
         for (final var entry : this.waitingFor) {
-            items.add(entry.getKey().toIAEStack(-entry.getLongValue()));
+            items.add(new GenericStack(entry.getKey(), -entry.getLongValue()));
         }
 
         this.waitingFor.reset();
 
-        for (final IAEStack<?> is : items) {
+        for (final GenericStack is : items) {
             cluster.postCraftingStatusChange(is);
         }
 
@@ -637,7 +635,7 @@ public class CraftingCpuLogic {
 
                                                         if (!is.isEmpty()) {
                                                             cluster.postChange(
-                                                                    AEItemStack.fromItemStack(is),
+                                                                    new GenericStack(AEItemKey.of(is), is.getCount()),
                                                                     this.cluster.getActionSource());
                                                             ic.setInventorySlotContents(x, is);
                                                             found = true;
@@ -652,7 +650,7 @@ public class CraftingCpuLogic {
 
                                             if (ais != null && ais.amount() > 0) {
                                                 cluster.postChange(ais, this.cluster.getActionSource());
-                                                ic.setInventorySlotContents(x, input[x].toIAEStack());
+                                                ic.setInventorySlotContents(x, input[x]);
                                                 if (ais.amount() >= input[x].amount()) {
                                                     found = true;
                                                     continue;
@@ -775,7 +773,7 @@ public class CraftingCpuLogic {
                 appeng.helpers.PatternHelper.PROCESSING_INPUT_HEIGHT);
         for (int x = 0; x < input.length; x++) {
             if (input[x] != null) {
-                ic.setInventorySlotContents(x, input[x].toIAEStack());
+                ic.setInventorySlotContents(x, input[x]);
             }
         }
 
@@ -813,10 +811,9 @@ public class CraftingCpuLogic {
 
     private void returnItems(MEInventoryCrafting ic) {
         for (int x = 0; x < ic.getSizeInventory(); x++) {
-            final IAEStack<?> aeStack = ic.getAEStackInSlot(x);
-            if (aeStack != null) {
-                this.inventory.injectItems(new GenericStack(aeStack.toAEKey(), aeStack.getStackSize()),
-                        Actionable.MODULATE);
+            final GenericStack genericStack = ic.getGenericStackInSlot(x);
+            if (genericStack != null) {
+                this.inventory.injectItems(genericStack, Actionable.MODULATE);
             } else {
                 final ItemStack is = ic.getStackInSlot(x);
                 if (!is.isEmpty()) {
@@ -924,7 +921,7 @@ public class CraftingCpuLogic {
             final KeyCounter list = new KeyCounter();
             this.getGenericListOfItem(list, CraftingItemList.ALL);
             for (final var entry : list) {
-                cluster.postChange(entry.getKey().toIAEStack(entry.getLongValue()), this.cluster.getActionSource());
+                cluster.postChange(new GenericStack(entry.getKey(), entry.getLongValue()), this.cluster.getActionSource());
             }
 
             return whatLink;
@@ -1175,7 +1172,7 @@ public class CraftingCpuLogic {
 
         this.waitingFor = this.readList((NBTTagList) data.getTag("waitingFor"));
         for (final var entry : this.waitingFor) {
-            cluster.postCraftingStatusChange(entry.getKey().toIAEStack(entry.getLongValue()));
+            cluster.postCraftingStatusChange(new GenericStack(entry.getKey(), entry.getLongValue()));
         }
 
         this.lastTime = System.nanoTime();

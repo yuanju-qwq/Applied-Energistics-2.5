@@ -269,7 +269,7 @@ public class PatternTerminalModule {
                             targetInv.setGenericStack(slot.getSlotIndex(), GenericStack.fromIAEStack(aeIngredient.copy()));
                         }
                         NetworkHandler.instance().sendToServer(
-                                new PacketVirtualSlot(slot.getStorageName(), slot.getSlotIndex(), aeIngredient));
+                                new PacketVirtualSlot(slot.getStorageName(), slot.getSlotIndex(), GenericStack.fromIAEStack(aeIngredient)));
                     } else {
                         slot.handleMouseClicked(itemIngredient, false, 0);
                     }

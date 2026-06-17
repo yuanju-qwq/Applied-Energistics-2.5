@@ -53,6 +53,7 @@ import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AECableType;
@@ -264,6 +265,11 @@ public class PartPatternProvider extends PartBasicState implements IGridTickable
     @Override
     public IAEStack<?> injectCraftedItems(final ICraftingLink link, final IAEStack<?> items, final Actionable mode) {
         return this.logic.injectCraftedItems(link, (IAEItemStack) items, mode);
+    }
+
+    @Override
+    public GenericStack injectCraftedItems(final ICraftingLink link, final GenericStack items, final Actionable mode) {
+        return this.logic.injectCraftedItems(link, items, mode);
     }
 
     @Override

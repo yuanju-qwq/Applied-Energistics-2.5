@@ -24,7 +24,6 @@
 package appeng.api.networking.crafting;
 
 import appeng.api.stacks.AEKey;
-import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 
 /**
@@ -38,16 +37,19 @@ public interface ICraftingProviderHelper {
     void addCraftingOption(ICraftingMedium medium, ICraftingPatternDetails api);
 
     /**
+     * Mark a key as emitable by this provider.
+     */
+    void setEmitable(AEKey what);
+
+    /**
      * 设置一个栈（物品/流体等）可被发射。
      * @deprecated Use {@link #setEmitable(AEKey)} instead.
      */
     @Deprecated
-    void setEmitable(IAEStack<?> what);
-
-    /**
-     * AEKey-based variant of {@link #setEmitable(IAEStack)}.
-     */
-    default void setEmitable(AEKey what) {
-        setEmitable(new GenericStack(what, 1).toIAEStack());
+    default void setEmitable(IAEStack<?> what) {
+        AEKey key = what != null ? what.toAEKey() : null;
+        if (key != null) {
+            setEmitable(key);
+        }
     }
 }

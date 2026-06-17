@@ -24,6 +24,7 @@ import net.minecraft.item.ItemStack;
 import appeng.api.AEApi;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.storage.data.IAEStack;
+import appeng.api.storage.data.IAEStackType;
 import appeng.items.materials.MaterialType;
 import appeng.tile.inventory.IAEStackInventory;
 import appeng.util.InventoryAdaptor;
@@ -52,6 +53,11 @@ public final class BasicStorageCell<T extends IAEStack<T>> extends AbstractStora
     @Override
     public double getIdleDrain() {
         return this.spec.getIdleDrain();
+    }
+
+    @Override
+    public IAEStackType<T> getStackType() {
+        return this.spec.getStackType();
     }
 
     @Override

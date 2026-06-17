@@ -224,7 +224,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 ItemStack copy = itemStack.copy();
                 copy.setCount(1);
 
-                final ContainerInteractionResult<IAEFluidStack> simDrain =
+                final ContainerInteractionResult<?> simDrain =
                         AEKeyType.fluids().drainFromContainer(copy, Integer.MAX_VALUE, true);
                 if (!simDrain.isSuccess()) {
                     return ItemStack.EMPTY;
@@ -242,7 +242,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                     }
                 }
 
-                final ContainerInteractionResult<IAEFluidStack> actualDrain =
+                final ContainerInteractionResult<?> actualDrain =
                         AEKeyType.fluids().drainFromContainer(copy, toDrain, false);
                 if (!actualDrain.isSuccess()) {
                     return ItemStack.EMPTY;
@@ -257,7 +257,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                             this.getActionSource());
                     if (spill != null && spill.amount() > 0) {
                         AEKeyType.fluids().fillToContainer(
-                                actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
+                                actualDrain.getResultContainer(), spill, false);
                     }
                 }
 
@@ -296,7 +296,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
 
                 final IAEFluidStack fillRequest = target.copy();
                 fillRequest.setStackSize(Integer.MAX_VALUE);
-                final ContainerInteractionResult<IAEFluidStack> simFill =
+                final ContainerInteractionResult<?> simFill =
                         AEKeyType.fluids().fillToContainer(copiedFluidContainer, fillRequest, true);
                 if (!simFill.isSuccess()) {
                     return;
@@ -310,7 +310,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                     return;
                 }
 
-                final ContainerInteractionResult<IAEFluidStack> simFill2 =
+                final ContainerInteractionResult<?> simFill2 =
                         AEKeyType.fluids().fillToContainer(copiedFluidContainer, canPull, true);
                 if (!simFill2.isSuccess()) {
                     return;
@@ -325,7 +325,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                     return;
                 }
 
-                final ContainerInteractionResult<IAEFluidStack> actualFill =
+                final ContainerInteractionResult<?> actualFill =
                         AEKeyType.fluids().fillToContainer(copiedFluidContainer, pulled, false);
                 if (!actualFill.isSuccess()) {
                     AELog.error("Fluid item [%s] reported a different possible amount than it actually accepted.",
@@ -349,7 +349,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                 ItemStack copiedFluidContainer = held.copy();
                 copiedFluidContainer.setCount(1);
 
-                final ContainerInteractionResult<IAEFluidStack> simDrain =
+                final ContainerInteractionResult<?> simDrain =
                         AEKeyType.fluids().drainFromContainer(copiedFluidContainer, Integer.MAX_VALUE, true);
                 if (!simDrain.isSuccess()) {
                     return;
@@ -367,7 +367,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                     }
                 }
 
-                final ContainerInteractionResult<IAEFluidStack> actualDrain =
+                final ContainerInteractionResult<?> actualDrain =
                         AEKeyType.fluids().drainFromContainer(copiedFluidContainer, toDrain, false);
                 if (!actualDrain.isSuccess()) {
                     return;
@@ -382,7 +382,7 @@ public class ContainerMEPortableFluidCell extends AEBaseContainer implements IAE
                             this.getActionSource());
                     if (spill != null && spill.amount() > 0) {
                         AEKeyType.fluids().fillToContainer(
-                                actualDrain.getResultContainer(), (IAEFluidStack) spill.toIAEStack(), false);
+                                actualDrain.getResultContainer(), spill, false);
                     }
                 }
 
