@@ -20,7 +20,9 @@ package appeng.container.interfaces;
 
 import java.util.List;
 
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.client.mui.legacy.LegacyStackBridge;
 
 /**
  * Callback interface for Crafting CPU status GUI.
@@ -31,12 +33,35 @@ import appeng.api.storage.data.IAEStack;
 public interface ICraftingCPUGuiCallback {
 
     /**
-     * Receive mixed item/fluid status updates from the Crafting CPU.
+     * Receive mixed item/fluid status updates from the Crafting CPU as AEKey-based
+     * {@link GenericStack}. This is the preferred AEKey-only entry point that GUIs
+     * must implement.
+     *
+     * @param list the updated generic stack list
+     * @param ref  update type: 0=stored, 1=crafting, 2=pending
+     */
+    void postGenericStackUpdate(List<GenericStack> list, byte ref);
+
+    /**
+     * @deprecated Use {@link #postGenericStackUpdate(List, byte)} instead. Retained for
+     *             the legacy IAEStack dispatch path in {@link PacketMEInventoryUpdate}.
+     *             Default implementation bridges to the GenericStack entry point.
      *
      * @param list the updated stack list
      * @param ref  update type: 0=stored, 1=crafting, 2=pending
      */
-    void postGenericUpdate(List<IAEStack<?>> list, byte ref);
+    @Deprecated
+    default void postGenericUpdate(List<IAEStack<?>> list, byte ref) {
+        // Bridge legacy IAEStack path to the GenericStack entry point
+        List<GenericStack> generic = new java.util.ArrayList<>(list.size());
+        for (IAEStack<?> stack : list) {
+            GenericStack gs = LegacyStackBridge.toGenericStack(stack);
+            if (gs != null) {
+                generic.add(gs);
+            }
+        }
+        postGenericStackUpdate(generic, ref);
+    }
 
     /**
      * Clear all displayed items.

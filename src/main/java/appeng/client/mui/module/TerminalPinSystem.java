@@ -28,7 +28,6 @@ import net.minecraft.client.gui.GuiScreen;
 
 import appeng.api.config.PinSectionOrder;
 import appeng.api.config.PinsRows;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.stacks.GenericStack;
 import appeng.client.mui.slot.VirtualMEPinSlot;
 import appeng.client.mui.slot.VirtualMEMonitorableSlot;
@@ -229,10 +228,10 @@ public class TerminalPinSystem {
             if (host.isPointInRegion(slot.xPos(), slot.yPos(),
                     slot.getWidth(), slot.getHeight(), localX, localY)) {
                 if (slot instanceof VirtualMEPinSlot pinSlot && btn == 1 && isShiftDown) {
-                    IAEStack<?> stack = pinSlot.getAEStack();
+                    GenericStack stack = pinSlot.getGenericStack();
                     if (stack != null) {
                         ContainerMEMonitorable c = host.getMonitorableContainer();
-                        ((AEBaseContainer) c).setTargetStack(stack != null ? new GenericStack(stack.toAEKey(), stack.getStackSize()) : null);
+                        ((AEBaseContainer) c).setTargetStack(stack);
                         PacketInventoryAction p = new PacketInventoryAction(
                                 InventoryAction.UNSET_PIN,
                                 c.inventorySlots.size(), -1);
@@ -240,10 +239,10 @@ public class TerminalPinSystem {
                         return true;
                     }
                 } else if (slot instanceof VirtualMEMonitorableSlot meSlot && btn == 0 && isCtrlDown) {
-                    IAEStack<?> stack = meSlot.getAEStack();
+                    GenericStack stack = meSlot.getGenericStack();
                     if (stack != null) {
                         ContainerMEMonitorable c = host.getMonitorableContainer();
-                        ((AEBaseContainer) c).setTargetStack(stack != null ? new GenericStack(stack.toAEKey(), stack.getStackSize()) : null);
+                        ((AEBaseContainer) c).setTargetStack(stack);
                         PacketInventoryAction p = new PacketInventoryAction(
                                 InventoryAction.SET_ITEM_PIN,
                                 c.inventorySlots.size(), -1);

@@ -253,7 +253,7 @@
 |------|------|
 | ~~纯 IAEStackType 文件（8个）~~ 已完成迁移 ✅ (2026-06-25) | `MUILevelEmitterPanel`, `MUIFluidLevelEmitterPanel`, `MUIFluidIOPanel`, `MUIFluidFormationPlanePanel`, `MUICellWorkbenchPanel`, `MUIStorageBusPanel`, `MUISecurityStationPanel`, `MUISecurityStationPanelImpl` —— 经核查已无 IAEStack/IAEStackType/IAEItemStack/IAEFluidStack 依赖，仅使用 `IAEStackInventory`（该类虽名为 IAE，但内部存储 `GenericStack[]`，已是纯 AEKey 体系） |
 | 已完全干净（10个 ✅） | `MUICraftingTermPanel`, `MUICraftAmountPanel`, `MUIChestPanel`, `MUIDrivePanel`, `MUIIOPortPanel`, `MUISkyChestPanel`, `MUIVibrationChamberPanel`, `MUIMACPanel`, `MUIInscriberPanel`, `MUIGrinderPanel`, `MUIPriorityPanel`, `MUINetworkToolPanel`, `MUIQNBPanel`, `MUISpatialIOPortPanel`, `MUIQuartzKnifePanel`, `MUIRenamerPanel`, `MUICondenserPanel` |
-| 基础设施 | ~~`DynamicListModule`（弃用方法清理）~~ 已完成 ✅ (2026-06-25, 删除 `@Deprecated postUpdate(List<IAEStack<?>>)`)；`MUIStackRenderer`（桥接清理）, `MUITypeFilter`（旧枚举引用） |
+| 基础设施 | ~~`DynamicListModule`（弃用方法清理）~~ 已完成 ✅ (2026-06-25, 删除 `@Deprecated postUpdate(List<IAEStack<?>>)`)；~~`MUIItemRepo` + `MEItemBrowserModule`（弃用方法清理）~~ 已完成 ✅ (2026-06-25, 删除 `@Deprecated postUpdate(IAEStack<?>)` / `postUpdate(List<IAEStack<?>>)`)；~~`VirtualMEPhantomSlot` + `TerminalPinSystem`（虚拟槽交互重写）~~ 已完成 ✅ (2026-06-25, `handleMouseClicked` 改为 GenericStack 操作，`getAEStack()`→`getGenericStack()`)；~~`ICraftingCPUGuiCallback` + `ICraftConfirmGuiCallback` + `ContainerCraftingCPU` + `ContainerCraftConfirm` + `MUICraftingCPUPanel` + `MUICraftConfirmPanel`（CraftingCPU/CraftConfirm 数据流 GenericStack 直传）~~ 已完成 ✅ (2026-06-25, 删除双重转换，GUI 在 GenericStack 路径下不再接触 IAEStack)；`MUIStackRenderer`（桥接清理）, `MUITypeFilter`（旧枚举引用）, `AEBasePanel`（渲染层 IAEStackTypeRenderer + SlotME.getAEStack()） |
 
 ---
 

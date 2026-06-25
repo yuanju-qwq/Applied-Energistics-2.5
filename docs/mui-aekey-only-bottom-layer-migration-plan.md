@@ -486,7 +486,77 @@ MIGRATION_SCORING.md 中列出的 8 个面板（`MUILevelEmitterPanel`、`MUIFlu
 - `DynamicListModule.postUpdate(List<IAEStack<?>> stacks)` 已 `@Deprecated` 且无外部调用者，直接删除。
 - 移除 `DynamicListModule` 中不再使用的 `IAEStack` import。
 
+#### Phase E：删除 `MUIItemRepo` 和 `MEItemBrowserModule` 的 `@Deprecated` 旧入口
+
+继续 Phase D 的策略，清理 MUI 层中无调用者的 `@Deprecated` IAEStack 入口方法，推进中期完成标准「终端列表更新不再接收 `List<IAEStack<?>>`」。
+
+- `MUIItemRepo.postUpdate(IAEStack<?> stack)` 已 `@Deprecated` 且无外部调用者，直接删除。
+  - 数据流已改为 `IMEMonitorableGuiCallback` 接口的 default `postUpdate(List<IAEStack<?>>)` 在接口层转换为 `RepoEntry` 后调用 `postRepoEntryUpdate`，不再经过 `MUIItemRepo.postUpdate(IAEStack<?>)`。
+- `MEItemBrowserModule.postUpdate(List<IAEStack<?>> list)` 已 `@Deprecated` 且无外部调用者，直接删除。
+  - `MUIMEMonitorablePanel` 实现 `postRepoEntryUpdate` 并委托给 `MEItemBrowserModule.postRepoEntryUpdate`，不再调用旧的 `postUpdate(List<IAEStack<?>>)`。
+- 移除两文件中不再使用的 `IAEStack` import。
+
+仍未清理的 IAEStack 入口（需更深层重构，留到后续阶段）：
+
+- `MUICraftingCPUPanel.postGenericUpdate(List<IAEStack<?>>, byte)`：被 `ContainerCraftingCPU`、`ContainerCraftConfirm`、`PacketMEInventoryUpdate` 调用，需配套改 Container/网络包接口。
+- `VirtualMESlot.getAEStack()`：被 `VirtualMEPhantomSlot.handleMouseClicked()` 等使用 IAEStack 修改操作（`decStackSize`、`copy`），需重写为 `GenericStack` 操作。
+
 #### 验证
 
 - `gradlew compileJava test` 编译通过，75 个测试用例全部通过，0 失败 0 跳过。
+
+#### Phase F：虚拟槽交互重写为 GenericStack（VirtualMESlot / VirtualMEPhantomSlot / TerminalPinSystem）
+
+推进中期完成标准「虚拟槽不再暴露 `getAEStack()`」。在 `VirtualMESlot` 上新增 AEKey-only 主入口 `getGenericStack()`，并将所有客户端交互逻辑从 `IAEStack` 迁移到 `GenericStack`。
+
+- `VirtualMESlot`：
+  - 新增 `getGenericStack()` 方法（基于 `RepoEntry.toGenericStack()`），作为 AEKey-only 主入口。
+  - `getAEStack()` 保留 `@Deprecated`（仍被 `SlotME`/`SlotFluidME`/`AEBaseMEPanel` 等 GuiContainer 兼容层使用，留待渲染层重构）。
+- `VirtualMEPhantomSlot.handleMouseClicked()`：完全重写为 `GenericStack` 操作。
+  - `IAEStack<?> currentStack` → `GenericStack currentStack`。
+  - `getAEStack()` → `getGenericStack()`。
+  - `AEKeyType.convertStackFromItem()` / `getStackFromContainerItem()` 仍返回 `IAEStack`（AEKeyType API 改造属于另一层级），通过 `LegacyStackBridge.toGenericStack()` 在调用点立即桥接。
+  - `AEItemStack.fromItemStack(hand)` → `GenericStack.fromItemStack(hand)`。
+  - `currentStack.decStackSize(-1)` → `new GenericStack(currentStack.what(), currentStack.amount() + 1)`（GenericStack 不可变，构造新实例）。
+  - `currentStack.decStackSize(1)` + `<=0` 检查 → 计算 `newAmount`，`<=0` 则置 `null`。
+  - `stackForHand.equals(currentStack)` → `stackForHand.what().equals(currentStack.what())`（仅比较 key，忽略 amount）。
+  - `stackForHand.getAEKeyType()` → `stackForHand.what().getType()`。
+  - `GenericStack.fromIAEStack(currentStack)` → 直接使用 `currentStack`（已是 GenericStack）。
+  - 移除不再使用的 `AEItemStack` import。
+- `TerminalPinSystem.handleMouseClicked()`：两处 `getAEStack()` 改为 `getGenericStack()`。
+  - `setTargetStack(new GenericStack(stack.toAEKey(), stack.getStackSize()))` 简化为 `setTargetStack(stack)`（已是 GenericStack）。
+  - 移除不再使用的 `IAEStack` import。
+
+#### Phase G：CraftingCPU / CraftConfirm 数据流改为 GenericStack 直传
+
+推进中期完成标准「CraftConfirm + CraftingCPU → IAEStackList → KeyCounter」。消除 Container 层的「GenericStack → IAEStack → AEKey」双重转换，让 GUI 在 GenericStack 路径下不再接触 `IAEStack`。
+
+数据流分析：
+
+```
+PacketMEGenericStackUpdate (GenericStack)
+  └─> Container.postGenericStackUpdate(List<GenericStack>)
+       └─(旧)─> 转换为 List<IAEStack<?>> ─> postGenericUpdate ─> GUI (IAEStack)
+       └─(新)─> 直接转发 ─> guiCallback.postGenericStackUpdate ─> GUI (GenericStack)
+```
+
+改动：
+
+- `ICraftingCPUGuiCallback` / `ICraftConfirmGuiCallback`：
+  - `postGenericStackUpdate(List<GenericStack>, byte)` 改为**抽象方法**（新主入口，GUI 必须实现）。
+  - `postGenericUpdate(List<IAEStack<?>>, byte)` 改为 **`@Deprecated default` 方法**，通过 `LegacyStackBridge.toGenericStack()` 反向桥接到 `postGenericStackUpdate`。旧 `dispatchIAEStack` 路径仍可工作。
+- `ContainerCraftingCPU.postGenericStackUpdate()` / `ContainerCraftConfirm.postGenericStackUpdate()`：
+  - 删除「GenericStack → IAEStack → postGenericUpdate」的双重转换。
+  - 改为直接调用 `guiCallback.postGenericStackUpdate(list, ref)`。
+  - `postGenericUpdate(List<IAEStack<?>>, byte)` 保留 `@Deprecated`（被 `PacketMEInventoryUpdate.dispatchIAEStack` 旧路径调用）。
+- `MUICraftingCPUPanel` / `MUICraftConfirmPanel`：
+  - 用 `postGenericStackUpdate(List<GenericStack>, byte)` 覆盖旧 `postGenericUpdate(List<IAEStack<?>>, byte)` 实现。
+  - `l.toAEKey()` → `l.what()`；`l.getStackSize()` → `l.amount()`。
+  - `MUICraftConfirmPanel` 的 `craftRounds` 在 GenericStack 路径下硬编码为 0（`GenericStack` 不携带 `countRequestableCrafts`，这是现有限制，非本次引入；旧 IAEStack 路径仍通过 default 桥接保留该字段）。
+
+#### 验证
+
+- `gradlew compileJava test` 编译通过，75 个测试用例全部通过，0 失败 0 跳过。
+- grep 检查确认 `MUICraftingCPUPanel`、`MUICraftConfirmPanel`、`VirtualMEPhantomSlot`、`TerminalPinSystem` 不再命中旧 IAE 类型。
+- 剩余 IAEStack 违规集中在渲染层（`AEBasePanel` 的 `IAEStackTypeRenderer`、`SlotME.getAEStack()`）和桥接层（`LegacyStackBridge`，预期保留）。
 

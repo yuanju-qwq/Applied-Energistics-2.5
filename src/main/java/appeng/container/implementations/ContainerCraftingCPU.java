@@ -252,8 +252,10 @@ public class ContainerCraftingCPU extends AEBaseContainer
     }
 
     /**
-     * 泛型版本：接收包含物品和流体的Crafting status更新。
+     * @deprecated Use {@link #postGenericStackUpdate(List, byte)} instead. Retained for
+     *             the legacy IAEStack dispatch path in {@link PacketMEInventoryUpdate}.
      */
+    @Deprecated
     public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
         if (this.guiCallback != null) {
             this.guiCallback.postGenericUpdate(list, ref);
@@ -261,18 +263,17 @@ public class ContainerCraftingCPU extends AEBaseContainer
     }
 
     /**
-     * Client-side handler for {@link appeng.core.sync.packets.PacketMEGenericStackUpdate}.
-     * Converts GenericStack list to IAEStack and delegates to the legacy method.
+     * Client-side handler for AEKey-based inventory updates
+     * ({@link appeng.core.sync.packets.PacketMEGenericStackUpdate} and the GenericStack
+     * dispatch path of {@link PacketMEInventoryUpdate}).
+     * <p>
+     * Forwards directly to {@link ICraftingCPUGuiCallback#postGenericStackUpdate} without
+     * IAEStack conversion. Legacy GUIs fall back via the interface default method.
      */
     public void postGenericStackUpdate(final List<GenericStack> list, final byte ref) {
-        final List<IAEStack<?>> converted = new java.util.ArrayList<>(list.size());
-        for (GenericStack gs : list) {
-            IAEStack<?> aeStack = gs.toIAEStack();
-            if (aeStack != null) {
-                converted.add(aeStack);
-            }
+        if (this.guiCallback != null) {
+            this.guiCallback.postGenericStackUpdate(list, ref);
         }
-        this.postGenericUpdate(converted, ref);
     }
 
     /**

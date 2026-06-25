@@ -24,6 +24,7 @@ import appeng.api.config.SortDir;
 import appeng.api.config.SortOrder;
 import appeng.api.config.ViewItems;
 import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.api.util.AEColor;
 import appeng.client.mui.widgets.MUIScrollBar;
@@ -117,12 +118,12 @@ public class MUICraftingCPUPanel extends AEBasePanel
     }
 
     @Override
-    public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
-        for (final IAEStack<?> l : list) {
-            final AEKey key = l.toAEKey();
+    public void postGenericStackUpdate(final List<GenericStack> list, final byte ref) {
+        for (final GenericStack l : list) {
+            final AEKey key = l.what();
             if (key == null) continue;
 
-            final long amount = l.getStackSize();
+            final long amount = l.amount();
 
             final Map<AEKey, Long> target = switch (ref) {
                 case 0 -> this.storage;
@@ -137,8 +138,8 @@ public class MUICraftingCPUPanel extends AEBasePanel
         }
 
         final Set<AEKey> seen = new HashSet<>();
-        for (final IAEStack<?> l : list) {
-            final AEKey key = l.toAEKey();
+        for (final GenericStack l : list) {
+            final AEKey key = l.what();
             if (key == null || !seen.add(key)) continue;
 
             final long amt = this.getTotal(key);

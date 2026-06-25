@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
 
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.client.mui.AEBasePanel;
@@ -67,7 +68,21 @@ public abstract class VirtualMESlot extends MUICustomSlot {
     public abstract RepoEntry getRepoEntry();
 
     /**
-     * @deprecated Use {@link #getRepoEntry()} instead.
+     * Returns the current stack as an AEKey-only {@link GenericStack}.
+     * <p>
+     * This is the preferred AEKey-based accessor. New code should use this instead
+     * of {@link #getAEStack()}.
+     *
+     * @return the generic stack, or null if this slot has nothing to display
+     */
+    @Nullable
+    public GenericStack getGenericStack() {
+        RepoEntry entry = this.getRepoEntry();
+        return entry != null ? entry.toGenericStack() : null;
+    }
+
+    /**
+     * @deprecated Use {@link #getGenericStack()} or {@link #getRepoEntry()} instead.
      * @return the current AE stack for this slot, may be null
      */
     @Deprecated

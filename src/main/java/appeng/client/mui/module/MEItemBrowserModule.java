@@ -28,7 +28,6 @@ import net.minecraft.util.ResourceLocation;
 
 import appeng.api.config.SearchBoxMode;
 import appeng.api.config.Settings;
-import appeng.api.storage.data.IAEStack;
 import appeng.api.util.IConfigManager;
 import appeng.client.mui.slot.VirtualMEMonitorableSlot;
 import appeng.client.mui.widgets.IMUISortSource;
@@ -672,22 +671,6 @@ public class MEItemBrowserModule implements IMUISortSource {
     public void postRepoEntryUpdate(final List<ItemRepo.RepoEntry> entries) {
         for (final ItemRepo.RepoEntry entry : entries) {
             this.itemRepo.postUpdate(entry);
-        }
-        this.itemRepo.updateView();
-        this.updateItemPanelScrollbar();
-    }
-
-    /**
-     * @deprecated Use {@link #postRepoEntryUpdate(List)} instead.
-     *             Converts IAEStack list to RepoEntry and delegates.
-     */
-    @Deprecated
-    public void postUpdate(final List<IAEStack<?>> list) {
-        for (final IAEStack<?> is : list) {
-            var key = is.toAEKey();
-            if (key != null) {
-                this.itemRepo.postUpdate(key, is.getStackSize(), is.isCraftable());
-            }
         }
         this.itemRepo.updateView();
         this.updateItemPanelScrollbar();

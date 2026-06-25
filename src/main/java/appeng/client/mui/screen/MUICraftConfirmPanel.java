@@ -23,6 +23,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.AEApi;
 import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.storage.ITerminalHost;
 import appeng.api.storage.data.IAEStack;
 import appeng.client.mui.AEMUITheme;
@@ -114,13 +115,15 @@ public class MUICraftConfirmPanel extends AEBasePanel
     // ========== ICraftConfirmGuiCallback ==========
 
     @Override
-    public void postGenericUpdate(final List<IAEStack<?>> list, final byte ref) {
-        for (final IAEStack<?> l : list) {
-            final AEKey key = l.toAEKey();
+    public void postGenericStackUpdate(final List<GenericStack> list, final byte ref) {
+        for (final GenericStack l : list) {
+            final AEKey key = l.what();
             if (key == null) continue;
 
-            final long amount = l.getStackSize();
-            final long craftRounds = ref == 1 ? l.getCountRequestableCrafts() : 0;
+            final long amount = l.amount();
+            // GenericStack does not carry countRequestableCrafts; the legacy
+            // "pattern execution count" display is unavailable on this path.
+            final long craftRounds = 0;
 
             final Map<AEKey, Long> target = switch (ref) {
                 case 0 -> this.storage;
@@ -135,8 +138,8 @@ public class MUICraftConfirmPanel extends AEBasePanel
         }
 
         final Set<AEKey> seen = new HashSet<>();
-        for (final IAEStack<?> l : list) {
-            final AEKey key = l.toAEKey();
+        for (final GenericStack l : list) {
+            final AEKey key = l.what();
             if (key == null || !seen.add(key)) continue;
 
             final long amt = this.getTotal(key);

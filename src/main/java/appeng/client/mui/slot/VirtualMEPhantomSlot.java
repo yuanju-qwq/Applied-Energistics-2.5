@@ -30,10 +30,10 @@ import appeng.api.stacks.GenericStack;
 import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.api.storage.StorageName;
 import appeng.api.storage.data.IAEStack;
+import appeng.client.mui.legacy.LegacyStackBridge;
 import appeng.core.sync.network.NetworkHandler;
 import appeng.core.sync.packets.PacketVirtualSlot;
 import appeng.tile.inventory.IAEStackInventory;
-import appeng.util.item.AEItemStack;
 
 /**
  * Virtual ME phantom slot for displaying and interacting with generic {@link IAEStack}
@@ -100,13 +100,17 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
 
     /**
      * Handle mouse click events.
+     * <p>
+     * Operates entirely on AEKey-based {@link GenericStack}; legacy {@link IAEStack} is
+     * only touched at the {@link AEKeyType} API boundary and immediately bridged via
+     * {@link LegacyStackBridge#toGenericStack(IAEStack)}.
      *
      * @param itemStack     the player's held item stack (client-side)
      * @param isExtraAction whether this is an extended action (e.g. holding a special key)
      * @param mouseButton   the mouse button (0=left, 1=right)
      */
     public void handleMouseClicked(@Nullable ItemStack itemStack, boolean isExtraAction, int mouseButton) {
-        IAEStack<?> currentStack = this.getAEStack();
+        GenericStack currentStack = this.getGenericStack();
         final ItemStack hand = itemStack != null ? itemStack.copy() : null;
 
         if (hand != null && !this.showAmount) {
@@ -121,10 +125,11 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
             }
         }
 
-        // First try to convert held item to a non-item type (e.g. fluid container → fluid stack)
+        // First try to convert held item to a non-item type (e.g. fluid container → fluid stack).
+        // AEKeyType.convertStackFromItem still returns IAEStack, so bridge immediately.
         if (hand != null) {
             for (AEKeyType type : acceptTypes) {
-                IAEStack<?> converted = type.convertStackFromItem(hand);
+                GenericStack converted = LegacyStackBridge.toGenericStack(type.convertStackFromItem(hand));
                 if (converted != null) {
                     currentStack = converted;
                     acceptTypes.clear();
@@ -149,14 +154,15 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
                     if (acceptExtra && (!acceptItem || isExtraAction)) {
                         // Try to extract non-item stacks from container items first
                         for (AEKeyType type : acceptTypes) {
-                            IAEStack<?> stackFromContainer = type.getStackFromContainerItem(hand);
+                            GenericStack stackFromContainer = LegacyStackBridge
+                                    .toGenericStack(type.getStackFromContainerItem(hand));
                             if (stackFromContainer != null) {
                                 currentStack = stackFromContainer;
                                 break;
                             }
                         }
                     } else if (acceptItem) {
-                        currentStack = AEItemStack.fromItemStack(hand);
+                        currentStack = GenericStack.fromItemStack(hand);
                     }
                 } else {
                     currentStack = null;
@@ -167,43 +173,46 @@ public class VirtualMEPhantomSlot extends VirtualMESlot {
                 if (hand != null) {
                     hand.setCount(1);
 
-                    IAEStack<?> stackFromContainer = null;
+                    GenericStack stackFromContainer = null;
                     for (AEKeyType type : acceptTypes) {
-                        stackFromContainer = type.getStackFromContainerItem(hand);
+                        stackFromContainer = LegacyStackBridge.toGenericStack(type.getStackFromContainerItem(hand));
                         if (stackFromContainer != null) {
                             break;
                         }
                     }
 
-                    IAEStack<?> stackForHand = null;
+                    GenericStack stackForHand = null;
                     if (acceptExtra && (!acceptItem || isExtraAction)) {
                         if (stackFromContainer != null) {
                             stackForHand = stackFromContainer;
                         }
                     } else if (acceptItem) {
-                        stackForHand = AEItemStack.fromItemStack(hand);
+                        stackForHand = GenericStack.fromItemStack(hand);
                     }
 
+                    // Increment amount when clicking the same key that is already in the slot
                     if (stackForHand != null && this.showAmount
-                            && acceptTypes.contains(stackForHand.getAEKeyType())
-                            && stackForHand.equals(currentStack)) {
-                        currentStack.decStackSize(-1);
+                            && acceptTypes.contains(stackForHand.what().getType())
+                            && currentStack != null
+                            && stackForHand.what().equals(currentStack.what())) {
+                        currentStack = new GenericStack(currentStack.what(), currentStack.amount() + 1);
                     } else {
                         currentStack = stackForHand;
                     }
                 } else if (currentStack != null) {
-                    currentStack.decStackSize(1);
-                    if (currentStack.getStackSize() <= 0) currentStack = null;
+                    // Decrement amount; clear slot when it reaches zero
+                    long newAmount = currentStack.amount() - 1;
+                    currentStack = newAmount > 0 ? new GenericStack(currentStack.what(), newAmount) : null;
                 }
                 break;
             }
         }
 
         // Set immediately on client to avoid delay during slow network
-        inventory.setGenericStack(this.getSlotIndex(), GenericStack.fromIAEStack(currentStack));
+        inventory.setGenericStack(this.getSlotIndex(), currentStack);
 
         // Send to server
         NetworkHandler.instance()
-                .sendToServer(new PacketVirtualSlot(this.getStorageName(), this.getSlotIndex(), GenericStack.fromIAEStack(currentStack)));
+                .sendToServer(new PacketVirtualSlot(this.getStorageName(), this.getSlotIndex(), currentStack));
     }
 }

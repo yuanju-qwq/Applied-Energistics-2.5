@@ -29,7 +29,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.client.me.ItemRepo;
 import appeng.client.mui.AEBasePanel;
 import appeng.client.mui.IMUIWidget;
@@ -158,18 +157,6 @@ public class MUIItemRepo implements IMUIWidget {
      */
     public void postUpdate(ItemRepo.RepoEntry entry) {
         this.repo.postUpdate(entry);
-    }
-
-    /**
-     * @deprecated Use {@link #postUpdate(AEKey, long, boolean)} instead.
-     *             Converts IAEStack to AEKey and delegates.
-     */
-    @Deprecated
-    public void postUpdate(IAEStack<?> stack) {
-        var key = stack.toAEKey();
-        if (key != null) {
-            this.repo.postUpdate(key, stack.getStackSize(), stack.isCraftable());
-        }
     }
 
     /**
