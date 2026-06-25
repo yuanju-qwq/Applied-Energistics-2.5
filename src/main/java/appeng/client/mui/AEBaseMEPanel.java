@@ -31,7 +31,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.stacks.AEKey;
 import appeng.api.storage.data.IAEItemStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.client.mui.slot.VirtualMESlot;
 import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.client.me.SlotME;
@@ -96,16 +95,6 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
                     currentToolTip.add(TextFormatting.GRAY + format);
                 }
 
-                // Requestable quantity
-                if (myStack.getCountRequestable() > 0) {
-                    final String local = ButtonToolTips.ItemsRequestable.getLocal();
-                    final String formattedAmount = NumberFormat.getNumberInstance(Locale.US)
-                            .format(myStack.getCountRequestable());
-                    final String format = String.format(local, formattedAmount);
-
-                    currentToolTip.add(format);
-                }
-
                 // Craftable marker
                 if (myStack.isCraftable() && AEConfig.instance().isShowCraftableTooltip()) {
                     final String local = ButtonToolTips.ItemsCraftable.getLocal();
@@ -147,8 +136,7 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
     /**
      * Override tooltip drawing to provide rich tooltip for VirtualMESlot.
      * <p>
-     * Uses AEKey-based {@link RepoEntry} as the primary data source, with
-     * fallback to legacy IAEStack for requestable count (not available in RepoEntry).
+     * Uses AEKey-based {@link RepoEntry} as the primary data source.
      * <p>
      * Includes: item original tooltip + stored amount + craftable flag + subclass additions.
      */
@@ -175,15 +163,6 @@ public abstract class AEBaseMEPanel extends AEBasePanel {
                             final String formattedAmount = NumberFormat.getNumberInstance(Locale.US)
                                     .format(entry.amount());
                             lines.add(TextFormatting.GRAY + String.format(local, formattedAmount));
-                        }
-
-                        // Requestable count: requires legacy IAEStack (not available in RepoEntry)
-                        IAEStack<?> aeStack = virtualSlot.getAEStack();
-                        if (aeStack != null && aeStack.getCountRequestable() > 0) {
-                            final String local = ButtonToolTips.ItemsRequestable.getLocal();
-                            final String formattedAmount = NumberFormat.getNumberInstance(Locale.US)
-                                    .format(aeStack.getCountRequestable());
-                            lines.add(String.format(local, formattedAmount));
                         }
 
                         // Craftable flag (from RepoEntry)

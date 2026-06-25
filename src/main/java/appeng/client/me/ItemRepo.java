@@ -30,6 +30,7 @@ import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.AEKeyFilter;
 import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.data.IAEStack;
+import appeng.client.mui.legacy.LegacyStackBridge;
 import appeng.client.mui.widgets.IMUIScrollSource;
 import appeng.client.mui.widgets.IMUISortSource;
 import appeng.core.AEConfig;
@@ -94,33 +95,28 @@ public class ItemRepo {
 
         /**
          * Bridge: create a RepoEntry from a legacy IAEStack.
+         * <p>
+         * Delegates to {@link LegacyStackBridge#toRepoEntry} so that all IAEStack
+         * conversions are centralized in the legacy bridge package.
          *
          * @return the converted entry, or null if input is null or conversion fails
          */
         @Nullable
         public static RepoEntry fromIAEStack(@Nullable IAEStack<?> stack) {
-            if (stack == null) {
-                return null;
-            }
-            var key = stack.toAEKey();
-            if (key == null) {
-                return null;
-            }
-            return new RepoEntry(key, stack.getStackSize(), stack.isCraftable());
+            return LegacyStackBridge.toRepoEntry(stack);
         }
 
         /**
          * Bridge: convert this entry to a legacy IAEStack.
+         * <p>
+         * Delegates to {@link LegacyStackBridge#toIAEStack(RepoEntry)} so that all
+         * IAEStack conversions are centralized in the legacy bridge package.
          *
          * @return the legacy stack, or null if conversion fails
          */
         @Nullable
         public IAEStack<?> toIAEStack() {
-            IAEStack<?> stack = what.toIAEStack(amount);
-            if (stack != null) {
-                stack.setCraftable(craftable);
-            }
-            return stack;
+            return LegacyStackBridge.toIAEStack(this);
         }
     }
 

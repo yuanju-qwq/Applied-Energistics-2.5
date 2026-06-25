@@ -438,3 +438,55 @@ JEI ingredient 转换规则：
 3. 新增 `IAEKeyGuiPanel`
 
 这三者稳定后，再选择 `MUIRenamerPanel` 和 `MUICondenserPanel` 做新 MUI 底座试点。
+
+## 18. 进度记录
+
+### 2026-06-25 — Phase A/B/C/D 完成
+
+本轮在已有 AEKey 体系基础上完成了测试基础设施搭建、IAEStack 残留清理、桥接层抽取与旧入口删除。
+
+#### Phase A：测试基础设施 + 单元测试 + 集成测试
+
+新增 5 个测试类，共 75 个测试用例，全部通过：
+
+| 测试类 | 测试数 | 覆盖范围 |
+|---|---|---|
+| `AEKeyDisplayEntryTest` | 10 | 构造、`of` 工厂、`toGenericStack`、null 安全 |
+| `AEKeyListDataTest` | 17 | `postUpdate` 各重载、snapshot 缓存、`KeyCounter` 入口、`clear`、顺序稳定性 |
+| `AEKeyVirtualSlotTest` | 20 | `containsLocal`/`containsScreen`、位置/尺寸、可见性、`accepts`、`getDisplayEntry` |
+| `AEKeyModularPanelTest` | 19 | virtualSlots 管理、JEI 排除区、`getStackUnderMouse` 命中测试、listData 集成 |
+| `AEKeyDataFlowIntegrationTest` | 9 | `KeyCounter -> AEKeyListData -> List<AEKeyDisplayEntry>` 全链路 |
+
+关键决策：
+
+- `AEItemKey`/`AEFluidKey` 依赖 Minecraft `Item`/`Fluid` 运行时，无法在纯单测中实例化。
+- 新增测试专用 `TestKey`/`TestKeyType` 作为 `AEKey`/`AEKeyType` 的轻量替身，注册 id 为 `ae2_test`，避开生产类型冲突。
+- `TestKey.getPrimaryKey()` 返回 `Integer.valueOf(id)`，确保 `KeyCounter` 的 `IdentityHashMap` 能正确命中 Integer 缓存范围内的 key。
+- `KeyCounter` 内部使用 `IdentityHashMap`，迭代顺序未定义；集成测试通过 `findByTestId` 按 key 查找断言，不依赖顺序。
+
+#### Phase B：清理 dead code + 抽取 `LegacyStackBridge`
+
+勘察发现 `AEBaseMEPanel`/`VirtualMESlot` 中的 IAEStack 残留调用大多是 dead code：`ItemRepo` 不存储 requestable 数量，`RepoEntry.toIAEStack()` 创建的新栈 `countRequestable` 永远为 0，因此所有 `getCountRequestable() > 0` 分支永不执行。
+
+采取「清理 + 桥接抽取」策略：
+
+- 删除 `AEBaseMEPanel.drawTooltip()` 中 `aeStack.getCountRequestable()` dead code 分支。
+- 删除 `AEBaseMEPanel.renderToolTip()` 中 `myStack.getCountRequestable()` dead code 分支。
+- 移除 `AEBaseMEPanel` 中不再使用的 `IAEStack` import。
+- 新建 `appeng.client.mui.legacy.LegacyStackBridge`，集中所有 IAEStack↔AEKey/GenericStack/RepoEntry 转换逻辑，作为单一修改点。
+- `RepoEntry.toIAEStack()`/`fromIAEStack()` 改为委托 `LegacyStackBridge`，保留 API 兼容性。
+- 保留 `VirtualMESlot.getAEStack()`（`@Deprecated`），因为 `VirtualMEPhantomSlot.handleMouseClicked()` 仍合法使用它做 IAEStack 修改操作（`decStackSize` 等）。
+
+#### Phase C：8 个纯 IAEStackType 面板已验证完成迁移
+
+MIGRATION_SCORING.md 中列出的 8 个面板（`MUILevelEmitterPanel`、`MUIFluidLevelEmitterPanel`、`MUIFluidIOPanel`、`MUIFluidFormationPlanePanel`、`MUICellWorkbenchPanel`、`MUIStorageBusPanel`、`MUISecurityStationPanel`、`MUISecurityStationPanelImpl`）经核查**已无任何 `IAEStack`/`IAEStackType`/`IAEItemStack`/`IAEFluidStack` 依赖**，仅使用 `IAEStackInventory`（尽管名字含 IAE，但该类已是纯 AEKey 体系，内部存储 `GenericStack[]`）。MIGRATION_SCORING.md 的分类已过时，需在 Phase F2 中修正。
+
+#### Phase D：删除 `DynamicListModule` 的 `@Deprecated` 旧入口
+
+- `DynamicListModule.postUpdate(List<IAEStack<?>> stacks)` 已 `@Deprecated` 且无外部调用者，直接删除。
+- 移除 `DynamicListModule` 中不再使用的 `IAEStack` import。
+
+#### 验证
+
+- `gradlew compileJava test` 编译通过，75 个测试用例全部通过，0 失败 0 跳过。
+

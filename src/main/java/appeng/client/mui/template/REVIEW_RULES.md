@@ -64,6 +64,7 @@
 **豁免**：仅在以下场景可保留 `IAEStack` 引用：
 - 旧页面迁移中的历史 import（但应在重构中逐步消除）
 - `AEBasePanel`/`AEBaseMEPanel` 基类内部的兼容层
+- `appeng.client.mui.legacy` 包内的桥接类（如 `LegacyStackBridge`），用于集中 IAEStack↔AEKey/GenericStack/RepoEntry 的转换逻辑，作为单一修改点隔离旧体系依赖。新代码不得在 legacy 包外调用这些桥接方法。
 
 ---
 
@@ -115,7 +116,7 @@ if (stack instanceof IAEItemStack) { ... }
 □ R1  继承自 MUITemplatePanel 或 AEBaseMEPanel（而不是 AEBasePanel）
 □ R2  不存在 initGui() 中创建控件的代码
 □ R3  不存在手动重造模块功能的代码（搜 MUIVirtualSlot 列表管理、手动 scroll 等）
-□ R4  不存在 IAEStack / IAEStackType / IItemList / IStorageChannel 的 import
+□ R4  不存在 IAEStack / IAEStackType / IItemList / IStorageChannel 的 import（legacy 包除外）
 □ R5  不存在 instanceof IAEItemStack / instanceof IAEFluidStack 判断
 □ R6  setupWidgets() 是唯一的控件注册入口
 □ R7  总行数未超出对应类型的合理上限

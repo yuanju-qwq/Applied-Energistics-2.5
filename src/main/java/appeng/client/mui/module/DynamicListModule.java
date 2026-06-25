@@ -31,7 +31,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
-import appeng.api.storage.data.IAEStack;
 import appeng.client.me.ItemRepo;
 import appeng.client.me.ItemRepo.RepoEntry;
 import appeng.client.mui.AEBasePanel;
@@ -319,20 +318,6 @@ public class DynamicListModule implements IMUIWidget {
         ItemRepo repo = host.getRepo();
         for (GenericStack stack : stacks) {
             repo.postUpdate(stack, false);
-        }
-    }
-
-    /**
-     * @deprecated Use {@link #postRepoUpdate(List)} or {@link #postUpdate(AEKey, long, boolean)} instead.
-     *             Converts IAEStack list to RepoEntry and delegates.
-     */
-    @Deprecated
-    public void postUpdate(List<IAEStack<?>> stacks) {
-        for (IAEStack<?> is : stacks) {
-            var key = is.toAEKey();
-            if (key != null) {
-                host.getRepo().postUpdate(key, is.getStackSize(), is.isCraftable());
-            }
         }
     }
 
